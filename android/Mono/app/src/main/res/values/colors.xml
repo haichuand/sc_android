@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">@color/brown</color>
+    <color name="colorPrimaryDark">@color/brown_dark</color>
+    <color name="colorAccent">@color/lavender</color>
+
+    <color name="beige">#EEEBE7</color>
+    <color name="brown">#91725F</color>
+    <color name="brown_dark">#52413C</color>
+    <color name="brown_light">#CBBBAD</color>
+    <color name="gray_dark">#404040</color>
+    <color name="gray_light">#F7F7F7</color>
+    <color name="gray_light_2">#E4E4E4</color>
+    <color name="gray_light_3">#BFBFBF</color>
+    <color name="lavender">#8C8BA1</color>
+
+    <color name="divider">@color/gray_light_2</color>
+</resources>
