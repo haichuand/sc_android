@@ -3,6 +3,10 @@
     <declare-styleable name="SimpleTabLayout">
         <attr name="borderColor" format="color"/>
         <attr name="borderHeight" format="dimension"/>
+        <attr name="tabIconColor" format="color"/>
+        <attr name="tabSelectedIconColor" format="color"/>
+        <attr name="tabTextColor"/>
+        <attr name="tabSelectedTextColor"/>
         <attr name="tabIndicatorColor"/>
     </declare-styleable>
 </resources>

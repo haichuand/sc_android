@@ -3,6 +3,7 @@ package com.mono.util;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.support.annotation.NonNull;
 import android.support.design.widget.TabLayout;
 import android.support.design.widget.TabLayout.OnTabSelectedListener;
@@ -11,20 +12,24 @@ import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
 import android.util.AttributeSet;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.mono.R;
 import com.mono.util.SimpleTabPagerAdapter.TabPagerItem;
 
 public class SimpleTabLayout extends LinearLayout {
 
-    private static final float TAB_ALPHA_SELECTED = 1f;
-    private static final float TAB_ALPHA_UNSELECTED = 0.5f;
-
     private TabLayout tabLayout;
     private View lineView;
 
     private SimpleTabPagerAdapter adapter;
+
+    private int tabIconColor;
+    private int tabSelectedIconColor;
+    private int tabTextColor;
+    private int tabSelectedTextColor;
 
     public SimpleTabLayout(Context context) {
         this(context, null);
@@ -63,6 +68,14 @@ public class SimpleTabLayout extends LinearLayout {
         tabLayout.setSelectedTabIndicatorColor(array.getColor(
             R.styleable.SimpleTabLayout_tabIndicatorColor, Color.WHITE));
 
+        tabIconColor = array.getColor(R.styleable.SimpleTabLayout_tabIconColor, Color.LTGRAY);
+        tabSelectedIconColor =
+            array.getColor(R.styleable.SimpleTabLayout_tabSelectedIconColor, Color.WHITE);
+
+        tabTextColor = array.getColor(R.styleable.SimpleTabLayout_tabTextColor, Color.LTGRAY);
+        tabSelectedTextColor =
+            array.getColor(R.styleable.SimpleTabLayout_tabSelectedTextColor, Color.WHITE);
+
         addView(tabLayout, new LayoutParams(
             LayoutParams.MATCH_PARENT,
             LayoutParams.WRAP_CONTENT
@@ -91,10 +104,7 @@ public class SimpleTabLayout extends LinearLayout {
 
             @Override
             public void onTabSelected(Tab tab) {
-                View view = tab.getCustomView();
-                if (view != null) {
-                    view.setAlpha(TAB_ALPHA_SELECTED);
-                }
+                setTabColor(tab, true);
 
                 viewPager.setCurrentItem(tab.getPosition(), smoothScroll);
                 position = tab.getPosition();
@@ -102,10 +112,7 @@ public class SimpleTabLayout extends LinearLayout {
 
             @Override
             public void onTabUnselected(Tab tab) {
-                View view = tab.getCustomView();
-                if (view != null) {
-                    view.setAlpha(TAB_ALPHA_UNSELECTED);
-                }
+                setTabColor(tab, false);
             }
 
             @Override
@@ -128,6 +135,21 @@ public class SimpleTabLayout extends LinearLayout {
         }
     }
 
+    private void setTabColor(Tab tab, boolean selected) {
+        View view = tab.getCustomView();
+
+        if (view != null) {
+            int iconColor = selected ? tabSelectedIconColor : tabIconColor;
+            int textColor = selected ? tabSelectedTextColor : tabTextColor;
+
+            ImageView icon = (ImageView) view.findViewById(R.id.image);
+            icon.setColorFilter(iconColor, PorterDuff.Mode.SRC_ATOP);
+
+            TextView text = (TextView) view.findViewById(R.id.text);
+            text.setTextColor(textColor);
+        }
+    }
+
     public void updateTab(int position) {
         Tab tab = tabLayout.getTabAt(position);
 
@@ -135,10 +157,9 @@ public class SimpleTabLayout extends LinearLayout {
             tab.setCustomView(null);
 
             View view = adapter.getTabView(position);
-            if (position != getSelectedTabPosition()) {
-                view.setAlpha(TAB_ALPHA_UNSELECTED);
-            }
             tab.setCustomView(view);
+
+            setTabColor(tab, position == getSelectedTabPosition());
         }
     }
 
