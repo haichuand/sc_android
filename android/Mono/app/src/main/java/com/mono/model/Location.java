@@ -9,9 +9,18 @@ public class Location {
     public Double latitude;
     public Double longitude;
     public String[] address;
+    public String googlePlaceId;
 
     public Location(long id) {
         this.id = id;
+    }
+    public Location(String name, String googlePlaceId, Double latitude, Double longitude, String[] address) {
+        this(-1);
+        this.googlePlaceId = googlePlaceId;
+        this.name = name;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        for (String s : this.address = address) {}
     }
 
     public Location(String name) {
@@ -55,5 +64,9 @@ public class Location {
         }
 
         return str;
+    }
+
+    public String getName() {
+        return this.name;
     }
 }
