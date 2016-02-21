@@ -70,4 +70,332 @@ public class DatabaseValues {
             DROP_TABLE = dropTableQuery(TABLE);
         }
     }
+
+    public static class User {
+        public static final String TABLE = "`user`";
+
+        public static final String U_ID = "`u_id`";
+        public static final String GOOGLE_REG_ID = "`GoogleRegID`";
+        public static final String MEDIA_ID = "`media_id`";
+        public static final String PHONE_NUMBER = "`phone_number`";
+        public static final String EMAIL = "`email`";
+        public static final String FIRST_NAME = "`first_name`";
+        public static final String LAST_NAME = "`last_name`";
+        public static final String USER_NAME = "`user_name`";
+        public static final String IS_FRIEND = "`is_friend`";
+
+        public static final String[] PROJECTION = {
+                User.U_ID,
+                User.GOOGLE_REG_ID,
+                User.MEDIA_ID,
+                User.PHONE_NUMBER,
+                User.EMAIL,
+                User.FIRST_NAME,
+                User.LAST_NAME,
+                User.USER_NAME,
+                User.IS_FRIEND
+        };
+
+        public static final int INDEX_U_ID = 0;
+        public static final int INDEX_GOOGLE_REG_ID = 1;
+        public static final int INDEX_MEDIA_ID = 2;
+        public static final int INDEX_PHONE_NUMBER = 3;
+        public static final int INDEX_EMAIL = 4;
+        public static final int INDEX_FIRST_NAME = 5;
+        public static final int INDEX_LAST_NAME = 6;
+        public static final int INDEX_USER_NAME = 7;
+        public static final int INDEX_IS_FRIEND = 8;
+
+        public static final String CREATE_TABLE;
+        public static final String DROP_TABLE;
+
+        static {
+            String[] parameters = {
+                    U_ID + " INTEGER PRIMARY KEY AUTOINCREMENT",
+                    GOOGLE_REG_ID + " TEXT",
+                    MEDIA_ID + " INTEGER",
+                    PHONE_NUMBER + " TEXT",
+                    EMAIL + " TEXT",
+                    FIRST_NAME + " TEXT",
+                    LAST_NAME + " TEXT",
+                    USER_NAME + " TEXT",
+                    IS_FRIEND + " INTEGER"
+            };
+
+            CREATE_TABLE = createTableQuery(TABLE, parameters);
+            DROP_TABLE = dropTableQuery(TABLE);
+        }
+    }
+
+    public static class Location {
+        public static final String TABLE = "`location`";
+
+        public static final String LOC_ID = "`loc_id`";
+        public static final String GOOGLE_PLACE_ID = "`GooglePlaceID`";
+        public static final String NAME = "`name`";
+        public static final String ADDRESS = "`address`";
+        public static final String LATITUDE = "`latitude`";
+        public static final String LONGITUDE = "`longitude`";
+        public static final String BEEN_THERE = "`been_there`";
+
+        public static final String[] PROJECTION = {
+                Location.LOC_ID,
+                Location.GOOGLE_PLACE_ID,
+                Location.NAME,
+                Location.ADDRESS,
+                Location.LATITUDE,
+                Location.LONGITUDE,
+                Location.BEEN_THERE
+        };
+
+        public static final int INDEX_LOC_ID = 0;
+        public static final int INDEX_GOOGLE_PALCE_ID = 1;
+        public static final int INDEX_NAME = 2;
+        public static final int INDEX_ADDRESS = 3;
+        public static final int INDEX_LATITUDE = 4;
+        public static final int INDEX_LONGITUDE = 5;
+        public static final int INDEX_BEEN_THERE = 6;
+
+        public static final String CREATE_TABLE;
+        public static final String DROP_TABLE;
+
+        static {
+            String[] parameters = {
+                    LOC_ID + " INTEGER PRIMARY KEY AUTOINCREMENT",
+                    GOOGLE_PLACE_ID + " TEXT",
+                    NAME + " TEXT",
+                    ADDRESS + " TEXT",
+                    LATITUDE + " REAL",
+                    LONGITUDE + " REAL",
+                    BEEN_THERE + " INTEGER"
+            };
+
+            CREATE_TABLE = createTableQuery(TABLE, parameters);
+            DROP_TABLE = dropTableQuery(TABLE);
+        }
+    }
+
+    public static class EventLocationCandidates {
+        public static final String TABLE = "`event_location_candidates`";
+
+        public static final String EVENT_ID = "`event_id`";
+        public static final String LOC_ID = "`loc_id`";
+
+
+
+        public static final String[] PROJECTION = {
+                EventLocationCandidates.EVENT_ID,
+                EventLocationCandidates.LOC_ID
+        };
+
+        public static final int INDEX_EVENT_ID = 0;
+        public static final int INDEX_LOC_ID = 1;
+
+
+        public static final String CREATE_TABLE;
+        public static final String DROP_TABLE;
+
+        static {
+            String[] parameters = {
+                    EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
+                    LOC_ID + " INTEGER REFERENCES " + Location.TABLE + " ( "+ Location.LOC_ID +" )"
+            };
+
+            CREATE_TABLE = createTableQuery(TABLE, parameters);
+            DROP_TABLE = dropTableQuery(TABLE);
+        }
+    }
+
+    public static class Conversation {
+        public static final String TABLE = "`conversation`";
+
+        public static final String C_ID = "`c_id`";
+        public static final String C_NAME = "`c_name`";
+
+
+
+        public static final String[] PROJECTION = {
+                Conversation.C_ID,
+                Conversation.C_NAME
+        };
+
+        public static final int INDEX_C_ID = 0;
+        public static final int INDEX_C_NAME = 1;
+
+
+        public static final String CREATE_TABLE;
+        public static final String DROP_TABLE;
+
+        static {
+            String[] parameters = {
+                    C_ID + " INTEGER PRIMARY KEY AUTOINCREMENT",
+                    C_NAME + " TEXT"
+            };
+
+            CREATE_TABLE = createTableQuery(TABLE, parameters);
+            DROP_TABLE = dropTableQuery(TABLE);
+        }
+    }
+
+    public static class ConversationContent {
+        public static final String TABLE = "`conversation_content`";
+
+        public static final String C_ID = "`c_id`";
+        public static final String SENDER_ID = "`sender_id`";
+        public static final String TEXT = "`text`";
+        public static final String TIMESTAMP = "`timestamp`";
+
+
+        public static final String[] PROJECTION = {
+                ConversationContent.C_ID,
+                ConversationContent.SENDER_ID,
+                ConversationContent.TEXT,
+                ConversationContent.TIMESTAMP
+        };
+
+        public static final int INDEX_C_ID = 0;
+        public static final int INDEX_SENDER_ID = 1;
+        public static final int INDEX_TEXT = 2;
+        public static final int INDEX_TIMESTAMP = 3;
+
+
+        public static final String CREATE_TABLE;
+        public static final String DROP_TABLE;
+
+        static {
+            String[] parameters = {
+                    C_ID + " INTEGER REFERENCES " + Conversation.TABLE + " ( "+ Conversation.C_ID +" )",
+                    SENDER_ID + " INTEGER REFERENCES " + User.TABLE + " ( "+ User.U_ID +" )",
+                    TEXT + " TEXT",
+                    TIMESTAMP + " INTEGER"
+            };
+
+            CREATE_TABLE = createTableQuery(TABLE, parameters);
+            DROP_TABLE = dropTableQuery(TABLE);
+        }
+    }
+
+    public static class EventConversation {
+        public static final String TABLE = "`event_conversation`";
+
+        public static final String EVENT_ID = "`event_id`";
+        public static final String C_ID = "`c_id`";
+
+
+
+        public static final String[] PROJECTION = {
+                EventConversation.EVENT_ID,
+                EventConversation.C_ID
+        };
+
+        public static final int INDEX_EVENT_ID = 0;
+        public static final int INDEX_C_ID = 1;
+
+
+        public static final String CREATE_TABLE;
+        public static final String DROP_TABLE;
+
+        static {
+            String[] parameters = {
+                    EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
+                    C_ID + " INTEGER REFERENCES " + Conversation.TABLE + " ( "+ Conversation.C_ID +" )"
+            };
+
+            CREATE_TABLE = createTableQuery(TABLE, parameters);
+            DROP_TABLE = dropTableQuery(TABLE);
+        }
+    }
+
+    public static class EventAttendee {
+        public static final String TABLE = "`event_attendee`";
+
+        public static final String EVENT_ID = "`event_id`";
+        public static final String ATTENDEE_ID = "`attendee_id`";
+
+
+
+        public static final String[] PROJECTION = {
+                EventAttendee.EVENT_ID,
+                EventAttendee.ATTENDEE_ID
+        };
+
+        public static final int INDEX_EVENT_ID = 0;
+        public static final int INDEX_ATTENDEE_ID = 1;
+
+
+        public static final String CREATE_TABLE;
+        public static final String DROP_TABLE;
+
+        static {
+            String[] parameters = {
+                    EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
+                    ATTENDEE_ID + " INTEGER REFERENCES " + User.TABLE + " ( "+ User.U_ID +" )"
+            };
+
+            CREATE_TABLE = createTableQuery(TABLE, parameters);
+            DROP_TABLE = dropTableQuery(TABLE);
+        }
+    }
+
+    public static class Media {
+        public static final String TABLE = "`media`";
+
+        public static final String MEDIA_ID = "`media_id`";
+        public static final String CONTENT = "`content`";
+
+
+
+        public static final String[] PROJECTION = {
+                Media.MEDIA_ID,
+                Media.CONTENT
+        };
+
+        public static final int INDEX_MEDIA_ID = 0;
+        public static final int INDEX_CONTENT = 1;
+
+
+        public static final String CREATE_TABLE;
+        public static final String DROP_TABLE;
+
+        static {
+            String[] parameters = {
+                    MEDIA_ID + " INTEGER PRIMARY KEY AUTOINCREMENT",
+                    CONTENT + " BLOB"
+            };
+
+            CREATE_TABLE = createTableQuery(TABLE, parameters);
+            DROP_TABLE = dropTableQuery(TABLE);
+        }
+    }
+
+    public static class EventMedia {
+        public static final String TABLE = "`event_media`";
+
+        public static final String E_ID = "`e_id`";
+        public static final String M_ID = "`m_id`";
+
+
+
+        public static final String[] PROJECTION = {
+                EventMedia.E_ID,
+                EventMedia.M_ID
+        };
+
+        public static final int INDEX_E_ID = 0;
+        public static final int INDEX_M_ID = 1;
+
+
+        public static final String CREATE_TABLE;
+        public static final String DROP_TABLE;
+
+        static {
+            String[] parameters = {
+                    E_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
+                    M_ID + " INTEGER REFERENCES " + Media.TABLE + " ( "+ Media.MEDIA_ID +" )"
+            };
+
+            CREATE_TABLE = createTableQuery(TABLE, parameters);
+            DROP_TABLE = dropTableQuery(TABLE);
+        }
+    }
 }
