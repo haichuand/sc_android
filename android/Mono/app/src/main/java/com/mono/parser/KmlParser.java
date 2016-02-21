@@ -88,6 +88,11 @@ public class KmlParser {
         return getUserstay(result);
     }
 
+    /**
+     *
+     * @param inputList
+     * @return the information of places that user had stayed more than 10 mins
+     */
     private ArrayList<LatLngTime> getUserstay(ArrayList<LatLngTime> inputList) {
         ArrayList<LatLngTime> outputList = new ArrayList<>();
         LatLngTime stay = null;

@@ -37,7 +37,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         executeQueries(db, new String[]{
-            DatabaseValues.Event.CREATE_TABLE
+                DatabaseValues.Event.CREATE_TABLE
         });
     }
 

@@ -24,17 +24,19 @@ import java.util.ArrayList;
 import javax.net.ssl.HttpsURLConnection;
 
 
-public class PlaceFinder {
+public class LocationFinder {
 
     private String Google_API_KEY;
     private ArrayList<Location> locationList;
 
-    public PlaceFinder(){
+    public LocationFinder(){
         this.Google_API_KEY = "AIzaSyA-xbzcIj0WtqWJk69PwSKhS3fhGw-KDwU";
     }
 
-
-    public boolean writePlacesToDB(String latitude, String longitude) {
+    /**
+     * get a list of location candidates from given latlong and write them into database table
+     */
+    public boolean writeLocationToDB(String latitude, String longitude) {
         new googleplaces().execute(latitude, longitude);
         return true;
     }
@@ -53,6 +55,7 @@ public class PlaceFinder {
             if(temp != null) {
                 locationList = parseGoogleParse(temp);
                 for(Location location: locationList) {
+                    //TODO:write the result to database
                     System.out.println(location.name);
                 }
             }
@@ -89,6 +92,11 @@ public class PlaceFinder {
         return builder.toString();
     }
 
+    /**
+     *
+     * @param response
+     * @return List of Places return by google place web service
+     */
     private static ArrayList parseGoogleParse(final String response) {
         ArrayList temp = new ArrayList();
         try {
