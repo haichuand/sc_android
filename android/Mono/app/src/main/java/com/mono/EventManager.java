@@ -111,7 +111,7 @@ public class EventManager {
     }
 
     public void createEvent(int actor, String title, String description, String location,
-            int color, long startTime, long endTime, EventActionCallback callback) {
+            int color, long startTime, long endTime, String type, EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
 
         Event event = null;
@@ -125,7 +125,8 @@ public class EventManager {
             color,
             startTime,
             endTime,
-            System.currentTimeMillis()
+            System.currentTimeMillis(),
+            type
         );
 
         if (id > 0) {
@@ -177,7 +178,7 @@ public class EventManager {
     public static void createDummyEvent(Context context, EventActionCallback callback) {
         String[] locations = {"San Francisco", "San Jose", "San Leandro"};
         int[] colors = {Colors.BROWN, Colors.BROWN_LIGHT, Colors.LAVENDAR};
-
+        String type = "calendar"; //temporily specify the type of the event
         getInstance(context).createEvent(
             EventAction.ACTOR_SELF,
             "Title " + (int) (Math.random() * 100),
@@ -186,6 +187,7 @@ public class EventManager {
             colors[(int) (Math.random() * colors.length) % colors.length],
             System.currentTimeMillis() - (int) (Math.random() * 72) * 60 * 60 * 1000,
             System.currentTimeMillis(),
+            type,
             callback
         );
     }

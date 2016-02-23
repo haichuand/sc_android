@@ -19,7 +19,7 @@ public class EventDataSource extends DataSource {
     }
 
     public long createEvent(long externalId, String title, String description, String location,
-            int color, long startTime, long endTime, long createTime) {
+            int color, long startTime, long endTime, long createTime, String type) {
         long id = -1;
 
         ContentValues values = new ContentValues();
@@ -31,6 +31,7 @@ public class EventDataSource extends DataSource {
         values.put(DatabaseValues.Event.START_TIME, startTime);
         values.put(DatabaseValues.Event.END_TIME, endTime);
         values.put(DatabaseValues.Event.CREATE_TIME, createTime);
+        values.put(DatabaseValues.Event.TYPE, type);
 
         try {
             id = database.insert(DatabaseValues.Event.TABLE, values);
@@ -156,6 +157,7 @@ public class EventDataSource extends DataSource {
         event.startTime = cursor.getLong(DatabaseValues.Event.INDEX_START_TIME);
         event.endTime = cursor.getLong(DatabaseValues.Event.INDEX_END_TIME);
         event.createTime = cursor.getLong(DatabaseValues.Event.INDEX_CREATE_TIME);
+        event.type = cursor.getString(DatabaseValues.Event.INDEX_TYPE);
 
         return event;
     }

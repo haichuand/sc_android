@@ -37,7 +37,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         executeQueries(db, new String[]{
-                DatabaseValues.Event.CREATE_TABLE
+                DatabaseValues.Event.CREATE_TABLE,
+                DatabaseValues.User.CREATE_TABLE,
+                DatabaseValues.Conversation.CREATE_TABLE,
+                DatabaseValues.Media.CREATE_TABLE,
+                DatabaseValues.Location.CREATE_TABLE,
+                DatabaseValues.EventConversation.CREATE_TABLE,
+                DatabaseValues.ConversationContent.CREATE_TABLE,
+                DatabaseValues.EventLocationCandidates.CREATE_TABLE,
+                DatabaseValues.EventAttendee.CREATE_TABLE,
+                DatabaseValues.EventMedia.CREATE_TABLE
         });
     }
 
@@ -60,6 +69,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.execSQL(query);
         }
     }
+
 
     public Database connect() {
         if (database == null || !database.isOpen()) {
@@ -100,5 +110,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public static <T extends DataSource> T getDataSource(Context context, Class<T> key) {
         return getInstance(context).getDataSource(key);
+
     }
 }

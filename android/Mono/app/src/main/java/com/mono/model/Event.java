@@ -14,6 +14,7 @@ public class Event {
     public long endTime;
     public long createTime;
     public List<Attendee> attendees;
+    public String type; //calendar or userstay
 
     public Event(long id) {
         this.id = id;

@@ -3,7 +3,7 @@ package com.mono.parser;
 /**
  * Created by xuejing on 2/17/16.
  */
-public class LatLngTime {
+class LatLngTime {
     private double lat;
     private double lng;
     private long startTime;

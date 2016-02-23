@@ -21,6 +21,7 @@ import android.view.MenuItem;
 import android.view.View.OnClickListener;
 
 import com.google.android.gms.maps.SupportMapFragment;
+import com.mono.db.DatabaseHelper;
 import com.mono.settings.Settings;
 import com.mono.settings.SettingsActivity;
 import com.mono.util.GoogleClient;

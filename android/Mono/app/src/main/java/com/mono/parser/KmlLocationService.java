@@ -1,12 +1,15 @@
 package com.mono.parser;
 
-/**
- * Created by xuejing on 2/17/16.
- */
-
+import android.app.IntentService;
+import android.content.Context;
+import android.content.Intent;
 import android.os.AsyncTask;
+import android.os.ResultReceiver;
 import android.util.Log;
 
+import com.mono.db.DatabaseHelper;
+import com.mono.db.dao.EventDataSource;
+import com.mono.db.dao.LocationDataSource;
 import com.mono.model.Location;
 
 import org.json.JSONArray;
@@ -20,43 +23,77 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import javax.net.ssl.HttpsURLConnection;
 
+/**
+ * Created by xuejing on 2/22/16.
+ */
+public class KmlLocationService extends IntentService{
+    private static final String TAG = "KmlLocationService";
+    private final String GOOGLE_API_KEY = "AIzaSyA-xbzcIj0WtqWJk69PwSKhS3fhGw-KDwU";
+    private final String TYPE = "userstay";
+    private EventDataSource eventDataSource;
+    private LocationDataSource locationDataSource;
+    private Context context;
+    private ResultReceiver mReceiver;
+    private KmlParser parser;
+    private String tempFile = "";
+    private HashMap<Integer, LatLngTime> map;
+    ArrayList<LatLngTime> userStays;
 
-public class LocationFinder {
+    public KmlLocationService () {
+        super(TAG);
+    }
 
-    private String Google_API_KEY;
-    private ArrayList<Location> locationList;
+    public void onHandleIntent (Intent intent) {
+        eventDataSource = DatabaseHelper.getDataSource(this.context, EventDataSource.class);
+        locationDataSource = DatabaseHelper.getDataSource(this.context, LocationDataSource.class);
+        getAndSaveNewUserStayEvents();
 
-    public LocationFinder(){
-        this.Google_API_KEY = "AIzaSyA-xbzcIj0WtqWJk69PwSKhS3fhGw-KDwU";
+    }
+
+    public void getAndSaveNewUserStayEvents() {
+        userStays = parser.parse(tempFile);
+        for(LatLngTime llt : userStays) {
+            long event_id = eventDataSource.createEvent(-1,"","","",-1,llt.getStartTime(), llt.getEndTime(),
+                    llt.getStartTime(),this.TYPE);
+            writeLocationAndEventToDB(String.valueOf(llt.getLat()), String.valueOf(llt.getLng()), event_id);
+        }
     }
 
     /**
-     * get a list of location candidates from given latlong and write them into database table
+     * write corresponding location and event(TYPE: userstay) from given latlong and write them into database tables
      */
-    public boolean writeLocationToDB(String latitude, String longitude) {
-        new googleplaces().execute(latitude, longitude);
+    private boolean writeLocationAndEventToDB(String latitude, String longitude, long event_id) {
+        new googleplaces().execute(latitude, longitude, String.valueOf(event_id));
         return true;
     }
 
     private class googleplaces extends AsyncTask<String, Void, String> {
         String temp;
+        ArrayList<Location> locationList;
+        long event_id;
 
         protected String doInBackground(String ... params) {
             String latitude = params[0];
             String longitude = params[1];
-            String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + latitude + "," + longitude + "&radius=10&key=" + Google_API_KEY;
+            event_id = Long.parseLong(params[2]);
+            String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + latitude + "," + longitude +
+                    "&radius=10&key=" + GOOGLE_API_KEY;
             temp = makeCall(url);
             return "";
         }
         protected void onPostExecute(String result) {
             if(temp != null) {
-                locationList = parseGoogleParse(temp);
+                locationList = parseGooglePlace(temp);
                 for(Location location: locationList) {
-                    //TODO:write the result to database
-                    System.out.println(location.name);
+                    if(location != null) {
+                        locationDataSource.createLocationAsCandidates(location.name, location.googlePlaceId,
+                                location.latitude,location.longitude,location.address.toString(), event_id);
+                    }
+
                 }
             }
         }
@@ -97,7 +134,7 @@ public class LocationFinder {
      * @param response
      * @return List of Places return by google place web service
      */
-    private static ArrayList parseGoogleParse(final String response) {
+    private static ArrayList parseGooglePlace(final String response) {
         ArrayList temp = new ArrayList();
         try {
             JSONObject jsonObject = new JSONObject(response);

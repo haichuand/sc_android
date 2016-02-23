@@ -27,6 +27,7 @@ public class DatabaseValues {
         public static final String START_TIME = "`start_time`";
         public static final String END_TIME = "`end_time`";
         public static final String CREATE_TIME = "`create_time`";
+        public static final String TYPE = "`type`";
 
         public static final String[] PROJECTION = {
             Event.ID,
@@ -37,7 +38,8 @@ public class DatabaseValues {
             Event.COLOR,
             Event.START_TIME,
             Event.END_TIME,
-            Event.CREATE_TIME
+            Event.CREATE_TIME,
+            Event.TYPE
         };
 
         public static final int INDEX_ID = 0;
@@ -49,6 +51,7 @@ public class DatabaseValues {
         public static final int INDEX_START_TIME = 6;
         public static final int INDEX_END_TIME = 7;
         public static final int INDEX_CREATE_TIME = 8;
+        public static final int INDEX_TYPE = 9;
 
         public static final String CREATE_TABLE;
         public static final String DROP_TABLE;
@@ -63,7 +66,8 @@ public class DatabaseValues {
                 COLOR + " INTEGER",
                 START_TIME + " INTEGER",
                 END_TIME + " INTEGER",
-                CREATE_TIME + " INTEGER"
+                CREATE_TIME + " INTEGER",
+                TYPE + " TEXT"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);
