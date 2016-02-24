@@ -3,7 +3,10 @@ package com.mono.parser;
 /**
  * Created by xuejing on 2/17/16.
  */
+import android.os.Environment;
 import android.util.Log;
+
+import com.mono.MainActivity;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,20 +33,28 @@ public class KmlParser {
     }
 
     public ArrayList<LatLngTime> parse(String fileName) {
-        ArrayList<LatLngTime> result = new ArrayList<>();
-        try {
-            builder = factory.newDocumentBuilder();
-            Document document = builder.parse(new File(fileName));
-            List<String> name= new ArrayList<>();
-            NodeList nodeList = document.getDocumentElement().getChildNodes();
-            //get gx:Track layer
-            Node node = nodeList.item(1);
+
+        String state = Environment.getExternalStorageState();
+
+        if (Environment.MEDIA_MOUNTED.equals(state)){
+            String storage = Environment.getExternalStorageDirectory().getPath() + "/";
+            File file = new File(storage + MainActivity.APP_DIR + fileName);
+            ArrayList<LatLngTime> result = new ArrayList<>();
+            try {
+                builder = factory.newDocumentBuilder();
+                Document document = builder.parse(file);
+                NodeList nodeList = document.getDocumentElement().getChildNodes();
+                //get gx:Track layer
+                Node node = nodeList.item(1);
 
             if(node.getNodeType() == Node.ELEMENT_NODE) {
                 Element elem = (Element) node;
                 NodeList whenList = elem.getElementsByTagName("when");
                 NodeList locationList = elem.getElementsByTagName("gx:coord");
+                if(whenList == null || locationList == null) {
 
+                    return null;
+                }
                 String format = "yyyy-MM-dd'T'HH:mm:ss.SSS";
 
                 for(int i = 0; i < whenList.getLength(); i++) {
@@ -56,7 +67,7 @@ public class KmlParser {
                         long millis = date.getTime();
                         llt.setStartTime(millis);
                         llt.setEndTime(millis);
-                        //System.out.println(time + ": " +millis);
+                        System.out.println(time + ": " + millis);
                     }
 
                     Node locNode = locationList.item(i);
@@ -67,7 +78,7 @@ public class KmlParser {
                         double lat = Double.valueOf(split[1]);
                         llt.setLat(lat);
                         llt.setLng(lng);
-                        //System.out.println(split[0] + " " + lng + " "+ split[1] +" "+ lat);
+                        System.out.println(split[0] + " " + lng + " " + split[1] + " " + lat);
                     }
                     result.add(llt);
                 }
@@ -85,7 +96,10 @@ public class KmlParser {
         catch (Exception e) {
             Log.d("kmlParser", e.getMessage());
         }
-        return getUserstay(result);
+            return getUserstay(result);
+
+        }
+        return null;
     }
 
     /**
@@ -100,13 +114,16 @@ public class KmlParser {
             LatLngTime temp = inputList.get(0);
             stay = new LatLngTime(temp.getLat(), temp.getLng(), temp.getStartTime(), temp.getEndTime());
         }
+        else {
+            return outputList;
+        }
 
         for(int i = 1; i < inputList.size(); i++) {
             LatLngTime temp = inputList.get(i);
             double tempLat = temp.getLat();
             double tempLng = temp.getLng();
             if(Math.abs(tempLat-stay.getLat()) < 0.001 && Math.abs(tempLng-stay.getLng()) < 0.001) {
-                //System.out.println("start: "+stay.toString() + " temp: "+temp.toString());
+                System.out.println("start: "+stay.toString() + " temp: "+temp.toString());
                 stay.setEndTime(temp.getEndTime());
             }
             else {
@@ -117,7 +134,7 @@ public class KmlParser {
                 stay = new LatLngTime(temp.getLat(), temp.getLng(), temp.getStartTime(), temp.getEndTime());
             }
         }
-        if(stay.getEndTime() - stay.getStartTime() >= 600000){
+        if(stay!=null && stay.getEndTime() - stay.getStartTime() >= 600000){
             outputList.add(stay);
         }
         //System.out.println("output: "+outputList.size()+" input: "+inputList.size());
