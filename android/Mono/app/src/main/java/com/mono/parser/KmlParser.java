@@ -29,7 +29,7 @@ public class KmlParser {
         factory = DocumentBuilderFactory.newInstance();
     }
 
-    public ArrayList parse(String fileName) {
+    public ArrayList<LatLngTime> parse(String fileName) {
         ArrayList<LatLngTime> result = new ArrayList<>();
         try {
             builder = factory.newDocumentBuilder();

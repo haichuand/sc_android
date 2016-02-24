@@ -55,5 +55,10 @@
             android:name="com.facebook.FacebookContentProvider"
             android:authorities="com.facebook.app.FacebookContentProviderFeb2016"
             android:exported="true"/>
+
+        <service
+            android:name=".KmlLocationService"
+            android:exported="false"/>
+        ...
     </application>
 </manifest>
