@@ -25,7 +25,7 @@
             android:visibility="gone"/>
     </LinearLayout>
 
-    <RelativeLayout
+    <TextView
         android:id="@+id/badge"
         android:layout_width="24dp"
         android:layout_height="24dp"
@@ -33,15 +33,9 @@
         android:layout_centerVertical="true"
         android:layout_marginEnd="10dp"
         android:background="@drawable/square"
-        android:visibility="gone">
-
-        <TextView
-            android:id="@+id/badge_label"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
-            android:textColor="@android:color/white"
-            android:textSize="14sp"
-            android:textStyle="bold"/>
-    </RelativeLayout>
+        android:gravity="center"
+        android:textColor="@android:color/white"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:visibility="gone"/>
 </RelativeLayout>

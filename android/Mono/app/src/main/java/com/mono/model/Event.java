@@ -4,6 +4,9 @@ import java.util.List;
 
 public class Event {
 
+    public static final String TYPE_CALENDAR = "calendar";
+    public static final String TYPE_USERSTAY = "userstay";
+
     public final long id;
     public long externalId;
     public String title;

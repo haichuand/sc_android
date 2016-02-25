@@ -325,7 +325,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback, OnMapC
         LocationHelper.getLastKnownLatLng(getActivity(), new LocationCallback() {
             @Override
             public void onFinish(Location location) {
-                if(location!=null) {
+                if (location != null) {
                     LatLng latLng = new LatLng(location.latitude, location.longitude);
                     centerLocation(latLng, DEFAULT_ZOOM_LEVEL, animate);
                 }

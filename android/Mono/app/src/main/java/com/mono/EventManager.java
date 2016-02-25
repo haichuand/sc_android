@@ -110,24 +110,29 @@ public class EventManager {
         return result;
     }
 
-    public void createEvent(int actor, String title, String description, String location,
-            int color, long startTime, long endTime, String type, EventActionCallback callback) {
+    public void createEvent(int actor, long externalId, String title, String description,
+            String location, int color, long startTime, long endTime, String type,
+            EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
 
         Event event = null;
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-        long id = dataSource.createEvent(
-            (int) (Math.random() * 1000),
-            title,
-            description,
-            location,
-            color,
-            startTime,
-            endTime,
-            System.currentTimeMillis(),
-            type
-        );
+
+        long id = -1;
+        if (!dataSource.containsEventByExternalId(externalId)) {
+            id = dataSource.createEvent(
+                externalId,
+                title,
+                description,
+                location,
+                color,
+                startTime,
+                endTime,
+                System.currentTimeMillis(),
+                type
+            );
+        }
 
         if (id > 0) {
             event = getEvent(id, false);
@@ -178,16 +183,17 @@ public class EventManager {
     public static void createDummyEvent(Context context, EventActionCallback callback) {
         String[] locations = {"San Francisco", "San Jose", "San Leandro"};
         int[] colors = {Colors.BROWN, Colors.BROWN_LIGHT, Colors.LAVENDAR};
-        String type = "calendar"; //temporily specify the type of the event
+
         getInstance(context).createEvent(
             EventAction.ACTOR_SELF,
+            (int) (Math.random() * -1000),
             "Title " + (int) (Math.random() * 100),
             "Description " + (int) (Math.random() * 100),
             locations[(int) (Math.random() * locations.length) % locations.length],
             colors[(int) (Math.random() * colors.length) % colors.length],
             System.currentTimeMillis() - (int) (Math.random() * 72) * 60 * 60 * 1000,
             System.currentTimeMillis(),
-            type,
+            Event.TYPE_CALENDAR,
             callback
         );
     }

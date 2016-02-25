@@ -7,7 +7,6 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -73,13 +72,11 @@ public class SimpleTabPagerAdapter extends FragmentPagerAdapter {
             text.setVisibility(View.GONE);
         }
 
-        ViewGroup badge = (ViewGroup) view.findViewById(R.id.badge);
+        TextView badge = (TextView) view.findViewById(R.id.badge);
         badge.getBackground().setColorFilter(item.badgeColor, PorterDuff.Mode.SRC_ATOP);
 
         if (item.badgeValue != null && !item.badgeValue.isEmpty()) {
-            TextView badgeLabel = (TextView) view.findViewById(R.id.badge_label);
-            badgeLabel.setText(item.badgeValue);
-
+            badge.setText(item.badgeValue);
             badge.setVisibility(View.VISIBLE);
         } else {
             badge.setVisibility(View.GONE);

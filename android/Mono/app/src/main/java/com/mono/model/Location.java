@@ -14,7 +14,9 @@ public class Location {
     public Location(long id) {
         this.id = id;
     }
-    public Location(String name, String googlePlaceId, Double latitude, Double longitude, String[] address) {
+
+    public Location(String name, String googlePlaceId, Double latitude, Double longitude,
+            String[] address) {
         this(-1);
         this.googlePlaceId = googlePlaceId;
         this.name = name;
@@ -64,9 +66,5 @@ public class Location {
         }
 
         return str;
-    }
-
-    public String getName() {
-        return this.name;
     }
 }

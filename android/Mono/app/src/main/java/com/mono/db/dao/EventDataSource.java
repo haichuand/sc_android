@@ -8,9 +8,13 @@ import com.mono.db.Database;
 import com.mono.db.DatabaseValues;
 import com.mono.model.Event;
 import com.mono.model.Location;
+import com.mono.util.Common;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class EventDataSource extends DataSource {
 
@@ -63,6 +67,59 @@ public class EventDataSource extends DataSource {
         return event;
     }
 
+    public boolean containsEventByExternalId(long externalId) {
+        boolean status = false;
+
+        Cursor cursor = database.select(
+            DatabaseValues.Event.TABLE,
+            new String[]{
+                "1"
+            },
+            DatabaseValues.Event.EXTERNAL_ID + " = ?",
+            new String[]{
+                String.valueOf(externalId)
+            }
+        );
+
+        if (cursor.moveToNext()) {
+            status = true;
+        }
+
+        cursor.close();
+
+        return status;
+    }
+
+    public List<Long> containsEventsByExternalIds(long... externalIds) {
+        List<Long> result = new ArrayList<>();
+
+        int count = externalIds.length;
+
+        String[] selection = new String[count];
+        String[] selectionArgs = new String[count];
+        for (int i = 0; i < count; i++) {
+            selectionArgs[i] = String.valueOf(externalIds[i]);
+        }
+
+        Cursor cursor = database.select(
+            DatabaseValues.Event.TABLE,
+            new String[]{
+                DatabaseValues.Event.EXTERNAL_ID
+            },
+            DatabaseValues.Event.EXTERNAL_ID + " IN (" + Common.implode(", ", selection) + ")",
+            selectionArgs
+        );
+
+        while (cursor.moveToNext()) {
+            long externalId = cursor.getInt(0);
+            result.add(externalId);
+        }
+
+        cursor.close();
+
+        return result;
+    }
+
     public Event getEventByExternalId(long externalId) {
         Event event = null;
 
@@ -104,6 +161,7 @@ public class EventDataSource extends DataSource {
             new String[]{
                 String.valueOf(startTime)
             },
+            null,
             DatabaseValues.Event.START_TIME + " DESC",
             limit
         );
@@ -130,6 +188,7 @@ public class EventDataSource extends DataSource {
                 String.valueOf(startTime),
                 String.valueOf(endTime)
             },
+            null,
             DatabaseValues.Event.START_TIME + " DESC",
             null
         );
@@ -142,6 +201,50 @@ public class EventDataSource extends DataSource {
         cursor.close();
 
         return events;
+    }
+
+    public Map<Integer, Integer[]> getEventColorsByMonth(int year, int month) {
+        Map<Integer, Integer[]> result = new HashMap<>();
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(year, month, 1, 0, 0, 0);
+        long startTime = calendar.getTimeInMillis();
+
+        calendar.set(year, month + 1, 1, 0, 0, 0);
+        long endTime = calendar.getTimeInMillis();
+
+        Cursor cursor = database.select(
+            DatabaseValues.Event.TABLE,
+            new String[]{
+                "CAST(STRFTIME('%d', " + DatabaseValues.Event.START_TIME + " / 1000, 'UNIXEPOCH', 'LOCALTIME') AS INTEGER) AS `day`",
+                "GROUP_CONCAT(" + DatabaseValues.Event.COLOR + ")"
+            },
+            DatabaseValues.Event.START_TIME + " >= ? AND " +
+            DatabaseValues.Event.END_TIME + " < ?",
+            new String[]{
+                String.valueOf(startTime),
+                String.valueOf(endTime)
+            },
+            "`day`",
+            DatabaseValues.Event.START_TIME + " DESC",
+            null
+        );
+
+        while (cursor.moveToNext()) {
+            int day = cursor.getInt(0);
+
+            String[] tempColors = cursor.getString(1).split(",");
+            Integer[] colors = new Integer[tempColors.length];
+            for (int i = 0; i < tempColors.length; i++) {
+                colors[i] = Integer.valueOf(tempColors[i]);
+            }
+
+            result.put(day, colors);
+        }
+
+        cursor.close();
+
+        return result;
     }
 
     /**

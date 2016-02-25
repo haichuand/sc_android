@@ -9,4 +9,8 @@
         <attr name="tabSelectedTextColor"/>
         <attr name="tabIndicatorColor"/>
     </declare-styleable>
+
+    <declare-styleable name="CalendarView">
+
+    </declare-styleable>
 </resources>
