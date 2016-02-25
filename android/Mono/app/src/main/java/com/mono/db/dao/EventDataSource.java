@@ -203,7 +203,7 @@ public class EventDataSource extends DataSource {
         return events;
     }
 
-    public Map<Integer, Integer[]> getEventColorsByMonth(int year, int month) {
+    public Map<Integer, Integer[]> getEventIdsByMonth(int year, int month) {
         Map<Integer, Integer[]> result = new HashMap<>();
 
         Calendar calendar = Calendar.getInstance();
@@ -217,7 +217,7 @@ public class EventDataSource extends DataSource {
             DatabaseValues.Event.TABLE,
             new String[]{
                 "CAST(STRFTIME('%d', " + DatabaseValues.Event.START_TIME + " / 1000, 'UNIXEPOCH', 'LOCALTIME') AS INTEGER) AS `day`",
-                "GROUP_CONCAT(" + DatabaseValues.Event.COLOR + ")"
+                "GROUP_CONCAT(" + DatabaseValues.Event.ID + ")"
             },
             DatabaseValues.Event.START_TIME + " >= ? AND " +
             DatabaseValues.Event.END_TIME + " < ?",

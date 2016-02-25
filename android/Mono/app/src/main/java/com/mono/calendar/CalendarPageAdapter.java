@@ -85,7 +85,7 @@ public class CalendarPageAdapter extends RecyclerView.Adapter<CalendarPageAdapte
         public int numDays;
         public int numWeeks;
 
-        public Map<Integer, Integer[]> markerColors;
+        public Map<Integer, Integer[]> eventIds;
 
         public CalendarPageItem(int year, int month, int day) {
             this.year = year;

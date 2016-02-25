@@ -152,7 +152,7 @@ public class CalendarPageView extends LinearLayout implements View.OnClickListen
                 cell.setToday(item.year == currentYear && item.month == currentMonth && day == currentDay);
                 cell.setSelected(false);
 
-                cell.setMarkerVisible(item.markerColors != null && item.markerColors.containsKey(day));
+                cell.setMarkerVisible(item.eventIds != null && item.eventIds.containsKey(day));
 
                 day++;
             }

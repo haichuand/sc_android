@@ -30,6 +30,7 @@ public class CalendarView extends RelativeLayout implements CalendarListener,
     private List<CalendarPageItem> items = new ArrayList<>();
 
     private CalendarTableCell lastSelected;
+    private int currentDay;
 
     public CalendarView(Context context) {
         this(context, null);
@@ -90,6 +91,16 @@ public class CalendarView extends RelativeLayout implements CalendarListener,
         array.recycle();
     }
 
+    public void onResume() {
+        Calendar calendar = Calendar.getInstance();
+        int day = calendar.get(Calendar.DAY_OF_MONTH);
+
+        if (currentDay != day) {
+            refresh(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), 1);
+            currentDay = day;
+        }
+    }
+
     @Override
     public void onCellClick(CalendarTableCell cell, CalendarPageItem item) {
         if (lastSelected != null) {
@@ -134,7 +145,7 @@ public class CalendarView extends RelativeLayout implements CalendarListener,
 
         EventDataSource dataSource =
             DatabaseHelper.getDataSource(getContext(), EventDataSource.class);
-        item.markerColors = dataSource.getEventColorsByMonth(year, month);
+        item.eventIds = dataSource.getEventIdsByMonth(year, month);
 
         return item;
     }
@@ -166,6 +177,16 @@ public class CalendarView extends RelativeLayout implements CalendarListener,
     }
 
     public void refresh(int year, int month, int day) {
+        int index = items.indexOf(new CalendarPageItem(year, month, 1));
 
+        if (index >= 0) {
+            CalendarPageItem item = items.get(index);
+
+            EventDataSource dataSource =
+                DatabaseHelper.getDataSource(getContext(), EventDataSource.class);
+            item.eventIds = dataSource.getEventIdsByMonth(year, month);
+
+            adapter.notifyItemChanged(index);
+        }
     }
 }

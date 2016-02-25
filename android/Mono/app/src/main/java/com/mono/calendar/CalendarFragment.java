@@ -57,6 +57,12 @@ public class CalendarFragment extends Fragment implements EventBroadcastListener
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        calendarView.onResume();
+    }
+
+    @Override
     public void onDestroy() {
         super.onDestroy();
         eventManager.removeEventBroadcastListener(this);
