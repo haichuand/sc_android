@@ -8,6 +8,7 @@ import com.mono.db.Database;
 import com.mono.db.DatabaseValues;
 import com.mono.model.Event;
 import com.mono.model.Location;
+import com.mono.util.Common;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,6 +64,59 @@ public class EventDataSource extends DataSource {
         return event;
     }
 
+    public boolean containsEventByExternalId(long externalId) {
+        boolean status = false;
+
+        Cursor cursor = database.select(
+            DatabaseValues.Event.TABLE,
+            new String[]{
+                "1"
+            },
+            DatabaseValues.Event.EXTERNAL_ID + " = ?",
+            new String[]{
+                String.valueOf(externalId)
+            }
+        );
+
+        if (cursor.moveToNext()) {
+            status = true;
+        }
+
+        cursor.close();
+
+        return status;
+    }
+
+    public List<Long> containsEventsByExternalIds(long... externalIds) {
+        List<Long> result = new ArrayList<>();
+
+        int count = externalIds.length;
+
+        String[] selection = new String[count];
+        String[] selectionArgs = new String[count];
+        for (int i = 0; i < count; i++) {
+            selectionArgs[i] = String.valueOf(externalIds[i]);
+        }
+
+        Cursor cursor = database.select(
+            DatabaseValues.Event.TABLE,
+            new String[]{
+                DatabaseValues.Event.EXTERNAL_ID
+            },
+            DatabaseValues.Event.EXTERNAL_ID + " IN (" + Common.implode(", ", selection) + ")",
+            selectionArgs
+        );
+
+        while (cursor.moveToNext()) {
+            long externalId = cursor.getInt(0);
+            result.add(externalId);
+        }
+
+        cursor.close();
+
+        return result;
+    }
+
     public Event getEventByExternalId(long externalId) {
         Event event = null;
 
@@ -104,6 +158,7 @@ public class EventDataSource extends DataSource {
             new String[]{
                 String.valueOf(startTime)
             },
+            null,
             DatabaseValues.Event.START_TIME + " DESC",
             limit
         );
@@ -130,6 +185,7 @@ public class EventDataSource extends DataSource {
                 String.valueOf(startTime),
                 String.valueOf(endTime)
             },
+            null,
             DatabaseValues.Event.START_TIME + " DESC",
             null
         );
