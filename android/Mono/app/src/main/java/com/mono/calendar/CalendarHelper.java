@@ -133,6 +133,8 @@ public class CalendarHelper {
 
             long end = Settings.getCalendarEndTime(id, startTime);
             selectionArgs[index + 2] = String.valueOf(end);
+
+            i++;
         }
 
         return context.getContentResolver().query(
