@@ -98,8 +98,6 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         recyclerView.addOnScrollListener(new OnScrollListener() {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                super.onScrolled(recyclerView, dx, dy);
-
                 LinearLayoutManager manager =
                     (LinearLayoutManager) recyclerView.getLayoutManager();
 
@@ -212,11 +210,10 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         switch (data.getAction()) {
             case EventAction.ACTION_CREATE:
                 if (data.getStatus() == EventAction.STATUS_OK) {
+                    insert(0, data.getEvent(), true);
+
                     if (data.getActor() == EventAction.ACTOR_SELF) {
-                        insert(0, data.getEvent(), true);
                         scrollTo(data.getEvent());
-                    } else {
-                        insert(0, data.getEvent(), false);
                     }
                 }
                 break;

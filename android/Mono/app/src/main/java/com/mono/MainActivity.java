@@ -10,6 +10,7 @@ import android.support.design.widget.NavigationView.OnNavigationItemSelectedList
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
@@ -21,12 +22,16 @@ import android.view.MenuItem;
 import android.view.View.OnClickListener;
 
 import com.google.android.gms.maps.SupportMapFragment;
+import com.mono.calendar.CalendarHelper;
+import com.mono.model.Event;
 import com.mono.settings.Settings;
 import com.mono.settings.SettingsActivity;
 import com.mono.util.GoogleClient;
 import com.mono.util.Log;
 import com.mono.util.SimpleTabLayout;
 import com.mono.web.WebActivity;
+
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements OnNavigationItemSelectedListener,
         MainInterface {
@@ -82,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         }
 
         showHome();
+        runDayOne();
     }
 
     @Override
@@ -94,6 +100,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     protected void onResume() {
         super.onResume();
         navView.setCheckedItem(HOME);
+        checkCalendars();
     }
 
     @Override
@@ -300,5 +307,40 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         }
 
         transaction.commit();
+    }
+
+    public void runDayOne() {
+        long milliseconds = Settings.getDayOne();
+
+        if (milliseconds <= 0) {
+            Settings.setDayOne(System.currentTimeMillis());
+        }
+    }
+
+    public void checkCalendars() {
+        if (Settings.getCalendars().isEmpty()) {
+            return;
+        }
+
+        Intent intent = new Intent();
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+
+        CalendarHelper helper = CalendarHelper.getInstance(this);
+        List<Event> events = helper.getNewEvents();
+
+        for (Event event : events) {
+            EventManager.getInstance(this).createEvent(
+                EventManager.EventAction.ACTOR_NONE,
+                event.externalId,
+                event.title,
+                event.description,
+                null,
+                event.color,
+                event.startTime,
+                event.endTime,
+                Event.TYPE_CALENDAR,
+                null
+            );
+        }
     }
 }
