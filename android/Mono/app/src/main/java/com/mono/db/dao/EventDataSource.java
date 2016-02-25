@@ -203,8 +203,8 @@ public class EventDataSource extends DataSource {
         return events;
     }
 
-    public Map<Integer, Integer[]> getEventColorsByMonth(int year, int month) {
-        Map<Integer, Integer[]> result = new HashMap<>();
+    public Map<Integer, Long[]> getEventIdsByMonth(int year, int month) {
+        Map<Integer, Long[]> result = new HashMap<>();
 
         Calendar calendar = Calendar.getInstance();
         calendar.set(year, month, 1, 0, 0, 0);
@@ -217,7 +217,7 @@ public class EventDataSource extends DataSource {
             DatabaseValues.Event.TABLE,
             new String[]{
                 "CAST(STRFTIME('%d', " + DatabaseValues.Event.START_TIME + " / 1000, 'UNIXEPOCH', 'LOCALTIME') AS INTEGER) AS `day`",
-                "GROUP_CONCAT(" + DatabaseValues.Event.COLOR + ")"
+                "GROUP_CONCAT(" + DatabaseValues.Event.ID + ")"
             },
             DatabaseValues.Event.START_TIME + " >= ? AND " +
             DatabaseValues.Event.END_TIME + " < ?",
@@ -233,13 +233,13 @@ public class EventDataSource extends DataSource {
         while (cursor.moveToNext()) {
             int day = cursor.getInt(0);
 
-            String[] tempColors = cursor.getString(1).split(",");
-            Integer[] colors = new Integer[tempColors.length];
-            for (int i = 0; i < tempColors.length; i++) {
-                colors[i] = Integer.valueOf(tempColors[i]);
+            String[] tempIds = cursor.getString(1).split(",");
+            Long[] ids = new Long[tempIds.length];
+            for (int i = 0; i < tempIds.length; i++) {
+                ids[i] = Long.valueOf(tempIds[i]);
             }
 
-            result.put(day, colors);
+            result.put(day, ids);
         }
 
         cursor.close();
