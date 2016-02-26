@@ -1,4 +1,4 @@
-package com.mono;
+package com.mono.parser;
 
 import android.app.IntentService;
 import android.content.Context;
