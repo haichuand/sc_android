@@ -1,8 +1,13 @@
 package com.mono;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
@@ -21,8 +26,12 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View.OnClickListener;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.mono.calendar.CalendarHelper;
+import com.mono.chat.RegistrationIntentService;
+import com.mono.chat.SuperCalyPreferences;
 import com.mono.model.Event;
 import com.mono.settings.Settings;
 import com.mono.settings.SettingsActivity;
@@ -38,6 +47,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
     public static final String APP_DIR = "MonoFiles/";
 
+
     public static final int HOME = R.id.nav_home;
     public static final int SETTINGS = R.id.nav_settings;
 
@@ -48,6 +58,10 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     private NavigationView navView;
 
     private GoogleClient googleClient;
+
+    private static final int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
+    private static final String TAG = "MainActivity";
+    private BroadcastReceiver mRegistrationBroadcastReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,6 +86,27 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
         googleClient = new GoogleClient(this);
         googleClient.initialize();
+
+        mRegistrationBroadcastReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                SharedPreferences sharedPreferences =
+                        PreferenceManager.getDefaultSharedPreferences(context);
+                boolean sentToken = sharedPreferences
+                        .getBoolean(SuperCalyPreferences.SENT_TOKEN_TO_SERVER, false);
+                if (sentToken) {
+                    Log.log(TAG, "Token retrieved and sent to server! You can now use gcmsender to\n" +
+                            "        send downstream messages to this app.");
+                } else {
+                    Log.log(TAG, "An error occurred while either fetching the InstanceID token");
+                }
+            }
+        };
+        if (checkPlayServices()) {
+            // Start IntentService to register this application with GCM.
+            Intent intent = new Intent(this, RegistrationIntentService.class);
+            startService(intent);
+        }
 
         start();
     }
@@ -101,10 +136,13 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         super.onResume();
         navView.setCheckedItem(HOME);
         checkCalendars();
+        LocalBroadcastManager.getInstance(this).registerReceiver(mRegistrationBroadcastReceiver,
+                new IntentFilter(SuperCalyPreferences.REGISTRATION_COMPLETE));
     }
 
     @Override
     protected void onPause() {
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mRegistrationBroadcastReceiver);
         super.onPause();
     }
 
@@ -342,5 +380,26 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                 null
             );
         }
+    }
+
+    /**
+     * Check the device to make sure it has the Google Play Services APK. If
+     * it doesn't, display a dialog that allows users to download the APK from
+     * the Google Play Store or enable it in the device's system settings.
+     */
+    private boolean checkPlayServices() {
+        GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
+        int resultCode = apiAvailability.isGooglePlayServicesAvailable(this);
+        if (resultCode != ConnectionResult.SUCCESS) {
+            if (apiAvailability.isUserResolvableError(resultCode)) {
+                apiAvailability.getErrorDialog(this, resultCode, PLAY_SERVICES_RESOLUTION_REQUEST)
+                        .show();
+            } else {
+                //Log.i(TAG, "This device is not supported.");
+                finish();
+            }
+            return false;
+        }
+        return true;
     }
 }
