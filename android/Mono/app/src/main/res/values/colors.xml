@@ -17,6 +17,7 @@
     <color name="gray_light_4">#F5F7F9</color>
     <color name="gray_light_5">#D7D9DB</color>
     <color name="lavender">#8C8BA1</color>
+    <color name="yellow">#FDF8A6</color>
 
     <color name="divider">@color/gray_light_2</color>
 </resources>

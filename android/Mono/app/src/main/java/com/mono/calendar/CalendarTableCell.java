@@ -16,6 +16,10 @@ public class CalendarTableCell extends RelativeLayout {
     private TextView textView;
     private View marker;
 
+    private int color;
+    private int textColor;
+    private int resId;
+
     private boolean isToday;
 
     public CalendarTableCell(Context context) {
@@ -55,10 +59,6 @@ public class CalendarTableCell extends RelativeLayout {
     }
 
     public void setSelected(boolean selected) {
-        int color;
-        int textColor;
-        int resId;
-
         if (selected) {
             color = getResources().getColor(R.color.colorPrimary);
             textColor = Color.WHITE;
@@ -75,19 +75,31 @@ public class CalendarTableCell extends RelativeLayout {
             }
         }
 
+        setBackground(resId, color);
+        setTextColor(textColor);
+    }
+
+    public void setBackground(int resId, int color) {
         setBackgroundResource(resId);
         if (resId != 0) {
             getBackground().setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
         }
-
-        textView.setTextColor(textColor);
     }
 
     public void setText(CharSequence text) {
         textView.setText(text);
     }
 
+    public void setTextColor(int color) {
+        textView.setTextColor(color);
+    }
+
     public void setMarkerVisible(boolean visible) {
         marker.setVisibility(visible ? VISIBLE : INVISIBLE);
+    }
+
+    public void setLastStyle() {
+        setBackground(resId, color);
+        setTextColor(textColor);
     }
 }

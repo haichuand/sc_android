@@ -13,9 +13,9 @@ import java.util.Map;
 public class CalendarPageAdapter extends RecyclerView.Adapter<CalendarPageAdapter.Holder> {
 
     private SimpleDataSource<CalendarPageItem> dataSource;
-    private CalendarListener listener;
+    private CalendarPageListener listener;
 
-    public CalendarPageAdapter(CalendarListener listener) {
+    public CalendarPageAdapter(CalendarPageListener listener) {
         this.listener = listener;
     }
 
@@ -87,6 +87,8 @@ public class CalendarPageAdapter extends RecyclerView.Adapter<CalendarPageAdapte
 
         public Map<Integer, Long[]> eventIds;
 
+        public int selectedDay = -1;
+
         public CalendarPageItem(int year, int month, int day) {
             this.year = year;
             this.month = month;
@@ -107,5 +109,12 @@ public class CalendarPageAdapter extends RecyclerView.Adapter<CalendarPageAdapte
 
             return true;
         }
+    }
+
+    public interface CalendarPageListener {
+
+        void onCellClick(int year, int month, int day);
+
+        void onCellDrop(View view, long id, int year, int month, int day);
     }
 }

@@ -1,8 +1,10 @@
 package com.mono.calendar;
 
+import android.content.ClipData;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.util.AttributeSet;
+import android.view.DragEvent;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,7 +36,7 @@ public class CalendarPageView extends LinearLayout implements View.OnClickListen
     private List<TableRow> rows = new ArrayList<>();
     private List<CalendarTableCell> cells = new ArrayList<>();
 
-    private CalendarListener listener;
+    private CalendarPageAdapter.CalendarPageListener listener;
     private CalendarPageAdapter.CalendarPageItem item;
 
     public CalendarPageView(Context context) {
@@ -87,13 +89,18 @@ public class CalendarPageView extends LinearLayout implements View.OnClickListen
         addView(view);
     }
 
-    public void setListener(CalendarListener listener) {
+    public void setListener(CalendarPageAdapter.CalendarPageListener listener) {
         this.listener = listener;
     }
 
     @Override
     public void onClick(View view) {
-        listener.onCellClick((CalendarTableCell) view, item);
+        if (view instanceof CalendarTableCell) {
+            int index = cells.indexOf(view);
+            int day = index - item.startIndex + 1;
+
+            listener.onCellClick(item.year, item.month, day);
+        }
     }
 
     public void setType(int type) {
@@ -105,6 +112,45 @@ public class CalendarPageView extends LinearLayout implements View.OnClickListen
             0, TableRow.LayoutParams.WRAP_CONTENT
         );
 
+        OnDragListener onDragListener = new OnDragListener() {
+            @Override
+            public boolean onDrag(View view, DragEvent event) {
+                CalendarTableCell cell = (CalendarTableCell) view;
+
+                int action = event.getAction();
+
+                switch (action) {
+                    case DragEvent.ACTION_DRAG_STARTED:
+                        String label = event.getClipDescription().getLabel().toString();
+                        if (label.equals(CalendarFragment.EVENT_ITEM_LABEL)) {
+                            return true;
+                        }
+                        return false;
+                    case DragEvent.ACTION_DRAG_ENTERED:
+                        cell.setBackground(R.drawable.calendar_day_selected,
+                            getResources().getColor(R.color.yellow));
+                        cell.setTextColor(getResources().getColor(R.color.gray_dark));
+                        return true;
+                    case DragEvent.ACTION_DRAG_EXITED:
+                        cell.setLastStyle();
+                        return true;
+                    case DragEvent.ACTION_DROP:
+                        ClipData.Item dragItem = event.getClipData().getItemAt(0);
+                        long eventId = Long.parseLong(dragItem.getText().toString());
+
+                        int index = cells.indexOf(view);
+                        int day = index - item.startIndex + 1;
+
+                        if (listener != null) {
+                            listener.onCellDrop(view, eventId, item.year, item.month, day);
+                        }
+                        return true;
+                }
+
+                return false;
+            }
+        };
+
         for (int i = 0; i < type; i++) {
             TableRow row = new TableRow(getContext());
             row.setBackgroundResource(R.drawable.calendar_row);
@@ -112,6 +158,7 @@ public class CalendarPageView extends LinearLayout implements View.OnClickListen
             for (int j = 0; j < NUM_CELLS; j++) {
                 CalendarTableCell cell = new CalendarTableCell(getContext());
                 cell.setOnClickListener(this);
+                cell.setOnDragListener(onDragListener);
 
                 row.addView(cell, cellParams);
                 cells.add(cell);
@@ -150,7 +197,7 @@ public class CalendarPageView extends LinearLayout implements View.OnClickListen
                 cell.setText(String.valueOf(day));
 
                 cell.setToday(item.year == currentYear && item.month == currentMonth && day == currentDay);
-                cell.setSelected(false);
+                cell.setSelected(day == item.selectedDay);
 
                 cell.setMarkerVisible(item.eventIds != null && item.eventIds.containsKey(day));
 
@@ -159,5 +206,10 @@ public class CalendarPageView extends LinearLayout implements View.OnClickListen
 
             index++;
         }
+    }
+
+    public void select(int day, boolean selected) {
+        CalendarTableCell cell = cells.get(item.startIndex + day - 1);
+        cell.setSelected(selected);
     }
 }
