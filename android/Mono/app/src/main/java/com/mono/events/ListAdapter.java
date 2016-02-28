@@ -73,7 +73,7 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.Holder> {
             description = (TextView) itemView.findViewById(R.id.description);
         }
 
-        public void onBind(final ListItem holderItem) {
+        public void onBind(ListItem holderItem) {
             itemView.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View view) {

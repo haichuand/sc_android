@@ -163,6 +163,24 @@ public class EventManager {
         }
     }
 
+    public void updateEventTime(int actor, long id, long startTime, long endTime,
+            EventActionCallback callback) {
+        int status = EventAction.STATUS_OK;
+
+        EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+        dataSource.updateEventTime(id, startTime, endTime);
+
+        Event event = getEvent(id, true);
+
+        EventAction data = new EventAction(EventAction.ACTION_UPDATE, actor, status, event);
+        if (!listeners.isEmpty()) {
+            sendToListeners(data);
+        }
+        if (callback != null) {
+            callback.onEventAction(data);
+        }
+    }
+
     public void removeEvent(int actor, long id, EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
 

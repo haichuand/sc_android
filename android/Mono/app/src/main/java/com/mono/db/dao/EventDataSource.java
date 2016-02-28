@@ -141,6 +141,21 @@ public class EventDataSource extends DataSource {
         return event;
     }
 
+    public int updateEventTime(long id, long startTime, long endTime) {
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.Event.START_TIME, startTime);
+        values.put(DatabaseValues.Event.END_TIME, endTime);
+
+        return database.update(
+            DatabaseValues.Event.TABLE,
+            values,
+            DatabaseValues.Event.ID + " = ?",
+            new String[]{
+                String.valueOf(id)
+            }
+        );
+    }
+
     public int removeEvent(long id) {
         return database.delete(
             DatabaseValues.Event.TABLE,
@@ -203,6 +218,50 @@ public class EventDataSource extends DataSource {
         return events;
     }
 
+    public long[] getEventIdsByDay(int year, int month, int day) {
+        long[] result = null;
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(year, month, day, 0, 0, 0);
+        long startTime = calendar.getTimeInMillis();
+
+        calendar.set(year, month, day + 1, 0, 0, 0);
+        long endTime = calendar.getTimeInMillis();
+
+        Cursor cursor = database.select(
+            DatabaseValues.Event.TABLE,
+            new String[]{
+                DatabaseValues.Event.ID
+            },
+            DatabaseValues.Event.START_TIME + " >= ? AND " +
+            DatabaseValues.Event.START_TIME + " < ?",
+            new String[]{
+                String.valueOf(startTime),
+                String.valueOf(endTime)
+            },
+            null,
+            DatabaseValues.Event.START_TIME + " DESC",
+            null
+        );
+
+        int count = cursor.getCount();
+
+        if (count > 0) {
+            result = new long[count];
+
+            for (int i = 0; i < count; i++) {
+                if (cursor.moveToNext()) {
+                    long id = cursor.getLong(0);
+                    result[i] = id;
+                }
+            }
+        }
+
+        cursor.close();
+
+        return result;
+    }
+
     public Map<Integer, Long[]> getEventIdsByMonth(int year, int month) {
         Map<Integer, Long[]> result = new HashMap<>();
 
@@ -220,7 +279,7 @@ public class EventDataSource extends DataSource {
                 "GROUP_CONCAT(" + DatabaseValues.Event.ID + ")"
             },
             DatabaseValues.Event.START_TIME + " >= ? AND " +
-            DatabaseValues.Event.END_TIME + " < ?",
+            DatabaseValues.Event.START_TIME + " < ?",
             new String[]{
                 String.valueOf(startTime),
                 String.valueOf(endTime)
