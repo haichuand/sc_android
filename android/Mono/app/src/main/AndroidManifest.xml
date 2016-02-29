@@ -60,6 +60,11 @@
         </receiver>
 
         <service
+            android:name=".chat.RegistrationIntentService"
+            android:exported="false" >
+        </service>
+
+        <service
             android:name=".chat.MyGcmListenerService"
             android:exported="false" >
             <intent-filter>

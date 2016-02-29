@@ -95,8 +95,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                 boolean sentToken = sharedPreferences
                         .getBoolean(SuperCalyPreferences.SENT_TOKEN_TO_SERVER, false);
                 if (sentToken) {
-                    Log.log(TAG, "Token retrieved and sent to server! You can now use gcmsender to\n" +
-                            "        send downstream messages to this app.");
+                    Log.log(TAG,"Token retrieved and sent to server! You can now use gcmsender to send downstream messages to this app.");
                 } else {
                     Log.log(TAG, "An error occurred while either fetching the InstanceID token");
                 }
