@@ -14,11 +14,14 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
+import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.mono.MainInterface;
 import com.mono.R;
 import com.mono.RequestCodes;
+import com.mono.chat.MessageSender;
 import com.mono.dummy.KML.DownloadListener;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
 
@@ -32,7 +35,7 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
     private KML kml;
 
     private TextView text;
-
+    private Button send_button;
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
@@ -66,7 +69,16 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
         View view = inflater.inflate(R.layout.fragment_kml, container, false);
 
         text = (TextView) view.findViewById(R.id.text);
+        send_button  = (Button) view.findViewById(R.id.button_send);
 
+        send_button.setOnClickListener(new OnClickListener()
+        {
+            @Override
+            public void onClick(View view)
+            {
+                sendMessage(view);
+            }
+        });
         return view;
     }
 
@@ -150,5 +162,13 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void sendMessage(View view) {
+        Bundle data = new Bundle();
+        data.putString("message", "Hello World");
+        GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(this.getContext());
+        MessageSender sender = new MessageSender();
+        sender.sendMessage(data, gcm);
     }
 }

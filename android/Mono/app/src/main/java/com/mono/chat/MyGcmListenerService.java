@@ -23,9 +23,10 @@ public class MyGcmListenerService extends GcmListenerService {
 
     public void onMessageReceived(String from, Bundle data) {
         String message = data.getString("message");
+        String extra = data.getString("extra");
         Log.d(TAG, "From: " + from);
         Log.d(TAG, "Message: " + message);
-
+        Log.d(TAG, "Extra: " + extra);
         // [START_EXCLUDE]
         /**
          * applications would process the message here.
@@ -40,6 +41,15 @@ public class MyGcmListenerService extends GcmListenerService {
          */
         sendNotification(message);
         // [END_EXCLUDE]
+    }
+
+    public void onMessageSent(String msgId) {
+        Log.d(TAG, "Message: " + msgId + " has been successfully sent");
+    }
+
+    public void onSendError(String msgId, String error) {
+        Log.d(TAG, "Fail to send Message: " + msgId );
+        Log.d(TAG, "Error while sending: " + error);
     }
 
     /**

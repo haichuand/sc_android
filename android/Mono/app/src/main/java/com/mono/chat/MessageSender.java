@@ -21,11 +21,11 @@ public class MessageSender {
 
     public void sendMessage(final Bundle data, final GoogleCloudMessaging gcm ) {
 
-        sendTask = new AsyncTask<Void, Void, String>() {
+        new AsyncTask<Void, Object, String>() {
             @Override
             protected String doInBackground(Void... params) {
 
-                String id = "m" + Integer.toString(ccsMsgId.incrementAndGet());
+                String id = "mono" + Integer.toString(ccsMsgId.incrementAndGet());
 
                 try {
                     Log.d(TAG, "messageid: " + id);
@@ -45,8 +45,7 @@ public class MessageSender {
                 Log.d(TAG, "onPostExecute: result: " + result);
             }
 
-        };
-        sendTask.execute(null, null, null);
+        }.execute(null,null,null);
     }
 
 }
