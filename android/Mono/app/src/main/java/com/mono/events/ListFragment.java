@@ -62,7 +62,9 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         super.onCreate(savedInstanceState);
 
         Bundle bundle = getArguments();
-        position = bundle.getInt(EXTRA_POSITION);
+        if (bundle != null) {
+            position = bundle.getInt(EXTRA_POSITION);
+        }
 
         Fragment fragment = getParentFragment();
         if (fragment != null && fragment instanceof ListListener) {

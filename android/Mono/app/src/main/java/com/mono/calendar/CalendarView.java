@@ -6,22 +6,29 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.RecyclerView.OnScrollListener;
 import android.util.AttributeSet;
+import android.view.View;
 import android.widget.RelativeLayout;
 
 import com.mono.R;
 import com.mono.calendar.CalendarPageAdapter.CalendarPageItem;
+import com.mono.calendar.CalendarPageAdapter.CalendarPageListener;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.EventDataSource;
+import com.mono.util.Pixels;
 import com.mono.util.SimpleDataSource;
+import com.mono.util.SimpleQuickAction;
 
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
-public class CalendarView extends RelativeLayout implements CalendarListener,
+public class CalendarView extends RelativeLayout implements CalendarPageListener,
         SimpleDataSource<CalendarPageItem> {
 
     private static final int AMOUNT = 5;
+
+    private CalendarListener listener;
+    private String[] actions;
 
     private RecyclerView recyclerView;
     private LinearLayoutManager layoutManager;
@@ -29,7 +36,9 @@ public class CalendarView extends RelativeLayout implements CalendarListener,
     private CalendarPageAdapter adapter;
     private List<CalendarPageItem> items = new ArrayList<>();
 
-    private CalendarTableCell lastSelected;
+    private Date lastSelected;
+    private Date lastDropped;
+
     private int currentDay;
 
     public CalendarView(Context context) {
@@ -96,30 +105,112 @@ public class CalendarView extends RelativeLayout implements CalendarListener,
         int day = calendar.get(Calendar.DAY_OF_MONTH);
 
         if (currentDay != day) {
-            refresh(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), 1);
+            refresh(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH));
             currentDay = day;
         }
     }
 
+    public void setListener(CalendarListener listener) {
+        this.listener = listener;
+    }
+
+    public void setOnCellDropActions(String[] actions) {
+        this.actions = actions;
+    }
+
     @Override
-    public void onCellClick(CalendarTableCell cell, CalendarPageItem item) {
+    public void onCellClick(int year, int month, int day) {
         if (lastSelected != null) {
-            lastSelected.setSelected(false);
+            select(lastSelected.year, lastSelected.month, lastSelected.day, false);
         }
-        cell.setSelected(true);
-        lastSelected = cell;
 
-        int index = items.indexOf(item);
-        int position = layoutManager.findFirstCompletelyVisibleItemPosition();
+        Date date = new Date(year, month, day);
 
-        if (index != position) {
-            layoutManager.scrollToPositionWithOffset(index, 0);
+        if (lastSelected == null || !date.equals(lastSelected)) {
+            select(year, month, day, true);
+            lastSelected = date;
+
+            int index = items.indexOf(new CalendarPageItem(year, month, 1));
+            int position = layoutManager.findFirstCompletelyVisibleItemPosition();
+
+            if (index != position) {
+                layoutManager.scrollToPositionWithOffset(index, 0);
+            }
+        } else {
+            lastSelected = null;
+        }
+
+        if (listener != null) {
+            listener.onCellClick(year, month, day, lastSelected != null);
+        }
+    }
+
+    @Override
+    public void onCellDrop(View view, final long id, final int year, final int month,
+            final int day) {
+        Date date = new Date(year, month, day);
+        if (lastDropped != null && date.equals(lastDropped)) {
+            return;
+        }
+
+        lastDropped = date;
+
+        if (actions != null && actions.length > 0) {
+            final CalendarTableCell cell = (CalendarTableCell) view;
+            cell.setBackground(R.drawable.calendar_day_selected,
+                getResources().getColor(R.color.yellow));
+            cell.setTextColor(getResources().getColor(R.color.gray_dark));
+
+            SimpleQuickAction actionView = SimpleQuickAction.newInstance(getContext());
+            actionView.setColor(getResources().getColor(R.color.colorPrimary));
+            actionView.setActions(actions);
+
+            int[] location = new int[2];
+            view.getLocationInWindow(location);
+            location[1] -= Pixels.Display.getStatusBarHeight(getContext());
+            location[1] -= Pixels.Display.getActionBarHeight(getContext());
+
+            int offsetX = location[0] + view.getWidth() / 2;
+            int offsetY = view.getHeight();
+
+            actionView.setPosition(location[0], location[1], offsetX, offsetY);
+            actionView.setListener(new SimpleQuickAction.SimpleQuickActionListener() {
+                @Override
+                public void onActionClick(int position) {
+                    if (listener != null) {
+                        listener.onCellDrop(id, year, month, day, position);
+                    }
+                }
+
+                @Override
+                public void onDismiss() {
+                    cell.setLastStyle();
+                    lastDropped = null;
+                }
+            });
+
+            addView(actionView);
+        } else {
+            if (listener != null) {
+                listener.onCellDrop(id, year, month, day, -1);
+            }
+
+            lastDropped = null;
         }
     }
 
     @Override
     public CalendarPageItem getItem(int position) {
-        return items.get(position);
+        CalendarPageItem item = items.get(position);
+
+        if (lastSelected != null && item.year == lastSelected.year &&
+                item.month == lastSelected.month) {
+            item.selectedDay = lastSelected.day;
+        } else {
+            item.selectedDay = -1;
+        }
+
+        return item;
     }
 
     @Override
@@ -176,7 +267,20 @@ public class CalendarView extends RelativeLayout implements CalendarListener,
         adapter.notifyItemRangeInserted(startPosition, amount);
     }
 
-    public void refresh(int year, int month, int day) {
+    public void select(int year, int month, int day, boolean selected) {
+        int index = items.indexOf(new CalendarPageItem(year, month, 1));
+
+        if (index >= 0) {
+            CalendarPageAdapter.Holder holder =
+                (CalendarPageAdapter.Holder) recyclerView.findViewHolderForAdapterPosition(index);
+
+            if (holder != null) {
+                holder.calendar.select(day, selected);
+            }
+        }
+    }
+
+    public void refresh(int year, int month) {
         int index = items.indexOf(new CalendarPageItem(year, month, 1));
 
         if (index >= 0) {
@@ -188,5 +292,40 @@ public class CalendarView extends RelativeLayout implements CalendarListener,
 
             adapter.notifyItemChanged(index);
         }
+    }
+
+    private class Date {
+
+        public int year;
+        public int month;
+        public int day;
+
+        public Date(int year, int month, int day) {
+            this.year = year;
+            this.month = month;
+            this.day = day;
+        }
+
+        @Override
+        public boolean equals(Object object) {
+            if (!(object instanceof Date)) {
+                return false;
+            }
+
+            Date date = (Date) object;
+
+            if (year != date.year || month != date.month || day != date.day) {
+                return false;
+            }
+
+            return true;
+        }
+    }
+
+    public interface CalendarListener {
+
+        void onCellClick(int year, int month, int day, boolean selected);
+
+        void onCellDrop(long id, int year, int month, int day, int action);
     }
 }
