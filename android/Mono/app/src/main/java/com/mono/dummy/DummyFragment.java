@@ -167,6 +167,8 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
     public void sendMessage(View view) {
         Bundle data = new Bundle();
         data.putString("message", "Hello World");
+        //data.putString("action","SAY_HELLO");
+        data.putString("actual_recipient","1st_recipient_id, 2nd_recipient_id, 3nd_recipient_id");
         GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(this.getContext());
         MessageSender sender = new MessageSender();
         sender.sendMessage(data, gcm);

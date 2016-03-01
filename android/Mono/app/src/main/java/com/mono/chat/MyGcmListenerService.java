@@ -23,10 +23,10 @@ public class MyGcmListenerService extends GcmListenerService {
 
     public void onMessageReceived(String from, Bundle data) {
         String message = data.getString("message");
-        String extra = data.getString("extra");
+        String messageId = data.getString("message_id");
         Log.d(TAG, "From: " + from);
         Log.d(TAG, "Message: " + message);
-        Log.d(TAG, "Extra: " + extra);
+        Log.d(TAG, "Message_id: " + messageId);
         // [START_EXCLUDE]
         /**
          * applications would process the message here.
