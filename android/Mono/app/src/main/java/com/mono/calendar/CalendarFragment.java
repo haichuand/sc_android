@@ -26,6 +26,8 @@ import com.mono.calendar.CalendarView.CalendarListener;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.EventDataSource;
 import com.mono.model.Event;
+import com.mono.util.Colors;
+import com.mono.util.Constants;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
 
 import java.util.Calendar;
@@ -72,11 +74,13 @@ public class CalendarFragment extends Fragment implements CalendarListener, Cale
         calendarView.setListener(this);
         calendarView.setOnCellDropActions(ACTIONS);
 
+        String tag = getString(R.string.fragment_calendar_events);
+
         FragmentManager manager = getChildFragmentManager();
         eventsFragment = new CalendarEventsFragment();
 
         FragmentTransaction transaction = manager.beginTransaction();
-        transaction.replace(R.id.events, eventsFragment, null);
+        transaction.replace(R.id.events, eventsFragment, tag);
         transaction.commit();
 
         return view;
@@ -96,32 +100,49 @@ public class CalendarFragment extends Fragment implements CalendarListener, Cale
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-
+        menu.clear();
+        inflater.inflate(R.menu.calendar, menu);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        return false;
+        int id = item.getItemId();
+
+        switch (id) {
+            case R.id.action_add:
+                add();
+                return true;
+            case R.id.action_today:
+                calendarView.today();
+                return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
     public void onCellClick(int year, int month, int day, boolean selected) {
-        eventsFragment.clear(true);
-
         EventDataSource dataSource =
             DatabaseHelper.getDataSource(getContext(), EventDataSource.class);
         long[] eventIds = dataSource.getEventIdsByDay(year, month, day);
 
         if (eventIds != null) {
+            eventsFragment.clear(true);
+
             for (long id : eventIds) {
                 Event event = eventManager.getEvent(id, false);
                 eventsFragment.insert(0, event, true);
             }
-
-            eventsFragment.setVisible(selected);
         }
 
-        eventsFragment.setVisible(selected && eventIds != null);
+        View view = getView();
+
+        if (view != null && selected && eventIds != null) {
+            int height = calendarView.getPageHeight(year, month);
+            eventsFragment.show(view.getMeasuredHeight() - height, true);
+        } else {
+            eventsFragment.hide(true);
+        }
     }
 
     @Override
@@ -232,5 +253,31 @@ public class CalendarFragment extends Fragment implements CalendarListener, Cale
     @Override
     public ActionButton getActionButton() {
         return null;
+    }
+
+    public void add() {
+        CalendarView.Date date = calendarView.getCurrentSelected();
+        if (date == null) {
+            return;
+        }
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(date.year, date.month, date.day);
+
+        String[] locations = {"San Francisco", "San Jose", "San Leandro"};
+        int[] colors = {Colors.BROWN, Colors.BROWN_LIGHT, Colors.LAVENDAR};
+
+        eventManager.createEvent(
+            EventAction.ACTOR_SELF,
+            (int) (Math.random() * -1000),
+            "Title " + (int) (Math.random() * 100),
+            "Description " + (int) (Math.random() * 100),
+            locations[(int) (Math.random() * locations.length) % locations.length],
+            colors[(int) (Math.random() * colors.length) % colors.length],
+            calendar.getTimeInMillis(),
+            calendar.getTimeInMillis() + (int) (Math.random() * 23) * Constants.HOUR_MS,
+            Event.TYPE_CALENDAR,
+            null
+        );
     }
 }

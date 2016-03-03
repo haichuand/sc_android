@@ -294,7 +294,39 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         }
     }
 
-    private class Date {
+    public Date getCurrentSelected() {
+        return lastSelected;
+    }
+
+    public void today() {
+        Calendar calendar = Calendar.getInstance();
+        int year = calendar.get(Calendar.YEAR);
+        int month = calendar.get(Calendar.MONTH);
+        int day = calendar.get(Calendar.DAY_OF_MONTH);
+
+        int index = items.indexOf(new CalendarPageItem(year, month, 1));
+
+        if (index >= 0) {
+            layoutManager.scrollToPositionWithOffset(index, 0);
+        }
+    }
+
+    public int getPageHeight(int year, int month) {
+        int index = items.indexOf(new CalendarPageItem(year, month, 1));
+
+        if (index >= 0) {
+            CalendarPageAdapter.Holder holder =
+                (CalendarPageAdapter.Holder) recyclerView.findViewHolderForAdapterPosition(index);
+
+            if (holder != null) {
+                return holder.itemView.getMeasuredHeight();
+            }
+        }
+
+        return 0;
+    }
+
+    public class Date {
 
         public int year;
         public int month;

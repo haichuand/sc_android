@@ -7,10 +7,13 @@ import android.view.ViewGroup;
 
 import com.mono.R;
 import com.mono.util.SimpleDataSource;
+import com.mono.util.Views;
 
 import java.util.Map;
 
 public class CalendarPageAdapter extends RecyclerView.Adapter<CalendarPageAdapter.Holder> {
+
+    private static final int FADE_DURATION = 500;
 
     private SimpleDataSource<CalendarPageItem> dataSource;
     private CalendarPageListener listener;
@@ -68,6 +71,8 @@ public class CalendarPageAdapter extends RecyclerView.Adapter<CalendarPageAdapte
         public void onBind(CalendarPageItem holderItem) {
             calendar.setMonthLabel(holderItem.year, holderItem.month, holderItem.day);
             calendar.setMonthData(holderItem);
+
+            Views.fade(calendar, 0, 1, FADE_DURATION, null);
         }
 
         public void onViewRecycled() {

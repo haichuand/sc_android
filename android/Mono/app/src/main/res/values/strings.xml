@@ -12,12 +12,15 @@
     <string name="settings">Settings</string>
 
     <string name="action_settings">Settings</string>
+    <string name="action_add">Add</string>
+    <string name="action_today">Today</string>
     <string name="action_clear">Clear</string>
     <string name="action_login">Sign In</string>
     <string name="action_logout">Sign Out</string>
 
     <string name="fragment_main">MainFragment</string>
     <string name="fragment_calendar">CalendarFragment</string>
+    <string name="fragment_calendar_events">CalendarEventsFragment</string>
     <string name="fragment_events">EventsFragment</string>
     <string name="fragment_list">ListFragment</string>
     <string name="fragment_maps">MapsFragment</string>

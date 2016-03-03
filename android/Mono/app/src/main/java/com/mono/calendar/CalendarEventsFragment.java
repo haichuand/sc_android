@@ -1,5 +1,6 @@
 package com.mono.calendar;
 
+import android.animation.Animator;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
@@ -16,6 +17,7 @@ import com.mono.events.ListAdapter.ListItem;
 import com.mono.model.Event;
 import com.mono.util.Common;
 import com.mono.util.SimpleDataSource;
+import com.mono.util.Views;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -27,6 +29,8 @@ import java.util.Map;
 public class CalendarEventsFragment extends Fragment implements SimpleDataSource<CalendarEventsItem>,
         CalendarEventsClickListener {
 
+    private static final long SCALE_DURATION = 300;
+
     private CalendarEventsListener listener;
 
     private RecyclerView recyclerView;
@@ -36,6 +40,7 @@ public class CalendarEventsFragment extends Fragment implements SimpleDataSource
     private final List<Event> events = new ArrayList<>();
 
     private SimpleDateFormat timeFormat;
+    private Animator animator;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -65,8 +70,6 @@ public class CalendarEventsFragment extends Fragment implements SimpleDataSource
         });
 
         adapter.setDataSource(this);
-
-        view.setVisibility(View.GONE);
 
         return view;
     }
@@ -142,16 +145,28 @@ public class CalendarEventsFragment extends Fragment implements SimpleDataSource
         }
     }
 
-    public void setVisible(boolean visible) {
-        View view = getView();
-
-        if (view != null) {
-            if (visible) {
-                view.setVisibility(View.VISIBLE);
-            } else {
-                view.setVisibility(View.GONE);
-            }
+    public void show(int height, boolean animate) {
+        if (animator != null) {
+            animator.cancel();
         }
+
+        View view = getView();
+        if (view == null) {
+            return;
+        }
+
+        if (animate) {
+            animator = Views.scale(view, height, SCALE_DURATION, null);
+        } else {
+            ViewGroup.LayoutParams params = view.getLayoutParams();
+            params.height = height;
+
+            view.setLayoutParams(params);
+        }
+    }
+
+    public void hide(boolean animate) {
+        show(0, animate);
     }
 
     public interface CalendarEventsListener {

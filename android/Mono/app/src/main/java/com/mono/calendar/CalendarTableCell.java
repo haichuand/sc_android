@@ -1,26 +1,32 @@
 package com.mono.calendar;
 
 import android.content.Context;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.util.AttributeSet;
-import android.view.LayoutInflater;
-import android.view.View;
 import android.widget.RelativeLayout;
-import android.widget.TextView;
 
 import com.mono.R;
+import com.mono.util.Pixels;
 
 public class CalendarTableCell extends RelativeLayout {
 
-    private TextView textView;
-    private View marker;
+    private Paint textPaint;
+    private Paint markerPaint;
+    private float markerMarginTop;
+    private float markerWidth;
 
-    private int color;
+    private String text;
     private int textColor;
-    private int resId;
+    private int markerColor;
 
     private boolean isToday;
+
+    private int prevColor;
+    private int prevTextColor;
+    private int prevResId;
 
     public CalendarTableCell(Context context) {
         this(context, null);
@@ -42,11 +48,37 @@ public class CalendarTableCell extends RelativeLayout {
 
     private void initialize(Context context, AttributeSet attrs, int defStyleAttr,
             int defStyleRes) {
-        LayoutInflater inflater = LayoutInflater.from(context);
-        View view = inflater.inflate(R.layout.calendar_cell, this, true);
+        setWillNotDraw(false);
 
-        textView = (TextView) view.findViewById(R.id.text);
-        marker = view.findViewById(R.id.marker);
+        textPaint = new Paint();
+        textPaint.setAntiAlias(true);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        textPaint.setTextSize(Pixels.pxFromDp(context, 16));
+
+        textColor = getResources().getColor(R.color.gray_dark);
+
+        markerPaint = new Paint();
+        markerPaint.setAntiAlias(true);
+
+        markerWidth = Pixels.pxFromDp(context, 6);
+        markerMarginTop = Pixels.pxFromDp(context, 4);
+    }
+
+    @Override
+    public void onDraw(Canvas canvas) {
+        float x = canvas.getWidth() / 2f;
+        float y = (canvas.getHeight() - textPaint.descent() - textPaint.ascent()) / 2;
+
+        textPaint.setColor(textColor);
+        canvas.drawText(text, x, y, textPaint);
+
+        if (markerColor != 0) {
+            float left = x - markerWidth / 2;
+            float top = y + textPaint.descent() + markerMarginTop - markerWidth / 2;
+
+            markerPaint.setColor(markerColor);
+            canvas.drawOval(left, top, left + markerWidth, top + markerWidth, markerPaint);
+        }
     }
 
     @Override
@@ -60,23 +92,23 @@ public class CalendarTableCell extends RelativeLayout {
 
     public void setSelected(boolean selected) {
         if (selected) {
-            color = getResources().getColor(R.color.colorPrimary);
-            textColor = Color.WHITE;
-            resId = R.drawable.calendar_day_selected;
+            prevColor = getResources().getColor(R.color.colorPrimary);
+            prevTextColor = Color.WHITE;
+            prevResId = R.drawable.calendar_day_selected;
         } else {
             if (isToday) {
-                color = getResources().getColor(R.color.colorPrimary);
-                textColor = color;
-                resId = R.drawable.calendar_today;
+                prevColor = getResources().getColor(R.color.colorPrimary);
+                prevTextColor = prevColor;
+                prevResId = R.drawable.calendar_today;
             } else {
-                color = 0;
-                textColor = getResources().getColor(R.color.gray_dark);
-                resId = 0;
+                prevColor = 0;
+                prevTextColor = getResources().getColor(R.color.gray_dark);
+                prevResId = 0;
             }
         }
 
-        setBackground(resId, color);
-        setTextColor(textColor);
+        setBackground(prevResId, prevColor);
+        setTextColor(prevTextColor);
     }
 
     public void setBackground(int resId, int color) {
@@ -86,20 +118,20 @@ public class CalendarTableCell extends RelativeLayout {
         }
     }
 
-    public void setText(CharSequence text) {
-        textView.setText(text);
+    public void setText(String text) {
+        this.text = text;
     }
 
     public void setTextColor(int color) {
-        textView.setTextColor(color);
+        this.textColor = color;
     }
 
-    public void setMarkerVisible(boolean visible) {
-        marker.setVisibility(visible ? VISIBLE : INVISIBLE);
+    public void setMarkerColor(int color) {
+        this.markerColor = color;
     }
 
     public void setLastStyle() {
-        setBackground(resId, color);
-        setTextColor(textColor);
+        setBackground(prevResId, prevColor);
+        setTextColor(prevTextColor);
     }
 }
