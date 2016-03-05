@@ -239,7 +239,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback, OnMapC
 
     @Override
     public ActionButton getActionButton() {
-        return new ActionButton(R.drawable.ic_my_location_white, 0, new OnClickListener() {
+        return new ActionButton(R.drawable.ic_location_white, 0, new OnClickListener() {
             @Override
             public void onClick(View view) {
                 centerLastKnownLocation(true);

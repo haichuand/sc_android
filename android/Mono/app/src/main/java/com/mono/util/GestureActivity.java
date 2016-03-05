@@ -64,6 +64,7 @@ public class GestureActivity extends AppCompatActivity {
     }
 
     private class GestureListener extends SimpleOnGestureListener {
+
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             float deltaX = e2.getX() - e1.getX();

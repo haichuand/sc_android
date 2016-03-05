@@ -43,10 +43,10 @@ public class MainFragment extends Fragment implements OnPageChangeListener {
         super.onCreate(savedInstanceState);
 
         tabPagerAdapter = new SimpleTabPagerAdapter(getChildFragmentManager(), getContext());
-        tabPagerAdapter.add(R.drawable.ic_bookmark_border_white, null, new CalendarFragment());
+        tabPagerAdapter.add(R.drawable.ic_calendar_white, null, new CalendarFragment());
         tabPagerAdapter.add(R.drawable.ic_heart_border_white, null, new EventsFragment());
-        tabPagerAdapter.add(R.drawable.ic_place_white, null, new MapsFragment());
-        tabPagerAdapter.add(R.drawable.ic_star_border_white, null, new DummyFragment());
+        tabPagerAdapter.add(R.drawable.ic_map_white, null, new MapsFragment());
+        tabPagerAdapter.add(R.drawable.ic_chat_white, null, new DummyFragment());
     }
 
     @Override
