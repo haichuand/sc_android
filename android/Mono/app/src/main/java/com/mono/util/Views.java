@@ -54,7 +54,24 @@ public class Views {
         return animator;
     }
 
-    public static Animator translate(View view, int top, long duration,
+    public static Animator translateX(View view, final int left, long duration,
+            final AnimatorListener listener) {
+        float deltaX = left - view.getLeft();
+
+        Animator animator = ObjectAnimator.ofFloat(view, "translationX", deltaX);
+        animator.setDuration(duration);
+        animator.setStartDelay(0);
+
+        if (listener != null) {
+            animator.addListener(listener);
+        }
+
+        animator.start();
+
+        return animator;
+    }
+
+    public static Animator translateY(View view, int top, long duration,
             AnimatorListener listener) {
         float deltaY = top - view.getTop();
 

@@ -12,6 +12,10 @@ public class Common {
         return Math.max(min, Math.min(value, max));
     }
 
+    public static float clamp(float value, float min, float max) {
+        return Math.max(min, Math.min(value, max));
+    }
+
     public static boolean compareStrings(String str1, String str2) {
         if (str1 != null && !str1.equals(str2) || str2 != null && !str2.equals(str1)) {
             return false;
