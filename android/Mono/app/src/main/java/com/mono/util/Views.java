@@ -55,7 +55,7 @@ public class Views {
     }
 
     public static Animator translateX(View view, final int left, long duration,
-            final AnimatorListener listener) {
+            AnimatorListener listener) {
         float deltaX = left - view.getLeft();
 
         Animator animator = ObjectAnimator.ofFloat(view, "translationX", deltaX);
