@@ -1,30 +1,38 @@
 package com.mono.calendar;
 
 import android.support.v7.widget.RecyclerView;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.View.OnClickListener;
-import android.view.View.OnLongClickListener;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.mono.R;
+import com.mono.util.Pixels;
 import com.mono.util.SimpleDataSource;
+import com.mono.util.SimpleSlideView;
+import com.mono.util.SimpleSlideView.SimpleSlideViewListener;
 
 public class CalendarEventsAdapter extends RecyclerView.Adapter<CalendarEventsAdapter.Holder> {
 
-    private SimpleDataSource<CalendarEventsItem> dataSource;
-    private CalendarEventsClickListener listener;
+    private static final int ITEM_HEIGHT_DP = 60;
 
-    public CalendarEventsAdapter(CalendarEventsClickListener listener) {
+    public static final int BUTTON_CHAT_INDEX = 0;
+    public static final int BUTTON_FAVORITE_INDEX = 1;
+    public static final int BUTTON_DELETE_INDEX = 0;
+
+    private SimpleDataSource<CalendarEventsItem> dataSource;
+    private SimpleSlideViewListener listener;
+
+    public CalendarEventsAdapter(SimpleSlideViewListener listener) {
         this.listener = listener;
     }
 
     @Override
     public Holder onCreateViewHolder(ViewGroup parent, int viewType) {
-        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-        View view = inflater.inflate(R.layout.calendar_events_item, parent, false);
+        int height = Pixels.pxFromDp(parent.getContext(), ITEM_HEIGHT_DP);
+
+        SimpleSlideView view = new SimpleSlideView(parent.getContext());
+        view.setContent(R.layout.calendar_events_item, height, listener);
 
         return new Holder(view);
     }
@@ -76,20 +84,15 @@ public class CalendarEventsAdapter extends RecyclerView.Adapter<CalendarEventsAd
             person = (ImageView) itemView.findViewById(R.id.person);
         }
 
-        public void onBind(final CalendarEventsItem holderItem) {
-            itemView.setOnClickListener(new OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    listener.onClick(itemView);
-                }
-            });
-
-            itemView.setOnLongClickListener(new OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View view) {
-                    return listener.onLongClick(holderItem.id, view);
-                }
-            });
+        public void onBind(CalendarEventsItem holderItem) {
+            SimpleSlideView tempView = (SimpleSlideView) itemView;
+            tempView.clear();
+            tempView.addLeftButton(tempView.getResources().getColor(R.color.lavender),
+                R.drawable.ic_chat_white);
+            tempView.addLeftButton(tempView.getResources().getColor(R.color.brown_light),
+                R.drawable.ic_star_border_white);
+            tempView.addRightButton(tempView.getResources().getColor(R.color.red),
+                R.drawable.ic_trash_white);
 
             icon.setImageResource(holderItem.iconResId);
             icon.setColorFilter(holderItem.iconColor | 0xFF000000);
@@ -121,12 +124,5 @@ public class CalendarEventsAdapter extends RecyclerView.Adapter<CalendarEventsAd
         public CalendarEventsItem(long id) {
             this.id = id;
         }
-    }
-
-    public interface CalendarEventsClickListener {
-
-        void onClick(View view);
-
-        boolean onLongClick(long id, View view);
     }
 }

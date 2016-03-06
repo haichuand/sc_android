@@ -122,24 +122,8 @@ public class CalendarFragment extends Fragment implements CalendarListener, Cale
 
     @Override
     public void onCellClick(int year, int month, int day, boolean selected) {
-        EventDataSource dataSource =
-            DatabaseHelper.getDataSource(getContext(), EventDataSource.class);
-        long[] eventIds = dataSource.getEventIdsByDay(year, month, day);
-
-        if (eventIds != null) {
-            eventsFragment.clear(true);
-
-            for (long id : eventIds) {
-                Event event = eventManager.getEvent(id, false);
-                eventsFragment.insert(0, event, true);
-            }
-        }
-
-        View view = getView();
-
-        if (view != null && selected && eventIds != null) {
-            int height = calendarView.getPageHeight(year, month);
-            eventsFragment.show(view.getMeasuredHeight() - height, true);
+        if (selected) {
+            showEventsFragment(year, month, day);
         } else {
             eventsFragment.hide(true);
         }
@@ -212,7 +196,7 @@ public class CalendarFragment extends Fragment implements CalendarListener, Cale
     }
 
     @Override
-    public void onClick(long id) {
+    public void onClick(long id, View view) {
 
     }
 
@@ -228,15 +212,61 @@ public class CalendarFragment extends Fragment implements CalendarListener, Cale
     }
 
     @Override
+    public void onChatClick(long id) {
+        mainInterface.showChat(id);
+    }
+
+    @Override
+    public void onFavoriteClick(long id) {
+
+    }
+
+    @Override
+    public void onDeleteClick(long id) {
+        eventManager.removeEvent(EventAction.ACTOR_SELF, id,
+            new EventManager.EventActionCallback() {
+                @Override
+                public void onEventAction(EventAction data) {
+                    if (data.getStatus() == EventAction.STATUS_OK) {
+                        Toast.makeText(getContext(), "Deleted Event", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+        );
+    }
+
+    @Override
     public void onEventBroadcast(EventAction data) {
-        if (data.getStatus() == EventAction.STATUS_OK) {
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(data.getEvent().startTime);
+        if (data.getStatus() != EventAction.STATUS_OK) {
+            return;
+        }
 
-            int year = calendar.get(Calendar.YEAR);
-            int month = calendar.get(Calendar.MONTH);
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(data.getEvent().startTime);
 
-            calendarView.refresh(year, month);
+        int year = calendar.get(Calendar.YEAR);
+        int month = calendar.get(Calendar.MONTH);
+        int day = calendar.get(Calendar.DAY_OF_MONTH);
+
+        calendarView.refresh(year, month);
+
+        CalendarView.Date date = calendarView.getCurrentSelected();
+        if (year == date.year && month == date.month && day == date.day) {
+            switch (data.getAction()) {
+                case EventAction.ACTION_CREATE:
+                    if (eventsFragment.isShowing()) {
+                        eventsFragment.insert(0, data.getEvent(), true);
+                    } else {
+                        showEventsFragment(year, month, day);
+                    }
+                    break;
+                case EventAction.ACTION_UPDATE:
+                    eventsFragment.refresh(data.getEvent(), true);
+                    break;
+                case EventAction.ACTION_REMOVE:
+                    eventsFragment.remove(data.getEvent(), true);
+                    break;
+            }
         }
     }
 
@@ -253,6 +283,31 @@ public class CalendarFragment extends Fragment implements CalendarListener, Cale
     @Override
     public ActionButton getActionButton() {
         return null;
+    }
+
+    public void showEventsFragment(int year, int month, int day) {
+        View view = getView();
+        if (view == null) {
+            return;
+        }
+
+        EventDataSource dataSource =
+            DatabaseHelper.getDataSource(getContext(), EventDataSource.class);
+        long[] eventIds = dataSource.getEventIdsByDay(year, month, day);
+
+        if (eventIds != null) {
+            eventsFragment.clear(true);
+
+            for (long id : eventIds) {
+                Event event = eventManager.getEvent(id, false);
+                eventsFragment.insert(0, event, true);
+            }
+
+            int height = calendarView.getPageHeight(year, month);
+            eventsFragment.show(view.getMeasuredHeight() - height, true);
+        } else {
+            eventsFragment.hide(true);
+        }
     }
 
     public void add() {

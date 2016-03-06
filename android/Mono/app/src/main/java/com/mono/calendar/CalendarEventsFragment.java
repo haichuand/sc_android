@@ -3,7 +3,6 @@ package com.mono.calendar;
 import android.animation.Animator;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.RecyclerView.OnScrollListener;
 import android.view.LayoutInflater;
@@ -11,12 +10,13 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.mono.R;
-import com.mono.calendar.CalendarEventsAdapter.CalendarEventsClickListener;
 import com.mono.calendar.CalendarEventsAdapter.CalendarEventsItem;
 import com.mono.events.ListAdapter.ListItem;
 import com.mono.model.Event;
 import com.mono.util.Common;
 import com.mono.util.SimpleDataSource;
+import com.mono.util.SimpleLinearLayoutManager;
+import com.mono.util.SimpleSlideView.SimpleSlideViewListener;
 import com.mono.util.Views;
 
 import java.text.SimpleDateFormat;
@@ -26,14 +26,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class CalendarEventsFragment extends Fragment implements SimpleDataSource<CalendarEventsItem>,
-        CalendarEventsClickListener {
+public class CalendarEventsFragment extends Fragment implements
+        SimpleDataSource<CalendarEventsItem>, SimpleSlideViewListener {
 
     private static final long SCALE_DURATION = 300;
 
     private CalendarEventsListener listener;
 
     private RecyclerView recyclerView;
+    private SimpleLinearLayoutManager layoutManager;
     private CalendarEventsAdapter adapter;
 
     private final Map<Long, CalendarEventsItem> items = new HashMap<>();
@@ -60,7 +61,7 @@ public class CalendarEventsFragment extends Fragment implements SimpleDataSource
         View view = inflater.inflate(R.layout.fragment_calendar_events, container, false);
 
         recyclerView = (RecyclerView) view.findViewById(R.id.list);
-        recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+        recyclerView.setLayoutManager(layoutManager = new SimpleLinearLayoutManager(getActivity()));
         recyclerView.setAdapter(adapter = new CalendarEventsAdapter(this));
         recyclerView.addOnScrollListener(new OnScrollListener() {
             @Override
@@ -112,18 +113,63 @@ public class CalendarEventsFragment extends Fragment implements SimpleDataSource
 
         if (item != null) {
             if (listener != null) {
-                listener.onClick(item.id);
+                listener.onClick(item.id, view);
             }
         }
     }
 
     @Override
-    public boolean onLongClick(long id, View view) {
-        if (listener != null) {
-            listener.onLongClick(id, view);
+    public boolean onLongClick(View view) {
+        int position = recyclerView.getChildAdapterPosition(view);
+        CalendarEventsItem item = getItem(position);
+
+        if (item != null) {
+            if (listener != null) {
+                listener.onLongClick(item.id, view);
+            }
         }
 
         return true;
+    }
+
+    @Override
+    public void onLeftButtonClick(View view, int index) {
+        int position = recyclerView.getChildAdapterPosition(view);
+        CalendarEventsItem item = getItem(position);
+
+        if (item != null) {
+            if (listener != null) {
+                switch (index) {
+                    case CalendarEventsAdapter.BUTTON_CHAT_INDEX:
+                        listener.onChatClick(item.id);
+                        break;
+                    case CalendarEventsAdapter.BUTTON_FAVORITE_INDEX:
+                        listener.onFavoriteClick(item.id);
+                        break;
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onRightButtonClick(View view, int index) {
+        int position = recyclerView.getChildAdapterPosition(view);
+        CalendarEventsItem item = getItem(position);
+
+        if (item != null) {
+            if (listener != null) {
+                switch (index) {
+                    case CalendarEventsAdapter.BUTTON_DELETE_INDEX:
+                        listener.onDeleteClick(item.id);
+                        break;
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onGesture(View view, boolean state) {
+        layoutManager.setScrollEnabled(state);
     }
 
     public void clear(boolean notify) {
@@ -141,6 +187,32 @@ public class CalendarEventsFragment extends Fragment implements SimpleDataSource
 
             if (notify) {
                 adapter.notifyItemInserted(index);
+            }
+        }
+    }
+
+    public void refresh(Event event, boolean notify) {
+        int index = events.indexOf(event);
+
+        if (index >= 0) {
+            if (notify) {
+                adapter.notifyItemChanged(index);
+            }
+        }
+    }
+
+    public void remove(Event event, boolean notify) {
+        int index = events.indexOf(event);
+
+        if (index >= 0) {
+            events.remove(index);
+
+            if (notify) {
+                adapter.notifyItemRemoved(index);
+            }
+
+            if (events.isEmpty()) {
+                hide(true);
             }
         }
     }
@@ -169,10 +241,25 @@ public class CalendarEventsFragment extends Fragment implements SimpleDataSource
         show(0, animate);
     }
 
+    public boolean isShowing() {
+        View view = getView();
+        if (view == null) {
+            return false;
+        }
+
+        return view.getLayoutParams().height > 0;
+    }
+
     public interface CalendarEventsListener {
 
-        void onClick(long id);
+        void onClick(long id, View view);
 
         void onLongClick(long id, View view);
+
+        void onChatClick(long id);
+
+        void onFavoriteClick(long id);
+
+        void onDeleteClick(long id);
     }
 }
