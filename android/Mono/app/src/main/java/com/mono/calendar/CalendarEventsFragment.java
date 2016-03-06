@@ -14,6 +14,7 @@ import com.mono.calendar.CalendarEventsAdapter.CalendarEventsItem;
 import com.mono.events.ListAdapter.ListItem;
 import com.mono.model.Event;
 import com.mono.util.Common;
+import com.mono.util.Pixels;
 import com.mono.util.SimpleDataSource;
 import com.mono.util.SimpleLinearLayoutManager;
 import com.mono.util.SimpleSlideView.SimpleSlideViewListener;
@@ -43,6 +44,8 @@ public class CalendarEventsFragment extends Fragment implements
     private SimpleDateFormat timeFormat;
     private Animator animator;
 
+    private boolean isExpanded;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -58,7 +61,7 @@ public class CalendarEventsFragment extends Fragment implements
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_calendar_events, container, false);
+        final View view = inflater.inflate(R.layout.fragment_calendar_events, container, false);
 
         recyclerView = (RecyclerView) view.findViewById(R.id.list);
         recyclerView.setLayoutManager(layoutManager = new SimpleLinearLayoutManager(getActivity()));
@@ -66,7 +69,13 @@ public class CalendarEventsFragment extends Fragment implements
         recyclerView.addOnScrollListener(new OnScrollListener() {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-
+                if (dy > 0) {
+                    if (!isExpanded) {
+                        int height = Math.round(Pixels.Display.getHeight(getContext()) * 0.45f);
+                        animator = Views.scale(view, height, SCALE_DURATION, null);
+                        isExpanded = true;
+                    }
+                }
             }
         });
 
@@ -154,7 +163,7 @@ public class CalendarEventsFragment extends Fragment implements
     @Override
     public void onRightButtonClick(View view, int index) {
         int position = recyclerView.getChildAdapterPosition(view);
-        CalendarEventsItem item = getItem(position);
+            CalendarEventsItem item = getItem(position);
 
         if (item != null) {
             if (listener != null) {
@@ -218,6 +227,8 @@ public class CalendarEventsFragment extends Fragment implements
     }
 
     public void show(int height, boolean animate) {
+        recyclerView.scrollToPosition(0);
+
         if (animator != null) {
             animator.cancel();
         }
@@ -235,6 +246,8 @@ public class CalendarEventsFragment extends Fragment implements
 
             view.setLayoutParams(params);
         }
+
+        isExpanded = false;
     }
 
     public void hide(boolean animate) {
