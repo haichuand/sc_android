@@ -47,7 +47,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
     public static final String APP_DIR = "MonoFiles/";
 
-
     public static final int HOME = R.id.nav_home;
     public static final int SETTINGS = R.id.nav_settings;
 
@@ -74,7 +73,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawer, toolbar,
             R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.setDrawerListener(toggle);
+        drawer.addDrawerListener(toggle);
         toggle.syncState();
 
         tabLayout = (SimpleTabLayout) findViewById(R.id.tab_layout);
@@ -317,6 +316,11 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         } else {
             fragment.startActivityForResult(intent, requestCode);
         }
+    }
+
+    @Override
+    public void showChat(long id) {
+
     }
 
     public static void triggerGooglePlayServices(AppCompatActivity activity) {

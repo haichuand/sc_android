@@ -19,4 +19,6 @@ public interface MainInterface {
     void showSettings();
 
     void showWebActivity(Fragment fragment, int requestCode);
+
+    void showChat(long id);
 }
