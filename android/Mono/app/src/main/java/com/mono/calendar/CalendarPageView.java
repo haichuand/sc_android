@@ -199,8 +199,9 @@ public class CalendarPageView extends LinearLayout implements View.OnClickListen
                 cell.setToday(item.year == currentYear && item.month == currentMonth && day == currentDay);
                 cell.setSelected(day == item.selectedDay);
 
-                if (item.eventIds != null && item.eventIds.containsKey(day)) {
-                    cell.setMarkerColor(getResources().getColor(R.color.colorPrimary));
+                if (item.eventColors.containsKey(day)) {
+                    int color = item.eventColors.get(day)[0] | 0xFF000000;
+                    cell.setMarkerColor(color);
                 } else {
                     cell.setMarkerColor(0);
                 }

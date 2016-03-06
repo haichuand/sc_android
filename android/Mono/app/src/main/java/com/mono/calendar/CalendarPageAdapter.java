@@ -9,6 +9,7 @@ import com.mono.R;
 import com.mono.util.SimpleDataSource;
 import com.mono.util.Views;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class CalendarPageAdapter extends RecyclerView.Adapter<CalendarPageAdapter.Holder> {
@@ -90,7 +91,7 @@ public class CalendarPageAdapter extends RecyclerView.Adapter<CalendarPageAdapte
         public int numDays;
         public int numWeeks;
 
-        public Map<Integer, Long[]> eventIds;
+        public Map<Integer, Integer[]> eventColors = new HashMap<>();
 
         public int selectedDay = -1;
 

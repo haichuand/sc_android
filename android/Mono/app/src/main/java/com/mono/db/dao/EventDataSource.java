@@ -306,6 +306,50 @@ public class EventDataSource extends DataSource {
         return result;
     }
 
+    public Map<Integer, Integer[]> getEventColorsByMonth(int year, int month) {
+        Map<Integer, Integer[]> result = new HashMap<>();
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(year, month, 1, 0, 0, 0);
+        long startTime = calendar.getTimeInMillis();
+
+        calendar.set(year, month + 1, 1, 0, 0, 0);
+        long endTime = calendar.getTimeInMillis();
+
+        Cursor cursor = database.select(
+            DatabaseValues.Event.TABLE,
+            new String[]{
+                "CAST(STRFTIME('%d', " + DatabaseValues.Event.START_TIME + " / 1000, 'UNIXEPOCH', 'LOCALTIME') AS INTEGER) AS `day`",
+                "GROUP_CONCAT(" + DatabaseValues.Event.COLOR + ")"
+            },
+            DatabaseValues.Event.START_TIME + " >= ? AND " +
+            DatabaseValues.Event.START_TIME + " < ?",
+            new String[]{
+                String.valueOf(startTime),
+                String.valueOf(endTime)
+            },
+            "`day`",
+            DatabaseValues.Event.START_TIME + " DESC",
+            null
+        );
+
+        while (cursor.moveToNext()) {
+            int day = cursor.getInt(0);
+
+            String[] tempColors = cursor.getString(1).split(",");
+            Integer[] colors = new Integer[tempColors.length];
+            for (int i = 0; i < tempColors.length; i++) {
+                colors[i] = Integer.valueOf(tempColors[i]);
+            }
+
+            result.put(day, colors);
+        }
+
+        cursor.close();
+
+        return result;
+    }
+
     /**
      * For PROJECTION only.
      */

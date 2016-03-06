@@ -236,7 +236,7 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
 
         EventDataSource dataSource =
             DatabaseHelper.getDataSource(getContext(), EventDataSource.class);
-        item.eventIds = dataSource.getEventIdsByMonth(year, month);
+        item.eventColors = dataSource.getEventColorsByMonth(year, month);
 
         return item;
     }
@@ -288,7 +288,7 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
 
             EventDataSource dataSource =
                 DatabaseHelper.getDataSource(getContext(), EventDataSource.class);
-            item.eventIds = dataSource.getEventIdsByMonth(year, month);
+            item.eventColors = dataSource.getEventColorsByMonth(year, month);
 
             adapter.notifyItemChanged(index);
         }
