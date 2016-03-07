@@ -13,11 +13,12 @@ import com.mono.calendar.CalendarFragment;
 import com.mono.dummy.DummyFragment;
 import com.mono.events.EventsFragment;
 import com.mono.maps.MapsFragment;
+import com.mono.util.OnBackPressedListener;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
 import com.mono.util.SimpleTabPagerAdapter;
 import com.mono.util.SimpleViewPager;
 
-public class MainFragment extends Fragment implements OnPageChangeListener {
+public class MainFragment extends Fragment implements OnBackPressedListener, OnPageChangeListener {
 
     public static final int TAB_CALENDAR = 0;
     public static final int TAB_EVENTS = 1;
@@ -72,6 +73,16 @@ public class MainFragment extends Fragment implements OnPageChangeListener {
                 fragment.onActivityResult(requestCode, resultCode, data);
                 break;
         }
+    }
+
+    @Override
+    public boolean onBackPressed() {
+        Fragment fragment = tabPagerAdapter.getItem(viewPager.getCurrentItem());;
+        if (fragment instanceof OnBackPressedListener) {
+            return ((OnBackPressedListener) fragment).onBackPressed();
+        }
+
+        return false;
     }
 
     @Override

@@ -38,6 +38,7 @@ import com.mono.settings.Settings;
 import com.mono.settings.SettingsActivity;
 import com.mono.util.GoogleClient;
 import com.mono.util.Log;
+import com.mono.util.OnBackPressedListener;
 import com.mono.util.SimpleTabLayout;
 import com.mono.web.WebActivity;
 
@@ -158,8 +159,14 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
     @Override
     public void onBackPressed() {
+        String tag = getString(R.string.fragment_main);
+        OnBackPressedListener fragment =
+            (OnBackPressedListener) getSupportFragmentManager().findFragmentByTag(tag);
+
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
+        } else if (fragment.onBackPressed()) {
+
         } else if (tabLayout.isVisible() && tabLayout.getSelectedTabPosition() > 0) {
             tabLayout.selectTab(0);
         } else if (dockLayout.isVisible() && dockLayout.getSelectedTabPosition() > 0) {
@@ -328,7 +335,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
     @Override
     public void showEventDetails(Event event) {
-        Intent intent  = new Intent(this, EventDetailsActivity.class);
+        Intent intent = new Intent(this, EventDetailsActivity.class);
         intent.putExtra(EventDetailsActivity.EXTRA_EVENT, event);
         startActivityForResult(intent, RequestCodes.Activity.EVENT_DETAILS);
     }

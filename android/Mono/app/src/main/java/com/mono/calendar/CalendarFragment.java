@@ -26,12 +26,13 @@ import com.mono.calendar.CalendarView.CalendarListener;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.EventDataSource;
 import com.mono.model.Event;
+import com.mono.util.OnBackPressedListener;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
 
 import java.util.Calendar;
 
-public class CalendarFragment extends Fragment implements CalendarListener, CalendarEventsListener,
-        EventBroadcastListener, TabPagerCallback {
+public class CalendarFragment extends Fragment implements OnBackPressedListener, CalendarListener,
+        CalendarEventsListener, EventBroadcastListener, TabPagerCallback {
 
     private static final String[] ACTIONS = {"Move", "Copy", "Cancel"};
     private static final int ACTION_MOVE = 0;
@@ -126,6 +127,16 @@ public class CalendarFragment extends Fragment implements CalendarListener, Cale
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onBackPressed() {
+        if (eventsFragment.isShowing()) {
+            eventsFragment.hide(true);
+            return true;
+        }
+
+        return false;
     }
 
     @Override
