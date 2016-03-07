@@ -62,8 +62,8 @@ public class KmlLocationService extends IntentService{
             Log.d(TAG, "No userstay available!");
             return;
         }for(LatLngTime llt : userStays) {
-            long event_id = eventDataSource.createEvent(-1,"","","",-1,llt.getStartTime(), llt.getEndTime(),
-                    llt.getStartTime(),this.TYPE);
+            long event_id = eventDataSource.createEvent(-1,this.TYPE,"","","",-1,llt.getStartTime(), llt.getEndTime(),
+                    llt.getStartTime());
             writeLocationAndEventToDB(String.valueOf(llt.getLat()), String.valueOf(llt.getLng()), event_id);
         }
     }

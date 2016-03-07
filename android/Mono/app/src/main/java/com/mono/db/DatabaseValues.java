@@ -20,6 +20,7 @@ public class DatabaseValues {
 
         public static final String ID = "`id`";
         public static final String EXTERNAL_ID = "`external_id`";
+        public static final String TYPE = "`type`";
         public static final String TITLE = "`title`";
         public static final String DESC = "`description`";
         public static final String LOCATION = "`location`";
@@ -27,31 +28,30 @@ public class DatabaseValues {
         public static final String START_TIME = "`start_time`";
         public static final String END_TIME = "`end_time`";
         public static final String CREATE_TIME = "`create_time`";
-        public static final String TYPE = "`type`";
 
         public static final String[] PROJECTION = {
             Event.ID,
             Event.EXTERNAL_ID,
+            Event.TYPE,
             Event.TITLE,
             Event.DESC,
             Event.LOCATION,
             Event.COLOR,
             Event.START_TIME,
             Event.END_TIME,
-            Event.CREATE_TIME,
-            Event.TYPE
+            Event.CREATE_TIME
         };
 
         public static final int INDEX_ID = 0;
         public static final int INDEX_EXTERNAL_ID = 1;
-        public static final int INDEX_TITLE = 2;
-        public static final int INDEX_DESC = 3;
-        public static final int INDEX_LOCATION = 4;
-        public static final int INDEX_COLOR = 5;
-        public static final int INDEX_START_TIME = 6;
-        public static final int INDEX_END_TIME = 7;
-        public static final int INDEX_CREATE_TIME = 8;
-        public static final int INDEX_TYPE = 9;
+        public static final int INDEX_TYPE = 2;
+        public static final int INDEX_TITLE = 3;
+        public static final int INDEX_DESC = 4;
+        public static final int INDEX_LOCATION = 5;
+        public static final int INDEX_COLOR = 6;
+        public static final int INDEX_START_TIME = 7;
+        public static final int INDEX_END_TIME = 8;
+        public static final int INDEX_CREATE_TIME = 9;
 
         public static final String CREATE_TABLE;
         public static final String DROP_TABLE;
@@ -60,14 +60,14 @@ public class DatabaseValues {
             String[] parameters = {
                 ID + " INTEGER PRIMARY KEY AUTOINCREMENT",
                 EXTERNAL_ID + " INTEGER",
+                TYPE + " TEXT",
                 TITLE + " TEXT",
                 DESC + " TEXT",
                 LOCATION + " TEXT",
                 COLOR + " INTEGER",
                 START_TIME + " INTEGER",
                 END_TIME + " INTEGER",
-                CREATE_TIME + " INTEGER",
-                TYPE + " TEXT"
+                CREATE_TIME + " INTEGER"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);

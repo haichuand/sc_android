@@ -22,12 +22,13 @@ public class EventDataSource extends DataSource {
         super(database);
     }
 
-    public long createEvent(long externalId, String title, String description, String location,
-            int color, long startTime, long endTime, long createTime, String type) {
+    public long createEvent(long externalId, String type, String title, String description,
+            String location, int color, long startTime, long endTime, long createTime) {
         long id = -1;
 
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.Event.EXTERNAL_ID, externalId);
+        values.put(DatabaseValues.Event.TYPE, type);
         values.put(DatabaseValues.Event.TITLE, title);
         values.put(DatabaseValues.Event.DESC, description);
         values.put(DatabaseValues.Event.LOCATION, location);
@@ -35,7 +36,6 @@ public class EventDataSource extends DataSource {
         values.put(DatabaseValues.Event.START_TIME, startTime);
         values.put(DatabaseValues.Event.END_TIME, endTime);
         values.put(DatabaseValues.Event.CREATE_TIME, createTime);
-        values.put(DatabaseValues.Event.TYPE, type);
 
         try {
             id = database.insert(DatabaseValues.Event.TABLE, values);
@@ -141,11 +141,7 @@ public class EventDataSource extends DataSource {
         return event;
     }
 
-    public int updateEventTime(long id, long startTime, long endTime) {
-        ContentValues values = new ContentValues();
-        values.put(DatabaseValues.Event.START_TIME, startTime);
-        values.put(DatabaseValues.Event.END_TIME, endTime);
-
+    public int updateValues(long id, ContentValues values) {
         return database.update(
             DatabaseValues.Event.TABLE,
             values,
@@ -154,6 +150,14 @@ public class EventDataSource extends DataSource {
                 String.valueOf(id)
             }
         );
+    }
+
+    public int updateTime(long id, long startTime, long endTime) {
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.Event.START_TIME, startTime);
+        values.put(DatabaseValues.Event.END_TIME, endTime);
+
+        return updateValues(id, values);
     }
 
     public int removeEvent(long id) {
@@ -356,14 +360,19 @@ public class EventDataSource extends DataSource {
     private Event cursorToEvent(Cursor cursor) {
         Event event = new Event(cursor.getLong(DatabaseValues.Event.INDEX_ID));
         event.externalId = cursor.getLong(DatabaseValues.Event.INDEX_EXTERNAL_ID);
+        event.type = cursor.getString(DatabaseValues.Event.INDEX_TYPE);
         event.title = cursor.getString(DatabaseValues.Event.INDEX_TITLE);
         event.description = cursor.getString(DatabaseValues.Event.INDEX_DESC);
-        event.location = new Location(cursor.getString(DatabaseValues.Event.INDEX_LOCATION));
+
+        String location = cursor.getString(DatabaseValues.Event.INDEX_LOCATION);
+        if (location != null) {
+            event.location = new Location(location);
+        }
+
         event.color = cursor.getInt(DatabaseValues.Event.INDEX_COLOR);
         event.startTime = cursor.getLong(DatabaseValues.Event.INDEX_START_TIME);
         event.endTime = cursor.getLong(DatabaseValues.Event.INDEX_END_TIME);
         event.createTime = cursor.getLong(DatabaseValues.Event.INDEX_CREATE_TIME);
-        event.type = cursor.getString(DatabaseValues.Event.INDEX_TYPE);
 
         return event;
     }

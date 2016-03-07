@@ -45,6 +45,12 @@
             android:theme="@style/AppTheme">
         </activity>
 
+        <activity
+            android:name=".details.EventDetailsActivity"
+            android:label="@string/event_details"
+            android:theme="@style/AppTheme">
+        </activity>
+
         <service
             android:name=".parser.KmlLocationService"
             android:exported="false"/>

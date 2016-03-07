@@ -204,6 +204,10 @@ public class CalendarEventsFragment extends Fragment implements
         int index = events.indexOf(event);
 
         if (index >= 0) {
+            events.remove(index);
+            events.add(index, event);
+            items.remove(event.id);
+
             if (notify) {
                 adapter.notifyItemChanged(index);
             }

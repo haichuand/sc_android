@@ -1,8 +1,13 @@
 package com.mono.model;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 import com.mono.util.Common;
 
-public class Location {
+import java.util.Arrays;
+
+public class Location implements Parcelable {
 
     public final long id;
     public String name;
@@ -18,11 +23,11 @@ public class Location {
     public Location(String name, String googlePlaceId, Double latitude, Double longitude,
             String[] address) {
         this(-1);
-        this.googlePlaceId = googlePlaceId;
         this.name = name;
+        this.googlePlaceId = googlePlaceId;
         this.latitude = latitude;
         this.longitude = longitude;
-        for (String s : this.address = address) {}
+        this.address = address;
     }
 
     public Location(String name) {
@@ -35,6 +40,38 @@ public class Location {
         this.latitude = latitude;
         this.longitude = longitude;
     }
+
+    public Location(Location location) {
+        id = location.id;
+        name = location.name;
+        latitude = location.latitude;
+        longitude = location.longitude;
+
+        if (location.address != null) {
+            address = Arrays.copyOf(location.address, location.address.length);
+        }
+
+        googlePlaceId = location.googlePlaceId;
+    }
+
+    protected Location(Parcel in) {
+        id = in.readLong();
+        name = in.readString();
+        address = in.createStringArray();
+        googlePlaceId = in.readString();
+    }
+
+    public static final Creator<Location> CREATOR = new Creator<Location>() {
+        @Override
+        public Location createFromParcel(Parcel in) {
+            return new Location(in);
+        }
+
+        @Override
+        public Location[] newArray(int size) {
+            return new Location[size];
+        }
+    };
 
     @Override
     public boolean equals(Object object) {
@@ -49,6 +86,19 @@ public class Location {
         }
 
         return true;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeLong(id);
+        dest.writeString(name);
+        dest.writeStringArray(address);
+        dest.writeString(googlePlaceId);
     }
 
     public boolean containsLatLng() {
