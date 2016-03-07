@@ -14,6 +14,7 @@ import com.mono.calendar.CalendarEventsAdapter.CalendarEventsItem;
 import com.mono.events.ListAdapter.ListItem;
 import com.mono.model.Event;
 import com.mono.util.Common;
+import com.mono.util.OnBackPressedListener;
 import com.mono.util.Pixels;
 import com.mono.util.SimpleDataSource;
 import com.mono.util.SimpleLinearLayoutManager;
@@ -27,7 +28,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class CalendarEventsFragment extends Fragment implements
+public class CalendarEventsFragment extends Fragment implements OnBackPressedListener,
         SimpleDataSource<CalendarEventsItem>, SimpleSlideViewListener {
 
     private static final long SCALE_DURATION = 300;
@@ -44,6 +45,7 @@ public class CalendarEventsFragment extends Fragment implements
     private SimpleDateFormat timeFormat;
     private Animator animator;
 
+    private int currentHeight;
     private boolean isExpanded;
 
     @Override
@@ -82,6 +84,19 @@ public class CalendarEventsFragment extends Fragment implements
         adapter.setDataSource(this);
 
         return view;
+    }
+
+    @Override
+    public boolean onBackPressed() {
+        if (isExpanded) {
+            show(currentHeight, true);
+            return true;
+        } else if (isShowing()) {
+            hide(true);
+            return true;
+        }
+
+        return false;
     }
 
     @Override
@@ -241,6 +256,8 @@ public class CalendarEventsFragment extends Fragment implements
         if (view == null) {
             return;
         }
+
+        currentHeight = height;
 
         if (animate) {
             animator = Views.scale(view, height, SCALE_DURATION, null);
