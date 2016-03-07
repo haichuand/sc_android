@@ -5,7 +5,6 @@ import android.app.TimePickerDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v4.app.DialogFragment;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.text.Editable;
@@ -202,7 +201,8 @@ public class EventDetailsActivity extends GestureActivity {
     @Override
     public void onBackPressed() {
         if (event != null && !event.equals(original)) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            AlertDialog.Builder builder = new AlertDialog.Builder(this,
+                R.style.AppTheme_Dialog_Alert);
             builder.setMessage(R.string.confirm_save);
 
             DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
@@ -270,7 +270,7 @@ public class EventDetailsActivity extends GestureActivity {
         }
 
         if (event.color == 0) {
-            this.event.color = getResources().getColor(R.color.colorPrimary);
+            showColorPicker();
         }
         colorPicker.setColorFilter(this.event.color | 0xFF000000);
 
@@ -311,10 +311,15 @@ public class EventDetailsActivity extends GestureActivity {
 
     public void showColorPicker() {
         int[] colorIds = {
+            R.color.blue,
+            R.color.blue_dark,
             R.color.brown,
+            R.color.green,
             R.color.lavender,
-            R.color.red,
-            R.color.yellow
+            R.color.orange,
+            R.color.purple,
+            R.color.red_1,
+            R.color.yellow_1
         };
 
         int color;

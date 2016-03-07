@@ -13,6 +13,10 @@ import com.mono.util.Pixels;
 
 public class CalendarTableCell extends RelativeLayout {
 
+    private static final int MARKER_MARGIN_TOP_DP = 4;
+    private static final int MARKER_WIDTH_DP = 6;
+    private static final int TEXT_SIZE_DP = 16;
+
     private Paint textPaint;
     private Paint markerPaint;
     private float markerMarginTop;
@@ -41,7 +45,7 @@ public class CalendarTableCell extends RelativeLayout {
     }
 
     public CalendarTableCell(Context context, AttributeSet attrs, int defStyleAttr,
-                             int defStyleRes) {
+            int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         initialize(context, attrs, defStyleAttr, defStyleRes);
     }
@@ -53,15 +57,15 @@ public class CalendarTableCell extends RelativeLayout {
         textPaint = new Paint();
         textPaint.setAntiAlias(true);
         textPaint.setTextAlign(Paint.Align.CENTER);
-        textPaint.setTextSize(Pixels.pxFromDp(context, 16));
+        textPaint.setTextSize(Pixels.pxFromDp(context, TEXT_SIZE_DP));
 
         textColor = getResources().getColor(R.color.gray_dark);
 
         markerPaint = new Paint();
         markerPaint.setAntiAlias(true);
 
-        markerWidth = Pixels.pxFromDp(context, 6);
-        markerMarginTop = Pixels.pxFromDp(context, 4);
+        markerMarginTop = Pixels.pxFromDp(context, MARKER_MARGIN_TOP_DP);
+        markerWidth = Pixels.pxFromDp(context, MARKER_WIDTH_DP);
     }
 
     @Override
