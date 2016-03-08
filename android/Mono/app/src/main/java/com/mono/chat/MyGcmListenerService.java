@@ -22,11 +22,14 @@ public class MyGcmListenerService extends GcmListenerService {
     private static final String TAG = "MyGcmListenerService";
 
     public void onMessageReceived(String from, Bundle data) {
-        String message = data.getString("message");
-        String messageId = data.getString("message_id");
+        String message = data.getString(GcmMessage.MESSAGE);
+        String sender_id = data.getString(GcmMessage.SENDER_ID);
+        String conversation_id = data.getString(GcmMessage.CONVERSATION_ID);
         Log.d(TAG, "From: " + from);
+        Log.d(TAG, "From user: " + sender_id);
         Log.d(TAG, "Message: " + message);
-        Log.d(TAG, "Message_id: " + messageId);
+        Log.d(TAG, "Conversaiton_id: " + conversation_id);
+
         // [START_EXCLUDE]
         /**
          * applications would process the message here.
