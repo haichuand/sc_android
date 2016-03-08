@@ -77,7 +77,7 @@ public class MainFragment extends Fragment implements OnBackPressedListener, OnP
 
     @Override
     public boolean onBackPressed() {
-        Fragment fragment = tabPagerAdapter.getItem(viewPager.getCurrentItem());;
+        Fragment fragment = tabPagerAdapter.getItem(viewPager.getCurrentItem());
         if (fragment instanceof OnBackPressedListener) {
             return ((OnBackPressedListener) fragment).onBackPressed();
         }

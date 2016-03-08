@@ -131,8 +131,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
 
     @Override
     public boolean onBackPressed() {
-        if (eventsFragment.isShowing()) {
-            eventsFragment.hide(true);
+        if (eventsFragment.onBackPressed()) {
             return true;
         }
 
