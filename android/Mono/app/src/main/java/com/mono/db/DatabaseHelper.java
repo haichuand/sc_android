@@ -46,7 +46,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             DatabaseValues.ConversationContent.CREATE_TABLE,
             DatabaseValues.EventLocationCandidates.CREATE_TABLE,
             DatabaseValues.EventAttendee.CREATE_TABLE,
-            DatabaseValues.EventMedia.CREATE_TABLE
+            DatabaseValues.EventMedia.CREATE_TABLE,
+            DatabaseValues.Alarm.CREATE_TABLE,
+            DatabaseValues.EventAlarm.CREATE_TABLE,
+            DatabaseValues.ConversationAttendee.CREATE_TABLE,
+            DatabaseValues.RecurringEvent.CREATE_TABLE
         });
     }
 
@@ -58,7 +62,20 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         executeQueries(db, new String[]{
-            DatabaseValues.Event.DROP_TABLE
+                DatabaseValues.Event.DROP_TABLE,
+                DatabaseValues.User.DROP_TABLE,
+                DatabaseValues.Conversation.DROP_TABLE,
+                DatabaseValues.Media.DROP_TABLE,
+                DatabaseValues.Location.DROP_TABLE,
+                DatabaseValues.EventConversation.DROP_TABLE,
+                DatabaseValues.ConversationContent.DROP_TABLE,
+                DatabaseValues.EventLocationCandidates.DROP_TABLE,
+                DatabaseValues.EventAttendee.DROP_TABLE,
+                DatabaseValues.EventMedia.DROP_TABLE,
+                DatabaseValues.Alarm.DROP_TABLE,
+                DatabaseValues.EventAlarm.DROP_TABLE,
+                DatabaseValues.ConversationAttendee.DROP_TABLE,
+                DatabaseValues.RecurringEvent.DROP_TABLE
         });
 
         onCreate(db);
