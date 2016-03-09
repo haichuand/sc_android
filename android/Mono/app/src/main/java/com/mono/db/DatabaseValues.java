@@ -20,6 +20,7 @@ public class DatabaseValues {
 
         public static final String ID = "`id`";
         public static final String EXTERNAL_ID = "`external_id`";
+        public static final String TYPE = "`type`";
         public static final String TITLE = "`title`";
         public static final String DESC = "`description`";
         public static final String LOCATION = "`location`";
@@ -27,31 +28,30 @@ public class DatabaseValues {
         public static final String START_TIME = "`start_time`";
         public static final String END_TIME = "`end_time`";
         public static final String CREATE_TIME = "`create_time`";
-        public static final String TYPE = "`type`";
 
         public static final String[] PROJECTION = {
             Event.ID,
             Event.EXTERNAL_ID,
+            Event.TYPE,
             Event.TITLE,
             Event.DESC,
             Event.LOCATION,
             Event.COLOR,
             Event.START_TIME,
             Event.END_TIME,
-            Event.CREATE_TIME,
-            Event.TYPE
+            Event.CREATE_TIME
         };
 
         public static final int INDEX_ID = 0;
         public static final int INDEX_EXTERNAL_ID = 1;
-        public static final int INDEX_TITLE = 2;
-        public static final int INDEX_DESC = 3;
-        public static final int INDEX_LOCATION = 4;
-        public static final int INDEX_COLOR = 5;
-        public static final int INDEX_START_TIME = 6;
-        public static final int INDEX_END_TIME = 7;
-        public static final int INDEX_CREATE_TIME = 8;
-        public static final int INDEX_TYPE = 9;
+        public static final int INDEX_TYPE = 2;
+        public static final int INDEX_TITLE = 3;
+        public static final int INDEX_DESC = 4;
+        public static final int INDEX_LOCATION = 5;
+        public static final int INDEX_COLOR = 6;
+        public static final int INDEX_START_TIME = 7;
+        public static final int INDEX_END_TIME = 8;
+        public static final int INDEX_CREATE_TIME = 9;
 
         public static final String CREATE_TABLE;
         public static final String DROP_TABLE;
@@ -60,14 +60,14 @@ public class DatabaseValues {
             String[] parameters = {
                 ID + " INTEGER PRIMARY KEY AUTOINCREMENT",
                 EXTERNAL_ID + " INTEGER",
+                TYPE + " TEXT",
                 TITLE + " TEXT",
                 DESC + " TEXT",
                 LOCATION + " TEXT",
                 COLOR + " INTEGER",
                 START_TIME + " INTEGER",
                 END_TIME + " INTEGER",
-                CREATE_TIME + " INTEGER",
-                TYPE + " TEXT"
+                CREATE_TIME + " INTEGER"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);
@@ -396,6 +396,137 @@ public class DatabaseValues {
             String[] parameters = {
                     E_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
                     M_ID + " INTEGER REFERENCES " + Media.TABLE + " ( "+ Media.MEDIA_ID +" )"
+            };
+
+            CREATE_TABLE = createTableQuery(TABLE, parameters);
+            DROP_TABLE = dropTableQuery(TABLE);
+        }
+    }
+
+    public static class Alarm {
+        public static final String TABLE = "`alarm`";
+
+        public static final String ALARM_ID = "`alarm_id`";
+        public static final String ALARM_TIME = "`alarm_time`";
+        public static final String CREATE_TIME = "`create_time`";
+        public static final String ENABLE = "`enable`";
+
+
+        public static final String[] PROJECTION = {
+                Alarm.ALARM_ID,
+                Alarm.ALARM_TIME,
+                Alarm.CREATE_TIME,
+                Alarm.ENABLE
+        };
+
+        public static final int INDEX_ALARM_ID = 0;
+        public static final int INDEX_ALARM_TIME = 1;
+        public static final int INDEX_CREATE_TIME = 2;
+        public static final int INDEX_ENABLE = 3;
+
+
+        public static final String CREATE_TABLE;
+        public static final String DROP_TABLE;
+
+        static {
+            String[] parameters = {
+                    ALARM_ID + " INTEGER PRIMARY KEY",
+                    ALARM_TIME + " INTEGER",
+                    CREATE_TIME + " INTEGER",
+                    ENABLE + " INTEGER"
+            };
+
+            CREATE_TABLE = createTableQuery(TABLE, parameters);
+            DROP_TABLE = dropTableQuery(TABLE);
+        }
+    }
+
+    public static class EventAlarm {
+        public static final String TABLE = "`event_alarm`";
+
+        public static final String E_ID = "`e_id`";
+        public static final String A_ID = "`a_id`";
+
+
+
+        public static final String[] PROJECTION = {
+                EventAlarm.E_ID,
+                EventAlarm.A_ID
+        };
+
+        public static final int INDEX_E_ID = 0;
+        public static final int INDEX_A_ID = 1;
+
+
+        public static final String CREATE_TABLE;
+        public static final String DROP_TABLE;
+
+        static {
+            String[] parameters = {
+                    E_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
+                    A_ID + " INTEGER REFERENCES " + Alarm.TABLE + " ( "+ Alarm.ALARM_ID +" )"
+            };
+
+            CREATE_TABLE = createTableQuery(TABLE, parameters);
+            DROP_TABLE = dropTableQuery(TABLE);
+        }
+    }
+
+    public static class RecurringEvent {
+        public static final String TABLE = "`recurring_event`";
+
+        public static final String PARENT_ID = "`parent_id`";
+        public static final String CHILD_ID = "`child_id`";
+
+
+
+        public static final String[] PROJECTION = {
+                RecurringEvent.PARENT_ID,
+                RecurringEvent.CHILD_ID
+        };
+
+        public static final int INDEX_PARENT_ID = 0;
+        public static final int INDEX_CHILD_ID = 1;
+
+
+        public static final String CREATE_TABLE;
+        public static final String DROP_TABLE;
+
+        static {
+            String[] parameters = {
+                    PARENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
+                    CHILD_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )"
+            };
+
+            CREATE_TABLE = createTableQuery(TABLE, parameters);
+            DROP_TABLE = dropTableQuery(TABLE);
+        }
+    }
+
+    public static class ConversationAttendee {
+        public static final String TABLE = "`conversation_attendee`";
+
+        public static final String C_ID = "`c_id`";
+        public static final String ATTENDEE_ID = "`attendee_id`";
+
+
+
+        public static final String[] PROJECTION = {
+                ConversationAttendee.C_ID,
+                ConversationAttendee.ATTENDEE_ID
+        };
+
+        public static final int INDEX_C_ID = 0;
+        public static final int INDEX_ATTENDEE_ID = 1;
+
+
+        public static final String CREATE_TABLE;
+        public static final String DROP_TABLE;
+
+        static {
+            String[] parameters = {
+                    C_ID + " INTEGER REFERENCES " + Conversation.TABLE + " ( "+ Conversation.C_ID +" )",
+                    ATTENDEE_ID + " INTEGER REFERENCES " + User.TABLE + " ( "+ User.U_ID +" )"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);

@@ -1,11 +1,13 @@
 package com.mono;
 
+import android.content.ContentValues;
 import android.content.Context;
 
 import com.mono.db.DatabaseHelper;
+import com.mono.db.DatabaseValues;
 import com.mono.db.dao.EventDataSource;
 import com.mono.model.Event;
-import com.mono.util.Colors;
+import com.mono.util.Common;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -110,8 +112,8 @@ public class EventManager {
         return result;
     }
 
-    public void createEvent(int actor, long externalId, String title, String description,
-            String location, int color, long startTime, long endTime, String type,
+    public void createEvent(int actor, long externalId, String type, String title,
+            String description, String location, int color, long startTime, long endTime,
             EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
 
@@ -123,14 +125,14 @@ public class EventManager {
         if (!dataSource.containsEventByExternalId(externalId)) {
             id = dataSource.createEvent(
                 externalId,
+                type,
                 title,
                 description,
                 location,
                 color,
                 startTime,
                 endTime,
-                System.currentTimeMillis(),
-                type
+                System.currentTimeMillis()
             );
         }
 
@@ -152,9 +154,54 @@ public class EventManager {
     public void updateEvent(int actor, long id, Event event, EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
 
-        Event source = getEvent(id, false);
+        Event original = getEvent(id, false);
+        ContentValues values = new ContentValues();
 
-        EventAction data = new EventAction(EventAction.ACTION_UPDATE, actor, status, source);
+        if (!Common.compareStrings(event.type, original.type)) {
+            values.put(DatabaseValues.Event.TYPE, event.type);
+            original.type = event.type;
+        }
+
+        if (!Common.compareStrings(event.title, original.title)) {
+            values.put(DatabaseValues.Event.TITLE, event.title);
+            original.title = event.title;
+        }
+
+        if (!Common.compareStrings(event.description, original.description)) {
+            values.put(DatabaseValues.Event.DESC, event.description);
+            original.description = event.description;
+        }
+
+        if (event.location != null && !event.location.equals(original.location) ||
+                event.location == null && original.location != null) {
+            String location = event.location != null ? event.location.name : null;
+            values.put(DatabaseValues.Event.LOCATION, location);
+            original.location = event.location;
+        }
+
+        if (event.color != original.color) {
+            values.put(DatabaseValues.Event.COLOR, event.color);
+            original.color = event.color;
+        }
+
+        if (event.startTime != original.startTime) {
+            values.put(DatabaseValues.Event.START_TIME, event.startTime);
+            original.startTime = event.startTime;
+        }
+
+        if (event.endTime != original.endTime)  {
+            values.put(DatabaseValues.Event.END_TIME, event.endTime);
+            original.endTime = event.endTime;
+        }
+
+        if (!event.attendees.equals(original.attendees)) {
+
+        }
+
+        EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+        dataSource.updateValues(id, values);
+
+        EventAction data = new EventAction(EventAction.ACTION_UPDATE, actor, status, original);
         if (!listeners.isEmpty()) {
             sendToListeners(data);
         }
@@ -168,7 +215,7 @@ public class EventManager {
         int status = EventAction.STATUS_OK;
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-        dataSource.updateEventTime(id, startTime, endTime);
+        dataSource.updateTime(id, startTime, endTime);
 
         Event event = getEvent(id, true);
 
@@ -196,24 +243,6 @@ public class EventManager {
         if (callback != null) {
             callback.onEventAction(data);
         }
-    }
-
-    public static void createDummyEvent(Context context, EventActionCallback callback) {
-        String[] locations = {"San Francisco", "San Jose", "San Leandro"};
-        int[] colors = {Colors.BROWN, Colors.BROWN_LIGHT, Colors.LAVENDAR};
-
-        getInstance(context).createEvent(
-            EventAction.ACTOR_SELF,
-            (int) (Math.random() * -1000),
-            "Title " + (int) (Math.random() * 100),
-            "Description " + (int) (Math.random() * 100),
-            locations[(int) (Math.random() * locations.length) % locations.length],
-            colors[(int) (Math.random() * colors.length) % colors.length],
-            System.currentTimeMillis() - (int) (Math.random() * 72) * 60 * 60 * 1000,
-            System.currentTimeMillis(),
-            Event.TYPE_CALENDAR,
-            callback
-        );
     }
 
     public static class EventAction {

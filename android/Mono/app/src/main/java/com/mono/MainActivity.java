@@ -33,11 +33,13 @@ import com.mono.calendar.CalendarHelper;
 import com.mono.chat.ChatRoomActivity;
 import com.mono.chat.RegistrationIntentService;
 import com.mono.chat.SuperCalyPreferences;
+import com.mono.details.EventDetailsActivity;
 import com.mono.model.Event;
 import com.mono.settings.Settings;
 import com.mono.settings.SettingsActivity;
 import com.mono.util.GoogleClient;
 import com.mono.util.Log;
+import com.mono.util.OnBackPressedListener;
 import com.mono.util.SimpleTabLayout;
 import com.mono.web.WebActivity;
 
@@ -158,8 +160,14 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
     @Override
     public void onBackPressed() {
+        String tag = getString(R.string.fragment_main);
+        OnBackPressedListener fragment =
+            (OnBackPressedListener) getSupportFragmentManager().findFragmentByTag(tag);
+
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
+        } else if (fragment.onBackPressed()) {
+
         } else if (tabLayout.isVisible() && tabLayout.getSelectedTabPosition() > 0) {
             tabLayout.selectTab(0);
         } else if (dockLayout.isVisible() && dockLayout.getSelectedTabPosition() > 0) {
@@ -194,9 +202,10 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
         switch (requestCode) {
             case RequestCodes.Activity.SETTINGS:
-                if (resultCode == RESULT_OK) {
-
-                }
+                handleSettings(resultCode, data);
+                break;
+            case RequestCodes.Activity.EVENT_DETAILS:
+                handleEventDetails(resultCode, data);
                 break;
         }
     }
@@ -315,6 +324,12 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         startActivityForResult(intent, RequestCodes.Activity.SETTINGS);
     }
 
+    public void handleSettings(int resultCode, Intent data) {
+        if (resultCode == RESULT_OK) {
+
+        }
+    }
+
     @Override
     public void showWebActivity(Fragment fragment, int requestCode) {
         Intent intent = new Intent(this, WebActivity.class);
@@ -323,6 +338,43 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             startActivityForResult(intent, requestCode);
         } else {
             fragment.startActivityForResult(intent, requestCode);
+        }
+    }
+
+    @Override
+    public void showEventDetails(Event event) {
+        Intent intent = new Intent(this, EventDetailsActivity.class);
+        intent.putExtra(EventDetailsActivity.EXTRA_EVENT, event);
+        startActivityForResult(intent, RequestCodes.Activity.EVENT_DETAILS);
+    }
+
+    public void handleEventDetails(int resultCode, Intent data) {
+        if (resultCode == RESULT_OK) {
+            Event event = data.getParcelableExtra(EventDetailsActivity.EXTRA_EVENT);
+
+            if (event.id > 0) {
+                EventManager.getInstance(this).updateEvent(
+                    EventManager.EventAction.ACTOR_SELF,
+                    event.id,
+                    event,
+                    null
+                );
+            } else {
+                event.externalId = System.currentTimeMillis();
+
+                EventManager.getInstance(this).createEvent(
+                    EventManager.EventAction.ACTOR_SELF,
+                    event.externalId,
+                    event.type,
+                    event.title,
+                    event.description,
+                    event.location != null ? event.location.name : null,
+                    event.color,
+                    event.startTime,
+                    event.endTime,
+                    null
+                );
+            }
         }
     }
 
@@ -381,13 +433,13 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             EventManager.getInstance(this).createEvent(
                 EventManager.EventAction.ACTOR_NONE,
                 event.externalId,
+                Event.TYPE_CALENDAR,
                 event.title,
                 event.description,
                 null,
                 event.color,
                 event.startTime,
                 event.endTime,
-                Event.TYPE_CALENDAR,
                 null
             );
         }

@@ -26,14 +26,13 @@ import com.mono.calendar.CalendarView.CalendarListener;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.EventDataSource;
 import com.mono.model.Event;
-import com.mono.util.Colors;
-import com.mono.util.Constants;
+import com.mono.util.OnBackPressedListener;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
 
 import java.util.Calendar;
 
-public class CalendarFragment extends Fragment implements CalendarListener, CalendarEventsListener,
-        EventBroadcastListener, TabPagerCallback {
+public class CalendarFragment extends Fragment implements OnBackPressedListener, CalendarListener,
+        CalendarEventsListener, EventBroadcastListener, TabPagerCallback {
 
     private static final String[] ACTIONS = {"Move", "Copy", "Cancel"};
     private static final int ACTION_MOVE = 0;
@@ -110,7 +109,17 @@ public class CalendarFragment extends Fragment implements CalendarListener, Cale
 
         switch (id) {
             case R.id.action_add:
-                add();
+                Event event = new Event(-1);
+                event.type = Event.TYPE_CALENDAR;
+
+                CalendarView.Date date = calendarView.getCurrentSelected();
+                if (date != null) {
+                    Calendar calendar = Calendar.getInstance();
+                    calendar.set(date.year, date.month, date.day);
+                    event.startTime = calendar.getTimeInMillis();
+                }
+
+                mainInterface.showEventDetails(event);
                 return true;
             case R.id.action_today:
                 calendarView.today();
@@ -118,6 +127,15 @@ public class CalendarFragment extends Fragment implements CalendarListener, Cale
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onBackPressed() {
+        if (eventsFragment.onBackPressed()) {
+            return true;
+        }
+
+        return false;
     }
 
     @Override
@@ -170,16 +188,18 @@ public class CalendarFragment extends Fragment implements CalendarListener, Cale
                 );
                 break;
             case ACTION_COPY:
+                event.externalId = System.currentTimeMillis();
+
                 eventManager.createEvent(
                     EventAction.ACTOR_SELF,
-                    (int) (Math.random() * -1000),
+                    event.externalId,
+                    Event.TYPE_CALENDAR,
                     event.title,
                     event.description,
                     event.location != null ? event.location.name : null,
                     event.color,
                     startTime,
                     endTime,
-                    Event.TYPE_CALENDAR,
                     new EventManager.EventActionCallback() {
                         @Override
                         public void onEventAction(EventAction data) {
@@ -197,7 +217,8 @@ public class CalendarFragment extends Fragment implements CalendarListener, Cale
 
     @Override
     public void onClick(long id, View view) {
-
+        Event event = eventManager.getEvent(id, false);
+        mainInterface.showEventDetails(event);
     }
 
     @Override
@@ -251,7 +272,7 @@ public class CalendarFragment extends Fragment implements CalendarListener, Cale
         calendarView.refresh(year, month);
 
         CalendarView.Date date = calendarView.getCurrentSelected();
-        if (year == date.year && month == date.month && day == date.day) {
+        if (date != null && year == date.year && month == date.month && day == date.day) {
             switch (data.getAction()) {
                 case EventAction.ACTION_CREATE:
                     if (eventsFragment.isShowing()) {
@@ -308,31 +329,5 @@ public class CalendarFragment extends Fragment implements CalendarListener, Cale
         } else {
             eventsFragment.hide(true);
         }
-    }
-
-    public void add() {
-        CalendarView.Date date = calendarView.getCurrentSelected();
-        if (date == null) {
-            return;
-        }
-
-        Calendar calendar = Calendar.getInstance();
-        calendar.set(date.year, date.month, date.day);
-
-        String[] locations = {"San Francisco", "San Jose", "San Leandro"};
-        int[] colors = {Colors.BROWN, Colors.BROWN_LIGHT, Colors.LAVENDAR};
-
-        eventManager.createEvent(
-            EventAction.ACTOR_SELF,
-            (int) (Math.random() * -1000),
-            "Title " + (int) (Math.random() * 100),
-            "Description " + (int) (Math.random() * 100),
-            locations[(int) (Math.random() * locations.length) % locations.length],
-            colors[(int) (Math.random() * colors.length) % colors.length],
-            calendar.getTimeInMillis(),
-            calendar.getTimeInMillis() + (int) (Math.random() * 23) * Constants.HOUR_MS,
-            Event.TYPE_CALENDAR,
-            null
-        );
     }
 }

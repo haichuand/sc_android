@@ -203,7 +203,7 @@ public class EventsFragment extends Fragment implements OnPageChangeListener, Li
             return new ActionButton(R.drawable.ic_add_white, 0, new OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    EventManager.createDummyEvent(getContext(), null);
+
                 }
             });
         }
