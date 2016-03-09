@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal" android:layout_width="match_parent"
+    android:layout_height="?attr/actionBarSize">
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:scaleType="fitCenter"
+        android:padding="8dp"
+        android:src="@drawable/cake_black"/>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginRight="8dp"
+        android:orientation="vertical">
+        <TextView
+            android:id="@+id/event_start_time"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:textSize="12sp"
+            android:textColor="?android:attr/textColorPrimary"
+            android:text="5:15 PM"/>
+
+        <TextView
+            android:id="@+id/event_end_time"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:textColor="?android:attr/textColorSecondary"
+            android:textSize="12sp"
+            android:text="7:30 PM"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginRight="8dp"
+        android:orientation="vertical">
+        <TextView
+            android:id="@+id/event_name"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:textSize="14sp"
+            android:textColor="?android:attr/textColorPrimary"
+            android:text="Jane's Birthday Party"/>
+
+        <TextView
+            android:id="@+id/event_date"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:layout_gravity="center_horizontal"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="12sp"
+            android:text="4/20/16"/>
+
+    </LinearLayout>
+
+
+</LinearLayout>

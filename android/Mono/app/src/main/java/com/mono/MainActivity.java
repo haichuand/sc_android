@@ -30,6 +30,7 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.mono.calendar.CalendarHelper;
+import com.mono.chat.ChatRoomActivity;
 import com.mono.chat.RegistrationIntentService;
 import com.mono.chat.SuperCalyPreferences;
 import com.mono.model.Event;
@@ -239,6 +240,13 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             case SETTINGS:
                 showSettings();
                 break;
+            case R.id.nav_chat:
+                Intent intent = new Intent(this, ChatRoomActivity.class);
+                intent.putExtra(ChatRoomActivity.EVENT_NAME, "Birthday Party");
+                intent.putExtra(ChatRoomActivity.EVENT_DATE, "04/25/16");
+                intent.putExtra(ChatRoomActivity.EVENT_START_TIME, "3:00 PM");
+                intent.putExtra(ChatRoomActivity.EVENT_END_TIME, "4:30 PM");
+                startActivity(intent);
         }
 
         drawer.closeDrawer(GravityCompat.START);
