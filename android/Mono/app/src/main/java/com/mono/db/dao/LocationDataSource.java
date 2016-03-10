@@ -16,9 +16,10 @@ public class LocationDataSource extends DataSource{
         super(database);
     }
 
-    public long createLocation (String name, String googlePlaceId, Double latitude, Double longitude, String address) {
-        long id = -1;
+    public String createLocation (String name, String googlePlaceId, Double latitude, Double longitude, String address) {
+        String id = DataSource.UniqueIdGenerator(this.getClass().getName());
         ContentValues values = new ContentValues();
+        values.put(DatabaseValues.Location.LOC_ID, id);
         values.put(DatabaseValues.Location.NAME, name);
         values.put(DatabaseValues.Location.GOOGLE_PLACE_ID, googlePlaceId);
         values.put(DatabaseValues.Location.LATITUDE, latitude);
@@ -28,7 +29,7 @@ public class LocationDataSource extends DataSource{
 
 
         try {
-            id = database.insert(DatabaseValues.Location.TABLE, values);
+            database.insert(DatabaseValues.Location.TABLE, values);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -36,7 +37,7 @@ public class LocationDataSource extends DataSource{
         return id;
     }
     public void createLocationAsCandidates (String name, String googlePlaceId, Double latitude, Double longitude, String address, long eventId) {
-        long locId = createLocation(name, googlePlaceId, latitude, longitude, address);
+        String locId = createLocation(name, googlePlaceId, latitude, longitude, address);
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.EventLocationCandidates.EVENT_ID, eventId);
         values.put(DatabaseValues.EventLocationCandidates.LOC_ID, locId);
@@ -47,6 +48,7 @@ public class LocationDataSource extends DataSource{
             e.printStackTrace();
         }
     }
+
     public Location getLocation(long id) {
         Location location = null;
 
