@@ -115,9 +115,9 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                    U_ID + " INTEGER PRIMARY KEY AUTOINCREMENT",
+                    U_ID + " TEXT PRIMARY KEY",
                     GOOGLE_REG_ID + " TEXT",
-                    MEDIA_ID + " INTEGER",
+                    MEDIA_ID + " TEXT",
                     PHONE_NUMBER + " TEXT",
                     EMAIL + " TEXT",
                     FIRST_NAME + " TEXT",
@@ -232,7 +232,7 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                    C_ID + " INTEGER PRIMARY KEY AUTOINCREMENT",
+                    C_ID + " TEXT PRIMARY KEY",
                     C_NAME + " TEXT"
             };
 
@@ -268,8 +268,8 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                    C_ID + " INTEGER REFERENCES " + Conversation.TABLE + " ( "+ Conversation.C_ID +" )",
-                    SENDER_ID + " INTEGER REFERENCES " + User.TABLE + " ( "+ User.U_ID +" )",
+                    C_ID + " TEXT REFERENCES " + Conversation.TABLE + " ( "+ Conversation.C_ID +" )",
+                    SENDER_ID + " TEXT REFERENCES " + User.TABLE + " ( "+ User.U_ID +" )",
                     TEXT + " TEXT",
                     TIMESTAMP + " INTEGER"
             };
@@ -302,7 +302,7 @@ public class DatabaseValues {
         static {
             String[] parameters = {
                     EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
-                    C_ID + " INTEGER REFERENCES " + Conversation.TABLE + " ( "+ Conversation.C_ID +" )"
+                    C_ID + " TEXT REFERENCES " + Conversation.TABLE + " ( "+ Conversation.C_ID +" )"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);
@@ -333,7 +333,7 @@ public class DatabaseValues {
         static {
             String[] parameters = {
                     EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
-                    ATTENDEE_ID + " INTEGER REFERENCES " + User.TABLE + " ( "+ User.U_ID +" )"
+                    ATTENDEE_ID + " TEXT REFERENCES " + User.TABLE + " ( "+ User.U_ID +" )"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);
@@ -363,7 +363,7 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                    MEDIA_ID + " INTEGER PRIMARY KEY AUTOINCREMENT",
+                    MEDIA_ID + " TEXT PRIMARY KEY",
                     CONTENT + " BLOB"
             };
 
@@ -395,7 +395,7 @@ public class DatabaseValues {
         static {
             String[] parameters = {
                     E_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
-                    M_ID + " INTEGER REFERENCES " + Media.TABLE + " ( "+ Media.MEDIA_ID +" )"
+                    M_ID + " TEXT REFERENCES " + Media.TABLE + " ( "+ Media.MEDIA_ID +" )"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);
@@ -430,7 +430,7 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                    ALARM_ID + " INTEGER PRIMARY KEY",
+                    ALARM_ID + " TEXT PRIMARY KEY",
                     ALARM_TIME + " INTEGER",
                     CREATE_TIME + " INTEGER",
                     ENABLE + " INTEGER"
@@ -464,7 +464,7 @@ public class DatabaseValues {
         static {
             String[] parameters = {
                     E_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
-                    A_ID + " INTEGER REFERENCES " + Alarm.TABLE + " ( "+ Alarm.ALARM_ID +" )"
+                    A_ID + " TEXT REFERENCES " + Alarm.TABLE + " ( "+ Alarm.ALARM_ID +" )"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);
@@ -525,8 +525,79 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                    C_ID + " INTEGER REFERENCES " + Conversation.TABLE + " ( "+ Conversation.C_ID +" )",
-                    ATTENDEE_ID + " INTEGER REFERENCES " + User.TABLE + " ( "+ User.U_ID +" )"
+                    C_ID + " TEXT REFERENCES " + Conversation.TABLE + " ( "+ Conversation.C_ID +" )",
+                    ATTENDEE_ID + " TEXT REFERENCES " + User.TABLE + " ( "+ User.U_ID +" )"
+            };
+
+            CREATE_TABLE = createTableQuery(TABLE, parameters);
+            DROP_TABLE = dropTableQuery(TABLE);
+        }
+    }
+
+    public static class RecurringEventRules {
+        public static final String TABLE = "`recurring_events_rules`";
+
+        public static final String RULE_ID = "`rule_id`";
+        public static final String EVENT_ID = "`event_id`";
+        public static final String START_TIME = "`start_time`";
+        public static final String END_TIME = "`end_time`";
+        public static final String FREQUENCY = "frequency";
+
+        public static final String[] PROJECTION = {
+                RecurringEventRules.RULE_ID,
+                RecurringEventRules.EVENT_ID,
+                RecurringEventRules.START_TIME,
+                RecurringEventRules.END_TIME,
+                RecurringEventRules.FREQUENCY
+        };
+
+        public static final int INDEX_RULE_ID = 0;
+        public static final int INDEX_EVENT_ID = 1;
+        public static final int INDEX_START_TIME = 2;
+        public static final int INDEX_END_TIME = 3;
+        public static final int INDEX_FREQUENCY = 4;
+
+        public static final String CREATE_TABLE;
+        public static final String DROP_TABLE;
+
+        static {
+            String[] parameters = {
+                    RULE_ID + " TEXT PRIMARY KEY",
+                    EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
+                    START_TIME + " REAL",
+                    END_TIME + " REAL",
+                    FREQUENCY + " TEXT"
+            };
+
+            CREATE_TABLE = createTableQuery(TABLE, parameters);
+            DROP_TABLE = dropTableQuery(TABLE);
+        }
+    }
+
+    public static class CommuteEventEndLocation {
+        public static final String TABLE = "`commute_event_endLocation`";
+
+        public static final String EVENT_ID = "`event_id`";
+        public static final String LOC_ID = "`loc_id`";
+
+
+
+        public static final String[] PROJECTION = {
+                CommuteEventEndLocation.EVENT_ID,
+                CommuteEventEndLocation.LOC_ID
+        };
+
+        public static final int INDEX_EVENT_ID = 0;
+        public static final int INDEX_LOC_ID = 1;
+
+
+        public static final String CREATE_TABLE;
+        public static final String DROP_TABLE;
+
+        static {
+            String[] parameters = {
+                    EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
+                    LOC_ID + " INTEGER REFERENCES " + Location.TABLE + " ( "+ Location.LOC_ID +" )"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);

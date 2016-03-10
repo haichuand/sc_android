@@ -50,7 +50,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             DatabaseValues.Alarm.CREATE_TABLE,
             DatabaseValues.EventAlarm.CREATE_TABLE,
             DatabaseValues.ConversationAttendee.CREATE_TABLE,
-            DatabaseValues.RecurringEvent.CREATE_TABLE
+            DatabaseValues.RecurringEvent.CREATE_TABLE,
+            DatabaseValues.RecurringEventRules.CREATE_TABLE,
+            DatabaseValues.CommuteEventEndLocation.CREATE_TABLE
         });
     }
 
@@ -75,7 +77,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 DatabaseValues.Alarm.DROP_TABLE,
                 DatabaseValues.EventAlarm.DROP_TABLE,
                 DatabaseValues.ConversationAttendee.DROP_TABLE,
-                DatabaseValues.RecurringEvent.DROP_TABLE
+                DatabaseValues.RecurringEvent.DROP_TABLE,
+                DatabaseValues.RecurringEventRules.DROP_TABLE,
+                DatabaseValues.CommuteEventEndLocation.DROP_TABLE
         });
 
         onCreate(db);
