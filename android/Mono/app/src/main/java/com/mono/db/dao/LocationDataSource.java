@@ -18,7 +18,7 @@ public class LocationDataSource extends DataSource{
 
     public long createLocation (String name, String googlePlaceId, Double latitude, Double longitude, String address) {
         //todo: location id should be unique, using string is better than a long
-        //String id = DataSource.UniqueIdGenerator(this.getClass().getName());
+        //String id = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
         ContentValues values = new ContentValues();
         //values.put(DatabaseValues.Location.LOC_ID, id);
         long id = -1;

@@ -26,7 +26,7 @@ public class ConversationDataSource extends DataSource{
     * Params: name of the conversation, the id of associated event
     * */
     public String createConversationFromEvent (String name, long eventID) {
-        String id = DataSource.UniqueIdGenerator(this.getClass().getName());
+        String id = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
         ContentValues conversationValues = new ContentValues();
         conversationValues.put(DatabaseValues.Conversation.C_ID, id);
         conversationValues.put(DatabaseValues.Conversation.C_NAME, name);
