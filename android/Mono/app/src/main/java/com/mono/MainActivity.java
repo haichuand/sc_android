@@ -32,7 +32,6 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.mono.calendar.CalendarHelper;
 import com.mono.chat.ChatRoomActivity;
 import com.mono.chat.RegistrationIntentService;
-import com.mono.chat.SuperCalyPreferences;
 import com.mono.details.EventDetailsActivity;
 import com.mono.model.Event;
 import com.mono.settings.Settings;
@@ -121,6 +120,10 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         if (!Settings.getPermissionCheck()) {
             PermissionManager.checkPermissions(this, RequestCodes.Permission.PERMISSION_CHECK);
         }
+        //todo: change to code to get real userid from server
+        SharedPreferences sharedPreferences =
+                PreferenceManager.getDefaultSharedPreferences(this);
+        sharedPreferences.edit().putString(SuperCalyPreferences.USER_ID, "temporaryUserId_WillbeRetriveFromServerLaster").apply();
 
         showHome();
         runDayOne();

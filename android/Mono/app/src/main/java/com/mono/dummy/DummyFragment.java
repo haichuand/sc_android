@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -22,22 +23,34 @@ import com.mono.MainInterface;
 import com.mono.R;
 import com.mono.RequestCodes;
 import com.mono.chat.GcmMessage;
+import com.mono.db.DatabaseHelper;
+import com.mono.db.DatabaseValues;
+import com.mono.db.dao.ConversationDataSource;
+import com.mono.db.dao.EventDataSource;
+import com.mono.db.dao.LocationDataSource;
 import com.mono.dummy.KML.DownloadListener;
+import com.mono.model.Conversation;
+import com.mono.model.Event;
+import com.mono.model.Location;
+import com.mono.model.Message;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class DummyFragment extends Fragment implements TabPagerCallback {
 
     private MainInterface mainInterface;
     private KML kml;
-
+    private static final String TAG = "DummyFragmentDBTesting";
     private TextView text;
     private Button send_button;
+    private Button db_test;
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
@@ -72,13 +85,18 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
 
         text = (TextView) view.findViewById(R.id.text);
         send_button  = (Button) view.findViewById(R.id.button_send);
+        db_test = (Button) view.findViewById(R.id.button_db);
 
-        send_button.setOnClickListener(new OnClickListener()
-        {
+        send_button.setOnClickListener(new OnClickListener() {
             @Override
-            public void onClick(View view)
-            {
+            public void onClick(View view) {
                 sendMessage(view);
+            }
+        });
+
+        db_test.setOnClickListener(new OnClickListener() {
+            public void onClick(View view) {
+                testDB(view);
             }
         });
         return view;
@@ -168,6 +186,7 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
 
     public void sendMessage(View view) {
         String message = "Hello World";
+        //todo: the sender_id could be stored inside a shareprefernce
         String sender_id = "theUserIdOfThisDevice";
         String conversation_id = "conversationId";
         String action = "MESSAGE";
@@ -178,5 +197,9 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
         GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(this.getContext());
         GcmMessage gcmMessage = GcmMessage.getInstance(this.getContext());
         gcmMessage.sendMessage(sender_id,conversation_id,message,action,recipients,gcm);
+    }
+
+    private void testDB(View view) {
+
     }
 }

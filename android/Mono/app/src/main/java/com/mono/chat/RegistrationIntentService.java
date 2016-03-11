@@ -10,6 +10,7 @@ import android.util.Log;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.google.android.gms.iid.InstanceID;
 import com.mono.R;
+import com.mono.SuperCalyPreferences;
 
 /**
  * Created by xuejing on 2/25/16.

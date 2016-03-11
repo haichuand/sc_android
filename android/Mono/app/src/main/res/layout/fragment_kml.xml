@@ -23,11 +23,17 @@
                 android:text="No KML Loaded!"/>
         </LinearLayout>
     </ScrollView>
+    <Button xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/button_db"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:text="test db"/>
 
     <Button xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/button_send"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
         android:text="Send HELLO to server"/>
 </RelativeLayout>

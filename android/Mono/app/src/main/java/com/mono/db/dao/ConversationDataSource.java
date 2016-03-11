@@ -6,7 +6,10 @@ import android.database.SQLException;
 
 import com.mono.db.Database;
 import com.mono.db.DatabaseValues;
+import com.mono.model.Conversation;
+import com.mono.model.Message;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -22,7 +25,7 @@ public class ConversationDataSource extends DataSource{
     * Create a conversation from an event with
     * Params: name of the conversation, the id of associated event
     * */
-    public String createConversationFromEvent (String name, String eventID) {
+    public String createConversationFromEvent (String name, long eventID) {
         String id = DataSource.UniqueIdGenerator(this.getClass().getName());
         ContentValues conversationValues = new ContentValues();
         conversationValues.put(DatabaseValues.Conversation.C_ID, id);
@@ -42,7 +45,7 @@ public class ConversationDataSource extends DataSource{
         return id;
     }
 
-    public String createConversationWithSelectedAttendees (String name, String eventID, List<String> attendeesID) {
+    public String createConversationWithSelectedAttendees (String name, long eventID, List<String> attendeesID) {
         String conversationId = createConversationFromEvent(name, eventID);
 
         for(String id: attendeesID) {
@@ -60,13 +63,28 @@ public class ConversationDataSource extends DataSource{
         return conversationId;
     }
 
+    public void addMessageToConversation (Message msg) {
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.ConversationContent.C_ID, msg.getConversationId());
+        values.put(DatabaseValues.ConversationContent.SENDER_ID, msg.getUserId());
+        values.put(DatabaseValues.ConversationContent.TEXT, msg.getMessageText());
+        values.put(DatabaseValues.ConversationContent.TIMESTAMP, msg.getTimestamp());
+
+        try {
+            database.insert(DatabaseValues.ConversationContent.TABLE, values);
+        }catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
     public List<String> getConversationAttendeesIds (String conversationId) {
         List<String> attendeeList = new LinkedList<>();
 
         Cursor cursor = database.select(
                 DatabaseValues.ConversationAttendee.TABLE,
-                DatabaseValues.ConversationAttendee.PROJECTION,
+                new String[]{
+                        DatabaseValues.ConversationAttendee.ATTENDEE_ID
+                },
                 DatabaseValues.ConversationAttendee.C_ID + " = ?",
                 new String[]{
                         String.valueOf(conversationId)
@@ -74,7 +92,7 @@ public class ConversationDataSource extends DataSource{
         );
 
         while (cursor.moveToNext()) {
-            attendeeList.add(cursor.getString(DatabaseValues.ConversationAttendee.INDEX_ATTENDEE_ID));
+            attendeeList.add(cursor.getString(0));
         }
 
         cursor.close();
@@ -82,12 +100,92 @@ public class ConversationDataSource extends DataSource{
         return attendeeList;
     }
 
-    private List<String> getEventAttendees (String eventId) {
+    public List<Message> getConversationMessages (String conversationId) {
+        List<Message> messages = new ArrayList<>();
+
+        Cursor cursor = database.select(
+                DatabaseValues.ConversationContent.TABLE,
+                DatabaseValues.ConversationContent.PROJECTION,
+                DatabaseValues.ConversationContent.C_ID + " =?",
+                new String[] {
+                        String.valueOf(conversationId)
+                }
+        );
+
+        while(cursor.moveToNext()) {
+            String senderId = cursor.getString(DatabaseValues.ConversationContent.INDEX_SENDER_ID);
+            String text = cursor.getString(DatabaseValues.ConversationContent.INDEX_TEXT);
+            long timestamp = cursor.getLong(DatabaseValues.ConversationContent.INDEX_TIMESTAMP);
+            Message msg = new Message(senderId, conversationId, text, timestamp);
+            messages.add(msg);
+        }
+
+        cursor.close();
+        return messages;
+    }
+
+    public List<Message> getConversationMessages (String conversationId, long startTime) {
+        List<Message> messages = new ArrayList<>();
+
+        Cursor cursor = database.select(
+                DatabaseValues.ConversationContent.TABLE,
+                DatabaseValues.ConversationContent.PROJECTION,
+                DatabaseValues.ConversationContent.C_ID + " = ? AND " +
+                DatabaseValues.ConversationContent.TIMESTAMP + " >= ?",
+                new String[] {
+                        String.valueOf(conversationId),
+                        String.valueOf(startTime)
+                }
+        );
+
+        while(cursor.moveToNext()) {
+            String senderId = cursor.getString(DatabaseValues.ConversationContent.INDEX_SENDER_ID);
+            String text = cursor.getString(DatabaseValues.ConversationContent.INDEX_TEXT);
+            long timestamp = cursor.getLong(DatabaseValues.ConversationContent.INDEX_TIMESTAMP);
+            Message msg = new Message(senderId, conversationId, text, timestamp);
+            messages.add(msg);
+        }
+
+        cursor.close();
+        return messages;
+
+    }
+
+    public Conversation getConversation (String conversationId) {
+        String conversationName = "";
+        Cursor cursor = database.select(
+                DatabaseValues.Conversation.TABLE,
+                new String[]{
+                        DatabaseValues.Conversation.C_NAME
+                },
+                DatabaseValues.Conversation.C_ID + " =?",
+                new String[]{
+                        String.valueOf(conversationId)
+                }
+        );
+
+        if(cursor.moveToNext()) {
+            conversationName = cursor.getString(0);
+        }
+
+        cursor.close();
+
+        List<String> attendeesId = getConversationAttendeesIds(conversationId);
+        List<Message> messages = getConversationMessages(conversationId);
+
+        Conversation conversation = new Conversation(conversationId, conversationName, attendeesId, messages);
+
+        return conversation;
+    }
+
+    private List<String> getEventAttendeesId (String eventId) {
         List<String> attendeeList = new LinkedList<>();
 
         Cursor cursor = database.select(
                 DatabaseValues.EventAttendee.TABLE,
-                DatabaseValues.EventAttendee.PROJECTION,
+                new String[]{
+                        DatabaseValues.EventAttendee.ATTENDEE_ID
+                },
                 DatabaseValues.EventAttendee.EVENT_ID + " = ?",
                 new String[]{
                         String.valueOf(eventId)
@@ -95,7 +193,7 @@ public class ConversationDataSource extends DataSource{
         );
 
         while (cursor.moveToNext()) {
-            attendeeList.add(cursor.getString(DatabaseValues.EventAttendee.INDEX_ATTENDEE_ID));
+            attendeeList.add(cursor.getString(0));
         }
 
         cursor.close();

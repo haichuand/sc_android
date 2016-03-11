@@ -16,10 +16,12 @@ public class LocationDataSource extends DataSource{
         super(database);
     }
 
-    public String createLocation (String name, String googlePlaceId, Double latitude, Double longitude, String address) {
-        String id = DataSource.UniqueIdGenerator(this.getClass().getName());
+    public long createLocation (String name, String googlePlaceId, Double latitude, Double longitude, String address) {
+        //todo: location id should be unique, using string is better than a long
+        //String id = DataSource.UniqueIdGenerator(this.getClass().getName());
         ContentValues values = new ContentValues();
-        values.put(DatabaseValues.Location.LOC_ID, id);
+        //values.put(DatabaseValues.Location.LOC_ID, id);
+        long id = -1;
         values.put(DatabaseValues.Location.NAME, name);
         values.put(DatabaseValues.Location.GOOGLE_PLACE_ID, googlePlaceId);
         values.put(DatabaseValues.Location.LATITUDE, latitude);
@@ -27,9 +29,8 @@ public class LocationDataSource extends DataSource{
         values.put(DatabaseValues.Location.ADDRESS, address);
         values.put(DatabaseValues.Location.BEEN_THERE, 0); // when fisrt time write a location to database, we assume user never been there before
 
-
         try {
-            database.insert(DatabaseValues.Location.TABLE, values);
+           id = database.insert(DatabaseValues.Location.TABLE, values);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -37,7 +38,7 @@ public class LocationDataSource extends DataSource{
         return id;
     }
     public void createLocationAsCandidates (String name, String googlePlaceId, Double latitude, Double longitude, String address, long eventId) {
-        String locId = createLocation(name, googlePlaceId, latitude, longitude, address);
+        long locId = createLocation(name, googlePlaceId, latitude, longitude, address);
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.EventLocationCandidates.EVENT_ID, eventId);
         values.put(DatabaseValues.EventLocationCandidates.LOC_ID, locId);
