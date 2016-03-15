@@ -53,6 +53,24 @@
             android:exported="false" />
 
         <receiver
+            android:name=".SuperCalyAlarmReceiver"
+            android:process=":remote" >
+        </receiver>
+
+        <receiver
+            android:name=".SupercalyDownloadReceiver"
+            android:process=":remote"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.DOWNLOAD_COMPLETE"></action>
+            </intent-filter>
+        </receiver>
+
+        <service
+            android:name=".parser.KmlDownloadingService"
+            android:exported="false" />
+
+        <receiver
             android:name="com.google.android.gms.gcm.GcmReceiver"
             android:exported="true"
             android:permission="com.google.android.c2dm.permission.SEND">
