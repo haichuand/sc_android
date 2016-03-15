@@ -8,7 +8,9 @@ import android.util.Log;
 
 import com.mono.MainActivity;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -25,8 +27,9 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 public class KmlParser {
-    DocumentBuilderFactory factory;
-    DocumentBuilder builder;
+    private static final String TAG = "KmlParser";
+    private DocumentBuilderFactory factory;
+    private DocumentBuilder builder;
 
     public KmlParser () {
         factory = DocumentBuilderFactory.newInstance();
@@ -38,6 +41,7 @@ public class KmlParser {
 
         if (Environment.MEDIA_MOUNTED.equals(state)){
             String storage = Environment.getExternalStorageDirectory().getPath() + "/";
+            Log.d(TAG, "inside kmlParser, parse(): file: "+ storage+MainActivity.APP_DIR+fileName);
             File file = new File(storage + MainActivity.APP_DIR + fileName);
             ArrayList<LatLngTime> result = new ArrayList<>();
             try {
@@ -45,7 +49,7 @@ public class KmlParser {
                 Document document = builder.parse(file);
                 NodeList nodeList = document.getDocumentElement().getChildNodes();
                 //get gx:Track layer
-                Node node = nodeList.item(1);
+                Node node = nodeList.item(0);
 
             if(node.getNodeType() == Node.ELEMENT_NODE) {
                 Element elem = (Element) node;
@@ -67,7 +71,7 @@ public class KmlParser {
                         long millis = date.getTime();
                         llt.setStartTime(millis);
                         llt.setEndTime(millis);
-                        System.out.println(time + ": " + millis);
+                        //System.out.println(time + ": " + millis);
                     }
 
                     Node locNode = locationList.item(i);
@@ -78,7 +82,7 @@ public class KmlParser {
                         double lat = Double.valueOf(split[1]);
                         llt.setLat(lat);
                         llt.setLng(lng);
-                        System.out.println(split[0] + " " + lng + " " + split[1] + " " + lat);
+                        //System.out.println(split[0] + " " + lng + " " + split[1] + " " + lat);
                     }
                     result.add(llt);
                 }
@@ -96,6 +100,7 @@ public class KmlParser {
         catch (Exception e) {
             Log.d("kmlParser", e.getMessage());
         }
+
             return getUserstay(result);
 
         }
@@ -123,7 +128,7 @@ public class KmlParser {
             double tempLat = temp.getLat();
             double tempLng = temp.getLng();
             if(Math.abs(tempLat-stay.getLat()) < 0.001 && Math.abs(tempLng-stay.getLng()) < 0.001) {
-                System.out.println("start: "+stay.toString() + " temp: "+temp.toString());
+                //System.out.println("start: "+stay.toString() + " temp: "+temp.toString());
                 stay.setEndTime(temp.getEndTime());
             }
             else {
@@ -144,5 +149,24 @@ public class KmlParser {
         else
             return getUserstay(outputList);
 
+    }
+    // for test purpose
+    private void outputFile(String path) {
+        try {
+            StringBuilder builder = new StringBuilder(path + "\n\n");
+            BufferedReader reader = new BufferedReader(new FileReader(path));
+            String nextLine;
+
+            while ((nextLine = reader.readLine()) != null) {
+                builder.append(nextLine);
+                builder.append('\n');
+            }
+
+            Log.d(TAG, builder.toString());
+
+            reader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

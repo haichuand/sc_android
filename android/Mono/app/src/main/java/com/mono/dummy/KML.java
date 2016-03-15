@@ -12,11 +12,14 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.webkit.CookieManager;
 import android.widget.Toast;
 
 import com.mono.MainActivity;
 import com.mono.MainInterface;
+import com.mono.parser.KmlDownloadingService;
+import com.mono.parser.KmlLocationService;
 
 import java.io.File;
 
@@ -26,9 +29,9 @@ public class KML {
 
     public static final String COOKIE_URL = "https://www.google.com/maps/timeline";
     public static final String KML_URL = "https://www.google.com/maps/timeline/kml?authuser=0";
-    public static final String TEST_PB_VALUE = "!1m8!1m3!1i2015!2i7!3i1!2m3!1i2015!2i7!3i8";
+    public static final String TEST_PB_VALUE = "!1m8!1m3!1i2015!2i10!3i24!2m3!1i2015!2i10!3i24";
 
-    private Context context;
+    private Context kmlContext;
     private MainInterface mainInterface;
 
     private long downloadId;
@@ -37,51 +40,54 @@ public class KML {
     private KMLParameters parameters;
 
     public KML(Context context, MainInterface mainInterface) {
-        this.context = context;
+        this.kmlContext = context;
         this.mainInterface = mainInterface;
     }
 
     public void onResume() {
-        downloadReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                DownloadManager manager =
-                    (DownloadManager) context.getSystemService(Activity.DOWNLOAD_SERVICE);
-                Cursor cursor = manager.query(new Query().setFilterById(downloadId));
-
-                if (cursor.moveToNext()) {
-                    int index = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
-                    int status = cursor.getInt(index);
-
-                    Uri uri = null;
-
-                    switch (status) {
-                        case DownloadManager.STATUS_SUCCESSFUL:
-                            index = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI);
-                            uri = Uri.parse(cursor.getString(index));
-                            Toast.makeText(context, "Downloaded to " + uri.getPath(),
-                                Toast.LENGTH_LONG).show();
-                            break;
-                        default:
-                            Toast.makeText(context, "Download Failed", Toast.LENGTH_LONG).show();
-                            break;
-                    }
-
-                    if (parameters.listener != null) {
-                        parameters.listener.onFinish(status, uri);
-                    }
-                }
-
-                cursor.close();
-            }
-        };
-
-        IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
-        context.registerReceiver(downloadReceiver, filter);
+//        downloadReceiver = new BroadcastReceiver() {
+//            @Override
+//            public void onReceive(Context context, Intent intent) {
+//                Log.d("KML", "downloadReceiver onReceive has been called");
+//                DownloadManager manager =
+//                    (DownloadManager) context.getSystemService(Activity.DOWNLOAD_SERVICE);
+//                Cursor cursor = manager.query(new Query().setFilterById(downloadId));
+//
+//                if (cursor.moveToNext()) {
+//                    int index = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
+//                    int status = cursor.getInt(index);
+//
+//                    Uri uri = null;
+//
+//                    switch (status) {
+//                        case DownloadManager.STATUS_SUCCESSFUL:
+//                            index = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI);
+//                            uri = Uri.parse(cursor.getString(index));
+//                            Toast.makeText(context, "Downloaded to " + uri.getPath(),
+//                                    Toast.LENGTH_LONG).show();
+//                            break;
+//                        default:
+//                            Toast.makeText(context, "Download Failed", Toast.LENGTH_LONG).show();
+//                            break;
+//                    }
+//
+//                    if (uri != null) {
+//                        //Intent parsingIntent = new Intent(kmlContext, KmlLocationService.class);
+//                        //parsingIntent.putExtra("fileName", KmlDownloadingService.KML_FILENAME);
+//                        //kmlContext.startService(parsingIntent);
+//                    }
+//                }
+//
+//                cursor.close();
+//            }
+//        };
+//
+//        IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+//        kmlContext.registerReceiver(downloadReceiver, filter);
     }
 
     public void onPause() {
-        context.unregisterReceiver(downloadReceiver);
+//        kmlContext.unregisterReceiver(downloadReceiver);
     }
 
     public static boolean isSignedIn() {
@@ -133,10 +139,10 @@ public class KML {
         request.setDestinationUri(Uri.fromFile(file));
 
         DownloadManager manager =
-            (DownloadManager) context.getSystemService(Activity.DOWNLOAD_SERVICE);
+            (DownloadManager) kmlContext.getSystemService(Activity.DOWNLOAD_SERVICE);
         downloadId = manager.enqueue(request);
 
-        Toast.makeText(context, "Downloading KML", Toast.LENGTH_SHORT).show();
+        Toast.makeText(kmlContext, "Downloading KML", Toast.LENGTH_SHORT).show();
     }
 
     public static class KMLParameters {

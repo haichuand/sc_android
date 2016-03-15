@@ -219,7 +219,7 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
         long uptimeMillis =  SystemClock.elapsedRealtime();;
         AlarmManager alarm = (AlarmManager) this.getActivity().getSystemService(Context.ALARM_SERVICE);
         alarm.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP, uptimeMillis,
-                240000, pIntent);
+                AlarmManager.INTERVAL_HOUR*3, pIntent);
     }
 
     public void cancelAlarm() {
