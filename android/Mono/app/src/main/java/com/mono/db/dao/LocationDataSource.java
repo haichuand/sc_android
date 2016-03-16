@@ -3,6 +3,7 @@ package com.mono.db.dao;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.SQLException;
+import android.util.Log;
 
 import com.mono.db.Database;
 import com.mono.db.DatabaseValues;
@@ -39,6 +40,7 @@ public class LocationDataSource extends DataSource{
     }
     public void createLocationAsCandidates (String name, String googlePlaceId, Double latitude, Double longitude, String address, long eventId) {
         long locId = createLocation(name, googlePlaceId, latitude, longitude, address);
+        Log.d("LocationDataSource", " create location: " + locId + "name: " + name + " address: " + address);
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.EventLocationCandidates.EVENT_ID, eventId);
         values.put(DatabaseValues.EventLocationCandidates.LOC_ID, locId);

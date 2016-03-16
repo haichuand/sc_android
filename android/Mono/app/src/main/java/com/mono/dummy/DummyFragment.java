@@ -1,10 +1,13 @@
 package com.mono.dummy;
 
 import android.app.Activity;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
@@ -22,6 +25,7 @@ import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.mono.MainInterface;
 import com.mono.R;
 import com.mono.RequestCodes;
+import com.mono.SuperCalyAlarmReceiver;
 import com.mono.chat.GcmMessage;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
@@ -33,6 +37,8 @@ import com.mono.model.Conversation;
 import com.mono.model.Event;
 import com.mono.model.Location;
 import com.mono.model.Message;
+import com.mono.parser.KmlDownloadingService;
+import com.mono.parser.KmlLocationService;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
 
 import java.io.BufferedReader;
@@ -56,7 +62,6 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
         switch (requestCode) {
             case RequestCodes.Activity.DUMMY_WEB:
                 if (resultCode == Activity.RESULT_OK) {
-                    kml.getLastKML();
                 }
                 break;
         }
@@ -151,13 +156,15 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
         return new ActionButton(R.drawable.ic_star_border_white, 0, new OnClickListener() {
             @Override
             public void onClick(View view) {
+                scheduleAlarm();
                 kml.getKML(getParentFragment(), RequestCodes.Activity.DUMMY_WEB,
                     new DownloadListener() {
                         @Override
                         public void onFinish(int status, Uri uri) {
                             if (uri != null) {
-                                outputFile(uri.getPath());
+                                //outputFile(uri.getPath());
                             }
+                            //getActivity().startService(new Intent(getActivity(), KmlDownloadingService.class));
                         }
                     }
                 );
@@ -199,6 +206,29 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
         gcmMessage.sendMessage(sender_id,conversation_id,message,action,recipients,gcm);
     }
 
+    // Setup a recurring alarm every half hour
+    public void scheduleAlarm() {
+        Log.d(TAG, "Scheduling an alarm");
+        // Construct an intent that will execute the AlarmReceiver
+        Intent intent = new Intent(this.getContext(), SuperCalyAlarmReceiver.class);
+        intent.setAction(SuperCalyAlarmReceiver.ACTION_ALARM_RECEIVER);
+        // Create a PendingIntent to be triggered when the alarm goes off
+        final PendingIntent pIntent = PendingIntent.getBroadcast(this.getContext(), RequestCodes.Activity.ALARM_RECEIVER,
+                intent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        long uptimeMillis =  SystemClock.elapsedRealtime();;
+        AlarmManager alarm = (AlarmManager) this.getActivity().getSystemService(Context.ALARM_SERVICE);
+        alarm.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP, uptimeMillis,
+                AlarmManager.INTERVAL_HOUR*3, pIntent);
+    }
+
+    public void cancelAlarm() {
+        Intent intent = new Intent(this.getContext(), SuperCalyAlarmReceiver.class);
+        final PendingIntent pIntent = PendingIntent.getBroadcast(this.getContext(), RequestCodes.Activity.ALARM_RECEIVER,
+                intent, PendingIntent.FLAG_CANCEL_CURRENT);
+        AlarmManager alarm = (AlarmManager) this.getContext().getSystemService(Context.ALARM_SERVICE);
+        alarm.cancel(pIntent);
+    }
     private void testDB(View view) {
 
     }

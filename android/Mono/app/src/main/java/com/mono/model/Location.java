@@ -27,7 +27,9 @@ public class Location implements Parcelable {
         this.googlePlaceId = googlePlaceId;
         this.latitude = latitude;
         this.longitude = longitude;
-        this.address = address;
+        if (address != null) {
+            this.address = Arrays.copyOf(address, address.length);
+        }
     }
 
     public Location(String name) {
@@ -116,5 +118,10 @@ public class Location implements Parcelable {
         }
 
         return str;
+    }
+    //for database testing purpose
+    public String toString() {
+        return "Location: location_id: "+this.id+", name: "+this.name + ", address: "+this.getAddress() + ", lattitude :"+ this.latitude
+                + ", longitude: "+ this.longitude+", googleId: "+this.googlePlaceId;
     }
 }

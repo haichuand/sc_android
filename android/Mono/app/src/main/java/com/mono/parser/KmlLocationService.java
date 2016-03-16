@@ -7,10 +7,10 @@ import android.os.AsyncTask;
 import android.os.ResultReceiver;
 import android.util.Log;
 
+
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.EventDataSource;
 import com.mono.db.dao.LocationDataSource;
-import com.mono.dummy.KML;
 import com.mono.model.Location;
 import com.mono.parser.KmlParser;
 import com.mono.parser.LatLngTime;
@@ -26,7 +26,8 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -35,34 +36,49 @@ import javax.net.ssl.HttpsURLConnection;
  */
 public class KmlLocationService extends IntentService{
     private static final String TAG = "KmlLocationService";
-    private final String GOOGLE_API_KEY = "AIzaSyA-xbzcIj0WtqWJk69PwSKhS3fhGw-KDwU";
+    private final String GOOGLE_API_KEY = "AIzaSyDYP8RiorJWNGwP8gSuaxoevvFQkyJH_6c";
     private final String TYPE = "userstay";
     private EventDataSource eventDataSource;
     private LocationDataSource locationDataSource;
+    private String fileName = "";
     private Context context;
     private ResultReceiver mReceiver;
     private KmlParser parser;
-    private HashMap<Integer, LatLngTime> map;
     ArrayList<LatLngTime> userStays;
 
     public KmlLocationService () {
         super(TAG);
     }
 
-    public void onHandleIntent (Intent intent) {
-        eventDataSource = DatabaseHelper.getDataSource(this.context, EventDataSource.class);
-        locationDataSource = DatabaseHelper.getDataSource(this.context, LocationDataSource.class);
-        getAndSaveNewUserStayEvents();
-
+    public void onCreate () {
+        super.onCreate();
     }
 
-    public void getAndSaveNewUserStayEvents() {
-        userStays = parser.parse(KML.KML_FILENAME);
+    public void onHandleIntent (Intent intent) {
+        if(intent != null) {
+            fileName = intent.getStringExtra("fileName");
+            Log.d(TAG, "onhandleIntent: starting service with fileName retrieve from intent: " + fileName);
+            eventDataSource = DatabaseHelper.getDataSource(this.context, EventDataSource.class);
+            locationDataSource = DatabaseHelper.getDataSource(this.context, LocationDataSource.class);
+            parser = new KmlParser();
+            //getAndSaveNewUserStayEvents(fileName);
+        }
+    }
+
+    public void getAndSaveNewUserStayEvents(String fileName) {
+        userStays = parser.parse(fileName);
+
         if(userStays == null) {
             Log.d(TAG, "No userstay available!");
             return;
-        }for(LatLngTime llt : userStays) {
-            long event_id = eventDataSource.createEvent(-1,this.TYPE,"","","",-1,llt.getStartTime(), llt.getEndTime(),
+        }
+        Log.d(TAG, "The number of userstays parsed from " + fileName + " is " + userStays.size());
+
+        for(LatLngTime llt : userStays) {
+            if(eventDataSource == null) {
+                Log.d(TAG, "null eventDataSource++++++++++++++++++++++++++++++++++++++++++");
+            }
+            long event_id = eventDataSource.createEvent(-1,this.TYPE,"Userstay","","Some random location",12,llt.getStartTime(), llt.getEndTime(),
                     llt.getStartTime());
             writeLocationAndEventToDB(String.valueOf(llt.getLat()), String.valueOf(llt.getLng()), event_id);
         }
@@ -72,12 +88,14 @@ public class KmlLocationService extends IntentService{
      * write corresponding location and event(TYPE: userstay) from given latlong and write them into database tables
      */
     private boolean writeLocationAndEventToDB(String latitude, String longitude, long event_id) {
+        Log.d(TAG, "write corresponding location and event(TYPE: userstay) from given latlong and write them into database tables");
         new googleplaces().execute(latitude, longitude, String.valueOf(event_id));
         return true;
     }
 
     private class googleplaces extends AsyncTask<String, Void, String> {
-        String temp;
+        String requestResult;
+
         ArrayList<Location> locationList;
         long event_id;
 
@@ -87,20 +105,22 @@ public class KmlLocationService extends IntentService{
             event_id = Long.parseLong(params[2]);
             String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + latitude + "," + longitude +
                     "&radius=10&key=" + GOOGLE_API_KEY;
-            temp = makeCall(url);
+            requestResult = makeCall(url);
             return "";
         }
         protected void onPostExecute(String result) {
-            if(temp != null) {
-                locationList = parseGooglePlace(temp);
+            if(requestResult != null) {
+                locationList = parseGooglePlace(requestResult);
                 //todo: pick the location if the user had been there
-                for(Location location: locationList) {
-                    if(location != null) {
-                        locationDataSource.createLocationAsCandidates(location.name, location.googlePlaceId,
-                                location.latitude,location.longitude,location.address.toString(), event_id);
-                    }
+                //now simply pick the first location of returned locations
+                if(!locationList.isEmpty()) {
+                    Location location = locationList.get(0);
 
+                    locationDataSource.createLocationAsCandidates(location.name, location.googlePlaceId,
+                            location.latitude,location.longitude,location.getAddress(), event_id);
                 }
+
+
             }
         }
 
@@ -116,11 +136,12 @@ public class KmlLocationService extends IntentService{
             InputStream in = new BufferedInputStream(urlConnection.getInputStream());
             InputStreamReader isw = new InputStreamReader(in);
             long code = urlConnection.getResponseCode();
-            Log.d("PlaceFinder","http request result: " + code);
-            int data = isw.read();
-            while (data != -1) {
-                builder.append((char)data);
-                data = isw.read();
+            if(code == HttpsURLConnection.HTTP_OK) {
+                int data = isw.read();
+                while (data != -1) {
+                    builder.append((char) data);
+                    data = isw.read();
+                }
             }
         }
         catch (MalformedURLException e) {
@@ -141,7 +162,7 @@ public class KmlLocationService extends IntentService{
      * @return List of Places return by google place web service
      */
     private static ArrayList<Location> parseGooglePlace(final String response) {
-        ArrayList<Location> temp = new ArrayList<Location>();
+        ArrayList<Location> locationList = new ArrayList<Location>();
         try {
             JSONObject jsonObject = new JSONObject(response);
             if (jsonObject.has("results")) {
@@ -157,13 +178,14 @@ public class KmlLocationService extends IntentService{
                         location = new Location(name, googlePlaceId, latitude, longitude, address);
                     }
                     if(location != null)
-                        temp.add(location);
+                        locationList.add(location);
                 }
 
             }
         }catch (JSONException e) {
             e.printStackTrace();
         }
-        return temp;
+        Log.d(TAG, "parseGooglePlace: "+ locationList.size());
+        return locationList;
     }
 }
