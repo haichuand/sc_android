@@ -19,6 +19,12 @@ public class Attendee implements Parcelable {
         email = attendee.email;
     }
 
+    public Attendee(long id, String name, String email) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+    }
+
     protected Attendee(Parcel in) {
         id = in.readLong();
         name = in.readString();
