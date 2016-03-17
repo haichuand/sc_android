@@ -120,7 +120,9 @@
             android:authorities="com.facebook.app.FacebookContentProviderFeb2016"
             android:exported="true" />
 
-        <activity android:name=".chat.ChatRoomActivity"></activity>
+        <activity android:name=".chat.ChatRoomActivity"
+            android:theme="@style/AppTheme.NoActionBar"/>
+
     </application>
 
 </manifest>
