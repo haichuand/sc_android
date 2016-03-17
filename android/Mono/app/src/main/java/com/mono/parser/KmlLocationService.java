@@ -1,6 +1,7 @@
 package com.mono.parser;
 
 import android.app.IntentService;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -9,6 +10,7 @@ import android.util.Log;
 
 
 import com.mono.db.DatabaseHelper;
+import com.mono.db.DatabaseValues;
 import com.mono.db.dao.EventDataSource;
 import com.mono.db.dao.LocationDataSource;
 import com.mono.model.Location;
@@ -80,6 +82,7 @@ public class KmlLocationService extends IntentService{
             }
             long event_id = eventDataSource.createEvent(-1,this.TYPE,"Userstay","","Some random location",12,llt.getStartTime(), llt.getEndTime(),
                     llt.getStartTime());
+            Log.d(TAG, "event with id: " + event_id + " created");
             writeLocationAndEventToDB(String.valueOf(llt.getLat()), String.valueOf(llt.getLng()), event_id);
         }
     }
@@ -88,7 +91,6 @@ public class KmlLocationService extends IntentService{
      * write corresponding location and event(TYPE: userstay) from given latlong and write them into database tables
      */
     private boolean writeLocationAndEventToDB(String latitude, String longitude, long event_id) {
-        Log.d(TAG, "write corresponding location and event(TYPE: userstay) from given latlong and write them into database tables");
         new googleplaces().execute(latitude, longitude, String.valueOf(event_id));
         return true;
     }
@@ -115,9 +117,12 @@ public class KmlLocationService extends IntentService{
                 //now simply pick the first location of returned locations
                 if(!locationList.isEmpty()) {
                     Location location = locationList.get(0);
-
-                    locationDataSource.createLocationAsCandidates(location.name, location.googlePlaceId,
-                            location.latitude,location.longitude,location.getAddress(), event_id);
+                    ContentValues values = new ContentValues();
+                    values.put(DatabaseValues.Event.TITLE, location.name+" "+location.getAddress());
+                    values.put(DatabaseValues.Event.DESC, "dummy description about a userstay event");
+                    eventDataSource.updateValues(event_id, values);
+//                    locationDataSource.createLocationAsCandidates(location.name, location.googlePlaceId,
+//                            location.latitude,location.longitude,location.getAddress(), event_id);
                 }
 
 

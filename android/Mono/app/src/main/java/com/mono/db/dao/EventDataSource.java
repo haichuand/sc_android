@@ -3,6 +3,7 @@ package com.mono.db.dao;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.SQLException;
+import android.util.Log;
 
 import com.mono.db.Database;
 import com.mono.db.DatabaseValues;
@@ -142,6 +143,7 @@ public class EventDataSource extends DataSource {
     }
 
     public int updateValues(long id, ContentValues values) {
+        Log.d("EventDataSource", "updateing event with id " + id);
         return database.update(
             DatabaseValues.Event.TABLE,
             values,
