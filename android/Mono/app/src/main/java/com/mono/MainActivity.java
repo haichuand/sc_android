@@ -356,7 +356,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         if (resultCode == RESULT_OK) {
             Event event = data.getParcelableExtra(EventDetailsActivity.EXTRA_EVENT);
 
-            if (event.id > 0) {
+            if (event.id != "") {
                 EventManager.getInstance(this).updateEvent(
                     EventManager.EventAction.ACTOR_SELF,
                     event.id,
@@ -383,7 +383,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     }
 
     @Override
-    public void showChat(long id) {
+    public void showChat(String id) {
 
     }
 

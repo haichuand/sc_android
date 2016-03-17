@@ -24,5 +24,5 @@ public interface MainInterface {
 
     void showEventDetails(Event event);
 
-    void showChat(long id);
+    void showChat(String id);
 }

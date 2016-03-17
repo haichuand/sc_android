@@ -58,7 +58,7 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                ID + " INTEGER PRIMARY KEY AUTOINCREMENT",
+                ID + " TEXT PRIMARY KEY",
                 EXTERNAL_ID + " INTEGER",
                 TYPE + " TEXT",
                 TITLE + " TEXT",
@@ -165,7 +165,7 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                    LOC_ID + " INTEGER PRIMARY KEY AUTOINCREMENT",
+                    LOC_ID + " TEXT PRIMARY KEY",
                     GOOGLE_PLACE_ID + " TEXT",
                     NAME + " TEXT",
                     ADDRESS + " TEXT",

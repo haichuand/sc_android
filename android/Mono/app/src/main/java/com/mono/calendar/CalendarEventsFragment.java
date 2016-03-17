@@ -39,7 +39,7 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
     private SimpleLinearLayoutManager layoutManager;
     private CalendarEventsAdapter adapter;
 
-    private final Map<Long, CalendarEventsItem> items = new HashMap<>();
+    private final Map<String, CalendarEventsItem> items = new HashMap<>();
     private final List<Event> events = new ArrayList<>();
 
     private SimpleDateFormat timeFormat;
@@ -104,7 +104,7 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
         CalendarEventsItem item;
 
         Event event = events.get(position);
-        long id = event.id;
+        String id = event.id;
 
         if (items.containsKey(id)) {
             item = items.get(id);
@@ -286,14 +286,14 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
 
     public interface CalendarEventsListener {
 
-        void onClick(long id, View view);
+        void onClick(String id, View view);
 
-        void onLongClick(long id, View view);
+        void onLongClick(String id, View view);
 
-        void onChatClick(long id);
+        void onChatClick(String id);
 
-        void onFavoriteClick(long id);
+        void onFavoriteClick(String id);
 
-        void onDeleteClick(long id);
+        void onDeleteClick(String id);
     }
 }

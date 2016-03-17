@@ -109,7 +109,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
 
         switch (id) {
             case R.id.action_add:
-                Event event = new Event(-1);
+                Event event = new Event("");
                 event.type = Event.TYPE_CALENDAR;
 
                 CalendarView.Date date = calendarView.getCurrentSelected();
@@ -148,7 +148,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
     }
 
     @Override
-    public void onCellDrop(long id, final int year, final int month, final int day, int action) {
+    public void onCellDrop(String id, final int year, final int month, final int day, int action) {
         Event event = eventManager.getEvent(id, false);
         if (event == null) {
             return;
@@ -216,13 +216,13 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
     }
 
     @Override
-    public void onClick(long id, View view) {
+    public void onClick(String id, View view) {
         Event event = eventManager.getEvent(id, false);
         mainInterface.showEventDetails(event);
     }
 
     @Override
-    public void onLongClick(long id, View view) {
+    public void onLongClick(String id, View view) {
         ClipData.Item item = new ClipData.Item(String.valueOf(id));
         ClipData data = new ClipData(EVENT_ITEM_LABEL, new String[]{
             ClipDescription.MIMETYPE_TEXT_PLAIN
@@ -233,17 +233,17 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
     }
 
     @Override
-    public void onChatClick(long id) {
+    public void onChatClick(String id) {
         mainInterface.showChat(id);
     }
 
     @Override
-    public void onFavoriteClick(long id) {
+    public void onFavoriteClick(String id) {
 
     }
 
     @Override
-    public void onDeleteClick(long id) {
+    public void onDeleteClick(String id) {
         eventManager.removeEvent(EventAction.ACTOR_SELF, id,
             new EventManager.EventActionCallback() {
                 @Override
@@ -314,12 +314,12 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
 
         EventDataSource dataSource =
             DatabaseHelper.getDataSource(getContext(), EventDataSource.class);
-        long[] eventIds = dataSource.getEventIdsByDay(year, month, day);
+        String[] eventIds = dataSource.getEventIdsByDay(year, month, day);
 
         if (eventIds != null) {
             eventsFragment.clear(true);
 
-            for (long id : eventIds) {
+            for (String id : eventIds) {
                 Event event = eventManager.getEvent(id, false);
                 eventsFragment.insert(0, event, true);
             }

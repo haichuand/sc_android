@@ -71,8 +71,8 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback, OnMapC
 
     private GoogleMap map;
 
-    private final Map<Marker, Long> markers = new HashMap<>();
-    private final Map<Long, MapMarker> mapMarkers = new HashMap<>();
+    private final Map<Marker, String> markers = new HashMap<>();
+    private final Map<String, MapMarker> mapMarkers = new HashMap<>();
     private final Map<Integer, BitmapDescriptor> markerBitmapCache = new HashMap<>();
 
     private MapMarker currentMarker;
@@ -251,7 +251,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback, OnMapC
         return mapMarkers.get(markers.get(marker));
     }
 
-    private void putMarkers(Long id, Marker marker, MapMarker mapMarker) {
+    private void putMarkers(String id, Marker marker, MapMarker mapMarker) {
         markers.put(marker, id);
         mapMarkers.put(id, mapMarker);
     }
@@ -383,7 +383,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback, OnMapC
         currentMarker = null;
     }
 
-    public void show(long id, double latitude, double longitude, int iconResId, double radius,
+    public void show(String id, double latitude, double longitude, int iconResId, double radius,
             int color, int strokeColor, Event event) {
         if (mapMarkers.containsKey(id)) {
             return;

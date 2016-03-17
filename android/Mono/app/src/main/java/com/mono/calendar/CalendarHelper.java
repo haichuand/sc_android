@@ -153,7 +153,7 @@ public class CalendarHelper {
 
         if (cursor != null) {
             while (cursor.moveToNext()) {
-                Event event = new Event(cursor.getLong(CalendarValues.Event.INDEX_ID));
+                Event event = new Event(cursor.getString(CalendarValues.Event.INDEX_ID));
                 event.externalId = cursor.getLong(CalendarValues.Event.INDEX_EVENT_ID);
                 event.type = Event.TYPE_CALENDAR;
                 event.startTime = cursor.getLong(CalendarValues.Event.INDEX_BEGIN);

@@ -118,7 +118,7 @@ public class EventsFragment extends Fragment implements OnPageChangeListener, Li
     }
 
     @Override
-    public void onClick(int position, long id) {
+    public void onClick(int position, String id) {
         switch (position) {
             case TAB_ALL:
                 ListFragment fragment = (ListFragment) tabPagerAdapter.getItem(TAB_FAVORITE);

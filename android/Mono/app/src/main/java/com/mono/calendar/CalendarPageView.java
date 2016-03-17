@@ -136,7 +136,7 @@ public class CalendarPageView extends LinearLayout implements View.OnClickListen
                         return true;
                     case DragEvent.ACTION_DROP:
                         ClipData.Item dragItem = event.getClipData().getItemAt(0);
-                        long eventId = Long.parseLong(dragItem.getText().toString());
+                        String eventId = dragItem.getText().toString();
 
                         int index = cells.indexOf(view);
                         int day = index - item.startIndex + 1;

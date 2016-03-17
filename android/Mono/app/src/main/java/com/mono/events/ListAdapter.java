@@ -98,14 +98,14 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.Holder> {
 
         public static final int TYPE_EVENT = 0;
 
-        public long id;
+        public String id;
         public int type;
         public int color;
         public String title;
         public String date;
         public String description;
 
-        public ListItem(long id) {
+        public ListItem(String id) {
             this.id = id;
         }
     }

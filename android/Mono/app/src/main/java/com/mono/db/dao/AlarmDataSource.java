@@ -19,7 +19,7 @@ public class AlarmDataSource extends  DataSource{
         super(database);
     }
 
-    public String createAlarmForEvent(long eventId, long alarmTime, long createTime, boolean enabled) {
+    public String createAlarmForEvent(String eventId, long alarmTime, long createTime, boolean enabled) {
         String alarmId = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
         int enabledInt = enabled ? 1 : 0; //1: enabled; 0: disabled
 
@@ -106,7 +106,7 @@ public class AlarmDataSource extends  DataSource{
         return alarm;
     }
 
-    public List<Alarm> getAlarmByEventId (long eventId) {
+    public List<Alarm> getAlarmByEventId (String eventId) {
         List<String> alarmIds = new ArrayList<>();
         List<Alarm> alarmList = new ArrayList<>();
         Cursor cursor = database.select(

@@ -17,12 +17,10 @@ public class LocationDataSource extends DataSource{
         super(database);
     }
 
-    public long createLocation (String name, String googlePlaceId, Double latitude, Double longitude, String address) {
-        //todo: location id should be unique, using string is better than a long
-        //String id = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
+    public String createLocation (String name, String googlePlaceId, Double latitude, Double longitude, String address) {
+        String id = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
         ContentValues values = new ContentValues();
-        //values.put(DatabaseValues.Location.LOC_ID, id);
-        long id = -1;
+        values.put(DatabaseValues.Location.LOC_ID, id);
         values.put(DatabaseValues.Location.NAME, name);
         values.put(DatabaseValues.Location.GOOGLE_PLACE_ID, googlePlaceId);
         values.put(DatabaseValues.Location.LATITUDE, latitude);
@@ -31,7 +29,7 @@ public class LocationDataSource extends DataSource{
         values.put(DatabaseValues.Location.BEEN_THERE, 0); // when fisrt time write a location to database, we assume user never been there before
 
         try {
-           id = database.insert(DatabaseValues.Location.TABLE, values);
+            database.insert(DatabaseValues.Location.TABLE, values);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -39,7 +37,7 @@ public class LocationDataSource extends DataSource{
         return id;
     }
     public void createLocationAsCandidates (String name, String googlePlaceId, Double latitude, Double longitude, String address, long eventId) {
-        long locId = createLocation(name, googlePlaceId, latitude, longitude, address);
+        String locId = createLocation(name, googlePlaceId, latitude, longitude, address);
         Log.d("LocationDataSource", " create location: " + locId + "name: " + name + " address: " + address);
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.EventLocationCandidates.EVENT_ID, eventId);
@@ -52,7 +50,7 @@ public class LocationDataSource extends DataSource{
         }
     }
 
-    public Location getLocation(long id) {
+    public Location getLocation(String id) {
         Location location = null;
 
         Cursor cursor = database.select(
@@ -94,7 +92,7 @@ public class LocationDataSource extends DataSource{
         return location;
     }
 
-    public int removeLocation(long id) {
+    public int removeLocation(String id) {
         return database.delete(
                 DatabaseValues.Location.TABLE,
                 DatabaseValues.Location.LOC_ID + " = ?",
@@ -108,7 +106,7 @@ public class LocationDataSource extends DataSource{
      * For PROJECTION only.
      */
     private Location cursorToLocation(Cursor cursor) {
-        Location location = new Location(cursor.getLong(DatabaseValues.Location.INDEX_LOC_ID));
+        Location location = new Location(cursor.getString(DatabaseValues.Location.INDEX_LOC_ID));
         location.name = cursor.getString(DatabaseValues.Location.INDEX_NAME);
         location.googlePlaceId = cursor.getString(DatabaseValues.Location.INDEX_GOOGLE_PALCE_ID);
         location.latitude = cursor.getDouble(DatabaseValues.Location.INDEX_LATITUDE);

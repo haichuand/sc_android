@@ -63,7 +63,7 @@ public class KmlLocationService extends IntentService{
             eventDataSource = DatabaseHelper.getDataSource(this.context, EventDataSource.class);
             locationDataSource = DatabaseHelper.getDataSource(this.context, LocationDataSource.class);
             parser = new KmlParser();
-            //getAndSaveNewUserStayEvents(fileName);
+            getAndSaveNewUserStayEvents(fileName);
         }
     }
 
@@ -80,17 +80,17 @@ public class KmlLocationService extends IntentService{
             if(eventDataSource == null) {
                 Log.d(TAG, "null eventDataSource++++++++++++++++++++++++++++++++++++++++++");
             }
-            long event_id = eventDataSource.createEvent(-1,this.TYPE,"Userstay","","Some random location",12,llt.getStartTime(), llt.getEndTime(),
+            String event_id = eventDataSource.createEvent(-1,this.TYPE,"Userstay","","Some random location",12,llt.getStartTime(), llt.getEndTime(),
                     llt.getStartTime());
             Log.d(TAG, "event with id: " + event_id + " created");
-            writeLocationAndEventToDB(String.valueOf(llt.getLat()), String.valueOf(llt.getLng()), event_id);
+            //writeLocationAndEventToDB(String.valueOf(llt.getLat()), String.valueOf(llt.getLng()), event_id);
         }
     }
 
     /**
      * write corresponding location and event(TYPE: userstay) from given latlong and write them into database tables
      */
-    private boolean writeLocationAndEventToDB(String latitude, String longitude, long event_id) {
+    private boolean writeLocationAndEventToDB(String latitude, String longitude, String event_id) {
         new googleplaces().execute(latitude, longitude, String.valueOf(event_id));
         return true;
     }
@@ -99,12 +99,12 @@ public class KmlLocationService extends IntentService{
         String requestResult;
 
         ArrayList<Location> locationList;
-        long event_id;
+        String event_id;
 
         protected String doInBackground(String ... params) {
             String latitude = params[0];
             String longitude = params[1];
-            event_id = Long.parseLong(params[2]);
+            event_id = params[2];
             String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + latitude + "," + longitude +
                     "&radius=10&key=" + GOOGLE_API_KEY;
             requestResult = makeCall(url);

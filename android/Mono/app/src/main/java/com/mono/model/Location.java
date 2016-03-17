@@ -9,20 +9,20 @@ import java.util.Arrays;
 
 public class Location implements Parcelable {
 
-    public final long id;
+    public final String id;
     public String name;
     public Double latitude;
     public Double longitude;
     public String[] address;
     public String googlePlaceId;
 
-    public Location(long id) {
+    public Location(String id) {
         this.id = id;
     }
 
     public Location(String name, String googlePlaceId, Double latitude, Double longitude,
             String[] address) {
-        this(-1);
+        this("");
         this.name = name;
         this.googlePlaceId = googlePlaceId;
         this.latitude = latitude;
@@ -32,13 +32,13 @@ public class Location implements Parcelable {
         }
     }
 
-    public Location(String name) {
-        this(-1);
+    public Location(String name, String dummy) {
+        this("");
         this.name = name;
     }
 
     public Location(double latitude, double longitude) {
-        this(-1);
+        this("");
         this.latitude = latitude;
         this.longitude = longitude;
     }
@@ -57,7 +57,7 @@ public class Location implements Parcelable {
     }
 
     protected Location(Parcel in) {
-        id = in.readLong();
+        id = in.readString();
         name = in.readString();
         address = in.createStringArray();
         googlePlaceId = in.readString();
@@ -97,7 +97,7 @@ public class Location implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeLong(id);
+        dest.writeString(id);
         dest.writeString(name);
         dest.writeStringArray(address);
         dest.writeString(googlePlaceId);

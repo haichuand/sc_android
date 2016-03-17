@@ -21,7 +21,7 @@ public class EventManager {
 
     private Context context;
 
-    private final Map<Long, Event> cache = new HashMap<>();
+    private final Map<String, Event> cache = new HashMap<>();
     private final List<EventBroadcastListener> listeners = new ArrayList<>();
 
     private EventManager(Context context) {
@@ -60,7 +60,7 @@ public class EventManager {
         cache.put(event.id, event);
     }
 
-    public Event getEvent(long id, boolean refresh) {
+    public Event getEvent(String id, boolean refresh) {
         Event event;
 
         if (cache.containsKey(id) && !refresh) {
@@ -121,7 +121,7 @@ public class EventManager {
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
 
-        long id = -1;
+        String id = null;
         if (!dataSource.containsEventByExternalId(externalId)) {
             id = dataSource.createEvent(
                 externalId,
@@ -136,7 +136,7 @@ public class EventManager {
             );
         }
 
-        if (id > 0) {
+        if (id != null) {
             event = getEvent(id, false);
         } else {
             status = EventAction.STATUS_FAILED;
@@ -151,7 +151,7 @@ public class EventManager {
         }
     }
 
-    public void updateEvent(int actor, long id, Event event, EventActionCallback callback) {
+    public void updateEvent(int actor, String id, Event event, EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
 
         Event original = getEvent(id, false);
@@ -210,7 +210,7 @@ public class EventManager {
         }
     }
 
-    public void updateEventTime(int actor, long id, long startTime, long endTime,
+    public void updateEventTime(int actor, String id, long startTime, long endTime,
             EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
 
@@ -228,7 +228,7 @@ public class EventManager {
         }
     }
 
-    public void removeEvent(int actor, long id, EventActionCallback callback) {
+    public void removeEvent(int actor, String id, EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
 
         Event event = cache.remove(id);

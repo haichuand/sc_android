@@ -146,7 +146,7 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
     }
 
     @Override
-    public void onCellDrop(View view, final long id, final int year, final int month,
+    public void onCellDrop(View view, final String id, final int year, final int month,
             final int day) {
         Date date = new Date(year, month, day);
         if (lastDropped != null && date.equals(lastDropped)) {
@@ -358,6 +358,6 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
 
         void onCellClick(int year, int month, int day, boolean selected);
 
-        void onCellDrop(long id, int year, int month, int day, int action);
+        void onCellDrop(String id, int year, int month, int day, int action);
     }
 }

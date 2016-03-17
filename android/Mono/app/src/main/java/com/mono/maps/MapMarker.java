@@ -13,7 +13,7 @@ import java.util.List;
 
 public class MapMarker<T extends Event> {
 
-    public final long id;
+    public final String id;
     public Marker marker;
 
     protected String name;
@@ -27,12 +27,12 @@ public class MapMarker<T extends Event> {
 
     protected final List<T> events = new ArrayList<>();
 
-    public MapMarker(long id, Marker marker) {
+    public MapMarker(String id, Marker marker) {
         this.id = id;
         this.marker = marker;
     }
 
-    public MapMarker(long id, Marker marker, T event) {
+    public MapMarker(String id, Marker marker, T event) {
         this(id, marker);
         add(event);
     }

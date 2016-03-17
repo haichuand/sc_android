@@ -14,7 +14,7 @@ public class Event implements Parcelable {
     public static final String TYPE_CALENDAR = "calendar";
     public static final String TYPE_USERSTAY = "userstay";
 
-    public final long id;
+    public final String id;
     public long externalId;
     public String type;
     public String title;
@@ -26,7 +26,7 @@ public class Event implements Parcelable {
     public long createTime;
     public List<Attendee> attendees = new ArrayList<>();
 
-    public Event(long id) {
+    public Event(String id) {
         this.id = id;
     }
 
@@ -50,7 +50,7 @@ public class Event implements Parcelable {
     }
 
     protected Event(Parcel in) {
-        id = in.readLong();
+        id = in.readString();
         externalId = in.readLong();
         type = in.readString();
         title = in.readString();
@@ -146,7 +146,7 @@ public class Event implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeLong(id);
+        dest.writeString(id);
         dest.writeLong(externalId);
         dest.writeString(type);
         dest.writeString(title);

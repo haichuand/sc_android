@@ -112,7 +112,7 @@ public class CalendarEventsAdapter extends RecyclerView.Adapter<CalendarEventsAd
 
         public static final int TYPE_EVENT = 0;
 
-        public long id;
+        public String id;
         public int type;
         public int iconResId;
         public int iconColor;
@@ -121,7 +121,7 @@ public class CalendarEventsAdapter extends RecyclerView.Adapter<CalendarEventsAd
         public String title;
         public String description;
 
-        public CalendarEventsItem(long id) {
+        public CalendarEventsItem(String id) {
             this.id = id;
         }
     }

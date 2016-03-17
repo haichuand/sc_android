@@ -121,6 +121,6 @@ public class CalendarPageAdapter extends RecyclerView.Adapter<CalendarPageAdapte
 
         void onCellClick(int year, int month, int day);
 
-        void onCellDrop(View view, long id, int year, int month, int day);
+        void onCellDrop(View view, String id, int year, int month, int day);
     }
 }

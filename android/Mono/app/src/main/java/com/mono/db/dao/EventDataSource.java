@@ -23,11 +23,12 @@ public class EventDataSource extends DataSource {
         super(database);
     }
 
-    public long createEvent(long externalId, String type, String title, String description,
+    public String createEvent(long externalId, String type, String title, String description,
             String location, int color, long startTime, long endTime, long createTime) {
-        long id = -1;
+        String id = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
 
         ContentValues values = new ContentValues();
+        values.put(DatabaseValues.Event.ID, id);
         values.put(DatabaseValues.Event.EXTERNAL_ID, externalId);
         values.put(DatabaseValues.Event.TYPE, type);
         values.put(DatabaseValues.Event.TITLE, title);
@@ -39,7 +40,7 @@ public class EventDataSource extends DataSource {
         values.put(DatabaseValues.Event.CREATE_TIME, createTime);
 
         try {
-            id = database.insert(DatabaseValues.Event.TABLE, values);
+            database.insert(DatabaseValues.Event.TABLE, values);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -47,7 +48,7 @@ public class EventDataSource extends DataSource {
         return id;
     }
 
-    public Event getEvent(long id) {
+    public Event getEvent(String id) {
         Event event = null;
 
         Cursor cursor = database.select(
@@ -142,7 +143,7 @@ public class EventDataSource extends DataSource {
         return event;
     }
 
-    public int updateValues(long id, ContentValues values) {
+    public int updateValues(String id, ContentValues values) {
         Log.d("EventDataSource", "updateing event with id " + id);
         return database.update(
             DatabaseValues.Event.TABLE,
@@ -154,7 +155,7 @@ public class EventDataSource extends DataSource {
         );
     }
 
-    public int updateTime(long id, long startTime, long endTime) {
+    public int updateTime(String id, long startTime, long endTime) {
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.Event.START_TIME, startTime);
         values.put(DatabaseValues.Event.END_TIME, endTime);
@@ -162,7 +163,7 @@ public class EventDataSource extends DataSource {
         return updateValues(id, values);
     }
 
-    public int removeEvent(long id) {
+    public int removeEvent(String id) {
         return database.delete(
             DatabaseValues.Event.TABLE,
             DatabaseValues.Event.ID + " = ?",
@@ -224,8 +225,8 @@ public class EventDataSource extends DataSource {
         return events;
     }
 
-    public long[] getEventIdsByDay(int year, int month, int day) {
-        long[] result = null;
+    public String[] getEventIdsByDay(int year, int month, int day) {
+        String[] result = null;
 
         Calendar calendar = Calendar.getInstance();
         calendar.set(year, month, day, 0, 0, 0);
@@ -253,11 +254,11 @@ public class EventDataSource extends DataSource {
         int count = cursor.getCount();
 
         if (count > 0) {
-            result = new long[count];
+            result = new String[count];
 
             for (int i = 0; i < count; i++) {
                 if (cursor.moveToNext()) {
-                    long id = cursor.getLong(0);
+                    String id = cursor.getString(0);
                     result[i] = id;
                 }
             }
@@ -268,8 +269,8 @@ public class EventDataSource extends DataSource {
         return result;
     }
 
-    public Map<Integer, Long[]> getEventIdsByMonth(int year, int month) {
-        Map<Integer, Long[]> result = new HashMap<>();
+    public Map<Integer, String[]> getEventIdsByMonth(int year, int month) {
+        Map<Integer, String[]> result = new HashMap<>();
 
         Calendar calendar = Calendar.getInstance();
         calendar.set(year, month, 1, 0, 0, 0);
@@ -299,9 +300,9 @@ public class EventDataSource extends DataSource {
             int day = cursor.getInt(0);
 
             String[] tempIds = cursor.getString(1).split(",");
-            Long[] ids = new Long[tempIds.length];
+            String[] ids = new String[tempIds.length];
             for (int i = 0; i < tempIds.length; i++) {
-                ids[i] = Long.valueOf(tempIds[i]);
+                ids[i] = tempIds[i];
             }
 
             result.put(day, ids);
@@ -360,7 +361,7 @@ public class EventDataSource extends DataSource {
      * For PROJECTION only.
      */
     private Event cursorToEvent(Cursor cursor) {
-        Event event = new Event(cursor.getLong(DatabaseValues.Event.INDEX_ID));
+        Event event = new Event(cursor.getString(DatabaseValues.Event.INDEX_ID));
         event.externalId = cursor.getLong(DatabaseValues.Event.INDEX_EXTERNAL_ID);
         event.type = cursor.getString(DatabaseValues.Event.INDEX_TYPE);
         event.title = cursor.getString(DatabaseValues.Event.INDEX_TITLE);

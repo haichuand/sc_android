@@ -25,7 +25,7 @@ public class ConversationDataSource extends DataSource{
     * Create a conversation from an event with
     * Params: name of the conversation, the id of associated event
     * */
-    public String createConversationFromEvent (String name, long eventID) {
+    public String createConversationFromEvent (String name, String eventID) {
         String id = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
         ContentValues conversationValues = new ContentValues();
         conversationValues.put(DatabaseValues.Conversation.C_ID, id);
@@ -45,7 +45,7 @@ public class ConversationDataSource extends DataSource{
         return id;
     }
 
-    public String createConversationWithSelectedAttendees (String name, long eventID, List<String> attendeesID) {
+    public String createConversationWithSelectedAttendees (String name, String eventID, List<String> attendeesID) {
         String conversationId = createConversationFromEvent(name, eventID);
 
         for(String id: attendeesID) {

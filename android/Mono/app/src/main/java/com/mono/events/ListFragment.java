@@ -46,7 +46,7 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
     private ListAdapter adapter;
     private TextView text;
 
-    private final Map<Long, ListItem> items = new HashMap<>();
+    private final Map<String, ListItem> items = new HashMap<>();
     private final List<Event> events = new ArrayList<>();
 
     private AsyncTask<Long, Void, List<? extends Event>> task;
@@ -131,7 +131,7 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         }
 
         Event event = events.get(position);
-        long id = event.id;
+        String id = event.id;
 
         if (items.containsKey(id)) {
             item = items.get(id);
@@ -369,7 +369,7 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
 
     public interface ListListener {
 
-        void onClick(int position, long id);
+        void onClick(int position, String id);
 
         List<? extends Event> onRefresh(int position, long startTime, long endTime);
 

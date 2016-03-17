@@ -259,7 +259,7 @@ public class EventDetailsActivity extends GestureActivity {
 
     public void initialize(Event event) {
         if (event == null) {
-            event = new Event(-1);
+            event = new Event("");
         }
 
         original = event;
