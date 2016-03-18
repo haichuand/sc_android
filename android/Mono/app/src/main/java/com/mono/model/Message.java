@@ -19,6 +19,7 @@ public class Message {
         this.conversationId = conversationId;
         this.messageText = messageText;
         this.timestamp = timestamp;
+
     }
 
     public String getUserId() {

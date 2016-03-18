@@ -40,10 +40,12 @@ public class GcmMessage {
 
         return instance;
     }
+
     public void sendMessage(String sender_id, String conversation_id, String message, String action, List<String> recipients, final GoogleCloudMessaging gcm) {
         Bundle data = generateMessageBody(sender_id, conversation_id, message, action, recipients);
         sendMessage(data, gcm);
     }
+
     public void sendMessage(final Bundle data, final GoogleCloudMessaging gcm ) {
 
         new AsyncTask<Void, Object, String>() {
@@ -73,6 +75,7 @@ public class GcmMessage {
             }
         }.execute(null,null,null);
     }
+    
     private Bundle generateMessageBody (String sender_id, String conversation_id, String message, String action, List<String> recipients) {
         Bundle data = new Bundle();
         StringBuilder builder = new StringBuilder();

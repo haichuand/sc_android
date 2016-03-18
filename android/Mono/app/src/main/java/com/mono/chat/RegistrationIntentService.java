@@ -53,5 +53,8 @@ public class RegistrationIntentService extends IntentService {
     private void sendRegistrationToServer(String token) {
         // Add custom implementation, as needed.
         Log.i(TAG, token);
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        sharedPreferences.edit().putString(SuperCalyPreferences.USER_ID, token).apply();
+        Log.i(TAG, "the userid is successfully added to sharedPref, id = " + sharedPreferences.getString(SuperCalyPreferences.USER_ID,""));
     }
 }
