@@ -15,6 +15,7 @@ import android.widget.TableRow;
 import android.widget.TextView;
 
 import com.mono.R;
+import com.mono.util.Colors;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -128,8 +129,8 @@ public class CalendarPageView extends LinearLayout implements View.OnClickListen
                         return false;
                     case DragEvent.ACTION_DRAG_ENTERED:
                         cell.setBackground(R.drawable.calendar_day_selected,
-                            getResources().getColor(R.color.yellow));
-                        cell.setTextColor(getResources().getColor(R.color.gray_dark));
+                            Colors.getColor(getContext(), R.color.yellow));
+                        cell.setTextColor(Colors.getColor(getContext(), R.color.gray_dark));
                         return true;
                     case DragEvent.ACTION_DRAG_EXITED:
                         cell.setLastStyle();

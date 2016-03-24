@@ -16,13 +16,17 @@ public class Location implements Parcelable {
     public String[] address;
     public String googlePlaceId;
 
+    public Location() {
+        this.id = null;
+    }
+
     public Location(String id) {
         this.id = id;
     }
 
     public Location(String name, String googlePlaceId, Double latitude, Double longitude,
             String[] address) {
-        this("");
+        this();
         this.name = name;
         this.googlePlaceId = googlePlaceId;
         this.latitude = latitude;
@@ -33,12 +37,12 @@ public class Location implements Parcelable {
     }
 
     public Location(String name, String dummy) {
-        this("");
+        this();
         this.name = name;
     }
 
     public Location(double latitude, double longitude) {
-        this("");
+        this();
         this.latitude = latitude;
         this.longitude = longitude;
     }

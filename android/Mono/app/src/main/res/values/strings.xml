@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Mono</string>
+    <string name="app_name">SuperCaly</string>
 
     <string name="google_maps_key">AIzaSyC7w48Efb57G0XNMCndsPhaOSoYUhR4xTU</string>
     <string name="facebook_app_id">Feb2016</string>
