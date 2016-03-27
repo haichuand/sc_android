@@ -26,6 +26,10 @@ public class Event implements Parcelable {
     public long createTime;
     public List<Attendee> attendees = new ArrayList<>();
 
+    public Event() {
+        this.id = null;
+    }
+
     public Event(String id) {
         this.id = id;
     }
@@ -83,7 +87,7 @@ public class Event implements Parcelable {
 
         Event event = (Event) object;
 
-        if (id != event.id) {
+        if (!Common.compareStrings(id, event.id)) {
             return false;
         }
 
@@ -91,7 +95,7 @@ public class Event implements Parcelable {
     }
 
     public boolean equals(Event event) {
-        if (id != event.id) {
+        if (!Common.compareStrings(id, event.id)) {
             return false;
         }
 

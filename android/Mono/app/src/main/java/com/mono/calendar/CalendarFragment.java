@@ -109,7 +109,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
 
         switch (id) {
             case R.id.action_add:
-                Event event = new Event("");
+                Event event = new Event();
                 event.type = Event.TYPE_CALENDAR;
 
                 CalendarView.Date date = calendarView.getCurrentSelected();

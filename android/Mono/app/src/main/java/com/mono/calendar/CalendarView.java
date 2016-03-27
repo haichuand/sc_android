@@ -14,6 +14,7 @@ import com.mono.calendar.CalendarPageAdapter.CalendarPageItem;
 import com.mono.calendar.CalendarPageAdapter.CalendarPageListener;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.EventDataSource;
+import com.mono.util.Colors;
 import com.mono.util.Pixels;
 import com.mono.util.SimpleDataSource;
 import com.mono.util.SimpleQuickAction;
@@ -158,11 +159,11 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         if (actions != null && actions.length > 0) {
             final CalendarTableCell cell = (CalendarTableCell) view;
             cell.setBackground(R.drawable.calendar_day_selected,
-                getResources().getColor(R.color.yellow));
-            cell.setTextColor(getResources().getColor(R.color.gray_dark));
+                Colors.getColor(getContext(), R.color.yellow));
+            cell.setTextColor(Colors.getColor(getContext(), R.color.gray_dark));
 
             SimpleQuickAction actionView = SimpleQuickAction.newInstance(getContext());
-            actionView.setColor(getResources().getColor(R.color.colorPrimary));
+            actionView.setColor(Colors.getColor(getContext(), R.color.colorPrimary));
             actionView.setActions(actions);
 
             int[] location = new int[2];

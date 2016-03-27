@@ -23,6 +23,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.mono.R;
 import com.mono.model.Event;
 import com.mono.model.Location;
+import com.mono.util.Colors;
 import com.mono.util.GestureActivity;
 
 import java.text.SimpleDateFormat;
@@ -259,7 +260,7 @@ public class EventDetailsActivity extends GestureActivity {
 
     public void initialize(Event event) {
         if (event == null) {
-            event = new Event("");
+            event = new Event();
         }
 
         original = event;
@@ -326,7 +327,7 @@ public class EventDetailsActivity extends GestureActivity {
 
         do {
             int colorId = colorIds[(int) (Math.random() * colorIds.length) % colorIds.length];
-            color = getResources().getColor(colorId);
+            color = Colors.getColor(this, colorId);
 
             if (colorIds.length == 1) {
                 break;

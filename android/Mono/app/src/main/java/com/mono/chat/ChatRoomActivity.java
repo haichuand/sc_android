@@ -15,6 +15,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ListView;
+import android.widget.SimpleAdapter;
 import android.widget.TextView;
 
 import com.mono.R;
@@ -23,7 +24,9 @@ import com.mono.model.Message;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ChatRoomActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     //constants used to send and receive bundles
@@ -47,6 +50,7 @@ public class ChatRoomActivity extends AppCompatActivity implements NavigationVie
     private ChatRoomAdapter mChatRoomAdapter;
     private ChatAttendeeMap mChatAttendeeMap;
     private List<Message> mChatMessages;
+    private List<Map<String, String>> chatAttendeeAdapterList;
     private String myId;
 
     @Override
@@ -88,16 +92,32 @@ public class ChatRoomActivity extends AppCompatActivity implements NavigationVie
             actionBar.setDisplayHomeAsUpEnabled(true);
             actionBar.setDisplayShowHomeEnabled(true);
         }
-
-        mChatAttendeeListView = (ListView) findViewById(R.id.chat_drawer_attendees);
-//        mChatAttendeeListView.setAdapter();
-
         mChatView = (RecyclerView) findViewById(R.id.listMessages);
-        mChatView.setLayoutManager(new LinearLayoutManager(this));
         mChatAttendeeMap = new ChatAttendeeMap();
         mChatMessages = new ArrayList<>();
+        mChatAttendeeListView = (ListView) findViewById(R.id.chat_drawer_attendees);
         setTestChatAttendees();
         setTestChatMessages();
+
+        HashMap<String, Attendee> newAttendeeMap = new HashMap<>(mChatAttendeeMap.getChatAttendeeMap());
+        chatAttendeeAdapterList = new ArrayList<>();
+        HashMap<String, String> attendeeItem = new HashMap<>();
+        attendeeItem.put("name", "Me");
+        chatAttendeeAdapterList.add(attendeeItem); //put my name first in attendee list
+        newAttendeeMap.remove(String.valueOf(myId));
+        for (Map.Entry entry : newAttendeeMap.entrySet()) { //then put other attendees in the list
+            attendeeItem = new HashMap<>();
+            String name = ((Attendee) entry.getValue()).name;
+            attendeeItem.put("name", name);
+            chatAttendeeAdapterList.add(attendeeItem);
+        }
+        String[] from = new String[] {"name"};  //maps name to name textView
+        int[] to = new int[] {R.id.chat_attendee_name};
+        SimpleAdapter chatAttendeeListAdapter = new SimpleAdapter(this, chatAttendeeAdapterList, R.layout.chat_attendee_list_item, from, to);
+        mChatAttendeeListView.setAdapter(chatAttendeeListAdapter);
+
+
+        mChatView.setLayoutManager(new LinearLayoutManager(this));
         mChatRoomAdapter = new ChatRoomAdapter(myId, mChatAttendeeMap, mChatMessages, this);
         mChatView.setAdapter(mChatRoomAdapter);
     }
