@@ -27,8 +27,7 @@ public class SupercalyAlarmManager {
         return instance;
     }
 
-    public void scheduleAlarm() {
-        Log.d(TAG, "Scheduling an alarm");
+    public void scheduleAlarm(int frequencyInHour) {
         // Construct an intent that will execute the AlarmReceiver
         Intent intent = new Intent(context, SuperCalyAlarmReceiver.class);
         intent.setAction(SuperCalyAlarmReceiver.ACTION_ALARM_RECEIVER);
@@ -36,10 +35,12 @@ public class SupercalyAlarmManager {
         final PendingIntent pIntent = PendingIntent.getBroadcast(context, RequestCodes.Activity.ALARM_RECEIVER,
                 intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        long uptimeMillis =  SystemClock.elapsedRealtime();;
+        long uptimeMillis =  SystemClock.elapsedRealtime();
+        int frequencyInTenMins = frequencyInHour*6;
+
         AlarmManager alarm = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         alarm.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP, uptimeMillis,
-                240000, pIntent);
+                600000*frequencyInTenMins, pIntent);
     }
 
     public void cancelAlarm() {

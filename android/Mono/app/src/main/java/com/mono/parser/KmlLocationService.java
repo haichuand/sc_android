@@ -38,11 +38,10 @@ import javax.net.ssl.HttpsURLConnection;
 public class KmlLocationService extends IntentService{
     private static final String TAG = "KmlLocationService";
     private final String GOOGLE_API_KEY = "AIzaSyDYP8RiorJWNGwP8gSuaxoevvFQkyJH_6c";
-    private final String TYPE = "userstay";
+    private static final String TYPE = "userstay";
     private EventDataSource eventDataSource;
     private LocationDataSource locationDataSource;
     private String fileName = "";
-    private Context context;
     private KmlParser parser;
     ArrayList<LatLngTime> userStays;
 
@@ -52,14 +51,14 @@ public class KmlLocationService extends IntentService{
 
     public void onCreate () {
         super.onCreate();
+        eventDataSource = DatabaseHelper.getDataSource(this.getApplicationContext(), EventDataSource.class);
+        locationDataSource = DatabaseHelper.getDataSource(this.getApplicationContext(), LocationDataSource.class);
     }
 
     public void onHandleIntent (Intent intent) {
         if(intent != null) {
             fileName = intent.getStringExtra("fileName");
             Log.d(TAG, "onhandleIntent: starting service with fileName retrieve from intent: " + fileName);
-            eventDataSource = DatabaseHelper.getDataSource(this.context, EventDataSource.class);
-            locationDataSource = DatabaseHelper.getDataSource(this.context, LocationDataSource.class);
             parser = new KmlParser();
             getAndSaveNewUserStayEvents(fileName);
         }
@@ -88,10 +87,7 @@ public class KmlLocationService extends IntentService{
                 }
             }
             else {
-                String event_id = eventDataSource.createEvent(-1, this.TYPE, "Userstay", "", "random location", 12, llt.getStartTime(), llt.getEndTime(),
-                        llt.getStartTime());
-                Log.d(TAG, "event with id: " + event_id + " created");
-                writeLocationAndEventToDB(String.valueOf(llt.getLat()), String.valueOf(llt.getLng()), event_id);
+                writeLocationAndEventToDB(String.valueOf(llt.getLat()), String.valueOf(llt.getLng()), llt.getStartTime(), llt.getEndTime());
             }
         }
     }
@@ -99,21 +95,24 @@ public class KmlLocationService extends IntentService{
     /**
      * write corresponding location and event(TYPE: userstay) from given latlong and write them into database tables
      */
-    private boolean writeLocationAndEventToDB(String latitude, String longitude, String event_id) {
-        new googleplaces().execute(latitude, longitude, String.valueOf(event_id));
+    private boolean writeLocationAndEventToDB(String latitude, String longitude, Long startTime, Long endTime) {
+        new googleplaces().execute(latitude, longitude, startTime, endTime);
         return true;
     }
 
-    private class googleplaces extends AsyncTask<String, Void, String> {
+    private class googleplaces extends AsyncTask<Object, Void, String> {
         String requestResult;
 
         ArrayList<Location> locationList;
         String event_id;
+        Long startTime;
+        Long endTime;
 
-        protected String doInBackground(String ... params) {
-            String latitude = params[0];
-            String longitude = params[1];
-            event_id = params[2];
+        protected String doInBackground(Object ... params) {
+            String latitude = (String)params[0];
+            String longitude = (String)params[1];
+            startTime = (Long)params[2];
+            endTime = (Long)params[3];
             String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + latitude + "," + longitude +
                     "&radius=10&key=" + GOOGLE_API_KEY;
             requestResult = makeCall(url);
@@ -127,9 +126,23 @@ public class KmlLocationService extends IntentService{
                 //now simply pick the first location of returned locations
                 if(!locationList.isEmpty()) {
                     Location location = locationList.get(0);
-                    new detailedAddress().execute(location, String.valueOf(event_id));
-//                    locationDataSource.createLocationAsCandidates(location.name, location.googlePlaceId,
-//                            location.latitude,location.longitude,location.getAddress(), event_id);
+                    String locationId = location.id;
+                    Location newLoc = null;
+                    //check if the location exists in the database
+                    if(locationDataSource.getLocationByGooglePlaceId(location.googlePlaceId) == null) {
+                        locationId = locationDataSource.createLocation(location.name, location.googlePlaceId, location.latitude, location.longitude, location.getAddress());
+                        newLoc = new Location(locationId);
+                        newLoc.name = location.name;
+                        newLoc.latitude = location.latitude;
+                        newLoc.longitude = location.longitude;
+                        newLoc.googlePlaceId = location.googlePlaceId;
+                        newLoc.address = location.address;
+                    }
+
+                    event_id = eventDataSource.createEvent(-1, KmlLocationService.TYPE, "Userstay", "",locationId, 12, startTime, endTime,
+                            startTime);
+                    Log.d(TAG, "event with id: " + event_id + " created");
+                    new detailedAddress().execute(newLoc, String.valueOf(event_id));
                 }
             }
         }
@@ -154,10 +167,15 @@ public class KmlLocationService extends IntentService{
             if(requestResult != null) {
                 String[] detailedAddress = getAddressByLatLong(requestResult).split(",");
                 loc.setAddress(detailedAddress);
+                //updating the address of the location
+                locationDataSource.updateLocationAddress(loc.id, loc.getAddress());
+
+                //todo: the description is temporarily updating as address for testing purpose
                 ContentValues values = new ContentValues();
-                values.put(DatabaseValues.Event.TITLE, loc.name+" "+loc.getAddress());
-                values.put(DatabaseValues.Event.DESC, "dummy description about a userstay event");
+                values.put(DatabaseValues.Event.LOCATION, loc.id);
+                values.put(DatabaseValues.Event.DESC, loc.getAddress());
                 eventDataSource.updateValues(event_id, values);
+
             }
         }
 

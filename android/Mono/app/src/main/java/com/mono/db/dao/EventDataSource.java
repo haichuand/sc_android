@@ -144,7 +144,6 @@ public class EventDataSource extends DataSource {
     }
 
     public int updateValues(String id, ContentValues values) {
-        Log.d("EventDataSource", "updateing event with id " + id);
         return database.update(
             DatabaseValues.Event.TABLE,
             values,

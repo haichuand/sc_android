@@ -159,7 +159,7 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
         return new ActionButton(R.drawable.ic_star_border_white, 0, new OnClickListener() {
             @Override
             public void onClick(View view) {
-                alarmManager.scheduleAlarm();
+                alarmManager.scheduleAlarm(3); // schedule an alarm for every 3-hour
                 kml.getKML(getParentFragment(), RequestCodes.Activity.DUMMY_WEB,
                     new DownloadListener() {
                         @Override
