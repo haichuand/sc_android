@@ -26,6 +26,7 @@ import com.mono.MainInterface;
 import com.mono.R;
 import com.mono.RequestCodes;
 import com.mono.SuperCalyAlarmReceiver;
+import com.mono.SupercalyAlarmManager;
 import com.mono.chat.GcmMessage;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
@@ -56,6 +57,7 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
     private TextView text;
     private Button send_button;
     private Button db_test;
+    private SupercalyAlarmManager alarmManager;
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -74,6 +76,7 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
         if (context instanceof MainInterface) {
             mainInterface = (MainInterface) context;
             kml = new KML(context, mainInterface);
+            alarmManager = SupercalyAlarmManager.getInstance(context);
         }
     }
 
@@ -156,7 +159,7 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
         return new ActionButton(R.drawable.ic_star_border_white, 0, new OnClickListener() {
             @Override
             public void onClick(View view) {
-                scheduleAlarm();
+                alarmManager.scheduleAlarm();
                 kml.getKML(getParentFragment(), RequestCodes.Activity.DUMMY_WEB,
                     new DownloadListener() {
                         @Override
@@ -164,7 +167,6 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
                             if (uri != null) {
                                 //outputFile(uri.getPath());
                             }
-                            //getActivity().startService(new Intent(getActivity(), KmlDownloadingService.class));
                         }
                     }
                 );
@@ -203,32 +205,9 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
         recipients.add("c2LxofJLjHk:APA91bHhfKaGP0rfkSzGoBQIqG_kIDCkjUFigRYf0GS4z-rNDOhO_Yf0ERJDlqWSSEVBrZoxgD395YLMXuLNGQHXvX5WwIG0TkKoldbo0cEnc8S-lwOZkwUtT4SpKDeTONyRhMMJmOHc");
         GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(this.getContext());
         GcmMessage gcmMessage = GcmMessage.getInstance(this.getContext());
-        gcmMessage.sendMessage(sender_id,conversation_id,message,action,recipients,gcm);
+        gcmMessage.sendMessage(sender_id, conversation_id, message, action, recipients, gcm);
     }
 
-    // Setup a recurring alarm every half hour
-    public void scheduleAlarm() {
-        Log.d(TAG, "Scheduling an alarm");
-        // Construct an intent that will execute the AlarmReceiver
-        Intent intent = new Intent(this.getContext(), SuperCalyAlarmReceiver.class);
-        intent.setAction(SuperCalyAlarmReceiver.ACTION_ALARM_RECEIVER);
-        // Create a PendingIntent to be triggered when the alarm goes off
-        final PendingIntent pIntent = PendingIntent.getBroadcast(this.getContext(), RequestCodes.Activity.ALARM_RECEIVER,
-                intent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-        long uptimeMillis =  SystemClock.elapsedRealtime();;
-        AlarmManager alarm = (AlarmManager) this.getActivity().getSystemService(Context.ALARM_SERVICE);
-        alarm.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP, uptimeMillis,
-                AlarmManager.INTERVAL_HOUR*3, pIntent);
-    }
-
-    public void cancelAlarm() {
-        Intent intent = new Intent(this.getContext(), SuperCalyAlarmReceiver.class);
-        final PendingIntent pIntent = PendingIntent.getBroadcast(this.getContext(), RequestCodes.Activity.ALARM_RECEIVER,
-                intent, PendingIntent.FLAG_CANCEL_CURRENT);
-        AlarmManager alarm = (AlarmManager) this.getContext().getSystemService(Context.ALARM_SERVICE);
-        alarm.cancel(pIntent);
-    }
     private void testDB(View view) {
 
     }

@@ -119,6 +119,13 @@ public class Location implements Parcelable {
 
         return str;
     }
+
+    public void setAddress (String[] address) {
+        if (address != null) {
+            this.address = Arrays.copyOf(address, address.length);
+        }
+    }
+
     //for database testing purpose
     public String toString() {
         return "Location: location_id: "+this.id+", name: "+this.name + ", address: "+this.getAddress() + ", lattitude :"+ this.latitude

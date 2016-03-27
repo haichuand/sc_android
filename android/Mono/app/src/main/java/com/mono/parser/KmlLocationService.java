@@ -5,14 +5,13 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
-import android.os.ResultReceiver;
 import android.util.Log;
-
 
 import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
 import com.mono.db.dao.EventDataSource;
 import com.mono.db.dao.LocationDataSource;
+import com.mono.model.Event;
 import com.mono.model.Location;
 import com.mono.parser.KmlParser;
 import com.mono.parser.LatLngTime;
@@ -44,7 +43,6 @@ public class KmlLocationService extends IntentService{
     private LocationDataSource locationDataSource;
     private String fileName = "";
     private Context context;
-    private ResultReceiver mReceiver;
     private KmlParser parser;
     ArrayList<LatLngTime> userStays;
 
@@ -78,12 +76,23 @@ public class KmlLocationService extends IntentService{
 
         for(LatLngTime llt : userStays) {
             if(eventDataSource == null) {
-                Log.d(TAG, "null eventDataSource++++++++++++++++++++++++++++++++++++++++++");
+                Log.d(TAG, "eventDataSource is null");
+                return;
             }
-            String event_id = eventDataSource.createEvent(-1,this.TYPE,"Userstay","","Some random location",12,llt.getStartTime(), llt.getEndTime(),
-                    llt.getStartTime());
-            Log.d(TAG, "event with id: " + event_id + " created");
-            //writeLocationAndEventToDB(String.valueOf(llt.getLat()), String.valueOf(llt.getLng()), event_id);
+
+            Event userstayEvent = eventDataSource.getUserstayEventByStartTime(llt.getStartTime());
+
+            if( userstayEvent != null) {
+                if(userstayEvent.endTime != llt.getEndTime()) {
+                    eventDataSource.updateTime(userstayEvent.id, llt.getStartTime(), llt.getEndTime());
+                }
+            }
+            else {
+                String event_id = eventDataSource.createEvent(-1, this.TYPE, "Userstay", "", "random location", 12, llt.getStartTime(), llt.getEndTime(),
+                        llt.getStartTime());
+                Log.d(TAG, "event with id: " + event_id + " created");
+                writeLocationAndEventToDB(String.valueOf(llt.getLat()), String.valueOf(llt.getLng()), event_id);
+            }
         }
     }
 
@@ -110,6 +119,7 @@ public class KmlLocationService extends IntentService{
             requestResult = makeCall(url);
             return "";
         }
+
         protected void onPostExecute(String result) {
             if(requestResult != null) {
                 locationList = parseGooglePlace(requestResult);
@@ -117,15 +127,37 @@ public class KmlLocationService extends IntentService{
                 //now simply pick the first location of returned locations
                 if(!locationList.isEmpty()) {
                     Location location = locationList.get(0);
-                    ContentValues values = new ContentValues();
-                    values.put(DatabaseValues.Event.TITLE, location.name+" "+location.getAddress());
-                    values.put(DatabaseValues.Event.DESC, "dummy description about a userstay event");
-                    eventDataSource.updateValues(event_id, values);
+                    new detailedAddress().execute(location, String.valueOf(event_id));
 //                    locationDataSource.createLocationAsCandidates(location.name, location.googlePlaceId,
 //                            location.latitude,location.longitude,location.getAddress(), event_id);
                 }
+            }
+        }
 
+    }
 
+    private class detailedAddress extends AsyncTask<Object, Void, String> {
+        String requestResult;
+        Location loc = null;
+        String event_id;
+
+        protected String doInBackground(Object ... params) {
+            loc = (Location)params[0];
+            String place_id = loc.googlePlaceId;
+            event_id = (String)params[1];
+            String url = "https://maps.googleapis.com/maps/api/place/details/json?placeid=" +place_id+ "&key=" + GOOGLE_API_KEY;
+            requestResult = makeCall(url);
+            return "";
+        }
+
+        protected void onPostExecute(String result) {
+            if(requestResult != null) {
+                String[] detailedAddress = getAddressByLatLong(requestResult).split(",");
+                loc.setAddress(detailedAddress);
+                ContentValues values = new ContentValues();
+                values.put(DatabaseValues.Event.TITLE, loc.name+" "+loc.getAddress());
+                values.put(DatabaseValues.Event.DESC, "dummy description about a userstay event");
+                eventDataSource.updateValues(event_id, values);
             }
         }
 
@@ -192,5 +224,23 @@ public class KmlLocationService extends IntentService{
         }
         Log.d(TAG, "parseGooglePlace: "+ locationList.size());
         return locationList;
+    }
+
+    public static String getAddressByLatLong(String detailedAddressJson) {
+        String address =  "";
+        try {
+            JSONObject jsonObject = new JSONObject(detailedAddressJson);
+            if (jsonObject.has("result")) {
+                JSONObject resultObject = jsonObject.getJSONObject("result");
+                if (resultObject.has("formatted_address")) {
+                    address = resultObject.optString("formatted_address");
+                }
+
+            }
+        }catch (JSONException e) {
+            e.printStackTrace();
+        }
+        Log.d(TAG, "detailed address: "+ address);
+        return address;
     }
 }
