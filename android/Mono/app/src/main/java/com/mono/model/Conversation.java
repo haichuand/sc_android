@@ -8,7 +8,7 @@ import java.util.List;
 public class Conversation {
     String id;
     String name;
-    List<String> attendees;
+    List<Attendee> attendees;
     List<Message> messages;
 
     public Conversation(String id, String name) {
@@ -16,7 +16,7 @@ public class Conversation {
         this.name = name;
     }
 
-    public Conversation(String id, String name, List<String> attendees, List<Message> messages) {
+    public Conversation(String id, String name, List<Attendee> attendees, List<Message> messages) {
         this.id = id;
         this.name = name;
         this.attendees = attendees;
@@ -35,7 +35,7 @@ public class Conversation {
         this.name = name;
     }
 
-    public List<String> getAttendeesId() {
+    public List<Attendee> getAttendees() {
         return this.attendees;
     }
 

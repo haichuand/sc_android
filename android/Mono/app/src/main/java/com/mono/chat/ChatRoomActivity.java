@@ -107,7 +107,7 @@ public class ChatRoomActivity extends AppCompatActivity implements NavigationVie
         newAttendeeMap.remove(String.valueOf(myId));
         for (Map.Entry entry : newAttendeeMap.entrySet()) { //then put other attendees in the list
             attendeeItem = new HashMap<>();
-            String name = ((Attendee) entry.getValue()).name;
+            String name = ((Attendee) entry.getValue()).userName;
             attendeeItem.put("name", name);
             chatAttendeeAdapterList.add(attendeeItem);
         }
@@ -128,13 +128,13 @@ public class ChatRoomActivity extends AppCompatActivity implements NavigationVie
     }
 
     private void setTestChatAttendees() {
-        Attendee attendee = new Attendee(2L, "Jason", "jason@email.com");
+        Attendee attendee = new Attendee("2L", "Jason", "jason@email.com");
         mChatAttendeeMap.addAttendee(attendee);
-        attendee = new Attendee(4L, "Margret Johnson", "mjohnson@kmail.com");
+        attendee = new Attendee("4L", "Margret Johnson", "mjohnson@kmail.com");
         mChatAttendeeMap.addAttendee(attendee);
-        attendee = new Attendee(5L, "Kathy", "ka234@abco.org");
+        attendee = new Attendee("5L", "Kathy", "ka234@abco.org");
         mChatAttendeeMap.addAttendee(attendee);
-        attendee = new Attendee(6L, "Henry McLeland", "hmc@kdaid.com");
+        attendee = new Attendee("6L", "Henry McLeland", "hmc@kdaid.com");
         mChatAttendeeMap.addAttendee(attendee);
     }
 

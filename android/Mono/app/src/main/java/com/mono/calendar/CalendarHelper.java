@@ -82,8 +82,8 @@ public class CalendarHelper {
 
             if (cursor != null) {
                 while (cursor.moveToNext()) {
-                    Attendee attendee = new Attendee(-1);
-                    attendee.name = cursor.getString(CalendarValues.Attendee.INDEX_NAME);
+                    Attendee attendee = new Attendee("");
+                    attendee.userName = cursor.getString(CalendarValues.Attendee.INDEX_NAME);
                     attendee.email = cursor.getString(CalendarValues.Attendee.INDEX_EMAIL);
 
                     attendees.add(attendee);

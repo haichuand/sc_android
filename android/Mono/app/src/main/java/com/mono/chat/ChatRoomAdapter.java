@@ -57,7 +57,7 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatVi
         holder.timeStamp.setText(formattedTime);
         if (holder.getItemViewType() == OTHERS_MESSAGE) {
             Attendee attendee = chatAttendees.get(message.getUserId());
-            holder.senderName.setText(attendee.name);
+            holder.senderName.setText(attendee.userName);
         }
     }
 

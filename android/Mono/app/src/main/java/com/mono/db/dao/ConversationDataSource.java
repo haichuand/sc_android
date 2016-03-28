@@ -6,6 +6,7 @@ import android.database.SQLException;
 
 import com.mono.db.Database;
 import com.mono.db.DatabaseValues;
+import com.mono.model.Attendee;
 import com.mono.model.Conversation;
 import com.mono.model.Message;
 
@@ -17,6 +18,7 @@ import java.util.List;
  * Created by xuejing on 3/9/16.
  */
 public class ConversationDataSource extends DataSource{
+
     private ConversationDataSource(Database database) {
         super(database);
     }
@@ -170,12 +172,40 @@ public class ConversationDataSource extends DataSource{
 
         cursor.close();
 
-        List<String> attendeesId = getConversationAttendeesIds(conversationId);
+        List<Attendee> attendees = getConversationAttendees(conversationId);
         List<Message> messages = getConversationMessages(conversationId);
 
-        Conversation conversation = new Conversation(conversationId, conversationName, attendeesId, messages);
+        Conversation conversation = new Conversation(conversationId, conversationName, attendees, messages);
 
         return conversation;
+    }
+
+    public List<Attendee> getConversationAttendees (String conversationId) {
+        List<String> attendeesId = getConversationAttendeesIds(conversationId);
+        List<Attendee> attendees = new ArrayList<>();
+
+        for(String id: attendeesId) {
+            Cursor cursor = database.select(
+                    DatabaseValues.User.TABLE,
+                    new String[]{
+                            DatabaseValues.User.U_ID,
+                            DatabaseValues.User.USER_NAME,
+                            DatabaseValues.User.EMAIL
+                    },
+                    DatabaseValues.User.U_ID + " = ?",
+                    new String[]{
+                            String.valueOf(id)
+                    }
+            );
+
+            if(cursor.moveToNext()) {
+                Attendee attendee = new Attendee(cursor.getString(0), cursor.getString(1),cursor.getString(2));
+                attendees.add(attendee);
+            }
+            cursor.close();
+        }
+
+        return attendees;
     }
 
     private List<String> getEventAttendeesId (String eventId) {

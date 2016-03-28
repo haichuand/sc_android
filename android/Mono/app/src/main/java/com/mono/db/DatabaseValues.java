@@ -79,7 +79,6 @@ public class DatabaseValues {
         public static final String TABLE = "`user`";
 
         public static final String U_ID = "`u_id`";
-        public static final String GOOGLE_REG_ID = "`GoogleRegID`";
         public static final String MEDIA_ID = "`media_id`";
         public static final String PHONE_NUMBER = "`phone_number`";
         public static final String EMAIL = "`email`";
@@ -90,7 +89,6 @@ public class DatabaseValues {
 
         public static final String[] PROJECTION = {
                 User.U_ID,
-                User.GOOGLE_REG_ID,
                 User.MEDIA_ID,
                 User.PHONE_NUMBER,
                 User.EMAIL,
@@ -101,14 +99,13 @@ public class DatabaseValues {
         };
 
         public static final int INDEX_U_ID = 0;
-        public static final int INDEX_GOOGLE_REG_ID = 1;
-        public static final int INDEX_MEDIA_ID = 2;
-        public static final int INDEX_PHONE_NUMBER = 3;
-        public static final int INDEX_EMAIL = 4;
-        public static final int INDEX_FIRST_NAME = 5;
-        public static final int INDEX_LAST_NAME = 6;
-        public static final int INDEX_USER_NAME = 7;
-        public static final int INDEX_IS_FRIEND = 8;
+        public static final int INDEX_MEDIA_ID = 1;
+        public static final int INDEX_PHONE_NUMBER = 2;
+        public static final int INDEX_EMAIL = 3;
+        public static final int INDEX_FIRST_NAME = 4;
+        public static final int INDEX_LAST_NAME = 5;
+        public static final int INDEX_USER_NAME = 6;
+        public static final int INDEX_IS_FRIEND = 7;
 
         public static final String CREATE_TABLE;
         public static final String DROP_TABLE;
@@ -116,7 +113,6 @@ public class DatabaseValues {
         static {
             String[] parameters = {
                     U_ID + " TEXT PRIMARY KEY",
-                    GOOGLE_REG_ID + " TEXT",
                     MEDIA_ID + " TEXT",
                     PHONE_NUMBER + " TEXT",
                     EMAIL + " TEXT",

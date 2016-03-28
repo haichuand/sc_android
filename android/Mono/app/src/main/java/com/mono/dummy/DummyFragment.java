@@ -1,13 +1,10 @@
 package com.mono.dummy;
 
 import android.app.Activity;
-import android.app.AlarmManager;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
@@ -25,21 +22,17 @@ import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.mono.MainInterface;
 import com.mono.R;
 import com.mono.RequestCodes;
-import com.mono.SuperCalyAlarmReceiver;
 import com.mono.SupercalyAlarmManager;
 import com.mono.chat.GcmMessage;
 import com.mono.db.DatabaseHelper;
-import com.mono.db.DatabaseValues;
 import com.mono.db.dao.ConversationDataSource;
 import com.mono.db.dao.EventDataSource;
-import com.mono.db.dao.LocationDataSource;
+import com.mono.db.dao.AttendeeDataSource;
 import com.mono.dummy.KML.DownloadListener;
+import com.mono.model.Attendee;
 import com.mono.model.Conversation;
 import com.mono.model.Event;
-import com.mono.model.Location;
 import com.mono.model.Message;
-import com.mono.parser.KmlDownloadingService;
-import com.mono.parser.KmlLocationService;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
 
 import java.io.BufferedReader;
@@ -209,6 +202,6 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
     }
 
     private void testDB(View view) {
-
+       
     }
 }
