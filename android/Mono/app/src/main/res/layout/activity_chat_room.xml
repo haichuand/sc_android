@@ -125,7 +125,7 @@
 
 
                 <EditText
-                    android:id="@+id/messageBodyField"
+                    android:id="@+id/sendMessageText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_alignBottom="@+id/sendButton"
@@ -147,7 +147,8 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentRight="true"
                     android:layout_margin="4dp"
-                    android:text="Send" />
+                    android:text="Send"
+                    android:onClick="onSendButtonClicked"/>
             </RelativeLayout>
         </LinearLayout>
     </LinearLayout>
