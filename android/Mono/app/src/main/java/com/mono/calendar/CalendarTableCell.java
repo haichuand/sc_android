@@ -9,6 +9,7 @@ import android.util.AttributeSet;
 import android.widget.RelativeLayout;
 
 import com.mono.R;
+import com.mono.util.Colors;
 import com.mono.util.Pixels;
 
 public class CalendarTableCell extends RelativeLayout {
@@ -59,7 +60,7 @@ public class CalendarTableCell extends RelativeLayout {
         textPaint.setTextAlign(Paint.Align.CENTER);
         textPaint.setTextSize(Pixels.pxFromDp(context, TEXT_SIZE_DP));
 
-        textColor = getResources().getColor(R.color.gray_dark);
+        textColor = Colors.getColor(context, R.color.gray_dark);
 
         markerPaint = new Paint();
         markerPaint.setAntiAlias(true);
@@ -96,17 +97,17 @@ public class CalendarTableCell extends RelativeLayout {
 
     public void setSelected(boolean selected) {
         if (selected) {
-            prevColor = getResources().getColor(R.color.colorPrimary);
+            prevColor = Colors.getColor(getContext(), R.color.colorPrimary);
             prevTextColor = Color.WHITE;
             prevResId = R.drawable.calendar_day_selected;
         } else {
             if (isToday) {
-                prevColor = getResources().getColor(R.color.colorPrimary);
+                prevColor = Colors.getColor(getContext(), R.color.colorPrimary);
                 prevTextColor = prevColor;
                 prevResId = R.drawable.calendar_today;
             } else {
                 prevColor = 0;
-                prevTextColor = getResources().getColor(R.color.gray_dark);
+                prevTextColor = Colors.getColor(getContext(), R.color.gray_dark);
                 prevResId = 0;
             }
         }

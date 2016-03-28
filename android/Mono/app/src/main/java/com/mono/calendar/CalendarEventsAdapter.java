@@ -7,6 +7,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.mono.R;
+import com.mono.util.Colors;
 import com.mono.util.Pixels;
 import com.mono.util.SimpleDataSource;
 import com.mono.util.SimpleSlideView;
@@ -87,11 +88,11 @@ public class CalendarEventsAdapter extends RecyclerView.Adapter<CalendarEventsAd
         public void onBind(CalendarEventsItem holderItem) {
             SimpleSlideView tempView = (SimpleSlideView) itemView;
             tempView.clear();
-            tempView.addLeftButton(tempView.getResources().getColor(R.color.lavender),
+            tempView.addLeftButton(Colors.getColor(tempView.getContext(), R.color.lavender),
                 R.drawable.ic_chat_white);
-            tempView.addLeftButton(tempView.getResources().getColor(R.color.brown_light),
+            tempView.addLeftButton(Colors.getColor(tempView.getContext(), R.color.brown_light),
                 R.drawable.ic_star_border_white);
-            tempView.addRightButton(tempView.getResources().getColor(R.color.red),
+            tempView.addRightButton(Colors.getColor(tempView.getContext(), R.color.red),
                 R.drawable.ic_trash_white);
 
             icon.setImageResource(holderItem.iconResId);

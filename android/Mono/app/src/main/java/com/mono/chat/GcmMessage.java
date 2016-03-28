@@ -75,7 +75,7 @@ public class GcmMessage {
             }
         }.execute(null,null,null);
     }
-    
+
     private Bundle generateMessageBody (String sender_id, String conversation_id, String message, String action, List<String> recipients) {
         Bundle data = new Bundle();
         StringBuilder builder = new StringBuilder();

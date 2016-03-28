@@ -144,7 +144,6 @@ public class EventDataSource extends DataSource {
     }
 
     public int updateValues(String id, ContentValues values) {
-        Log.d("EventDataSource", "updateing event with id " + id);
         return database.update(
             DatabaseValues.Event.TABLE,
             values,
@@ -165,11 +164,11 @@ public class EventDataSource extends DataSource {
 
     public int removeEvent(String id) {
         return database.delete(
-            DatabaseValues.Event.TABLE,
-            DatabaseValues.Event.ID + " = ?",
-            new String[]{
-                String.valueOf(id)
-            }
+                DatabaseValues.Event.TABLE,
+                DatabaseValues.Event.ID + " = ?",
+                new String[]{
+                        String.valueOf(id)
+                }
         );
     }
 
@@ -355,6 +354,30 @@ public class EventDataSource extends DataSource {
         cursor.close();
 
         return result;
+    }
+
+    public Event getUserstayEventByStartTime (long startTime) {
+        Event event = null;
+        Cursor cursor = database.select(
+                DatabaseValues.Event.TABLE,
+                DatabaseValues.Event.PROJECTION,
+                DatabaseValues.Event.START_TIME + " == ? AND " +
+                        DatabaseValues.Event.TYPE + " == ?",
+                new String[]{
+                        String.valueOf(startTime),
+                        String.valueOf("userstay")
+                }
+        );
+
+
+        if (cursor.moveToNext()) {
+            event = cursorToEvent(cursor);
+        }
+
+        cursor.close();
+
+        return event;
+
     }
 
     /**

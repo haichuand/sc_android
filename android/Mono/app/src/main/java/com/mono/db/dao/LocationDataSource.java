@@ -33,12 +33,11 @@ public class LocationDataSource extends DataSource{
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
+        Log.d("LocationDataSource", " create location: " + id + "name: " + name + " address: " + address);
         return id;
     }
     public void createLocationAsCandidates (String name, String googlePlaceId, Double latitude, Double longitude, String address, long eventId) {
         String locId = createLocation(name, googlePlaceId, latitude, longitude, address);
-        Log.d("LocationDataSource", " create location: " + locId + "name: " + name + " address: " + address);
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.EventLocationCandidates.EVENT_ID, eventId);
         values.put(DatabaseValues.EventLocationCandidates.LOC_ID, locId);
@@ -90,6 +89,25 @@ public class LocationDataSource extends DataSource{
         cursor.close();
 
         return location;
+    }
+
+    public int updateValues(String id, ContentValues values) {
+        Log.d("LLocationDataSource", "updateing location with id " + id);
+        return database.update(
+                DatabaseValues.Location.TABLE,
+                values,
+                DatabaseValues.Location.LOC_ID + " = ?",
+                new String[]{
+                        String.valueOf(id)
+                }
+        );
+    }
+
+    public int updateLocationAddress(String id, String newAddress) {
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.Location.ADDRESS, newAddress);
+
+        return updateValues(id, values);
     }
 
     public int removeLocation(String id) {
