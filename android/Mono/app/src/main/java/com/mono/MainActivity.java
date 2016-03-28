@@ -259,6 +259,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                 intent.putExtra(ChatRoomActivity.EVENT_START_TIME, "3:00 PM");
                 intent.putExtra(ChatRoomActivity.EVENT_END_TIME, "4:30 PM");
                 intent.putExtra(ChatRoomActivity.MY_ID, "2");
+                intent.putExtra(ChatRoomActivity.CONVERSATION_ID, "12345");
                 startActivity(intent);
         }
 
