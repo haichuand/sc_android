@@ -16,6 +16,7 @@ import com.mono.MainActivity;
 import java.io.File;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 
 /**
  * Created by xuejing on 3/13/16.
@@ -24,6 +25,22 @@ public class KmlDownloadingService extends IntentService {
 
     private static final String TAG = "Kml Downloading Service";
     private long downloadId;
+    static HashMap<Integer, Integer> endOfMonthMap;
+    static {
+        endOfMonthMap = new HashMap<>();
+        endOfMonthMap.put(0,31);
+        endOfMonthMap.put(1,28);
+        endOfMonthMap.put(2,31);
+        endOfMonthMap.put(3,30);
+        endOfMonthMap.put(4,31);
+        endOfMonthMap.put(5,30);
+        endOfMonthMap.put(6,31);
+        endOfMonthMap.put(7,31);
+        endOfMonthMap.put(8,30);
+        endOfMonthMap.put(9,31);
+        endOfMonthMap.put(10,30);
+        endOfMonthMap.put(11,31);
+    }
 
     public static final String KML_FILENAME = "LocationHistory.kml";
 
@@ -76,10 +93,28 @@ public class KmlDownloadingService extends IntentService {
 
     private String getPbValue() {
         Calendar cal = getDate();
-        String year = Integer.toString(cal.get(Calendar.YEAR));
-        String month =Integer.toString(cal.get(Calendar.MONTH));
-        String date = Integer.toString(cal.get(Calendar.DATE));
-        return "!1m8!1m3!1i"+ year + "!2i" +month + "!3i" + date + "!2m3!1i" + year + "!2i" +month + "!3i" + date;
+        int year = cal.get(Calendar.YEAR);
+        int month = cal.get(Calendar.MONTH);
+        int date = cal.get(Calendar.DATE);
+
+        int oneYearBefore = year;
+        int oneMonthBefore = month;
+        int oneDayBefore = date;
+
+        if(oneDayBefore- 1 == 0) {
+            if(oneMonthBefore - 1 < 0) {
+                oneYearBefore--;
+                oneMonthBefore = 11;
+            }
+            else {
+                oneMonthBefore--;
+            }
+            oneDayBefore = endOfMonthMap.get(oneMonthBefore);
+        }
+        else
+            oneDayBefore--;
+
+        return "!1m8!1m3!1i"+ oneYearBefore + "!2i" +oneMonthBefore + "!3i" + oneDayBefore + "!2m3!1i" + year + "!2i" +month + "!3i" + date;
     }
 
     private Calendar getDate() {

@@ -202,6 +202,6 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
     }
 
     private void testDB(View view) {
-       
     }
+
 }
