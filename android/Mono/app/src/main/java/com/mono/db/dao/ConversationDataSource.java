@@ -46,6 +46,10 @@ public class ConversationDataSource extends DataSource{
 
         return id;
     }
+    //TODO: create a conversation initialized by other user
+    public String createConversationWithConversation (Conversation conversation) {
+        return conversation.getId();
+    }
 
     public String createConversationWithSelectedAttendees (String name, String eventID, List<String> attendeesID) {
         String conversationId = createConversationFromEvent(name, eventID);

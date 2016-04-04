@@ -380,6 +380,30 @@ public class EventDataSource extends DataSource {
 
     }
 
+    public Event getUserstayEventByEndTime (long endTime) {
+        Event event = null;
+        Cursor cursor = database.select(
+                DatabaseValues.Event.TABLE,
+                DatabaseValues.Event.PROJECTION,
+                DatabaseValues.Event.END_TIME + " == ? AND " +
+                        DatabaseValues.Event.TYPE + " == ?",
+                new String[]{
+                        String.valueOf(endTime),
+                        String.valueOf("userstay")
+                }
+        );
+
+
+        if (cursor.moveToNext()) {
+            event = cursorToEvent(cursor);
+        }
+
+        cursor.close();
+
+        return event;
+
+    }
+
     /**
      * For PROJECTION only.
      */

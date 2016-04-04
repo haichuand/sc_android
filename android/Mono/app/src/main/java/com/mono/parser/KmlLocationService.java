@@ -58,7 +58,6 @@ public class KmlLocationService extends IntentService{
     public void onHandleIntent (Intent intent) {
         if(intent != null) {
             fileName = intent.getStringExtra("fileName");
-            Log.d(TAG, "onhandleIntent: starting service with fileName retrieve from intent: " + fileName);
             parser = new KmlParser();
             getAndSaveNewUserStayEvents(fileName);
         }
@@ -79,15 +78,21 @@ public class KmlLocationService extends IntentService{
                 return;
             }
 
-            Event userstayEvent = eventDataSource.getUserstayEventByStartTime(llt.getStartTime());
+            Event userstayEventByStart = eventDataSource.getUserstayEventByStartTime(llt.getStartTime());
+            Event userstayEventByEnd = eventDataSource.getUserstayEventByEndTime(llt.getEndTime());
 
-            if( userstayEvent != null) {
-                if(userstayEvent.endTime != llt.getEndTime()) {
-                    eventDataSource.updateTime(userstayEvent.id, llt.getStartTime(), llt.getEndTime());
+            if(userstayEventByEnd != null) {
+                if(userstayEventByEnd.startTime != llt.getStartTime()) {
+                    continue;
+                }
+            }
+            if( userstayEventByStart != null) {
+                if(userstayEventByStart.endTime != llt.getEndTime()) {
+                    eventDataSource.updateTime(userstayEventByStart.id, llt.getStartTime(), llt.getEndTime());
                 }
             }
             else {
-                writeLocationAndEventToDB(String.valueOf(llt.getLat()), String.valueOf(llt.getLng()), llt.getStartTime(), llt.getEndTime());
+                writeLocationAndEventToDB(llt);
             }
         }
     }
@@ -95,8 +100,8 @@ public class KmlLocationService extends IntentService{
     /**
      * write corresponding location and event(TYPE: userstay) from given latlong and write them into database tables
      */
-    private boolean writeLocationAndEventToDB(String latitude, String longitude, Long startTime, Long endTime) {
-        new googleplaces().execute(latitude, longitude, startTime, endTime);
+    private boolean writeLocationAndEventToDB(LatLngTime llt) {
+        new detailedAddress().execute(llt);
         return true;
     }
 
@@ -104,45 +109,55 @@ public class KmlLocationService extends IntentService{
         String requestResult;
 
         ArrayList<Location> locationList;
+        LatLngTime llt;
+        String latitude;
+        String longitude;
+        String address;
+        String place_id;
         String event_id;
         Long startTime;
         Long endTime;
 
         protected String doInBackground(Object ... params) {
-            String latitude = (String)params[0];
-            String longitude = (String)params[1];
-            startTime = (Long)params[2];
-            endTime = (Long)params[3];
+            llt = (LatLngTime) params[0];
+            latitude = String.valueOf(llt.getLat());
+            longitude = String.valueOf(llt.getLng());
+            startTime = llt.getStartTime();
+            endTime = llt.getEndTime();
+            address = (String)params[1];
+            place_id = (String)params[2];
+            Log.d(TAG, "google place LatLong: " + latitude + ", " +longitude);
             String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + latitude + "," + longitude +
-                    "&radius=10&key=" + GOOGLE_API_KEY;
+                    "&radius=80&key=" + GOOGLE_API_KEY;
             requestResult = makeCall(url);
             return "";
         }
 
         protected void onPostExecute(String result) {
             if(requestResult != null) {
-                locationList = parseGooglePlace(requestResult);
+                locationList = parseGooglePlace(requestResult, address, place_id, llt);
+                //TODO: remove later, for testing purpose only:
+                String placeCandidates = "Place candidates: ";
+                String locationId = "";
+                int counter = 1;
                 //todo: pick the location if the user had been there
                 //now simply pick the first location of returned locations
                 if(!locationList.isEmpty()) {
-                    Location location = locationList.get(0);
-                    String locationId = location.id;
-                    Location newLoc = null;
-                    //check if the location exists in the database
-                    if(locationDataSource.getLocationByGooglePlaceId(location.googlePlaceId) == null) {
-                        locationId = locationDataSource.createLocation(location.name, location.googlePlaceId, location.latitude, location.longitude, location.getAddress());
-                        newLoc = new Location(locationId);
-                        newLoc.name = location.name;
-                        newLoc.latitude = location.latitude;
-                        newLoc.longitude = location.longitude;
-                        newLoc.googlePlaceId = location.googlePlaceId;
-                        newLoc.address = location.address;
+                    for (Location location : locationList) {
+                        locationId = location.id;
+                        //check if the location exists in the database
+                        if (locationDataSource.getLocationByGooglePlaceId(location.googlePlaceId) == null) {
+                            locationId = locationDataSource.createLocation(location.name, location.googlePlaceId, location.latitude, location.longitude, location.getAddress());
+                            location.id = locationId;
+                        }
+                        placeCandidates += "Place " + counter + ". " + location.name + "\n";
+                        counter++;
                     }
-
-                    event_id = eventDataSource.createEvent(-1, KmlLocationService.TYPE, "Userstay", "",locationId, 12, startTime, endTime,
+                    Location location = locationList.get(0);
+                    event_id = eventDataSource.createEvent(-1, KmlLocationService.TYPE, "Userstay " + location.name, placeCandidates, locationId, 12, startTime, endTime,
                             startTime);
+
                     Log.d(TAG, "event with id: " + event_id + " created");
-                    new detailedAddress().execute(newLoc, String.valueOf(event_id));
                 }
             }
         }
@@ -151,31 +166,46 @@ public class KmlLocationService extends IntentService{
 
     private class detailedAddress extends AsyncTask<Object, Void, String> {
         String requestResult;
-        Location loc = null;
-        String event_id;
+        LatLngTime llt = null;
 
         protected String doInBackground(Object ... params) {
-            loc = (Location)params[0];
-            String place_id = loc.googlePlaceId;
-            event_id = (String)params[1];
-            String url = "https://maps.googleapis.com/maps/api/place/details/json?placeid=" +place_id+ "&key=" + GOOGLE_API_KEY;
+            llt = (LatLngTime) params[0];
+            String latitude = String.valueOf(llt.getLat());
+            String longitude = String.valueOf(llt.getLng());
+            Log.d(TAG, "LatLong in the detailedAddress: "+ latitude + ", " +longitude);
+            String url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + latitude+ ","+ longitude +"&location_type=ROOFTOP&result_type=street_address"+ "&key=" + GOOGLE_API_KEY;
             requestResult = makeCall(url);
             return "";
         }
 
         protected void onPostExecute(String result) {
             if(requestResult != null) {
-                String[] detailedAddress = getAddressByLatLong(requestResult).split(",");
-                loc.setAddress(detailedAddress);
-                //updating the address of the location
-                locationDataSource.updateLocationAddress(loc.id, loc.getAddress());
+                String[] detailResult = getAddressByLatLong(requestResult);
 
-                //todo: the description is temporarily updating as address for testing purpose
-                ContentValues values = new ContentValues();
-                values.put(DatabaseValues.Event.LOCATION, loc.id);
-                values.put(DatabaseValues.Event.DESC, loc.getAddress());
-                eventDataSource.updateValues(event_id, values);
+                if(detailResult != null) {
+                    new googleplaces().execute(llt, detailResult[0], detailResult[1]);
+                }
 
+            }
+        }
+
+    }
+
+    private class PlaceDetailByPlaceId extends AsyncTask<String, Void, String> {
+        String requestResult;
+        String place_id;
+
+        protected String doInBackground(String ... params) {
+            place_id = params[0];
+            Log.d(TAG, "Place_id get from detailed address: "+ place_id);
+            String url = "https://maps.googleapis.com/maps/api/place/details/json?placeid=" + place_id +"&key=" + GOOGLE_API_KEY;
+            requestResult = makeCall(url);
+            return "";
+        }
+
+        protected void onPostExecute(String result) {
+            if(requestResult != null) {
+                String detailResult = getPlaceDetail(requestResult);
             }
         }
 
@@ -216,8 +246,11 @@ public class KmlLocationService extends IntentService{
      * @param response
      * @return List of Places return by google place web service
      */
-    private static ArrayList<Location> parseGooglePlace(final String response) {
+    private static ArrayList<Location> parseGooglePlace(final String response, final String realAddress, final String placeId, final LatLngTime llt) {
         ArrayList<Location> locationList = new ArrayList<Location>();
+        //add the real address get from the coordinates first
+        locationList.add(new Location(realAddress, placeId, llt.getLat(), llt.getLng(), realAddress.split(",")));
+
         try {
             JSONObject jsonObject = new JSONObject(response);
             if (jsonObject.has("results")) {
@@ -226,11 +259,12 @@ public class KmlLocationService extends IntentService{
                     Location location = null;
                     if (jsonArray.getJSONObject(i).has("name")) {
                         String name = jsonArray.getJSONObject(i).optString("name");
-                        String[] address = jsonArray.getJSONObject(i).optString("vicinity").split(",");
                         String googlePlaceId = jsonArray.getJSONObject(i).optString("place_id");
+                        String[] placeAddress = jsonArray.getJSONObject(i).optString("vicinity").split(",");
                         Double latitude = jsonArray.getJSONObject(i).getJSONObject("geometry").getJSONObject("location").optDouble("lat");
                         Double longitude = jsonArray.getJSONObject(i).getJSONObject("geometry").getJSONObject("location").optDouble("lng");
-                        location = new Location(name, googlePlaceId, latitude, longitude, address);
+                        location = new Location(name, googlePlaceId, latitude, longitude, placeAddress);
+                        Log.d(TAG, location.toString());
                     }
                     if(location != null)
                         locationList.add(location);
@@ -240,25 +274,45 @@ public class KmlLocationService extends IntentService{
         }catch (JSONException e) {
             e.printStackTrace();
         }
-        Log.d(TAG, "parseGooglePlace: "+ locationList.size());
         return locationList;
     }
 
-    public static String getAddressByLatLong(String detailedAddressJson) {
-        String address =  "";
+    public static String[] getAddressByLatLong(String detailedAddressJson) {
+        String addressInfo[] = {null, null} ;
         try {
             JSONObject jsonObject = new JSONObject(detailedAddressJson);
-            if (jsonObject.has("result")) {
-                JSONObject resultObject = jsonObject.getJSONObject("result");
-                if (resultObject.has("formatted_address")) {
-                    address = resultObject.optString("formatted_address");
+            if (jsonObject.has("results")) {
+                JSONArray jsonArray = jsonObject.getJSONArray("results");
+                if (jsonArray.getJSONObject(0).has("formatted_address")) {
+                    addressInfo[0] = jsonArray.getJSONObject(0).optString("formatted_address");
+                }
+                if (jsonArray.getJSONObject(0).has("place_id")) {
+                    addressInfo[1] = jsonArray.getJSONObject(0).optString("place_id");
                 }
 
             }
         }catch (JSONException e) {
             e.printStackTrace();
         }
-        Log.d(TAG, "detailed address: "+ address);
-        return address;
+        Log.d(TAG, "detailed address: "+ addressInfo[0]);
+        return addressInfo;
+    }
+
+    public static String getPlaceDetail(String detailedAddressJson) {
+        String placeName = null;
+        try {
+            JSONObject jsonObject = new JSONObject(detailedAddressJson);
+            if (jsonObject.has("result")) {
+                JSONObject jsonResult= jsonObject.optJSONObject("result");
+                if (jsonResult.has("name")) {
+                    placeName = jsonResult.optString("name");
+                }
+
+            }
+        }catch (JSONException e) {
+            e.printStackTrace();
+        }
+        Log.d(TAG, "place name of the real address: "+ placeName);
+        return placeName;
     }
 }

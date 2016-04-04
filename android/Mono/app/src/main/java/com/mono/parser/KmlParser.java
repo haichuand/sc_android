@@ -41,7 +41,7 @@ public class KmlParser {
 
         if (Environment.MEDIA_MOUNTED.equals(state)){
             String storage = Environment.getExternalStorageDirectory().getPath() + "/";
-            Log.d(TAG, "inside kmlParser, parse(): file: "+ storage+MainActivity.APP_DIR+fileName);
+            Log.d(TAG, "parse(): file: "+ storage+MainActivity.APP_DIR+fileName);
             File file = new File(storage + MainActivity.APP_DIR + fileName);
             ArrayList<LatLngTime> result = new ArrayList<>();
             try {
@@ -127,7 +127,7 @@ public class KmlParser {
             LatLngTime temp = inputList.get(i);
             double tempLat = temp.getLat();
             double tempLng = temp.getLng();
-            if(Math.abs(tempLat-stay.getLat()) < 0.001 && Math.abs(tempLng-stay.getLng()) < 0.001) {
+            if(Math.abs(tempLat-stay.getLat()) < 0.0012 && Math.abs(tempLng-stay.getLng()) < 0.0015) {
                 //System.out.println("start: "+stay.toString() + " temp: "+temp.toString());
                 stay.setEndTime(temp.getEndTime());
             }

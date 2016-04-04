@@ -9,7 +9,7 @@ import java.util.Arrays;
 
 public class Location implements Parcelable {
 
-    public final String id;
+    public String id;
     public String name;
     public Double latitude;
     public Double longitude;

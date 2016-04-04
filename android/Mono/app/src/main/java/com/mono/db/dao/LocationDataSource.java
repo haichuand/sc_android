@@ -33,7 +33,7 @@ public class LocationDataSource extends DataSource{
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        Log.d("LocationDataSource", " create location: " + id + "name: " + name + " address: " + address);
+        Log.d("LocationDataSource", " create location: " + id + " name: " + name + " address: " + address);
         return id;
     }
     public void createLocationAsCandidates (String name, String googlePlaceId, Double latitude, Double longitude, String address, long eventId) {
