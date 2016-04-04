@@ -31,6 +31,7 @@ import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.mono.calendar.CalendarHelper;
 import com.mono.chat.ChatRoomActivity;
+import com.mono.chat.DemoChat;
 import com.mono.chat.RegistrationIntentService;
 import com.mono.details.EventDetailsActivity;
 import com.mono.model.Event;
@@ -253,13 +254,14 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                 showSettings();
                 break;
             case R.id.nav_chat:
+                String[] testChatData = DemoChat.createTestData(this);
                 Intent intent = new Intent(this, ChatRoomActivity.class);
                 intent.putExtra(ChatRoomActivity.EVENT_NAME, "Birthday Party");
                 intent.putExtra(ChatRoomActivity.EVENT_DATE, "04/25/16");
                 intent.putExtra(ChatRoomActivity.EVENT_START_TIME, "3:00 PM");
                 intent.putExtra(ChatRoomActivity.EVENT_END_TIME, "4:30 PM");
-                intent.putExtra(ChatRoomActivity.MY_ID, "2");
-                intent.putExtra(ChatRoomActivity.CONVERSATION_ID, "12345");
+                intent.putExtra(ChatRoomActivity.CONVERSATION_ID, testChatData[0]);
+                intent.putExtra(ChatRoomActivity.MY_ID, testChatData[1]);
                 startActivity(intent);
         }
 
