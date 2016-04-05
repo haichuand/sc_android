@@ -3,22 +3,31 @@ package com.mono.calendar;
 import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.ViewPager;
+import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import com.mono.EventManager;
 import com.mono.EventManager.EventAction;
 import com.mono.EventManager.EventBroadcastListener;
+import com.mono.MainFragment;
 import com.mono.MainInterface;
 import com.mono.R;
 import com.mono.calendar.CalendarEventsFragment.CalendarEventsListener;
@@ -26,13 +35,17 @@ import com.mono.calendar.CalendarView.CalendarListener;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.EventDataSource;
 import com.mono.model.Event;
+import com.mono.settings.Settings;
 import com.mono.util.OnBackPressedListener;
+import com.mono.util.Pixels;
+import com.mono.util.SimpleTabLayout.Scrollable;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
 
 import java.util.Calendar;
+import java.util.TimeZone;
 
 public class CalendarFragment extends Fragment implements OnBackPressedListener, CalendarListener,
-        CalendarEventsListener, EventBroadcastListener, TabPagerCallback {
+        CalendarEventsListener, EventBroadcastListener, TabPagerCallback, Scrollable {
 
     private static final String[] ACTIONS = {"Move", "Copy", "Cancel"};
     private static final int ACTION_MOVE = 0;
@@ -73,6 +86,8 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         calendarView.setListener(this);
         calendarView.setOnCellDropActions(ACTIONS);
 
+        checkSettings();
+
         String tag = getString(R.string.fragment_calendar_events);
 
         FragmentManager manager = getChildFragmentManager();
@@ -88,7 +103,9 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
     @Override
     public void onResume() {
         super.onResume();
+
         calendarView.onResume();
+        checkSettings();
     }
 
     @Override
@@ -116,10 +133,16 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
                 if (date != null) {
                     Calendar calendar = Calendar.getInstance();
                     calendar.set(date.year, date.month, date.day);
+                    calendar.set(Calendar.MINUTE, 0);
+                    calendar.set(Calendar.SECOND, 0);
+                    calendar.set(Calendar.MILLISECOND, 0);
+
                     event.startTime = calendar.getTimeInMillis();
                 }
 
                 mainInterface.showEventDetails(event);
+                return true;
+            case R.id.action_search:
                 return true;
             case R.id.action_today:
                 calendarView.today();
@@ -136,6 +159,12 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         }
 
         return false;
+    }
+
+    @Override
+    public void onDayChange(int day) {
+        Drawable drawable = createCalendarIcon(getContext(), String.valueOf(day));
+        mainInterface.setDockLayoutDrawable(MainFragment.TAB_CALENDAR, drawable);
     }
 
     @Override
@@ -156,6 +185,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
 
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(event.startTime);
+        calendar.setTimeZone(TimeZone.getTimeZone(event.timeZone));
 
         int eventYear = calendar.get(Calendar.YEAR);
         int eventMonth = calendar.get(Calendar.MONTH);
@@ -167,31 +197,40 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
 
         calendar.set(year, month, day);
         long startTime = calendar.getTimeInMillis();
-
-        calendar.setTimeInMillis(event.endTime);
-        calendar.set(year, month, day);
-        long endTime = calendar.getTimeInMillis();
+        long endTime = startTime + event.getDuration();
 
         switch (action) {
             case ACTION_MOVE:
-                eventManager.updateEventTime(EventAction.ACTOR_SELF, id, startTime, endTime,
+                event.calendarId = System.currentTimeMillis();
+                event.startTime = startTime;
+                event.endTime = endTime;
+
+                eventManager.updateEvent(EventAction.ACTOR_SELF, id, event,
                     new EventManager.EventActionCallback() {
                         @Override
                         public void onEventAction(EventAction data) {
                             if (data.getStatus() == EventAction.STATUS_OK) {
                                 calendarView.onCellClick(year, month, day);
-                                Toast.makeText(getContext(), "Moved Event",
-                                    Toast.LENGTH_SHORT).show();
+                                mainInterface.showSnackBar(R.string.event_action_move,
+                                    R.string.undo, 0, new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View view) {
+
+                                        }
+                                    }
+                                );
                             }
                         }
                     }
                 );
                 break;
             case ACTION_COPY:
-                event.externalId = System.currentTimeMillis();
+                long internalId = System.currentTimeMillis();
 
                 eventManager.createEvent(
                     EventAction.ACTOR_SELF,
+                    event.calendarId,
+                    internalId,
                     event.externalId,
                     Event.TYPE_CALENDAR,
                     event.title,
@@ -200,17 +239,35 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
                     event.color,
                     startTime,
                     endTime,
+                    event.timeZone,
+                    event.endTimeZone,
+                    event.allDay,
                     new EventManager.EventActionCallback() {
                         @Override
                         public void onEventAction(EventAction data) {
                             if (data.getStatus() == EventAction.STATUS_OK) {
                                 calendarView.onCellClick(year, month, day);
-                                Toast.makeText(getContext(), "Copied Event",
-                                    Toast.LENGTH_SHORT).show();
+                                mainInterface.showSnackBar(R.string.event_action_copy,
+                                    R.string.undo, 0, new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View view) {
+
+                                        }
+                                    }
+                                );
                             }
                         }
                     }
                 );
+                break;
+        }
+    }
+
+    @Override
+    public void onStateChange(int state) {
+        switch (state) {
+            case CalendarEventsFragment.STATE_NONE:
+//                calendarView.removeCurrentSelected();
                 break;
         }
     }
@@ -243,57 +300,95 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
     }
 
     @Override
-    public void onDeleteClick(String id) {
-        eventManager.removeEvent(EventAction.ACTOR_SELF, id,
-            new EventManager.EventActionCallback() {
-                @Override
-                public void onEventAction(EventAction data) {
-                    if (data.getStatus() == EventAction.STATUS_OK) {
-                        Toast.makeText(getContext(), "Deleted Event", Toast.LENGTH_SHORT).show();
-                    }
+    public void onDeleteClick(final String id) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext(),
+            R.style.AppTheme_Dialog_Alert);
+        builder.setMessage(R.string.confirm_event_delete);
+
+        DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                switch (which) {
+                    case DialogInterface.BUTTON_POSITIVE:
+                        eventManager.removeEvent(EventAction.ACTOR_SELF, id,
+                            new EventManager.EventActionCallback() {
+                                @Override
+                                public void onEventAction(EventAction data) {
+                                    if (data.getStatus() == EventAction.STATUS_OK) {
+                                        mainInterface.showSnackBar(R.string.event_action_delete,
+                                            R.string.undo, 0, new View.OnClickListener() {
+                                                @Override
+                                                public void onClick(View view) {
+
+                                                }
+                                            }
+                                        );
+                                    }
+                                }
+                            }
+                        );
+                        break;
+                    case DialogInterface.BUTTON_NEGATIVE:
+                        break;
                 }
+
+                dialog.dismiss();
             }
-        );
+        };
+
+        builder.setPositiveButton(R.string.yes, listener);
+        builder.setNegativeButton(R.string.no, listener);
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     @Override
-    public void onEventBroadcast(EventAction data) {
+    public void onEventBroadcast(final EventAction data) {
         if (data.getStatus() != EventAction.STATUS_OK) {
             return;
         }
 
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTimeInMillis(data.getEvent().startTime);
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Event event = data.getEvent();
 
-        int year = calendar.get(Calendar.YEAR);
-        int month = calendar.get(Calendar.MONTH);
-        int day = calendar.get(Calendar.DAY_OF_MONTH);
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTimeInMillis(event.startTime);
+                calendar.setTimeZone(TimeZone.getTimeZone(event.timeZone));
 
-        calendarView.refresh(year, month);
+                int year = calendar.get(Calendar.YEAR);
+                int month = calendar.get(Calendar.MONTH);
+                int day = calendar.get(Calendar.DAY_OF_MONTH);
 
-        CalendarView.Date date = calendarView.getCurrentSelected();
-        if (date != null && year == date.year && month == date.month && day == date.day) {
-            switch (data.getAction()) {
-                case EventAction.ACTION_CREATE:
-                    if (eventsFragment.isShowing()) {
-                        eventsFragment.insert(0, data.getEvent(), true);
-                    } else {
-                        showEventsFragment(year, month, day);
+                calendarView.refresh(year, month);
+
+                CalendarView.Date date = calendarView.getCurrentSelected();
+                if (date != null && year == date.year && month == date.month && day == date.day) {
+                    switch (data.getAction()) {
+                        case EventAction.ACTION_CREATE:
+                            if (eventsFragment.getState() != CalendarEventsFragment.STATE_NONE) {
+                                eventsFragment.insert(0, event, true);
+                            } else {
+                                showEventsFragment(year, month, day);
+                            }
+                            break;
+                        case EventAction.ACTION_UPDATE:
+                            eventsFragment.refresh(event, true);
+                            break;
+                        case EventAction.ACTION_REMOVE:
+                            eventsFragment.remove(event, true);
+                            break;
                     }
-                    break;
-                case EventAction.ACTION_UPDATE:
-                    eventsFragment.refresh(data.getEvent(), true);
-                    break;
-                case EventAction.ACTION_REMOVE:
-                    eventsFragment.remove(data.getEvent(), true);
-                    break;
+                }
             }
-        }
+        });
     }
 
     @Override
-    public void onPageSelected() {
-
+    public int getPageTitle() {
+        return 0;
     }
 
     @Override
@@ -304,6 +399,16 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
     @Override
     public ActionButton getActionButton() {
         return null;
+    }
+
+    @Override
+    public void onPageSelected() {
+
+    }
+
+    @Override
+    public void scrollToTop() {
+        calendarView.today();
     }
 
     public void showEventsFragment(int year, int month, int day) {
@@ -325,9 +430,42 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
             }
 
             int height = calendarView.getPageHeight(year, month);
-            eventsFragment.show(view.getMeasuredHeight() - height, true);
+            eventsFragment.setHalfHeight(view.getMeasuredHeight() - height);
+            eventsFragment.show(CalendarEventsFragment.STATE_HALF, true, true);
         } else {
             eventsFragment.hide(true);
         }
+    }
+
+    public void checkSettings() {
+        Settings settings = Settings.getInstance(getContext());
+        calendarView.setFirstDayOfWeek(settings.getCalendarWeekStart());
+        calendarView.showWeekNumbers(settings.getCalendarWeekNumber());
+    }
+
+    public static Drawable createCalendarIcon(Context context, String value) {
+        Drawable background = context.getDrawable(R.drawable.ic_calendar_white);
+        if (background == null) {
+            return null;
+        }
+
+        int width = Pixels.pxFromDp(context, 24);
+        int height = Pixels.pxFromDp(context, 24);
+
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+
+        background.draw(canvas);
+
+        Paint paint = new Paint();
+        paint.setAntiAlias(true);
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setTextSize(20f);
+        paint.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+
+        canvas.drawText(value, width / 2 * 0.98f, height / 2 * 1.4f, paint);
+
+        Drawable text = new BitmapDrawable(context.getResources(), bitmap);
+        return new LayerDrawable(new Drawable[]{background, text});
     }
 }

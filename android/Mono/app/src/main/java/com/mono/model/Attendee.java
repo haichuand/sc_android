@@ -14,6 +14,14 @@ public class Attendee implements Parcelable {
     public String userName;
     public boolean isFriend;
 
+    public Attendee() {
+        id = null;
+    }
+
+    public Attendee(long id) {
+        this.id = String.valueOf(id);
+    }
+
     public Attendee(String id) {
         this.id = id;
     }

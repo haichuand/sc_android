@@ -1,29 +1,39 @@
 package com.mono.events;
 
 import android.support.v7.widget.RecyclerView;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.mono.R;
+import com.mono.util.Colors;
+import com.mono.util.Pixels;
 import com.mono.util.SimpleDataSource;
+import com.mono.util.SimpleSlideView;
+import com.mono.util.SimpleSlideView.SimpleSlideViewListener;
 
 public class ListAdapter extends RecyclerView.Adapter<ListAdapter.Holder> {
 
-    private SimpleDataSource<ListItem> dataSource;
-    private ListClickListener listener;
+    public static final int BUTTON_CHAT_INDEX = 0;
+    public static final int BUTTON_FAVORITE_INDEX = 1;
+    public static final int BUTTON_DELETE_INDEX = 0;
 
-    public ListAdapter(ListClickListener listener) {
+    private static final int ITEM_HEIGHT_DP = 80;
+
+    private SimpleDataSource<ListItem> dataSource;
+    private SimpleSlideViewListener listener;
+
+    public ListAdapter(SimpleSlideViewListener listener) {
         this.listener = listener;
     }
 
     @Override
     public Holder onCreateViewHolder(ViewGroup parent, int viewType) {
-        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-        View view = inflater.inflate(R.layout.list_item, parent, false);
+        int height = Pixels.pxFromDp(parent.getContext(), ITEM_HEIGHT_DP);
+
+        SimpleSlideView view = new SimpleSlideView(parent.getContext());
+        view.setContent(R.layout.list_item, height, listener);
 
         return new Holder(view);
     }
@@ -57,36 +67,36 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.Holder> {
 
     public class Holder extends RecyclerView.ViewHolder {
 
-        public ImageView circle;
+        public ImageView icon;
         public TextView title;
-        public TextView date;
         public TextView description;
+        public TextView date;
 
         public Holder(View itemView) {
             super(itemView);
 
-            circle = (ImageView) itemView.findViewById(R.id.circle);
-
+            icon = (ImageView) itemView.findViewById(R.id.icon);
             title = (TextView) itemView.findViewById(R.id.title);
-            date = (TextView) itemView.findViewById(R.id.date);
-
             description = (TextView) itemView.findViewById(R.id.description);
+            date = (TextView) itemView.findViewById(R.id.date);
         }
 
         public void onBind(ListItem holderItem) {
-            itemView.setOnClickListener(new OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    listener.onClick(itemView);
-                }
-            });
+            SimpleSlideView tempView = (SimpleSlideView) itemView;
+            tempView.clear();
+            tempView.addLeftButton(Colors.getColor(tempView.getContext(), R.color.lavender),
+                R.drawable.ic_chat_white);
+            tempView.addLeftButton(Colors.getColor(tempView.getContext(), R.color.brown_light),
+                R.drawable.ic_star_border_white);
+            tempView.addRightButton(Colors.getColor(tempView.getContext(), R.color.red),
+                R.drawable.ic_trash_white);
 
-            circle.setColorFilter(holderItem.color | 0xFF000000);
+            icon.setImageResource(holderItem.iconResId);
+            icon.setColorFilter(holderItem.iconColor | 0xFF000000);
 
             title.setText(holderItem.title);
-            date.setText(holderItem.date);
-
             description.setText(holderItem.description);
+            date.setText(holderItem.dateTime);
         }
 
         public void onViewRecycled() {
@@ -100,18 +110,14 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.Holder> {
 
         public String id;
         public int type;
-        public int color;
+        public int iconResId;
+        public int iconColor;
         public String title;
-        public String date;
         public String description;
+        public String dateTime;
 
         public ListItem(String id) {
             this.id = id;
         }
-    }
-
-    public interface ListClickListener {
-
-        void onClick(View view);
     }
 }

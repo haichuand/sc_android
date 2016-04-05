@@ -1,21 +1,21 @@
 package com.mono.events;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
 import android.support.v4.view.ViewPager.OnPageChangeListener;
+import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 
 import com.mono.EventManager;
 import com.mono.EventManager.EventAction;
-import com.mono.EventManager.EventActionCallback;
 import com.mono.EventManager.EventBroadcastListener;
 import com.mono.MainInterface;
 import com.mono.R;
@@ -81,7 +81,6 @@ public class EventsFragment extends Fragment implements OnPageChangeListener, Li
         viewPager = (SimpleViewPager) view.findViewById(R.id.container);
         viewPager.setAdapter(tabPagerAdapter);
         viewPager.addOnPageChangeListener(this);
-        viewPager.setSwipeEnabled(true);
 
         return view;
     }
@@ -95,11 +94,27 @@ public class EventsFragment extends Fragment implements OnPageChangeListener, Li
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         menu.clear();
+        inflater.inflate(R.menu.dashboard, menu);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        return false;
+        int id = item.getItemId();
+
+        switch (id) {
+            case R.id.action_add:
+                Event event = new Event();
+                event.type = Event.TYPE_CALENDAR;
+
+                mainInterface.showEventDetails(event);
+                return true;
+            case R.id.action_search:
+                return true;
+            case R.id.action_today:
+                return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -118,29 +133,84 @@ public class EventsFragment extends Fragment implements OnPageChangeListener, Li
     }
 
     @Override
-    public void onClick(int position, String id) {
+    public void onClick(int position, String id, View view) {
+        Event event = eventManager.getEvent(id, false);
+        mainInterface.showEventDetails(event);
+    }
+
+    @Override
+    public void onLongClick(int position, String id, View view) {
+
+    }
+
+    @Override
+    public void onChatClick(int position, String id) {
+        mainInterface.showChat(id);
+    }
+
+    @Override
+    public void onFavoriteClick(int position, String id) {
+        ListFragment fragment = (ListFragment) tabPagerAdapter.getItem(TAB_FAVORITE);
+
         switch (position) {
             case TAB_ALL:
-                ListFragment fragment = (ListFragment) tabPagerAdapter.getItem(TAB_FAVORITE);
                 fragment.insert(0, eventManager.getEvent(id, false), true);
 
                 mainInterface.setTabLayoutBadge(TAB_FAVORITE, 0,
                     String.valueOf(fragment.getCount()));
                 break;
             case TAB_FAVORITE:
-                eventManager.removeEvent(EventAction.ACTOR_SELF, id, new EventActionCallback() {
-                    @Override
-                    public void onEventAction(EventAction data) {
-                        ListFragment fragment =
-                            (ListFragment) tabPagerAdapter.getItem(TAB_FAVORITE);
+                fragment.remove(eventManager.getEvent(id, false), true);
 
-                        int count = fragment.getCount();
-                        mainInterface.setTabLayoutBadge(TAB_FAVORITE, 0,
-                            count > 0 ? String.valueOf(count) : null);
-                    }
-                });
+                int count = fragment.getCount();
+                mainInterface.setTabLayoutBadge(TAB_FAVORITE, 0,
+                    count > 0 ? String.valueOf(count) : null);
                 break;
         }
+    }
+
+    @Override
+    public void onDeleteClick(int position, final String id) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext(),
+            R.style.AppTheme_Dialog_Alert);
+        builder.setMessage(R.string.confirm_event_delete);
+
+        DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                switch (which) {
+                    case DialogInterface.BUTTON_POSITIVE:
+                        eventManager.removeEvent(EventAction.ACTOR_SELF, id,
+                            new EventManager.EventActionCallback() {
+                                @Override
+                                public void onEventAction(EventAction data) {
+                                    if (data.getStatus() == EventAction.STATUS_OK) {
+                                        mainInterface.showSnackBar(R.string.event_action_delete,
+                                            R.string.undo, 0, new View.OnClickListener() {
+                                                @Override
+                                                public void onClick(View view) {
+
+                                                }
+                                            }
+                                        );
+                                    }
+                                }
+                            }
+                        );
+                        break;
+                    case DialogInterface.BUTTON_NEGATIVE:
+                        break;
+                }
+
+                dialog.dismiss();
+            }
+        };
+
+        builder.setPositiveButton(R.string.yes, listener);
+        builder.setNegativeButton(R.string.no, listener);
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     @Override
@@ -168,28 +238,25 @@ public class EventsFragment extends Fragment implements OnPageChangeListener, Li
     }
 
     @Override
-    public void onEventBroadcast(EventAction data) {
-        EventBroadcastListener listener =
-            (EventBroadcastListener) tabPagerAdapter.getItem(TAB_ALL);
-        listener.onEventBroadcast(data);
+    public void onEventBroadcast(final EventAction data) {
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                EventBroadcastListener listener =
+                    (EventBroadcastListener) tabPagerAdapter.getItem(TAB_ALL);
+                listener.onEventBroadcast(data);
 
-        listener = (EventBroadcastListener) tabPagerAdapter.getItem(TAB_FAVORITE);
-        if (data.getAction() != EventAction.ACTION_CREATE) {
-            listener.onEventBroadcast(data);
-        }
+                listener = (EventBroadcastListener) tabPagerAdapter.getItem(TAB_FAVORITE);
+                if (data.getAction() != EventAction.ACTION_CREATE) {
+                    listener.onEventBroadcast(data);
+                }
+            }
+        });
     }
 
     @Override
-    public void onPageSelected() {
-        if (mainInterface != null) {
-            ActionButton actionButton = getActionButton();
-            if (actionButton != null) {
-                mainInterface.setActionButton(actionButton.resId, actionButton.color,
-                    actionButton.listener);
-            } else {
-                mainInterface.setActionButton(0, 0, null);
-            }
-        }
+    public int getPageTitle() {
+        return R.string.dashboard;
     }
 
     @Override
@@ -199,15 +266,11 @@ public class EventsFragment extends Fragment implements OnPageChangeListener, Li
 
     @Override
     public ActionButton getActionButton() {
-        if (viewPager.getCurrentItem() == TAB_ALL) {
-            return new ActionButton(R.drawable.ic_add_white, 0, new OnClickListener() {
-                @Override
-                public void onClick(View view) {
-
-                }
-            });
-        }
-
         return null;
+    }
+
+    @Override
+    public void onPageSelected() {
+
     }
 }

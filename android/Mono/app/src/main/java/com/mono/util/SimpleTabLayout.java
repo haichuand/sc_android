@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.support.annotation.NonNull;
 import android.support.design.widget.TabLayout;
 import android.support.design.widget.TabLayout.OnTabSelectedListener;
@@ -176,6 +177,13 @@ public class SimpleTabLayout extends LinearLayout {
         return tab;
     }
 
+    public void setDrawable(int position, Drawable drawable) {
+        TabPagerItem item = adapter.getTabItem(position);
+        item.drawable = drawable;
+
+        updateTab(position);
+    }
+
     public void setBadge(int position, int color, String value) {
         TabPagerItem item = adapter.getTabItem(position);
         item.badgeColor = color;
@@ -195,11 +203,13 @@ public class SimpleTabLayout extends LinearLayout {
 
     public interface TabPagerCallback {
 
-        void onPageSelected();
+        int getPageTitle();
 
         ViewPager getTabLayoutViewPager();
 
         ActionButton getActionButton();
+
+        void onPageSelected();
 
         class ActionButton {
 

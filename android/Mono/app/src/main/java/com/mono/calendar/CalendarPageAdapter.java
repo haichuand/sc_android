@@ -1,5 +1,6 @@
 package com.mono.calendar;
 
+import android.animation.Animator;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,6 +11,7 @@ import com.mono.util.SimpleDataSource;
 import com.mono.util.Views;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class CalendarPageAdapter extends RecyclerView.Adapter<CalendarPageAdapter.Holder> {
@@ -60,24 +62,30 @@ public class CalendarPageAdapter extends RecyclerView.Adapter<CalendarPageAdapte
     public class Holder extends RecyclerView.ViewHolder {
 
         public CalendarPageView calendar;
+        private Animator animator;
 
         public Holder(View itemView, int viewType) {
             super(itemView);
 
             calendar = (CalendarPageView) itemView.findViewById(R.id.calendar);
+            calendar.setAlpha(0);
             calendar.setListener(listener);
             calendar.setType(viewType);
         }
 
         public void onBind(CalendarPageItem holderItem) {
+            calendar.setAlpha(0);
             calendar.setMonthLabel(holderItem.year, holderItem.month, holderItem.day);
             calendar.setMonthData(holderItem);
 
-            Views.fade(calendar, 0, 1, FADE_DURATION, null);
+            animator = Views.fade(calendar, calendar.getAlpha(), 1, FADE_DURATION, null);
         }
 
         public void onViewRecycled() {
-
+            if (animator != null) {
+                animator.cancel();
+                animator = null;
+            }
         }
     }
 
@@ -87,13 +95,16 @@ public class CalendarPageAdapter extends RecyclerView.Adapter<CalendarPageAdapte
         public int month;
         public int day;
 
-        public int startIndex;
+        public int firstDayOfWeek;
+        public boolean showWeekNumbers;
+
         public int numDays;
         public int numWeeks;
+        public int startIndex;
 
-        public Map<Integer, Integer[]> eventColors = new HashMap<>();
+        public Map<Integer, List<Integer>> eventColors = new HashMap<>();
 
-        public int selectedDay = -1;
+        public int selectedDay;
 
         public CalendarPageItem(int year, int month, int day) {
             this.year = year;
@@ -118,6 +129,8 @@ public class CalendarPageAdapter extends RecyclerView.Adapter<CalendarPageAdapte
     }
 
     public interface CalendarPageListener {
+
+        void onPageClick();
 
         void onCellClick(int year, int month, int day);
 

@@ -16,11 +16,12 @@ import android.widget.TextView;
 import com.mono.EventManager.EventAction;
 import com.mono.EventManager.EventBroadcastListener;
 import com.mono.R;
-import com.mono.events.ListAdapter.ListClickListener;
 import com.mono.events.ListAdapter.ListItem;
 import com.mono.model.Event;
 import com.mono.util.Common;
 import com.mono.util.SimpleDataSource;
+import com.mono.util.SimpleLinearLayoutManager;
+import com.mono.util.SimpleSlideView.SimpleSlideViewListener;
 import com.mono.util.SimpleTabLayout.Scrollable;
 
 import java.text.SimpleDateFormat;
@@ -32,7 +33,7 @@ import java.util.Locale;
 import java.util.Map;
 
 public class ListFragment extends Fragment implements SimpleDataSource<ListItem>,
-        ListClickListener, EventBroadcastListener, Scrollable {
+        SimpleSlideViewListener, EventBroadcastListener, Scrollable {
 
     private static final int REFRESH_LIMIT = 10;
 
@@ -43,6 +44,7 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
 
     private SwipeRefreshLayout refreshLayout;
     private RecyclerView recyclerView;
+    private SimpleLinearLayoutManager layoutManager;
     private ListAdapter adapter;
     private TextView text;
 
@@ -94,8 +96,7 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         });
 
         recyclerView = (RecyclerView) view.findViewById(R.id.list);
-        recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
-        recyclerView.setHasFixedSize(true);
+        recyclerView.setLayoutManager(layoutManager = new SimpleLinearLayoutManager(getActivity()));
         recyclerView.setAdapter(adapter = new ListAdapter(this));
         recyclerView.addOnScrollListener(new OnScrollListener() {
             @Override
@@ -126,10 +127,6 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
     public ListItem getItem(int position) {
         ListItem item;
 
-        if (!Common.between(position, 0, events.size())) {
-            return null;
-        }
-
         Event event = events.get(position);
         String id = event.id;
 
@@ -139,28 +136,17 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
             item = new ListItem(id);
 
             item.type = ListItem.TYPE_EVENT;
-            item.color = event.color;
+            item.iconResId = R.drawable.circle;
+            item.iconColor = event.color;
+
             item.title = event.title;
-
-            StringBuilder builder = new StringBuilder();
-
-            String format = getResources().getString(R.string.start_time_format);
-            calendar.setTimeInMillis(event.startTime);
-            builder.append(String.format(format, simpleDateFormat.format(calendar.getTime())));
-            builder.append('\n');
-
-            format = getResources().getString(R.string.end_time_format);
-            calendar.setTimeInMillis(event.endTime);
-            builder.append(String.format(format, simpleDateFormat.format(calendar.getTime())));
-            builder.append('\n');
-
-            item.description = builder.toString();
+            item.description = event.description;
 
             items.put(id, item);
         }
 
         if (item != null) {
-            item.date = getDateString(event.startTime);
+            item.dateTime = getDateString(event.startTime);
         }
 
         return item;
@@ -202,9 +188,54 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
 
         if (item != null) {
             if (listener != null) {
-                listener.onClick(this.position, item.id);
+                listener.onClick(this.position, item.id, view);
             }
         }
+    }
+
+    @Override
+    public boolean onLongClick(View view) {
+        return false;
+    }
+
+    @Override
+    public void onLeftButtonClick(View view, int index) {
+        int position = recyclerView.getChildAdapterPosition(view);
+        ListItem item = getItem(position);
+
+        if (item != null) {
+            if (listener != null) {
+                switch (index) {
+                    case ListAdapter.BUTTON_CHAT_INDEX:
+                        listener.onChatClick(this.position, item.id);
+                        break;
+                    case ListAdapter.BUTTON_FAVORITE_INDEX:
+                        listener.onFavoriteClick(this.position, item.id);
+                        break;
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onRightButtonClick(View view, int index) {
+        int position = recyclerView.getChildAdapterPosition(view);
+        ListItem item = getItem(position);
+
+        if (item != null) {
+            if (listener != null) {
+                switch (index) {
+                    case ListAdapter.BUTTON_DELETE_INDEX:
+                        listener.onDeleteClick(this.position, item.id);
+                        break;
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onGesture(View view, boolean state) {
+        layoutManager.setScrollEnabled(state);
     }
 
     @Override
@@ -369,7 +400,15 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
 
     public interface ListListener {
 
-        void onClick(int position, String id);
+        void onClick(int position, String id, View view);
+
+        void onLongClick(int position, String id, View view);
+
+        void onChatClick(int position, String id);
+
+        void onFavoriteClick(int position, String id);
+
+        void onDeleteClick(int position, String id);
 
         List<? extends Event> onRefresh(int position, long startTime, long endTime);
 

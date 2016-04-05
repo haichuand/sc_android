@@ -5,15 +5,20 @@ import android.content.Context;
 
 import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
+import com.mono.db.dao.EventAttendeeDataSource;
 import com.mono.db.dao.EventDataSource;
 import com.mono.model.Event;
 import com.mono.util.Common;
+import com.mono.util.Log;
+import com.mono.util.Strings;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
 
 public class EventManager {
 
@@ -31,6 +36,8 @@ public class EventManager {
     public static EventManager getInstance(Context context) {
         if (instance == null) {
             instance = new EventManager(context);
+        } else if (context != instance.context) {
+            instance.context = context;
         }
 
         return instance;
@@ -57,6 +64,10 @@ public class EventManager {
     }
 
     private void add(Event event) {
+        EventAttendeeDataSource eventAttendeeDataSource =
+            DatabaseHelper.getDataSource(context, EventAttendeeDataSource.class);
+        event.attendees = eventAttendeeDataSource.getAttendees(event.id);
+
         cache.put(event.id, event);
     }
 
@@ -112,8 +123,9 @@ public class EventManager {
         return result;
     }
 
-    public void createEvent(int actor, long externalId, String type, String title,
-            String description, String location, int color, long startTime, long endTime,
+    public void createEvent(int actor, long calendarId, long internalId, String externalId,
+            String type, String title, String description, String location, int color,
+            long startTime, long endTime, String timeZone, String endTimeZone, boolean allDay,
             EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
 
@@ -122,8 +134,14 @@ public class EventManager {
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
 
         String id = null;
-        if (!dataSource.containsEventByExternalId(externalId)) {
+        if (!dataSource.containsEvent(internalId, startTime, endTime)) {
+            if (timeZone == null) {
+                timeZone = TimeZone.getDefault().getID();
+            }
+
             id = dataSource.createEvent(
+                calendarId,
+                internalId,
                 externalId,
                 type,
                 title,
@@ -132,13 +150,18 @@ public class EventManager {
                 color,
                 startTime,
                 endTime,
+                timeZone,
+                endTimeZone,
+                allDay ? 1 : 0,
                 System.currentTimeMillis()
             );
         }
 
         if (id != null) {
+            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE, id);
             event = getEvent(id, false);
         } else {
+            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE_FAILED);
             status = EventAction.STATUS_FAILED;
         }
 
@@ -151,11 +174,27 @@ public class EventManager {
         }
     }
 
-    public void updateEvent(int actor, String id, Event event, EventActionCallback callback) {
+    public Set<String> updateEvent(int actor, String id, Event event,
+            EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
 
-        Event original = getEvent(id, false);
+        Event original = getEvent(id, true);
         ContentValues values = new ContentValues();
+
+        if (event.calendarId != original.calendarId) {
+            values.put(DatabaseValues.Event.CALENDAR_ID, event.calendarId);
+            original.calendarId = event.calendarId;
+        }
+
+        if (event.internalId != original.internalId) {
+            values.put(DatabaseValues.Event.INTERNAL_ID, event.internalId);
+            original.internalId = event.internalId;
+        }
+
+        if (!Common.compareStrings(event.externalId, original.externalId)) {
+            values.put(DatabaseValues.Event.EXTERNAL_ID, event.externalId);
+            original.externalId = event.externalId;
+        }
 
         if (!Common.compareStrings(event.type, original.type)) {
             values.put(DatabaseValues.Event.TYPE, event.type);
@@ -194,12 +233,35 @@ public class EventManager {
             original.endTime = event.endTime;
         }
 
+        if (!Common.compareStrings(event.timeZone, original.timeZone)) {
+            values.put(DatabaseValues.Event.TIMEZONE, event.timeZone);
+            original.timeZone = event.timeZone;
+        }
+
+        if (!Common.compareStrings(event.endTimeZone, original.endTimeZone)) {
+            values.put(DatabaseValues.Event.END_TIMEZONE, event.endTimeZone);
+            original.endTimeZone = event.endTimeZone;
+        }
+
+        if (event.allDay != original.allDay) {
+            values.put(DatabaseValues.Event.ALL_DAY, event.allDay);
+            original.allDay = event.allDay;
+        }
+
         if (!event.attendees.equals(original.attendees)) {
 
         }
 
+        if (!event.reminders.equals(original.reminders)) {
+
+        }
+
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-        dataSource.updateValues(id, values);
+        if (dataSource.updateValues(id, values) > 0) {
+            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE, id);
+        } else {
+            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE_FAILED, id);
+        }
 
         EventAction data = new EventAction(EventAction.ACTION_UPDATE, actor, status, original);
         if (!listeners.isEmpty()) {
@@ -208,24 +270,8 @@ public class EventManager {
         if (callback != null) {
             callback.onEventAction(data);
         }
-    }
 
-    public void updateEventTime(int actor, String id, long startTime, long endTime,
-            EventActionCallback callback) {
-        int status = EventAction.STATUS_OK;
-
-        EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-        dataSource.updateTime(id, startTime, endTime);
-
-        Event event = getEvent(id, true);
-
-        EventAction data = new EventAction(EventAction.ACTION_UPDATE, actor, status, event);
-        if (!listeners.isEmpty()) {
-            sendToListeners(data);
-        }
-        if (callback != null) {
-            callback.onEventAction(data);
-        }
+        return values.keySet();
     }
 
     public void removeEvent(int actor, String id, EventActionCallback callback) {
@@ -234,7 +280,11 @@ public class EventManager {
         Event event = cache.remove(id);
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-        dataSource.removeEvent(id);
+        if (dataSource.removeEvent(id) > 0) {
+            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_REMOVE, id);
+        } else {
+            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_REMOVE_FAILED, id);
+        }
 
         EventAction data = new EventAction(EventAction.ACTION_REMOVE, actor, status, event);
         if (!listeners.isEmpty()) {

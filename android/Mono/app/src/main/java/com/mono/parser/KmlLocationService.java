@@ -157,8 +157,8 @@ public class KmlLocationService extends IntentService{
                         counter++;
                     }
                     Location location = locationList.get(0);
-                    event_id = eventDataSource.createEvent(-1, KmlLocationService.TYPE, "Userstay " + location.name, placeCandidates, locationId, 12, startTime, endTime,
-                            startTime);
+                    event_id = eventDataSource.createEvent(-1, -1, null, KmlLocationService.TYPE, "Userstay " + location.name, placeCandidates, locationId, 12, startTime, endTime,
+                            null, null, 0, startTime);
 
                     Log.d(TAG, "event with id: " + event_id + " created");
                 }
