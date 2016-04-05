@@ -81,12 +81,15 @@ public class KmlLocationService extends IntentService{
             Event userstayEventByStart = eventDataSource.getUserstayEventByStartTime(llt.getStartTime());
             Event userstayEventByEnd = eventDataSource.getUserstayEventByEndTime(llt.getEndTime());
 
+            //the userstay is stored in previous parsing
+            // and the time duration does not change in the current parsing
             if(userstayEventByEnd != null) {
-                if(userstayEventByEnd.startTime != llt.getStartTime()) {
-                    continue;
-                }
+                continue;
             }
+
             if( userstayEventByStart != null) {
+                //the userstay is stored in previous parsing
+                // and the time duration extended in the current parsing
                 if(userstayEventByStart.endTime != llt.getEndTime()) {
                     eventDataSource.updateTime(userstayEventByStart.id, llt.getStartTime(), llt.getEndTime());
                 }
