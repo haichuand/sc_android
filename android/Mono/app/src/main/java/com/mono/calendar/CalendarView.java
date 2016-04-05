@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 
 public class CalendarView extends RelativeLayout implements CalendarPageListener,
         SimpleDataSource<CalendarPageItem> {
@@ -505,6 +506,8 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
                 calendar.setMinimalDaysInFirstWeek(4);
                 break;
         }
+
+        calendar.setTimeZone(TimeZone.getDefault());
 
         return calendar;
     }
