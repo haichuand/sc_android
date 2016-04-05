@@ -2,6 +2,7 @@ package com.mono.util;
 
 import android.content.Context;
 import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
@@ -46,6 +47,10 @@ public class SimpleTabPagerAdapter extends FragmentPagerAdapter {
         items.add(new TabPagerItem(resId, title, fragment));
     }
 
+    public void add(Drawable drawable, String title, Fragment fragment) {
+        items.add(new TabPagerItem(drawable, title, fragment));
+    }
+
     public TabPagerItem getTabItem(int position) {
         return items.get(position);
     }
@@ -59,6 +64,9 @@ public class SimpleTabPagerAdapter extends FragmentPagerAdapter {
         ImageView image = (ImageView) view.findViewById(R.id.image);
         if (item.resId != 0) {
             image.setImageResource(item.resId);
+            image.setVisibility(View.VISIBLE);
+        } else if (item.drawable != null) {
+            image.setImageDrawable(item.drawable);
             image.setVisibility(View.VISIBLE);
         } else {
             image.setVisibility(View.GONE);
@@ -88,6 +96,7 @@ public class SimpleTabPagerAdapter extends FragmentPagerAdapter {
     public static class TabPagerItem {
 
         public int resId;
+        public Drawable drawable;
         public String title;
         public int badgeColor;
         public String badgeValue;
@@ -95,6 +104,12 @@ public class SimpleTabPagerAdapter extends FragmentPagerAdapter {
 
         public TabPagerItem(int resId, String title, Fragment fragment) {
             this.resId = resId;
+            this.title = title;
+            this.fragment = fragment;
+        }
+
+        public TabPagerItem(Drawable drawable, String title, Fragment fragment) {
+            this.drawable = drawable;
             this.title = title;
             this.fragment = fragment;
         }

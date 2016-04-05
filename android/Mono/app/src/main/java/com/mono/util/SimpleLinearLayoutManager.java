@@ -31,6 +31,10 @@ public class SimpleLinearLayoutManager extends LinearLayoutManager {
         return isScrollEnabled && super.canScrollVertically();
     }
 
+    public boolean isScrollEnabled() {
+        return isScrollEnabled;
+    }
+
     public void setScrollEnabled(boolean enabled) {
         this.isScrollEnabled = enabled;
     }

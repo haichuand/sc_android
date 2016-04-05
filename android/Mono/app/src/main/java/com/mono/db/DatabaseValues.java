@@ -19,6 +19,8 @@ public class DatabaseValues {
         public static final String TABLE = "`event`";
 
         public static final String ID = "`id`";
+        public static final String CALENDAR_ID = "`calendar_id`";
+        public static final String INTERNAL_ID = "`internal_id`";
         public static final String EXTERNAL_ID = "`external_id`";
         public static final String TYPE = "`type`";
         public static final String TITLE = "`title`";
@@ -27,10 +29,15 @@ public class DatabaseValues {
         public static final String COLOR = "`color`";
         public static final String START_TIME = "`start_time`";
         public static final String END_TIME = "`end_time`";
+        public static final String TIMEZONE = "`timezone`";
+        public static final String END_TIMEZONE = "`end_timezone`";
+        public static final String ALL_DAY = "`all_day`";
         public static final String CREATE_TIME = "`create_time`";
 
         public static final String[] PROJECTION = {
             Event.ID,
+            Event.CALENDAR_ID,
+            Event.INTERNAL_ID,
             Event.EXTERNAL_ID,
             Event.TYPE,
             Event.TITLE,
@@ -39,19 +46,27 @@ public class DatabaseValues {
             Event.COLOR,
             Event.START_TIME,
             Event.END_TIME,
+            Event.TIMEZONE,
+            Event.END_TIMEZONE,
+            Event.ALL_DAY,
             Event.CREATE_TIME
         };
 
         public static final int INDEX_ID = 0;
-        public static final int INDEX_EXTERNAL_ID = 1;
-        public static final int INDEX_TYPE = 2;
-        public static final int INDEX_TITLE = 3;
-        public static final int INDEX_DESC = 4;
-        public static final int INDEX_LOCATION = 5;
-        public static final int INDEX_COLOR = 6;
-        public static final int INDEX_START_TIME = 7;
-        public static final int INDEX_END_TIME = 8;
-        public static final int INDEX_CREATE_TIME = 9;
+        public static final int INDEX_CALENDAR_ID = 1;
+        public static final int INDEX_INTERNAL_ID = 2;
+        public static final int INDEX_EXTERNAL_ID = 3;
+        public static final int INDEX_TYPE = 4;
+        public static final int INDEX_TITLE = 5;
+        public static final int INDEX_DESC = 6;
+        public static final int INDEX_LOCATION = 7;
+        public static final int INDEX_COLOR = 8;
+        public static final int INDEX_START_TIME = 9;
+        public static final int INDEX_END_TIME = 10;
+        public static final int INDEX_TIMEZONE = 11;
+        public static final int INDEX_END_TIMEZONE = 12;
+        public static final int INDEX_ALL_DAY = 13;
+        public static final int INDEX_CREATE_TIME = 14;
 
         public static final String CREATE_TABLE;
         public static final String DROP_TABLE;
@@ -59,7 +74,9 @@ public class DatabaseValues {
         static {
             String[] parameters = {
                 ID + " TEXT PRIMARY KEY",
-                EXTERNAL_ID + " INTEGER",
+                CALENDAR_ID + " INTEGER",
+                INTERNAL_ID + " INTEGER",
+                EXTERNAL_ID + " TEXT",
                 TYPE + " TEXT",
                 TITLE + " TEXT",
                 DESC + " TEXT",
@@ -67,6 +84,9 @@ public class DatabaseValues {
                 COLOR + " INTEGER",
                 START_TIME + " INTEGER",
                 END_TIME + " INTEGER",
+                TIMEZONE + " TEXT",
+                END_TIMEZONE + " TEXT",
+                ALL_DAY + " INTEGER",
                 CREATE_TIME + " INTEGER"
             };
 

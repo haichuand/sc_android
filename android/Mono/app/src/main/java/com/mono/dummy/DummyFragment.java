@@ -138,8 +138,8 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
     }
 
     @Override
-    public void onPageSelected() {
-
+    public int getPageTitle() {
+        return 0;
     }
 
     @Override
@@ -165,6 +165,11 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
                 );
             }
         });
+    }
+
+    @Override
+    public void onPageSelected() {
+
     }
 
     public void outputFile(String path) {

@@ -4,10 +4,11 @@ import android.animation.Animator;
 import android.content.Context;
 import android.support.v4.view.GestureDetectorCompat;
 import android.util.AttributeSet;
-import android.view.GestureDetector;
+import android.view.GestureDetector.SimpleOnGestureListener;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.View.OnTouchListener;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
@@ -17,9 +18,9 @@ import com.mono.R;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SimpleSlideView extends RelativeLayout implements View.OnTouchListener {
+public class SimpleSlideView extends RelativeLayout implements OnTouchListener {
 
-    private static final int DELTA_X = 10;
+    private static final int MIN_DELTA_X = 20;
     private static final int SLIDE_DURATION = 300;
 
     private static final int INITIAL_ID = 1000;
@@ -88,9 +89,12 @@ public class SimpleSlideView extends RelativeLayout implements View.OnTouchListe
 
         LayoutInflater inflater = LayoutInflater.from(getContext());
         View view = inflater.inflate(resId, content, false);
-        content.addView(view);
 
-        ViewGroup.LayoutParams params = buttonLayout.getLayoutParams();
+        ViewGroup.LayoutParams params = view.getLayoutParams();
+        params.height = height;
+        content.addView(view, params);
+
+        params = buttonLayout.getLayoutParams();
         params.height = height;
         buttonLayout.setLayoutParams(params);
 
@@ -123,7 +127,7 @@ public class SimpleSlideView extends RelativeLayout implements View.OnTouchListe
             }
         });
 
-        LayoutParams params = (RelativeLayout.LayoutParams) view.getLayoutParams();
+        LayoutParams params = (LayoutParams) view.getLayoutParams();
         params.addRule(RelativeLayout.RIGHT_OF, id);
         view.setLayoutParams(params);
 
@@ -170,8 +174,7 @@ public class SimpleSlideView extends RelativeLayout implements View.OnTouchListe
         view.setScaleType(ImageView.ScaleType.CENTER);
 
         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
-            buttonWidth,
-            ViewGroup.LayoutParams.MATCH_PARENT
+            buttonWidth, ViewGroup.LayoutParams.MATCH_PARENT
         );
         view.setLayoutParams(params);
 
@@ -190,7 +193,7 @@ public class SimpleSlideView extends RelativeLayout implements View.OnTouchListe
                 break;
             case MotionEvent.ACTION_MOVE:
                 if (listener != null) {
-                    if (Math.abs(event.getX() - startX) > DELTA_X) {
+                    if (Math.abs(event.getX() - startX) > MIN_DELTA_X) {
                         listener.onGesture(view, false);
                     }
                 }
@@ -198,19 +201,16 @@ public class SimpleSlideView extends RelativeLayout implements View.OnTouchListe
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 if (!consumed) {
-                    float x = view.getX();
-
-                    if (state == STATE_LEFT && x > leftBound + boundThreshold ||
-                            state == STATE_RIGHT && x < rightBound - boundThreshold) {
-                        resetPosition(true);
-                    } else if (x < -boundThreshold) {
-                        slideToPosition(view, leftBound, true);
-                        state = STATE_LEFT;
-                    } else if (x > boundThreshold) {
-                        slideToPosition(view, rightBound, true);
-                        state = STATE_RIGHT;
-                    } else {
-                        resetPosition(true);
+                    switch (state) {
+                        case STATE_LEFT:
+                            slideToPosition(view, leftBound, true);
+                            break;
+                        case STATE_RIGHT:
+                            slideToPosition(view, rightBound, true);
+                            break;
+                        default:
+                            resetPosition(true);
+                            break;
                     }
                 }
 
@@ -240,7 +240,7 @@ public class SimpleSlideView extends RelativeLayout implements View.OnTouchListe
         state = STATE_NONE;
     }
 
-    private class GestureListener extends GestureDetector.SimpleOnGestureListener {
+    private class GestureListener extends SimpleOnGestureListener {
 
         private View root;
         private View view;
@@ -274,6 +274,20 @@ public class SimpleSlideView extends RelativeLayout implements View.OnTouchListe
 
             float x = Common.clamp(view.getX() + deltaX, leftBound, rightBound);
             slideToPosition(view, x, false);
+
+            if (deltaX < 0) {
+                if (Common.between(x, leftBound, leftBound + boundThreshold)) {
+                    state = STATE_LEFT;
+                } else if (Common.between(x, 0, rightBound - boundThreshold)) {
+                    state = STATE_NONE;
+                }
+            } else if (deltaX > 0) {
+                if (Common.between(x, leftBound + boundThreshold, 0)) {
+                    state = STATE_NONE;
+                } else if (Common.between(x, boundThreshold, rightBound)) {
+                    state = STATE_RIGHT;
+                }
+            }
 
             return false;
         }

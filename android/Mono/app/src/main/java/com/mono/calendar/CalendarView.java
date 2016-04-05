@@ -1,13 +1,17 @@
 package com.mono.calendar;
 
+import android.animation.Animator;
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Typeface;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.RecyclerView.OnScrollListener;
 import android.util.AttributeSet;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 
 import com.mono.R;
 import com.mono.calendar.CalendarPageAdapter.CalendarPageItem;
@@ -18,29 +22,42 @@ import com.mono.util.Colors;
 import com.mono.util.Pixels;
 import com.mono.util.SimpleDataSource;
 import com.mono.util.SimpleQuickAction;
+import com.mono.util.SimpleQuickAction.SimpleQuickActionListener;
+import com.mono.util.Views;
 
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 
 public class CalendarView extends RelativeLayout implements CalendarPageListener,
         SimpleDataSource<CalendarPageItem> {
 
-    private static final int AMOUNT = 5;
+    private static final int FAST_SCROLL_DELTA_Y = 80;
+    private static final int FADE_IN_DURATION = 300;
+    private static final int FADE_OUT_DURATION = 200;
+
+    private static final int PRECACHE_AMOUNT = 5;
 
     private CalendarListener listener;
     private String[] actions;
 
     private RecyclerView recyclerView;
     private LinearLayoutManager layoutManager;
+    private TextView scrollText;
 
     private CalendarPageAdapter adapter;
     private List<CalendarPageItem> items = new ArrayList<>();
 
+    private Date currentDay;
     private Date lastSelected;
     private Date lastDropped;
 
-    private int currentDay;
+    private int firstDayOfWeek;
+    private boolean showWeekNumbers;
+
+    private Animator fadeInAnimator;
+    private Animator fadeOutAnimator;
 
     public CalendarView(Context context) {
         this(context, null);
@@ -62,12 +79,7 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         int year = calendar.get(Calendar.YEAR);
         int month = calendar.get(Calendar.MONTH);
 
-        items.add(createItem(calendar));
-        adapter.notifyItemInserted(0);
-        prepend(year, month, AMOUNT);
-        append(year, month, AMOUNT);
-
-        layoutManager.scrollToPosition(AMOUNT);
+        scrollTo(year, month);
     }
 
     private void initialize(Context context, AttributeSet attrs, int defStyleAttr,
@@ -79,36 +91,41 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         recyclerView.setAdapter(adapter = new CalendarPageAdapter(this));
         recyclerView.addOnScrollListener(new OnScrollListener() {
             @Override
-            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                if (dy < 0) {
-                    int firstPosition = layoutManager.findFirstVisibleItemPosition();
-                    if (firstPosition == 0) {
-                        CalendarPageItem item = items.get(firstPosition);
-                        prepend(item.year, item.month, AMOUNT);
-                    }
-                } else if (dy > 0) {
-                    int lastPosition = layoutManager.findLastVisibleItemPosition();
-                    if (lastPosition == items.size() - 1) {
-                        CalendarPageItem item = items.get(lastPosition);
-                        append(item.year, item.month, AMOUNT);
-                    }
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                    fadeOutScrollText(FADE_OUT_DURATION / 2);
                 }
+            }
+
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                handleInfiniteScroll(dy);
+                handleScrollText(dy);
             }
         });
 
         addView(recyclerView);
         adapter.setDataSource(this);
+
+        scrollText = new TextView(context);
+        scrollText.setAlpha(0);
+        scrollText.setTextColor(Colors.getColor(context, R.color.colorPrimary));
+        scrollText.setTextSize(TypedValue.COMPLEX_UNIT_PX,
+            array.getDimensionPixelSize(R.styleable.CalendarView_scrollTextSize, 40));
+        scrollText.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+            RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT
+        );
+        params.addRule(RelativeLayout.CENTER_IN_PARENT);
+
+        addView(scrollText, params);
+
         array.recycle();
     }
 
     public void onResume() {
-        Calendar calendar = Calendar.getInstance();
-        int day = calendar.get(Calendar.DAY_OF_MONTH);
-
-        if (currentDay != day) {
-            refresh(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH));
-            currentDay = day;
-        }
+        checkDayChange();
     }
 
     public void setListener(CalendarListener listener) {
@@ -117,6 +134,20 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
 
     public void setOnCellDropActions(String[] actions) {
         this.actions = actions;
+    }
+
+    @Override
+    public void onPageClick() {
+        if (lastSelected != null) {
+            select(lastSelected.year, lastSelected.month, lastSelected.day, false);
+
+            if (listener != null) {
+                listener.onCellClick(lastSelected.year, lastSelected.month,
+                    lastSelected.day, false);
+            }
+
+            lastSelected = null;
+        }
     }
 
     @Override
@@ -175,7 +206,7 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
             int offsetY = view.getHeight();
 
             actionView.setPosition(location[0], location[1], offsetX, offsetY);
-            actionView.setListener(new SimpleQuickAction.SimpleQuickActionListener() {
+            actionView.setListener(new SimpleQuickActionListener() {
                 @Override
                 public void onActionClick(int position) {
                     if (listener != null) {
@@ -204,11 +235,23 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
     public CalendarPageItem getItem(int position) {
         CalendarPageItem item = items.get(position);
 
+        item.firstDayOfWeek = firstDayOfWeek;
+        item.showWeekNumbers = showWeekNumbers;
+
+        Calendar calendar = getCalendar(firstDayOfWeek);
+        calendar.set(item.year, item.month, 1);
+
+        item.numWeeks = calendar.getActualMaximum(Calendar.WEEK_OF_MONTH);
+
+        item.startIndex = calendar.get(Calendar.DAY_OF_WEEK) - 1;
+        item.startIndex = item.startIndex - (calendar.getFirstDayOfWeek() - 1);
+        item.startIndex = (item.startIndex + 7) % 7;
+
         if (lastSelected != null && item.year == lastSelected.year &&
                 item.month == lastSelected.month) {
             item.selectedDay = lastSelected.day;
         } else {
-            item.selectedDay = -1;
+            item.selectedDay = 0;
         }
 
         return item;
@@ -219,21 +262,31 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         return items.size();
     }
 
-    public CalendarPageItem createItem(Calendar calendar) {
+    private void handleInfiniteScroll(int deltaY) {
+        int position;
+
+        if (deltaY < 0) {
+            position = layoutManager.findFirstVisibleItemPosition();
+            if (position == 0) {
+                CalendarPageItem item = items.get(position);
+                prepend(item.year, item.month, PRECACHE_AMOUNT);
+            }
+        } else if (deltaY > 0) {
+            position = layoutManager.findLastVisibleItemPosition();
+            if (position == items.size() - 1) {
+                CalendarPageItem item = items.get(position);
+                append(item.year, item.month, PRECACHE_AMOUNT);
+            }
+        }
+    }
+
+    private CalendarPageItem createItem(Calendar calendar) {
         int year = calendar.get(Calendar.YEAR);
         int month = calendar.get(Calendar.MONTH);
         int day = calendar.get(Calendar.DAY_OF_MONTH);
 
-        calendar.set(Calendar.DAY_OF_MONTH, 1);
-
-        int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
-        int numWeeks = calendar.getActualMaximum(Calendar.WEEK_OF_MONTH);
-        int numDays = calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
-
         CalendarPageItem item = new CalendarPageItem(year, month, day);
-        item.startIndex = dayOfWeek - 1;
-        item.numDays = numDays;
-        item.numWeeks = numWeeks;
+        item.numDays = calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
 
         EventDataSource dataSource =
             DatabaseHelper.getDataSource(getContext(), EventDataSource.class);
@@ -242,7 +295,7 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         return item;
     }
 
-    public void prepend(int year, int month, int amount) {
+    private void prepend(int year, int month, int amount) {
         Calendar calendar = Calendar.getInstance();
         calendar.set(year, month, 1);
 
@@ -254,7 +307,7 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         adapter.notifyItemRangeInserted(0, amount);
     }
 
-    public void append(int year, int month, int amount) {
+    private void append(int year, int month, int amount) {
         int startPosition = items.size() - 1;
 
         Calendar calendar = Calendar.getInstance();
@@ -266,6 +319,79 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         }
 
         adapter.notifyItemRangeInserted(startPosition, amount);
+    }
+
+    private void handleScrollText(int deltaY) {
+        if (Math.abs(deltaY) > FAST_SCROLL_DELTA_Y) {
+            int position = layoutManager.findFirstVisibleItemPosition();
+            CalendarPageItem item = items.get(position);
+
+            Calendar calendar = Calendar.getInstance();
+            calendar.set(item.year, item.month, 1);
+
+            String monthName = calendar.getDisplayName(Calendar.MONTH, Calendar.LONG,
+                Locale.getDefault());
+            String text = monthName + " " + item.year;
+
+            scrollText.setText(text);
+
+            fadeInScrollText(FADE_IN_DURATION);
+        } else {
+            fadeOutScrollText(FADE_OUT_DURATION);
+        }
+    }
+
+    private void fadeInScrollText(int duration) {
+        if (fadeOutAnimator != null) {
+            fadeOutAnimator.cancel();
+            fadeOutAnimator = null;
+        }
+
+        if (fadeInAnimator == null) {
+            fadeInAnimator = Views.fade(scrollText, scrollText.getAlpha(), 1, duration, null);
+        }
+    }
+
+    private void fadeOutScrollText(int duration) {
+        if (fadeInAnimator != null) {
+            fadeInAnimator.cancel();
+            fadeInAnimator = null;
+        }
+
+        if (fadeOutAnimator == null) {
+            fadeOutAnimator = Views.fade(scrollText, scrollText.getAlpha(), 0, duration, null);
+        }
+    }
+
+    public void scrollTo(int year, int month) {
+        recyclerView.stopScroll();
+
+        int index = items.indexOf(new CalendarPageItem(year, month, 1));
+
+        if (index == -1) {
+            items.clear();
+            adapter.notifyDataSetChanged();
+
+            Calendar calendar = Calendar.getInstance();
+            calendar.set(year, month, 1);
+
+            items.add(createItem(calendar));
+            adapter.notifyItemInserted(0);
+            prepend(year, month, PRECACHE_AMOUNT);
+            append(year, month, PRECACHE_AMOUNT);
+
+            index = PRECACHE_AMOUNT;
+        }
+
+        layoutManager.scrollToPositionWithOffset(index, 0);
+    }
+
+    public void today() {
+        Calendar calendar = Calendar.getInstance();
+        int year = calendar.get(Calendar.YEAR);
+        int month = calendar.get(Calendar.MONTH);
+
+        scrollTo(year, month);
     }
 
     public void select(int year, int month, int day, boolean selected) {
@@ -299,16 +425,10 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         return lastSelected;
     }
 
-    public void today() {
-        Calendar calendar = Calendar.getInstance();
-        int year = calendar.get(Calendar.YEAR);
-        int month = calendar.get(Calendar.MONTH);
-        int day = calendar.get(Calendar.DAY_OF_MONTH);
-
-        int index = items.indexOf(new CalendarPageItem(year, month, 1));
-
-        if (index >= 0) {
-            layoutManager.scrollToPositionWithOffset(index, 0);
+    public void removeCurrentSelected() {
+        if (lastSelected != null) {
+            select(lastSelected.year, lastSelected.month, lastSelected.day, false);
+            lastSelected = null;
         }
     }
 
@@ -325,6 +445,68 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         }
 
         return 0;
+    }
+
+    public void checkDayChange() {
+        Calendar calendar = Calendar.getInstance();
+
+        int year = calendar.get(Calendar.YEAR);
+        int month = calendar.get(Calendar.MONTH);
+        int day = calendar.get(Calendar.DAY_OF_MONTH);
+
+        Date date = new Date(year, month, day);
+
+        if (currentDay == null) {
+            currentDay = date;
+        } else if (!currentDay.equals(date)) {
+            if (currentDay.month != month) {
+                refresh(currentDay.year, currentDay.month);
+            }
+
+            refresh(year, month);
+            currentDay = date;
+
+            if (listener != null) {
+                listener.onDayChange(day);
+            }
+        }
+    }
+
+    public void setFirstDayOfWeek(int dayOfWeek) {
+        if (dayOfWeek != firstDayOfWeek) {
+            adapter.notifyDataSetChanged();
+        }
+
+        if (dayOfWeek == 0) {
+            dayOfWeek = Calendar.getInstance().getFirstDayOfWeek();
+        }
+
+        firstDayOfWeek = dayOfWeek;
+    }
+
+    public void showWeekNumbers(boolean state) {
+        if (state != showWeekNumbers) {
+            adapter.notifyDataSetChanged();
+        }
+
+        showWeekNumbers = state;
+    }
+
+    public static Calendar getCalendar(int firstDayOfWeek) {
+        Calendar calendar = Calendar.getInstance();
+
+        switch (firstDayOfWeek) {
+            case Calendar.SUNDAY:
+                calendar.setFirstDayOfWeek(firstDayOfWeek);
+                calendar.setMinimalDaysInFirstWeek(1);
+                break;
+            case Calendar.MONDAY:
+                calendar.setFirstDayOfWeek(firstDayOfWeek);
+                calendar.setMinimalDaysInFirstWeek(4);
+                break;
+        }
+
+        return calendar;
     }
 
     public class Date {
@@ -356,6 +538,8 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
     }
 
     public interface CalendarListener {
+
+        void onDayChange(int day);
 
         void onCellClick(int year, int month, int day, boolean selected);
 

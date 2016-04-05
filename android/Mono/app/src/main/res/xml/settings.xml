@@ -1,22 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
     <PreferenceCategory
-        android:layout="@layout/settings_category"
-        android:title="@string/settings_general">
+        android:key="@string/settings_cat_general_key"
+        android:title="@string/settings_cat_general_title"
+        android:layout="@layout/settings_category">
 
-        <MultiSelectListPreference
-            android:key="@string/pref_calendars_key"
-            android:title="@string/pref_calendars_title"
-            android:summary="@string/pref_calendars_summary"/>
+        <ListPreference
+            android:key="@string/pref_week_start_key"
+            android:title="@string/pref_week_start_title"
+            android:entries="@array/pref_week_start_entries"
+            android:entryValues="@array/pref_week_start_values"
+            android:defaultValue="@string/pref_week_start_default"/>
+
+        <SwitchPreference
+            android:key="@string/pref_week_num_key"
+            android:title="@string/pref_week_num_title"
+            android:defaultValue="@string/pref_week_num_default"/>
     </PreferenceCategory>
 
     <PreferenceCategory
-        android:layout="@layout/settings_category"
-        android:title="@string/settings_other">
+        android:key="@string/settings_cat_calendars_key"
+        android:title="@string/settings_cat_calendars_title"
+        android:layout="@layout/settings_category"/>
+
+    <PreferenceCategory
+        android:key="@string/settings_cat_other_key"
+        android:title="@string/settings_cat_other_title"
+        android:layout="@layout/settings_category">
 
         <Preference
             android:key="@string/pref_version_key"
-            android:title="@string/pref_version_title"
-            android:summary="@string/pref_version_summary"/>
+            android:title="@string/pref_version_title"/>
     </PreferenceCategory>
 </PreferenceScreen>

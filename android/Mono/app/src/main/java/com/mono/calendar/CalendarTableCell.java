@@ -93,6 +93,13 @@ public class CalendarTableCell extends RelativeLayout {
 
     public void setToday(boolean state) {
         isToday = state;
+
+        prevColor = Colors.getColor(getContext(), R.color.colorPrimary);
+        prevTextColor = Colors.getColor(getContext(), R.color.colorPrimary);
+        prevResId = R.drawable.calendar_today;
+
+        setBackground(prevResId, prevColor);
+        setTextColor(prevTextColor);
     }
 
     public void setSelected(boolean selected) {
@@ -102,9 +109,8 @@ public class CalendarTableCell extends RelativeLayout {
             prevResId = R.drawable.calendar_day_selected;
         } else {
             if (isToday) {
-                prevColor = Colors.getColor(getContext(), R.color.colorPrimary);
-                prevTextColor = prevColor;
-                prevResId = R.drawable.calendar_today;
+                setToday(true);
+                return;
             } else {
                 prevColor = 0;
                 prevTextColor = Colors.getColor(getContext(), R.color.gray_dark);

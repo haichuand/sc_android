@@ -6,12 +6,14 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.NavigationView.OnNavigationItemSelectedListener;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
@@ -19,12 +21,17 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.AdapterView.OnItemSelectedListener;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -34,16 +41,20 @@ import com.mono.chat.ChatRoomActivity;
 import com.mono.chat.DemoChat;
 import com.mono.chat.RegistrationIntentService;
 import com.mono.details.EventDetailsActivity;
+import com.mono.model.Calendar;
 import com.mono.model.Event;
 import com.mono.settings.Settings;
 import com.mono.settings.SettingsActivity;
+import com.mono.util.Colors;
 import com.mono.util.GoogleClient;
 import com.mono.util.Log;
 import com.mono.util.OnBackPressedListener;
 import com.mono.util.SimpleTabLayout;
 import com.mono.web.WebActivity;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity implements OnNavigationItemSelectedListener,
         MainInterface {
@@ -53,12 +64,16 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     public static final int HOME = R.id.nav_home;
     public static final int SETTINGS = R.id.nav_settings;
 
+    private Toolbar toolbar;
+    private Spinner toolbarSpinner;
     private DrawerLayout drawer;
     private SimpleTabLayout tabLayout;
     private SimpleTabLayout dockLayout;
     private FloatingActionButton actionButton;
+    private Snackbar snackBar;
     private NavigationView navView;
 
+    private ServiceScheduler scheduler;
     private GoogleClient googleClient;
 
     private static final int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
@@ -70,8 +85,10 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        toolbarSpinner = (Spinner) findViewById(R.id.toolbar_spinner);
 
         drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawer, toolbar,
@@ -85,6 +102,8 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
         navView = (NavigationView) findViewById(R.id.nav_view);
         navView.setNavigationItemSelectedListener(this);
+
+        scheduler = new ServiceScheduler();
 
         googleClient = new GoogleClient(this);
         googleClient.initialize();
@@ -116,9 +135,8 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         triggerGooglePlayServices(this);
 
         Log.initialize(this);
-        Settings.initialize(this);
 
-        if (!Settings.getPermissionCheck()) {
+        if (!Settings.getInstance(this).getPermissionCheck()) {
             PermissionManager.checkPermissions(this, RequestCodes.Permission.PERMISSION_CHECK);
         }
         //todo: change to code to get real userid from server
@@ -139,8 +157,10 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     @Override
     protected void onResume() {
         super.onResume();
+
         navView.setCheckedItem(HOME);
-        checkCalendars();
+        scheduler.run(this);
+
         LocalBroadcastManager.getInstance(this).registerReceiver(mRegistrationBroadcastReceiver,
                 new IntentFilter(SuperCalyPreferences.REGISTRATION_COMPLETE));
     }
@@ -232,7 +252,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         if (requestCode == RequestCodes.Permission.PERMISSION_CHECK) {
-            Settings.setPermissionCheck(true);
+            Settings.getInstance(this).setPermissionCheck(true);
         } else {
             PermissionManager.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
@@ -271,6 +291,35 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     }
 
     @Override
+    public void setToolbarTitle(int resId) {
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setDisplayShowTitleEnabled(true);
+        }
+
+        toolbar.setTitle(resId);
+        toolbarSpinner.setVisibility(View.GONE);
+    }
+
+    @Override
+    public void setToolbarSpinner(CharSequence[] items, int position,
+            OnItemSelectedListener listener) {
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setDisplayShowTitleEnabled(false);
+        }
+
+        ArrayAdapter<CharSequence> adapter = new ArrayAdapter<>(this,
+            R.layout.simple_spinner_item, items);
+        adapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item);
+
+        toolbarSpinner.setAdapter(adapter);
+        toolbarSpinner.setOnItemSelectedListener(listener);
+        toolbarSpinner.setSelection(position);
+        toolbarSpinner.setVisibility(View.VISIBLE);
+    }
+
+    @Override
     public void setTabLayoutViewPager(ViewPager viewPager) {
         if (viewPager != null) {
             tabLayout.setupWithViewPager(viewPager, true);
@@ -296,13 +345,18 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     }
 
     @Override
+    public void setDockLayoutDrawable(int position, Drawable drawable) {
+        dockLayout.setDrawable(position, drawable);
+    }
+
+    @Override
     public void setActionButton(int resId, int color, OnClickListener listener) {
         if (resId == 0) {
             resId = R.drawable.ic_add_white;
         }
 
         if (color == 0) {
-            color = getResources().getColor(R.color.colorAccent);
+            color = Colors.getColor(this, R.color.colorAccent);
         }
 
         actionButton.setImageResource(resId);
@@ -314,6 +368,25 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         } else {
             actionButton.hide();
         }
+    }
+
+    @Override
+    public void showSnackBar(int resId, int actionResId, int actionColor,
+            OnClickListener listener) {
+        View view = findViewById(android.R.id.content);
+
+        snackBar = Snackbar.make(view, resId, Snackbar.LENGTH_LONG);
+        snackBar.setAction(actionResId, listener);
+
+        if (actionColor == 0) {
+            actionColor = Colors.getColor(this, android.R.color.white);
+        }
+        snackBar.setActionTextColor(actionColor);
+
+        view = snackBar.getView();
+        view.setBackgroundColor(Colors.getColor(this, R.color.colorPrimary));
+
+        snackBar.show();
     }
 
     @Override
@@ -359,7 +432,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         if (resultCode == RESULT_OK) {
             Event event = data.getParcelableExtra(EventDetailsActivity.EXTRA_EVENT);
 
-            if (event.id != "") {
+            if (event.id != null) {
                 EventManager.getInstance(this).updateEvent(
                     EventManager.EventAction.ACTOR_SELF,
                     event.id,
@@ -367,10 +440,12 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                     null
                 );
             } else {
-                event.externalId = System.currentTimeMillis();
+                event.internalId = System.currentTimeMillis();
 
                 EventManager.getInstance(this).createEvent(
                     EventManager.EventAction.ACTOR_SELF,
+                    event.calendarId,
+                    event.internalId,
                     event.externalId,
                     event.type,
                     event.title,
@@ -379,6 +454,9 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                     event.color,
                     event.startTime,
                     event.endTime,
+                    event.timeZone,
+                    event.endTimeZone,
+                    event.allDay,
                     null
                 );
             }
@@ -418,37 +496,18 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     }
 
     public void runDayOne() {
-        long milliseconds = Settings.getDayOne();
+        Settings settings = Settings.getInstance(this);
+        long milliseconds = settings.getDayOne();
 
         if (milliseconds <= 0) {
-            Settings.setDayOne(System.currentTimeMillis());
-        }
-    }
-
-    public void checkCalendars() {
-        if (Settings.getCalendars().isEmpty()) {
-            return;
-        }
-
-        Intent intent = new Intent();
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-
-        CalendarHelper helper = CalendarHelper.getInstance(this);
-        List<Event> events = helper.getNewEvents();
-
-        for (Event event : events) {
-            EventManager.getInstance(this).createEvent(
-                EventManager.EventAction.ACTOR_NONE,
-                event.externalId,
-                Event.TYPE_CALENDAR,
-                event.title,
-                event.description,
-                null,
-                event.color,
-                event.startTime,
-                event.endTime,
-                null
-            );
+            settings.setDayOne(System.currentTimeMillis());
+            // Initialize Calendars
+            Set<Long> calendars = new HashSet<>();
+            List<Calendar> calendarList = CalendarHelper.getInstance(this).getCalendars();
+            for (Calendar calendar : calendarList) {
+                calendars.add(calendar.id);
+            }
+            settings.setCalendars(calendars);
         }
     }
 

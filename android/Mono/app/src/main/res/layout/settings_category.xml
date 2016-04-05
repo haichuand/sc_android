@@ -8,9 +8,9 @@
         android:id="@android:id/title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-medium"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
         android:textColor="?attr/colorPrimary"
-        android:textSize="18sp"
-        android:textStyle="bold"/>
+        android:textSize="16sp"/>
 </LinearLayout>

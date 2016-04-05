@@ -8,6 +8,10 @@ public class Common {
         return value >= min && value <= max;
     }
 
+    public static boolean between(float value, float min, float max) {
+        return value >= min && value <= max;
+    }
+
     public static int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(value, max));
     }

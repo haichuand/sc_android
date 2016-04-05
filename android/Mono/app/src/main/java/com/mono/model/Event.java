@@ -6,7 +6,6 @@ import android.os.Parcelable;
 import com.mono.util.Common;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class Event implements Parcelable {
@@ -15,7 +14,9 @@ public class Event implements Parcelable {
     public static final String TYPE_USERSTAY = "userstay";
 
     public final String id;
-    public long externalId;
+    public long calendarId;
+    public long internalId;
+    public String externalId;
     public String type;
     public String title;
     public String description;
@@ -23,11 +24,16 @@ public class Event implements Parcelable {
     public int color;
     public long startTime;
     public long endTime;
+    public String timeZone;
+    public String endTimeZone;
+    public boolean allDay;
     public long createTime;
+    public long updateTime;
     public List<Attendee> attendees = new ArrayList<>();
+    public List<Reminder> reminders = new ArrayList<>();
 
     public Event() {
-        this.id = null;
+        id = null;
     }
 
     public Event(String id) {
@@ -36,6 +42,8 @@ public class Event implements Parcelable {
 
     public Event(Event event) {
         id = event.id;
+        calendarId = event.calendarId;
+        internalId = event.internalId;
         externalId = event.externalId;
         type = event.type;
         title = event.title;
@@ -48,14 +56,26 @@ public class Event implements Parcelable {
         color = event.color;
         startTime = event.startTime;
         endTime = event.endTime;
+        timeZone = event.timeZone;
+        endTimeZone = event.endTimeZone;
+        allDay = event.allDay;
         createTime = event.createTime;
+        updateTime = event.updateTime;
 
-        Collections.copy(attendees, event.attendees);
+        for (Attendee attendee : event.attendees) {
+            attendees.add(new Attendee(attendee));
+        }
+
+        for (Reminder reminder : event.reminders) {
+            reminders.add(new Reminder(reminder));
+        }
     }
 
     protected Event(Parcel in) {
         id = in.readString();
-        externalId = in.readLong();
+        calendarId = in.readLong();
+        internalId = in.readLong();
+        externalId = in.readString();
         type = in.readString();
         title = in.readString();
         description = in.readString();
@@ -63,8 +83,13 @@ public class Event implements Parcelable {
         color = in.readInt();
         startTime = in.readLong();
         endTime = in.readLong();
+        timeZone = in.readString();
+        endTimeZone = in.readString();
+        allDay = in.readByte() != 0;
         createTime = in.readLong();
+        updateTime = in.readLong();
         in.readTypedList(attendees, Attendee.CREATOR);
+        in.readTypedList(reminders, Reminder.CREATOR);
     }
 
     public static final Creator<Event> CREATOR = new Creator<Event>() {
@@ -99,7 +124,15 @@ public class Event implements Parcelable {
             return false;
         }
 
-        if (externalId != event.externalId) {
+        if (calendarId != event.calendarId) {
+            return false;
+        }
+
+        if (internalId != event.internalId) {
+            return false;
+        }
+
+        if (!Common.compareStrings(externalId, event.externalId)) {
             return false;
         }
 
@@ -132,13 +165,29 @@ public class Event implements Parcelable {
             return false;
         }
 
+        if (!Common.compareStrings(timeZone, event.timeZone)) {
+            return false;
+        }
+
+        if (!Common.compareStrings(endTimeZone, event.endTimeZone)) {
+            return false;
+        }
+
+        if (allDay != event.allDay) {
+            return false;
+        }
+
         if (createTime != event.createTime) {
             return false;
         }
 
-        if (!attendees.equals(event.attendees)) {
-            return false;
-        }
+//        if (!attendees.equals(event.attendees)) {
+//            return false;
+//        }
+
+//        if (!reminders.equals(event.reminders)) {
+//            return false;
+//        }
 
         return true;
     }
@@ -151,7 +200,9 @@ public class Event implements Parcelable {
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(id);
-        dest.writeLong(externalId);
+        dest.writeLong(calendarId);
+        dest.writeLong(internalId);
+        dest.writeString(externalId);
         dest.writeString(type);
         dest.writeString(title);
         dest.writeString(description);
@@ -159,8 +210,13 @@ public class Event implements Parcelable {
         dest.writeInt(color);
         dest.writeLong(startTime);
         dest.writeLong(endTime);
+        dest.writeString(timeZone);
+        dest.writeString(endTimeZone);
+        dest.writeInt(allDay ? 1 : 0);
         dest.writeLong(createTime);
+        dest.writeLong(updateTime);
         dest.writeTypedList(attendees);
+        dest.writeTypedList(reminders);
     }
 
     public long getDuration() {
@@ -169,5 +225,9 @@ public class Event implements Parcelable {
         }
 
         return 0;
+    }
+
+    public String getEndTimeZone() {
+        return endTimeZone == null ? timeZone : endTimeZone;
     }
 }

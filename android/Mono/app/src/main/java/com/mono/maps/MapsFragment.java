@@ -89,6 +89,8 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback, OnMapC
         if (context instanceof MainInterface) {
             mainInterface = (MainInterface) context;
         }
+
+        mapType = Settings.getInstance(context).getMapType();
     }
 
     @Override
@@ -97,8 +99,6 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback, OnMapC
         setHasOptionsMenu(true);
 
         eventManager.addEventBroadcastListener(this);
-
-        mapType = Settings.getMapType();
     }
 
     @Override
@@ -228,8 +228,8 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback, OnMapC
     }
 
     @Override
-    public void onPageSelected() {
-
+    public int getPageTitle() {
+        return R.string.map;
     }
 
     @Override
@@ -245,6 +245,11 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback, OnMapC
                 centerLastKnownLocation(true);
             }
         });
+    }
+
+    @Override
+    public void onPageSelected() {
+
     }
 
     private MapMarker getMapMarker(Marker marker) {
@@ -302,7 +307,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback, OnMapC
 
     public void setMapType(int type) {
         map.setMapType(mapType = type);
-        Settings.setMapType(type);
+        Settings.getInstance(getContext()).setMapType(type);
     }
 
     public void centerLocation(LatLng latLng, float zoom, boolean animate) {

@@ -3,19 +3,18 @@ package com.mono.db.dao;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.SQLException;
-import android.util.Log;
 
 import com.mono.db.Database;
 import com.mono.db.DatabaseValues;
 import com.mono.model.Event;
 import com.mono.model.Location;
-import com.mono.util.Common;
 
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 public class EventDataSource extends DataSource {
 
@@ -23,12 +22,15 @@ public class EventDataSource extends DataSource {
         super(database);
     }
 
-    public String createEvent(long externalId, String type, String title, String description,
-            String location, int color, long startTime, long endTime, long createTime) {
+    public String createEvent(long calendarId, long internalId, String externalId, String type,
+            String title, String description, String location, int color, long startTime,
+            long endTime, String timeZone, String endTimeZone, int allDay, long createTime) {
         String id = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
 
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.Event.ID, id);
+        values.put(DatabaseValues.Event.CALENDAR_ID, calendarId);
+        values.put(DatabaseValues.Event.INTERNAL_ID, internalId);
         values.put(DatabaseValues.Event.EXTERNAL_ID, externalId);
         values.put(DatabaseValues.Event.TYPE, type);
         values.put(DatabaseValues.Event.TITLE, title);
@@ -37,6 +39,9 @@ public class EventDataSource extends DataSource {
         values.put(DatabaseValues.Event.COLOR, color);
         values.put(DatabaseValues.Event.START_TIME, startTime);
         values.put(DatabaseValues.Event.END_TIME, endTime);
+        values.put(DatabaseValues.Event.TIMEZONE, timeZone);
+        values.put(DatabaseValues.Event.END_TIMEZONE, endTimeZone);
+        values.put(DatabaseValues.Event.ALL_DAY, allDay);
         values.put(DatabaseValues.Event.CREATE_TIME, createTime);
 
         try {
@@ -69,7 +74,32 @@ public class EventDataSource extends DataSource {
         return event;
     }
 
-    public boolean containsEventByExternalId(long externalId) {
+    public Event getEvent(long internalId, long startTime, long endTime) {
+        Event event = null;
+
+        Cursor cursor = database.select(
+            DatabaseValues.Event.TABLE,
+            DatabaseValues.Event.PROJECTION,
+            DatabaseValues.Event.INTERNAL_ID + " = ?" +
+            " AND " + DatabaseValues.Event.START_TIME + " = ?" +
+            " AND " + DatabaseValues.Event.END_TIME + " = ?",
+            new String[]{
+                String.valueOf(internalId),
+                String.valueOf(startTime),
+                String.valueOf(endTime)
+            }
+        );
+
+        if (cursor.moveToNext()) {
+            event = cursorToEvent(cursor);
+        }
+
+        cursor.close();
+
+        return event;
+    }
+
+    public boolean containsEvent(long internalId, long startTime, long endTime) {
         boolean status = false;
 
         Cursor cursor = database.select(
@@ -77,9 +107,13 @@ public class EventDataSource extends DataSource {
             new String[]{
                 "1"
             },
-            DatabaseValues.Event.EXTERNAL_ID + " = ?",
+            DatabaseValues.Event.INTERNAL_ID + " = ?" +
+            " AND " + DatabaseValues.Event.START_TIME + " = ?" +
+            " AND " + DatabaseValues.Event.END_TIME + " = ?",
             new String[]{
-                String.valueOf(externalId)
+                String.valueOf(internalId),
+                String.valueOf(startTime),
+                String.valueOf(endTime)
             }
         );
 
@@ -92,55 +126,26 @@ public class EventDataSource extends DataSource {
         return status;
     }
 
-    public List<Long> containsEventsByExternalIds(long... externalIds) {
-        List<Long> result = new ArrayList<>();
-
-        int count = externalIds.length;
-
-        String[] selection = new String[count];
-        String[] selectionArgs = new String[count];
-        for (int i = 0; i < count; i++) {
-            selectionArgs[i] = String.valueOf(externalIds[i]);
-        }
-
-        Cursor cursor = database.select(
-            DatabaseValues.Event.TABLE,
-            new String[]{
-                DatabaseValues.Event.EXTERNAL_ID
-            },
-            DatabaseValues.Event.EXTERNAL_ID + " IN (" + Common.implode(", ", selection) + ")",
-            selectionArgs
-        );
-
-        while (cursor.moveToNext()) {
-            long externalId = cursor.getInt(0);
-            result.add(externalId);
-        }
-
-        cursor.close();
-
-        return result;
-    }
-
-    public Event getEventByExternalId(long externalId) {
-        Event event = null;
+    public List<Event> getEventsByInternalId(long internalId) {
+        List<Event> events = new ArrayList<>();
 
         Cursor cursor = database.select(
             DatabaseValues.Event.TABLE,
             DatabaseValues.Event.PROJECTION,
-            DatabaseValues.Event.EXTERNAL_ID + " = ?",
+            DatabaseValues.Event.INTERNAL_ID + " = ?",
             new String[]{
-                String.valueOf(externalId)
+                String.valueOf(internalId)
             }
         );
 
-        if (cursor.moveToNext()) {
-            event = cursorToEvent(cursor);
+        while (cursor.moveToNext()) {
+            Event event = cursorToEvent(cursor);
+            events.add(event);
         }
 
         cursor.close();
 
-        return event;
+        return events;
     }
 
     public int updateValues(String id, ContentValues values) {
@@ -164,11 +169,11 @@ public class EventDataSource extends DataSource {
 
     public int removeEvent(String id) {
         return database.delete(
-                DatabaseValues.Event.TABLE,
-                DatabaseValues.Event.ID + " = ?",
-                new String[]{
-                        String.valueOf(id)
-                }
+            DatabaseValues.Event.TABLE,
+            DatabaseValues.Event.ID + " = ?",
+            new String[]{
+                id
+            }
         );
     }
 
@@ -203,9 +208,38 @@ public class EventDataSource extends DataSource {
         Cursor cursor = database.select(
             DatabaseValues.Event.TABLE,
             DatabaseValues.Event.PROJECTION,
-            DatabaseValues.Event.START_TIME + " >= ? AND " +
-            DatabaseValues.Event.END_TIME + " <= ?",
+            DatabaseValues.Event.START_TIME + " >= ?" +
+            " AND " + DatabaseValues.Event.END_TIME + " <= ?",
             new String[]{
+                String.valueOf(startTime),
+                String.valueOf(endTime)
+            },
+            null,
+            DatabaseValues.Event.START_TIME + " DESC",
+            null
+        );
+
+        while (cursor.moveToNext()) {
+            Event event = cursorToEvent(cursor);
+            events.add(event);
+        }
+
+        cursor.close();
+
+        return events;
+    }
+
+    public List<Event> getEventsByTimePeriod(long calendarId, long startTime, long endTime) {
+        List<Event> events = new ArrayList<>();
+
+        Cursor cursor = database.select(
+            DatabaseValues.Event.TABLE,
+            DatabaseValues.Event.PROJECTION,
+            DatabaseValues.Event.CALENDAR_ID + " = ?" +
+            " AND " + DatabaseValues.Event.START_TIME + " >= ?" +
+            " AND " + DatabaseValues.Event.END_TIME + " <= ?",
+            new String[]{
+                String.valueOf(calendarId),
                 String.valueOf(startTime),
                 String.valueOf(endTime)
             },
@@ -228,19 +262,24 @@ public class EventDataSource extends DataSource {
         String[] result = null;
 
         Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.MILLISECOND, 0);
+
         calendar.set(year, month, day, 0, 0, 0);
+        calendar.add(Calendar.DAY_OF_MONTH, -1);
         long startTime = calendar.getTimeInMillis();
 
-        calendar.set(year, month, day + 1, 0, 0, 0);
+        calendar.set(year, month, day, 0, 0, 0);
+        calendar.add(Calendar.DAY_OF_MONTH, 1);
         long endTime = calendar.getTimeInMillis();
 
         Cursor cursor = database.select(
             DatabaseValues.Event.TABLE,
             new String[]{
-                DatabaseValues.Event.ID
+                DatabaseValues.Event.ID,
+                DatabaseValues.Event.START_TIME,
+                DatabaseValues.Event.TIMEZONE
             },
-            DatabaseValues.Event.START_TIME + " >= ? AND " +
-            DatabaseValues.Event.START_TIME + " < ?",
+            DatabaseValues.Event.START_TIME + " BETWEEN ? AND ?",
             new String[]{
                 String.valueOf(startTime),
                 String.valueOf(endTime)
@@ -253,14 +292,24 @@ public class EventDataSource extends DataSource {
         int count = cursor.getCount();
 
         if (count > 0) {
-            result = new String[count];
+            List<String> tempResult = new ArrayList<>(count);
 
-            for (int i = 0; i < count; i++) {
-                if (cursor.moveToNext()) {
-                    String id = cursor.getString(0);
-                    result[i] = id;
+            while (cursor.moveToNext()) {
+                String id = cursor.getString(0);
+                long time = cursor.getLong(1);
+                String timeZone = cursor.getString(2);
+
+                calendar.setTimeInMillis(time);
+                calendar.setTimeZone(TimeZone.getTimeZone(timeZone));
+
+                if (calendar.get(Calendar.DAY_OF_MONTH) == day) {
+                    tempResult.add(id);
                 }
             }
+
+            if (!tempResult.isEmpty()) {
+                result = tempResult.toArray(new String[tempResult.size()]);
+            }
         }
 
         cursor.close();
@@ -268,87 +317,57 @@ public class EventDataSource extends DataSource {
         return result;
     }
 
-    public Map<Integer, String[]> getEventIdsByMonth(int year, int month) {
-        Map<Integer, String[]> result = new HashMap<>();
+    public Map<Integer, List<Integer>> getEventColorsByMonth(int year, int month) {
+        Map<Integer, List<Integer>> result = new HashMap<>();
 
         Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.MILLISECOND, 0);
+
         calendar.set(year, month, 1, 0, 0, 0);
+        calendar.add(Calendar.DAY_OF_MONTH, -1);
         long startTime = calendar.getTimeInMillis();
 
-        calendar.set(year, month + 1, 1, 0, 0, 0);
+        calendar.set(year, month, 2, 0, 0, 0);
+        calendar.add(Calendar.MONTH, 1);
         long endTime = calendar.getTimeInMillis();
 
         Cursor cursor = database.select(
             DatabaseValues.Event.TABLE,
             new String[]{
-                "CAST(STRFTIME('%d', " + DatabaseValues.Event.START_TIME + " / 1000, 'UNIXEPOCH', 'LOCALTIME') AS INTEGER) AS `day`",
-                "GROUP_CONCAT(" + DatabaseValues.Event.ID + ")"
+                DatabaseValues.Event.COLOR,
+                DatabaseValues.Event.START_TIME,
+                DatabaseValues.Event.TIMEZONE
             },
-            DatabaseValues.Event.START_TIME + " >= ? AND " +
-            DatabaseValues.Event.START_TIME + " < ?",
+            DatabaseValues.Event.START_TIME + " BETWEEN ? AND ?",
             new String[]{
                 String.valueOf(startTime),
                 String.valueOf(endTime)
             },
-            "`day`",
+            null,
             DatabaseValues.Event.START_TIME + " DESC",
             null
         );
 
-        while (cursor.moveToNext()) {
-            int day = cursor.getInt(0);
-
-            String[] tempIds = cursor.getString(1).split(",");
-            String[] ids = new String[tempIds.length];
-            for (int i = 0; i < tempIds.length; i++) {
-                ids[i] = tempIds[i];
-            }
-
-            result.put(day, ids);
-        }
-
-        cursor.close();
-
-        return result;
-    }
-
-    public Map<Integer, Integer[]> getEventColorsByMonth(int year, int month) {
-        Map<Integer, Integer[]> result = new HashMap<>();
-
-        Calendar calendar = Calendar.getInstance();
-        calendar.set(year, month, 1, 0, 0, 0);
-        long startTime = calendar.getTimeInMillis();
-
-        calendar.set(year, month + 1, 1, 0, 0, 0);
-        long endTime = calendar.getTimeInMillis();
-
-        Cursor cursor = database.select(
-            DatabaseValues.Event.TABLE,
-            new String[]{
-                "CAST(STRFTIME('%d', " + DatabaseValues.Event.START_TIME + " / 1000, 'UNIXEPOCH', 'LOCALTIME') AS INTEGER) AS `day`",
-                "GROUP_CONCAT(" + DatabaseValues.Event.COLOR + ")"
-            },
-            DatabaseValues.Event.START_TIME + " >= ? AND " +
-            DatabaseValues.Event.START_TIME + " < ?",
-            new String[]{
-                String.valueOf(startTime),
-                String.valueOf(endTime)
-            },
-            "`day`",
-            DatabaseValues.Event.START_TIME + " DESC",
-            null
-        );
+        int currentDay = -1;
 
         while (cursor.moveToNext()) {
-            int day = cursor.getInt(0);
+            int color = cursor.getInt(0);
+            long time = cursor.getLong(1);
+            String timeZone = cursor.getString(2);
 
-            String[] tempColors = cursor.getString(1).split(",");
-            Integer[] colors = new Integer[tempColors.length];
-            for (int i = 0; i < tempColors.length; i++) {
-                colors[i] = Integer.valueOf(tempColors[i]);
+            calendar.setTimeInMillis(time);
+            calendar.setTimeZone(TimeZone.getTimeZone(timeZone));
+
+            if (calendar.get(Calendar.MONTH) == month) {
+                int day = calendar.get(Calendar.DAY_OF_MONTH);
+                if (day != currentDay) {
+                    currentDay = day;
+                    result.put(day, new ArrayList<Integer>());
+                }
+
+                List<Integer> colors = result.get(day);
+                colors.add(color);
             }
-
-            result.put(day, colors);
         }
 
         cursor.close();
@@ -409,7 +428,8 @@ public class EventDataSource extends DataSource {
      */
     private Event cursorToEvent(Cursor cursor) {
         Event event = new Event(cursor.getString(DatabaseValues.Event.INDEX_ID));
-        event.externalId = cursor.getLong(DatabaseValues.Event.INDEX_EXTERNAL_ID);
+        event.internalId = cursor.getLong(DatabaseValues.Event.INDEX_INTERNAL_ID);
+        event.externalId = cursor.getString(DatabaseValues.Event.INDEX_EXTERNAL_ID);
         event.type = cursor.getString(DatabaseValues.Event.INDEX_TYPE);
         event.title = cursor.getString(DatabaseValues.Event.INDEX_TITLE);
         event.description = cursor.getString(DatabaseValues.Event.INDEX_DESC);
@@ -422,6 +442,9 @@ public class EventDataSource extends DataSource {
         event.color = cursor.getInt(DatabaseValues.Event.INDEX_COLOR);
         event.startTime = cursor.getLong(DatabaseValues.Event.INDEX_START_TIME);
         event.endTime = cursor.getLong(DatabaseValues.Event.INDEX_END_TIME);
+        event.timeZone = cursor.getString(DatabaseValues.Event.INDEX_TIMEZONE);
+        event.endTimeZone = cursor.getString(DatabaseValues.Event.INDEX_END_TIMEZONE);
+        event.allDay = cursor.getInt(DatabaseValues.Event.INDEX_ALL_DAY) != 0;
         event.createTime = cursor.getLong(DatabaseValues.Event.INDEX_CREATE_TIME);
 
         return event;

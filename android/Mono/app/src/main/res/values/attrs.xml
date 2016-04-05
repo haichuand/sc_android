@@ -17,6 +17,6 @@
     </declare-styleable>
 
     <declare-styleable name="CalendarView">
-
+        <attr name="scrollTextSize" format="dimension"/>
     </declare-styleable>
 </resources>

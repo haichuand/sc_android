@@ -12,24 +12,34 @@ import android.text.TextWatcher;
 import android.text.format.DateFormat;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.TimePicker;
 
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.ui.PlaceAutocomplete;
 import com.google.android.gms.maps.model.LatLng;
 import com.mono.R;
+import com.mono.model.Attendee;
 import com.mono.model.Event;
 import com.mono.model.Location;
 import com.mono.util.Colors;
 import com.mono.util.GestureActivity;
+import com.mono.util.TimeZoneHelper;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
+import java.util.TimeZone;
 
 public class EventDetailsActivity extends GestureActivity {
 
@@ -39,16 +49,20 @@ public class EventDetailsActivity extends GestureActivity {
 
     private static final SimpleDateFormat DATE_FORMAT;
     private static final SimpleDateFormat TIME_FORMAT;
+    private static final SimpleDateFormat DATETIME_FORMAT;
 
     private EditText title;
     private ImageView colorPicker;
-    private EditText startDate;
-    private EditText startTime;
-    private EditText endDate;
-    private EditText endTime;
+    private TextView startDate;
+    private TextView startTime;
+    private TextView endDate;
+    private TextView endTime;
+    private CheckBox allDay;
+    private TextView timeZoneView;
     private EditText location;
     private ImageView locationPicker;
     private EditText notes;
+    private EditText guests;
 
     private Event original;
     private Event event;
@@ -56,6 +70,7 @@ public class EventDetailsActivity extends GestureActivity {
     static {
         DATE_FORMAT = new SimpleDateFormat("EEE, MMMM d, yyyy", Locale.getDefault());
         TIME_FORMAT = new SimpleDateFormat("h:mm a", Locale.getDefault());
+        DATETIME_FORMAT = new SimpleDateFormat("EEE, MMMM d, yyyy h:mm a", Locale.getDefault());
     }
 
     @Override
@@ -94,59 +109,75 @@ public class EventDetailsActivity extends GestureActivity {
             }
         });
 
-        startDate = (EditText) findViewById(R.id.start_date);
+        startDate = (TextView) findViewById(R.id.start_date);
         startDate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                onDateClick(event.startTime, new DateTimePickerCallback() {
+                long time = getTime(startDate, startTime, event.timeZone);
+                onDateClick(time, event.timeZone, new DateTimePickerCallback() {
                     @Override
                     public void onSet(Date date) {
-                        startDate.setText(DATE_FORMAT.format(date));
-                        event.startTime = date.getTime();
+                        setStartTime(date);
                     }
                 });
             }
         });
 
-        startTime = (EditText) findViewById(R.id.start_time);
+        startTime = (TextView) findViewById(R.id.start_time);
         startTime.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                onTimeClick(event.startTime, new DateTimePickerCallback() {
+                long time = getTime(startDate, startTime, event.timeZone);
+                onTimeClick(time, event.timeZone, new DateTimePickerCallback() {
                     @Override
                     public void onSet(Date date) {
-                        startTime.setText(TIME_FORMAT.format(date));
-                        event.startTime = date.getTime();
+                        setStartTime(date);
                     }
                 });
             }
         });
 
-        endDate = (EditText) findViewById(R.id.end_date);
+        endDate = (TextView) findViewById(R.id.end_date);
         endDate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                onDateClick(event.endTime, new DateTimePickerCallback() {
+                long time = getTime(endDate, endTime, event.getEndTimeZone());
+                onDateClick(time, event.getEndTimeZone(), new DateTimePickerCallback() {
                     @Override
                     public void onSet(Date date) {
-                        endDate.setText(DATE_FORMAT.format(date));
-                        event.endTime = date.getTime();
+                        setEndTime(date);
                     }
                 });
             }
         });
 
-        endTime = (EditText) findViewById(R.id.end_time);
+        endTime = (TextView) findViewById(R.id.end_time);
         endTime.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                onTimeClick(event.endTime, new DateTimePickerCallback() {
+                long time = getTime(endDate, endTime, event.getEndTimeZone());
+                onTimeClick(time, event.getEndTimeZone(), new DateTimePickerCallback() {
                     @Override
                     public void onSet(Date date) {
-                        endTime.setText(TIME_FORMAT.format(date));
-                        event.endTime = date.getTime();
+                        setEndTime(date);
                     }
                 });
+            }
+        });
+
+        allDay = (CheckBox) findViewById(R.id.all_day);
+        allDay.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                onAllDayChecked(isChecked);
+            }
+        });
+
+        timeZoneView = (TextView) findViewById(R.id.timezone);
+        timeZoneView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+//                onTimeZoneClick(event.timeZone);
             }
         });
 
@@ -194,6 +225,24 @@ public class EventDetailsActivity extends GestureActivity {
             }
         });
 
+        guests = (EditText) findViewById(R.id.guests);
+        guests.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+
+            }
+        });
+
         Intent intent = getIntent();
         Event event = intent.getParcelableExtra(EXTRA_EVENT);
         initialize(event);
@@ -204,7 +253,7 @@ public class EventDetailsActivity extends GestureActivity {
         if (event != null && !event.equals(original)) {
             AlertDialog.Builder builder = new AlertDialog.Builder(this,
                 R.style.AppTheme_Dialog_Alert);
-            builder.setMessage(R.string.confirm_save);
+            builder.setMessage(R.string.confirm_event_save);
 
             DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
                 @Override
@@ -258,13 +307,13 @@ public class EventDetailsActivity extends GestureActivity {
         }
     }
 
-    public void initialize(Event event) {
-        if (event == null) {
-            event = new Event();
+    public void initialize(Event original) {
+        if (original == null) {
+            original = new Event();
         }
 
-        original = event;
-        this.event = new Event(event);
+        this.original = original;
+        event = new Event(original);
 
         if (event.title != null) {
             title.setText(event.title);
@@ -273,11 +322,27 @@ public class EventDetailsActivity extends GestureActivity {
         if (event.color == 0) {
             showColorPicker();
         }
-        colorPicker.setColorFilter(this.event.color | 0xFF000000);
+        colorPicker.setColorFilter(event.color | 0xFF000000);
+
+        if (event.timeZone == null) {
+            event.timeZone = TimeZone.getDefault().getID();
+        }
+
+        TimeZone timeZone = TimeZone.getTimeZone(event.timeZone);
+        DATE_FORMAT.setTimeZone(timeZone);
+        TIME_FORMAT.setTimeZone(timeZone);
 
         Calendar calendar = Calendar.getInstance();
+        calendar.setTimeZone(timeZone);
+
         if (event.startTime > 0) {
             calendar.setTimeInMillis(event.startTime);
+        } else {
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.MILLISECOND, 0);
+
+            event.startTime = calendar.getTimeInMillis();
         }
 
         startDate.setText(DATE_FORMAT.format(calendar.getTime()));
@@ -286,15 +351,20 @@ public class EventDetailsActivity extends GestureActivity {
         if (event.endTime > 0) {
             calendar.setTimeInMillis(event.endTime);
         } else {
-            calendar.set(Calendar.HOUR_OF_DAY, 23);
-            calendar.set(Calendar.MINUTE, 59);
-            calendar.set(Calendar.SECOND, 59);
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.MILLISECOND, 0);
 
-            this.event.endTime = calendar.getTimeInMillis();
+            calendar.add(Calendar.HOUR_OF_DAY, 1);
+
+            event.endTime = calendar.getTimeInMillis();
         }
 
         endDate.setText(DATE_FORMAT.format(calendar.getTime()));
         endTime.setText(TIME_FORMAT.format(calendar.getTime()));
+
+        timeZoneView.setText(TimeZoneHelper.getTimeZoneGMTName(timeZone, event.startTime));
+        allDay.setChecked(event.allDay);
 
         if (event.location != null) {
             location.setText(event.location.name);
@@ -302,6 +372,16 @@ public class EventDetailsActivity extends GestureActivity {
 
         if (event.description != null) {
             notes.setText(event.description);
+        }
+
+        if (!event.attendees.isEmpty()) {
+            String str = "";
+            for (int i = 0; i < event.attendees.size(); i++) {
+                Attendee attendee = event.attendees.get(i);
+                if (i > 0) str += '\n';
+                str += attendee.userName;
+            }
+            guests.setText(str);
         }
     }
 
@@ -374,9 +454,11 @@ public class EventDetailsActivity extends GestureActivity {
         event.location = location;
     }
 
-    public void onDateClick(long milliseconds, final DateTimePickerCallback callback) {
+    public void onDateClick(long milliseconds, String timeZone,
+            final DateTimePickerCallback callback) {
         final Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(milliseconds);
+        calendar.setTimeZone(TimeZone.getTimeZone(timeZone));
 
         DatePickerDialog dialog = new DatePickerDialog(
             this,
@@ -395,9 +477,11 @@ public class EventDetailsActivity extends GestureActivity {
         dialog.show();
     }
 
-    public void onTimeClick(long milliseconds, final DateTimePickerCallback callback) {
+    public void onTimeClick(long milliseconds, String timeZone,
+            final DateTimePickerCallback callback) {
         final Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(milliseconds);
+        calendar.setTimeZone(TimeZone.getTimeZone(timeZone));
 
         TimePickerDialog dialog = new TimePickerDialog(
             this,
@@ -415,6 +499,96 @@ public class EventDetailsActivity extends GestureActivity {
         );
 
         dialog.show();
+    }
+
+    public void onAllDayChecked(boolean isChecked) {
+        int visibility = isChecked ? View.INVISIBLE : View.VISIBLE;
+
+        startTime.setVisibility(visibility);
+        endTime.setVisibility(visibility);
+        timeZoneView.setVisibility(visibility);
+
+        setTimeZone(isChecked ? "UTC" : TimeZone.getDefault().getID());
+
+        event.allDay = isChecked;
+    }
+
+    public void onTimeZoneClick(String timeZone) {
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.dialog_timezone_item,
+            TimeZoneHelper.getTimeZones(event.startTime));
+
+        AlertDialog.Builder dialog = new AlertDialog.Builder(this, R.style.AppTheme_Dialog_Alert);
+        dialog.setAdapter(adapter, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+            }
+        });
+
+        dialog.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView parent, View view, int position, long id) {
+
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView parent) {
+
+            }
+        });
+
+        dialog.show();
+    }
+
+    public void setStartTime(Date date) {
+        event.startTime = date.getTime();
+
+        TimeZone timeZone = TimeZone.getTimeZone(event.timeZone);
+
+        DATE_FORMAT.setTimeZone(timeZone);
+        startDate.setText(DATE_FORMAT.format(date));
+
+        TIME_FORMAT.setTimeZone(timeZone);
+        startTime.setText(TIME_FORMAT.format(date));
+
+        timeZoneView.setText(TimeZoneHelper.getTimeZoneGMTName(timeZone, event.startTime));
+    }
+
+    public void setEndTime(Date date) {
+        event.endTime = date.getTime();
+
+        TimeZone timeZone = TimeZone.getTimeZone(event.getEndTimeZone());
+
+        DATE_FORMAT.setTimeZone(timeZone);
+        endDate.setText(DATE_FORMAT.format(date));
+
+        TIME_FORMAT.setTimeZone(timeZone);
+        endTime.setText(TIME_FORMAT.format(date));
+
+        timeZoneView.setText(TimeZoneHelper.getTimeZoneGMTName(timeZone, event.endTime));
+    }
+
+    public void setTimeZone(String id) {
+        event.timeZone = id;
+
+        event.startTime = getTime(startDate, startTime, event.timeZone);
+        event.endTime = getTime(endDate, endTime, event.getEndTimeZone());
+
+        TimeZone timeZone = TimeZone.getTimeZone(id);
+        timeZoneView.setText(TimeZoneHelper.getTimeZoneGMTName(timeZone, event.startTime));
+    }
+
+    public long getTime(TextView date, TextView time, String timeZone) {
+        long milliseconds = -1;
+
+        try {
+            DATETIME_FORMAT.setTimeZone(TimeZone.getTimeZone(timeZone));
+            milliseconds = DATETIME_FORMAT.parse(date.getText() + " " + time.getText()).getTime();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        return milliseconds;
     }
 
     public interface DateTimePickerCallback {
