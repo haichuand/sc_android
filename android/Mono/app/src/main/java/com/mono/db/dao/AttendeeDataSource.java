@@ -41,6 +41,33 @@ public class AttendeeDataSource extends DataSource {
         return id;
     }
 
+    public boolean createAttendeeWithAttendeeId (String attendeeId, String mediaId, String email, String phoneNumber, String firstName, String lastName, String userName, boolean isFriend) {
+
+        int isFriendInt = isFriend ? 1 : 0;
+
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.User.U_ID, attendeeId);
+        values.put(DatabaseValues.User.MEDIA_ID, mediaId);
+        values.put(DatabaseValues.User.EMAIL, email);
+        values.put(DatabaseValues.User.PHONE_NUMBER, phoneNumber);
+        values.put(DatabaseValues.User.FIRST_NAME, firstName);
+        values.put(DatabaseValues.User.LAST_NAME, lastName);
+        values.put(DatabaseValues.User.USER_NAME, userName);
+        values.put(DatabaseValues.User.IS_FRIEND, isFriendInt);
+
+        try {
+            database.insert(DatabaseValues.User.TABLE, values);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    public int clearAttendeeTable() {
+        return database.delete(DatabaseValues.User.TABLE, null, null);
+    }
+
     public Attendee getAttendeeById (String id) {
         Attendee user= null;
 
