@@ -123,6 +123,32 @@ public class EventManager {
         return result;
     }
 
+    public Event getUserstayEventByStartTime(long startTime) {
+        Event event = null;
+
+        EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+        event = dataSource.getUserstayEventByStartTime(startTime);
+
+        return event;
+    }
+
+    public Event getUserstayEventByEndTime (long endTime) {
+        Event event = null;
+
+        EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+        event = dataSource.getUserstayEventByEndTime(endTime);
+
+        return event;
+
+    }
+
+    public void updateEventTime (String eventId, long newStartTime, long newEndTime) {
+
+        EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+        dataSource.updateTime(eventId, newStartTime, newEndTime);
+
+    }
+
     public void createEvent(int actor, long calendarId, long internalId, String externalId,
             String type, String title, String description, String location, int color,
             long startTime, long endTime, String timeZone, String endTimeZone, boolean allDay,
@@ -172,6 +198,47 @@ public class EventManager {
         if (callback != null) {
             callback.onEventAction(data);
         }
+    }
+
+    public String createEvent (long calendarId, long internalId, String externalId,
+                               String type, String title, String description, String location, int color,
+                               long startTime, long endTime, String timeZone, String endTimeZone, boolean allDay) {
+        Event event = null;
+        int status = EventAction.STATUS_OK;
+
+        EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+
+        String id = null;
+
+        if (timeZone == null) {
+            timeZone = TimeZone.getDefault().getID();
+        }
+
+        id = dataSource.createEvent(
+                calendarId,
+                internalId,
+                externalId,
+                type,
+                title,
+                description,
+                location,
+                color,
+                startTime,
+                endTime,
+                timeZone,
+                endTimeZone,
+                allDay ? 1 : 0,
+                System.currentTimeMillis()
+        );
+
+        if (id != null) {
+            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE, id);
+            event = getEvent(id, false);
+        } else {
+            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE_FAILED);
+            status = EventAction.STATUS_FAILED;
+        }
+        return id;
     }
 
     public Set<String> updateEvent(int actor, String id, Event event,

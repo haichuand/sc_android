@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import com.mono.EventManager;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
 import com.mono.db.dao.EventDataSource;
@@ -39,7 +40,7 @@ public class KmlLocationService extends IntentService{
     private static final String TAG = "KmlLocationService";
     private final String GOOGLE_API_KEY = "AIzaSyDYP8RiorJWNGwP8gSuaxoevvFQkyJH_6c";
     private static final String TYPE = "userstay";
-    private EventDataSource eventDataSource;
+    private EventManager eventManager;
     private LocationDataSource locationDataSource;
     private String fileName = "";
     private KmlParser parser;
@@ -51,7 +52,7 @@ public class KmlLocationService extends IntentService{
 
     public void onCreate () {
         super.onCreate();
-        eventDataSource = DatabaseHelper.getDataSource(this.getApplicationContext(), EventDataSource.class);
+        eventManager = EventManager.getInstance(this.getApplicationContext());
         locationDataSource = DatabaseHelper.getDataSource(this.getApplicationContext(), LocationDataSource.class);
     }
 
@@ -73,13 +74,13 @@ public class KmlLocationService extends IntentService{
         Log.d(TAG, "The number of userstays parsed from " + fileName + " is " + userStays.size());
 
         for(LatLngTime llt : userStays) {
-            if(eventDataSource == null) {
-                Log.d(TAG, "eventDataSource is null");
+            if(eventManager == null) {
+                Log.d(TAG, "eventManager is null");
                 return;
             }
 
-            Event userstayEventByStart = eventDataSource.getUserstayEventByStartTime(llt.getStartTime());
-            Event userstayEventByEnd = eventDataSource.getUserstayEventByEndTime(llt.getEndTime());
+            Event userstayEventByStart = eventManager.getUserstayEventByStartTime(llt.getStartTime());
+            Event userstayEventByEnd = eventManager.getUserstayEventByEndTime(llt.getEndTime());
 
             //the userstay is stored in previous parsing
             // and the time duration does not change in the current parsing
@@ -91,7 +92,7 @@ public class KmlLocationService extends IntentService{
                 //the userstay is stored in previous parsing
                 // and the time duration extended in the current parsing
                 if(userstayEventByStart.endTime != llt.getEndTime()) {
-                    eventDataSource.updateTime(userstayEventByStart.id, llt.getStartTime(), llt.getEndTime());
+                    eventManager.updateEventTime(userstayEventByStart.id, llt.getStartTime(), llt.getEndTime());
                 }
             }
             else {
@@ -131,7 +132,7 @@ public class KmlLocationService extends IntentService{
             place_id = (String)params[2];
             Log.d(TAG, "google place LatLong: " + latitude + ", " +longitude);
             String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + latitude + "," + longitude +
-                    "&radius=80&key=" + GOOGLE_API_KEY;
+                    "&radius=50&key=" + GOOGLE_API_KEY;
             requestResult = makeCall(url);
             return "";
         }
@@ -157,9 +158,8 @@ public class KmlLocationService extends IntentService{
                         counter++;
                     }
                     Location location = locationList.get(0);
-                    event_id = eventDataSource.createEvent(-1, -1, null, KmlLocationService.TYPE, "Userstay " + location.name, placeCandidates, locationId, 12, startTime, endTime,
-                            null, null, 0, startTime);
-
+                    event_id = eventManager.createEvent(-1, -1, null, Event.TYPE_USERSTAY, address, placeCandidates, null,
+                            1,startTime, endTime, null, null, false);
                     Log.d(TAG, "event with id: " + event_id + " created");
                 }
             }

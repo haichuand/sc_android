@@ -37,7 +37,7 @@ public class SupercalyAlarmManager {
 
         long uptimeMillis =  SystemClock.elapsedRealtime();
         int frequencyInTenMins = frequencyInHour*6;
-        
+        //600000*frequencyInTenMins
         AlarmManager alarm = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         alarm.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP, uptimeMillis,
                 600000*frequencyInTenMins, pIntent);
