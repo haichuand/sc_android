@@ -11,6 +11,7 @@ public class RequestCodes {
         public static final int WEB = 3;
         public static final int DUMMY_WEB = 4;
         public static final int ALARM_RECEIVER = 5;
+        public static final int CHAT = 6;
     }
 
     public static class Permission {

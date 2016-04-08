@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:layout_marginEnd="70dp"
+    android:padding="8dp">
+
+    <TextView
+        android:id="@+id/senderName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:textSize="12sp"/>
+
+    <RelativeLayout
+        android:id="@+id/messageLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <ImageView
+            android:id="@+id/senderImage"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:src="@drawable/ic_account_circle_48dp"
+            android:tint="@android:color/black"/>
+
+        <LinearLayout
+            android:id="@+id/chat_bubble"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginStart="16dp">
+
+            <View
+                android:id="@+id/arrow"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="@drawable/simple_quick_action_arrow"
+                android:layout_marginTop="3dp"/>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="@drawable/simple_quick_action_base"
+                    android:clickable="true"
+                    android:minHeight="42dp"
+                    android:padding="10dp"
+                    android:textAlignment="textStart"
+                    android:textSize="14sp"/>
+
+                <TextView
+                    android:id="@+id/messageTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:layout_marginEnd="8dp"
+                    android:layout_marginTop="2dp"
+                    android:textSize="12sp"/>
+            </LinearLayout>
+        </LinearLayout>
+    </RelativeLayout>
+</LinearLayout>

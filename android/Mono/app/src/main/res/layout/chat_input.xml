@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@android:color/white">
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/gray"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_margin="8dp">
+
+        <EditText
+            android:id="@+id/sendMessageText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:background="@drawable/input"
+            android:hint="@string/chat_input_hint"
+            android:layout_weight="1"
+            android:maxLines="4"
+            android:minHeight="34dp"
+            android:padding="6dp"
+            android:textSize="16sp"/>
+
+        <ImageButton
+            android:id="@+id/sendButton"
+            android:layout_width="44dp"
+            android:layout_height="34dp"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/input"
+            android:src="@drawable/ic_send"
+            android:tint="?attr/colorPrimary"
+            android:onClick="onSendButtonClicked"
+            style="?attr/borderlessButtonStyle"/>
+    </LinearLayout>
+</LinearLayout>

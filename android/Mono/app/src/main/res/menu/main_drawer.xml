@@ -20,14 +20,4 @@
             android:icon="@drawable/ic_clipboard_white"
             android:title="@string/settings"/>
     </group>
-
-    <group
-        android:id="@+id/menu_bottom1"
-        android:checkableBehavior="single">
-
-        <item
-            android:id="@+id/nav_chat"
-            android:icon="@drawable/ic_clipboard_white"
-            android:title="Chat"/>
-    </group>
 </menu>

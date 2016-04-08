@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<android.support.v4.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<android.support.v4.widget.DrawerLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
@@ -9,192 +8,95 @@
     android:fitsSystemWindows="true">
 
     <!--Main content layout-->
-    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
+    <android.support.design.widget.CoordinatorLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_height="match_parent">
 
         <!--Toolbar layout-->
-        <android.support.v7.widget.Toolbar
-            android:id="@+id/toolbar"
+        <android.support.design.widget.AppBarLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="?attr/colorAccent">
+            android:theme="@style/AppTheme.AppBarOverlay">
 
-            <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            <android.support.v7.widget.Toolbar
+                android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
-                android:orientation="horizontal">
+                android:background="?attr/colorPrimary"
+                app:popupTheme="@style/AppTheme.PopupOverlay">
 
-                <!--<ImageView-->
-                    <!--android:layout_width="wrap_content"-->
-                    <!--android:layout_height="wrap_content"-->
-                    <!--android:padding="12dp"-->
-                    <!--android:scaleType="fitCenter"-->
-                    <!--android:src="@drawable/cake_black" />-->
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_marginBottom="8dp"
-                    android:layout_marginRight="8dp"
-                    android:layout_marginTop="8dp"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/event_start_time"
-                        android:layout_width="wrap_content"
-                        android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:gravity="center_vertical"
-                        android:text="5:15 PM"
-                        android:textColor="?android:attr/textColorPrimary"
-                        android:textSize="12sp" />
-
-                    <TextView
-                        android:id="@+id/event_end_time"
-                        android:layout_width="wrap_content"
-                        android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:gravity="center_vertical"
-                        android:text="7:30 PM"
-                        android:textColor="?android:attr/textColorSecondary"
-                        android:textSize="12sp" />
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_marginBottom="8dp"
-                    android:layout_marginRight="8dp"
-                    android:layout_marginTop="8dp"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/event_name"
-                        android:layout_width="wrap_content"
-                        android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:gravity="center_vertical"
-                        android:text="Jane's Birthday Party"
-                        android:textColor="?android:attr/textColorPrimary"
-                        android:textSize="14sp" />
-
-                    <TextView
-                        android:id="@+id/event_date"
-                        android:layout_width="wrap_content"
-                        android:layout_height="0dp"
-                        android:layout_gravity="center_horizontal"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:text="4/20/16"
-                        android:textColor="?android:attr/textColorPrimary"
-                        android:textSize="12sp" />
-                </LinearLayout>
-            </LinearLayout>
-        </android.support.v7.widget.Toolbar>
+                <include
+                    layout="@layout/chat_toolbar"
+                    android:id="@+id/chat_toolbar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+            </android.support.v7.widget.Toolbar>
+        </android.support.design.widget.AppBarLayout>
 
         <!--Chat message list layout-->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/colorPrimary"
             android:orientation="vertical">
 
             <android.support.v7.widget.RecyclerView
                 android:id="@+id/listMessages"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
+                android:background="@android:color/white"
                 android:layout_weight="1"
-                android:divider="@null"
-                android:dividerHeight="0dp"
-                android:padding="0dp"
-                android:stackFromBottom="true"
-                android:transcriptMode="alwaysScroll" />
+                android:stackFromBottom="true"/>
 
-            <RelativeLayout
-                android:id="@+id/sendMessage"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentBottom="true"
-                android:layout_below="@id/listMessages"
-                android:background="@android:color/black"
-                android:paddingLeft="10dp">
-
-
-                <EditText
-                    android:id="@+id/sendMessageText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_alignBottom="@+id/sendButton"
-                    android:layout_alignTop="@+id/sendButton"
-                    android:layout_marginBottom="4dp"
-                    android:layout_marginRight="10dp"
-                    android:layout_marginTop="4dp"
-                    android:layout_toLeftOf="@+id/sendButton"
-                    android:background="@android:color/white"
-                    android:hint="Your message here..."
-                    android:maxLines="4"
-                    android:paddingLeft="4dp"
-                    android:textColor="@android:color/black"
-                    android:textSize="14sp" />
-
-                <Button
-                    android:id="@+id/sendButton"
-                    android:layout_width="72dp"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentRight="true"
-                    android:layout_margin="4dp"
-                    android:text="Send"
-                    android:onClick="onSendButtonClicked"/>
-            </RelativeLayout>
+            <include
+                layout="@layout/chat_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
         </LinearLayout>
-    </LinearLayout>
+    </android.support.design.widget.CoordinatorLayout>
 
     <!--ChatActivity drawer layout-->
     <LinearLayout
         android:layout_width="240dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:layout_gravity="right"
-        android:background="@android:color/white">
+        android:background="@android:color/white"
+        android:layout_gravity="end"
+        android:paddingStart="24dp">
 
         <!--List of current chat particpants-->
-        <ListView android:id="@+id/chat_drawer_attendees"
+        <ListView
+            android:id="@+id/chat_drawer_attendees"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
             android:choiceMode="singleChoice"
             android:divider="@android:color/transparent"
             android:dividerHeight="10dp"
-            tools:listitem="@layout/chat_attendee_list_item"/>
+            android:layout_marginTop="16dp"/>
 
         <!--Add new participant-->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="16dp"
-            android:layout_marginLeft="24dp" >
+            android:layout_marginTop="16dp">
 
             <ImageView
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:src="@drawable/plus_grey"/>
+                android:src="@drawable/ic_add_white"
+                android:tint="@color/gray_1"/>
+
             <EditText
                 android:id="@+id/edit_text_invite"
-                android:layout_width="wrap_content"
-                android:layout_weight="1"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="8dp"
-                android:layout_marginRight="8dp"
-                android:padding="6dp"
-                android:layout_gravity="center_vertical"
                 android:background="@drawable/chat_search_box"
-                android:hint="Invite..." />
-
+                android:hint="Invite..."
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:padding="6dp"/>
         </LinearLayout>
 
         <!--Attachment-->
@@ -202,28 +104,31 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="32dp"
-            android:layout_marginLeft="24dp">
+            android:layout_marginTop="32dp">
 
             <ImageView
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:src="@drawable/attachment_grey"/>
+                android:src="@drawable/ic_attachment"
+                android:tint="@color/gray_1"/>
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_weight="3"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="8dp"
-                android:layout_marginRight="8dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
                 android:layout_gravity="center_vertical"
                 android:text="Attachment"
                 android:textSize="16sp"/>
+
             <ImageView
                 android:id="@+id/chat_attachment"
                 android:layout_width="32dp"
-                android:layout_weight="1"
                 android:layout_height="32dp"
-                android:src="@drawable/chevron_right"/>
+                android:layout_weight="1"
+                android:src="@drawable/ic_arrow_right"
+                android:tint="@color/gray_1"/>
         </LinearLayout>
 
         <!--Settings-->
@@ -231,30 +136,31 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="16dp"
-            android:layout_marginLeft="24dp">
+            android:layout_marginTop="16dp">
 
             <ImageView
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:src="@drawable/settings_grey"/>
+                android:src="@drawable/ic_settings"
+                android:tint="@color/gray_1"/>
+
             <TextView
                 android:layout_width="wrap_content"
-                android:layout_weight="3"
                 android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
                 android:layout_marginLeft="8dp"
                 android:layout_marginRight="8dp"
-                android:layout_gravity="center_vertical"
-                android:text="Settings"
+                android:layout_weight="3"
+                android:text="@string/settings"
                 android:textSize="16sp"/>
+
             <ImageView
                 android:id="@+id/chat_settings"
                 android:layout_width="32dp"
-                android:layout_weight="1"
                 android:layout_height="32dp"
-                android:src="@drawable/chevron_right"/>
+                android:layout_weight="1"
+                android:src="@drawable/ic_arrow_right"
+                android:tint="@color/gray_1"/>
         </LinearLayout>
-
     </LinearLayout>
-
 </android.support.v4.widget.DrawerLayout>

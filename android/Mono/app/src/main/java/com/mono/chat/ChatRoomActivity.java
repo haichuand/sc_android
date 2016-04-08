@@ -7,15 +7,14 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.design.widget.NavigationView;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -27,22 +26,28 @@ import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.mono.R;
 import com.mono.model.Attendee;
 import com.mono.model.Message;
+import com.mono.util.GestureActivity;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
-public class ChatRoomActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+public class ChatRoomActivity extends GestureActivity implements NavigationView.OnNavigationItemSelectedListener {
     //constants used to send and receive bundles
     public static final String CONVERSATION_ID = "conversationId";
     public static final String EVENT_START_TIME = "eventStartTime";
     public static final String EVENT_END_TIME = "eventEndTime";
     public static final String EVENT_NAME = "eventName";
-    public static final String EVENT_DATE = "eventDate";
     public static final String MY_ID = "myId";
     private static final String TAG = "ChatRoomActivity";
+
+    private static final SimpleDateFormat DATE_FORMAT;
+    private static final SimpleDateFormat TIME_FORMAT;
 
     private String conversationId;
     private String myId;
@@ -66,6 +71,11 @@ public class ChatRoomActivity extends AppCompatActivity implements NavigationVie
     private GcmMessage gcmMessage;
     private BroadcastReceiver receiver;
 
+    static {
+        DATE_FORMAT = new SimpleDateFormat("M/d/yyyy", Locale.getDefault());
+        TIME_FORMAT = new SimpleDateFormat("h:mm a", Locale.getDefault());
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -76,13 +86,12 @@ public class ChatRoomActivity extends AppCompatActivity implements NavigationVie
         }
 
         conversationId = intent.getStringExtra(CONVERSATION_ID);
-        String eventStartTime = intent.getStringExtra(EVENT_START_TIME);
-        String eventEndTime = intent.getStringExtra(EVENT_END_TIME);
+        long eventStartTime = intent.getLongExtra(EVENT_START_TIME, 0);
+        long eventEndTime = intent.getLongExtra(EVENT_END_TIME, 0);
         String eventName = intent.getStringExtra(EVENT_NAME);
-        String eventDate = intent.getStringExtra(EVENT_DATE);
         myId = intent.getStringExtra(MY_ID);
 
-        if (eventStartTime == null || eventEndTime == null || eventName == null || eventDate == null || myId == null || conversationId == null) {
+        if (eventStartTime == 0 || eventEndTime == 0 || myId == null || conversationId == null) {
             Log.e(TAG, "Error: intent parameters missing");
             finish();
         }
@@ -91,22 +100,36 @@ public class ChatRoomActivity extends AppCompatActivity implements NavigationVie
 
         drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawer, toolbar,
-                R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+            R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
         toolbar = (Toolbar) findViewById(R.id.toolbar);
-        View toolbarView = getLayoutInflater().inflate(R.layout.chat_tool_bar, null);
-        ((TextView) toolbarView.findViewById(R.id.event_start_time)).setText(eventStartTime);
-        ((TextView) toolbarView.findViewById(R.id.event_end_time)).setText(eventEndTime);
-        ((TextView) toolbarView.findViewById(R.id.event_name)).setText(eventName);
-        ((TextView) toolbarView.findViewById(R.id.event_date)).setText(eventDate);
         setSupportActionBar(toolbar);
+
+        if (toolbar != null) {
+            View toolbarView = toolbar.findViewById(R.id.chat_toolbar);
+
+            TextView title = (TextView) toolbarView.findViewById(R.id.title);
+            title.setText(eventName);
+
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTimeInMillis(eventStartTime);
+            String date = DATE_FORMAT.format(calendar.getTime());
+            String start = TIME_FORMAT.format(calendar.getTime());
+
+            calendar.setTimeInMillis(eventEndTime);
+            String end = TIME_FORMAT.format(calendar.getTime());
+
+            TextView description = (TextView) toolbarView.findViewById(R.id.description);
+            description.setText(String.format("%s from %s to %s", date, start, end));
+        }
+
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
-            actionBar.setDisplayShowHomeEnabled(true);
         }
+
         chatView = (RecyclerView) findViewById(R.id.listMessages);
         chatAttendeeListView = (ListView) findViewById(R.id.chat_drawer_attendees);
         sendMessageText = (TextView) findViewById(R.id.sendMessageText);
@@ -151,11 +174,11 @@ public class ChatRoomActivity extends AppCompatActivity implements NavigationVie
     }
 
     @Override
-    protected  void onResume() {
+    protected void onResume() {
         super.onResume();
         chatMessages = conversationManager.getChatMessages(conversationId);
         chatAttendeeMap = conversationManager.getChatAttendeeMap(conversationId);
-        chatRoomAdapter = new ChatRoomAdapter(myId, chatAttendeeMap, chatMessages, this);
+        chatRoomAdapter = new ChatRoomAdapter(this, myId, chatAttendeeMap, chatMessages);
         chatView.setAdapter(chatRoomAdapter);
         chatLayoutManager.scrollToPosition(chatMessages.size() - 1);
 
@@ -203,10 +226,10 @@ public class ChatRoomActivity extends AppCompatActivity implements NavigationVie
                 finish();
                 break;
             case R.id.action_chat_group:
-                if (drawer.isDrawerOpen(Gravity.RIGHT)) {
-                    drawer.closeDrawer(Gravity.RIGHT);
+                if (drawer.isDrawerOpen(GravityCompat.END)) {
+                    drawer.closeDrawer(GravityCompat.END);
                 } else {
-                    drawer.openDrawer(Gravity.RIGHT);
+                    drawer.openDrawer(GravityCompat.END);
                 }
                 break;
         }
