@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.mono.calendar.CalendarFragment;
+import com.mono.social.SocialFragment;
 import com.mono.dummy.DummyFragment;
 import com.mono.events.EventsFragment;
 import com.mono.maps.MapsFragment;
@@ -25,8 +26,9 @@ public class MainFragment extends Fragment implements OnBackPressedListener, OnP
 
     public static final int TAB_CALENDAR = 0;
     public static final int TAB_EVENTS = 1;
-    public static final int TAB_MAPS = 2;
-    public static final int TAB_DUMMY = 3;
+    public static final int TAB_SOCIAL = 2;
+    public static final int TAB_MAPS = 3;
+    public static final int TAB_DUMMY = 4;
 
     private MainInterface mainInterface;
 
@@ -55,6 +57,7 @@ public class MainFragment extends Fragment implements OnBackPressedListener, OnP
         tabPagerAdapter.add(drawable, null, new CalendarFragment());
 
         tabPagerAdapter.add(R.drawable.ic_heart_border_white, null, new EventsFragment());
+        tabPagerAdapter.add(R.drawable.ic_chat_white, null, new SocialFragment());
         tabPagerAdapter.add(R.drawable.ic_map_white, null, new MapsFragment());
         tabPagerAdapter.add(R.drawable.ic_chat_white, null, new DummyFragment());
     }

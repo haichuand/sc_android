@@ -5,6 +5,7 @@ import android.content.Context;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.ConversationDataSource;
 import com.mono.model.Attendee;
+import com.mono.model.Conversation;
 import com.mono.model.Message;
 
 import java.util.List;
@@ -28,6 +29,23 @@ public class ConversationManager {
             instance = new ConversationManager(context);
         }
         return instance;
+    }
+
+    public Conversation createConversation(String name, String eventId) {
+        String id = conversationDataSource.createConversationFromEvent(name, eventId);
+
+        Conversation conversation = new Conversation(id);
+        conversation.name = name;
+
+        return conversation;
+    }
+
+    public List<Conversation> getConversations() {
+        return conversationDataSource.getConversations();
+    }
+
+    public List<Conversation> getConversations(String eventId) {
+        return conversationDataSource.getConversations(eventId);
     }
 
     public List<Message> getChatMessages(String conversationId) {
