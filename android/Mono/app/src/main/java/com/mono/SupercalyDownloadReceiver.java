@@ -38,7 +38,6 @@ public class SupercalyDownloadReceiver extends BroadcastReceiver {
                 case DownloadManager.STATUS_SUCCESSFUL:
                     index = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI);
                     uri = Uri.parse(cursor.getString(index));
-                    Log.d("downloadReceiver", "download successfully to" + uri);
 
                     Intent iIntent = new Intent(context, KmlLocationService.class);
                     iIntent.putExtra("fileName", KmlDownloadingService.KML_FILENAME);
