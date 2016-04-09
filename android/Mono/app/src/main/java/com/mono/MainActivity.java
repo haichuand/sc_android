@@ -38,11 +38,11 @@ import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.mono.calendar.CalendarHelper;
 import com.mono.chat.ChatRoomActivity;
+import com.mono.chat.ConversationManager;
 import com.mono.chat.RegistrationIntentService;
-import com.mono.db.DatabaseHelper;
-import com.mono.db.dao.ConversationDataSource;
 import com.mono.details.EventDetailsActivity;
 import com.mono.model.Calendar;
+import com.mono.model.Conversation;
 import com.mono.model.Event;
 import com.mono.settings.Settings;
 import com.mono.settings.SettingsActivity;
@@ -461,18 +461,22 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         if (event == null) {
             return;
         }
-        ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
-        String conversationID = conversationDataSource.getConversationFromEvent(eventId);
-        if (conversationID == null) {
-            conversationID = conversationDataSource.createConversationFromEvent(event.title, eventId);
+
+        ConversationManager manager = ConversationManager.getInstance(this);
+        List<Conversation> conversations = manager.getConversations(eventId);
+
+        Conversation conversation;
+        if (!conversations.isEmpty()) {
+            conversation = conversations.get(0);
+        } else {
+            conversation = manager.createConversation(event.title, event.id);
         }
 
-//        String[] testChatData = DemoChat.createTestData(this);
         Intent intent = new Intent(this, ChatRoomActivity.class);
         intent.putExtra(ChatRoomActivity.EVENT_NAME, event.title);
         intent.putExtra(ChatRoomActivity.EVENT_START_TIME, event.startTime);
         intent.putExtra(ChatRoomActivity.EVENT_END_TIME, event.endTime);
-        intent.putExtra(ChatRoomActivity.CONVERSATION_ID, conversationID);
+        intent.putExtra(ChatRoomActivity.CONVERSATION_ID, conversation.id);
         intent.putExtra(ChatRoomActivity.MY_ID, myId);
 
         startActivityForResult(intent, RequestCodes.Activity.CHAT);

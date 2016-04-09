@@ -11,10 +11,10 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.mono.calendar.CalendarFragment;
-import com.mono.social.SocialFragment;
 import com.mono.dummy.DummyFragment;
 import com.mono.events.EventsFragment;
 import com.mono.maps.MapsFragment;
+import com.mono.social.SocialFragment;
 import com.mono.util.OnBackPressedListener;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
 import com.mono.util.SimpleTabPagerAdapter;
