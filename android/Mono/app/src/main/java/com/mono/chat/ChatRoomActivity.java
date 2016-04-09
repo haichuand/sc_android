@@ -18,6 +18,8 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewTreeObserver;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 import android.widget.TextView;
@@ -137,8 +139,6 @@ public class ChatRoomActivity extends GestureActivity implements NavigationView.
 
         //set the RecyclerView for chat messages and its adapter
         chatLayoutManager = new LinearLayoutManager(this);
-//        mchatLayoutManager.setReverseLayout(true);
-        chatLayoutManager.setStackFromEnd(true); //always scroll to bottom
         chatView.setLayoutManager(chatLayoutManager);
 
         // TODO: get GCM tokens from server and put in chatAttendeeTokenList
@@ -153,7 +153,7 @@ public class ChatRoomActivity extends GestureActivity implements NavigationView.
                 Bundle data = intent.getBundleExtra(MyGcmListenerService.GCM_MESSAGE_DATA);
                 String conversation_id = data.getString(GcmMessage.CONVERSATION_ID);
                 //only continue if conversationId matches
-                if (!conversation_id.equals(conversationId))
+                if (conversation_id==null || !conversation_id.equals(conversationId))
                     return;
                 String message = data.getString(GcmMessage.MESSAGE);
                 String sender_id = data.getString(GcmMessage.SENDER_ID);
@@ -162,9 +162,19 @@ public class ChatRoomActivity extends GestureActivity implements NavigationView.
                     return;
                 chatMessages.add(new Message(sender_id, conversationId, message, new Date().getTime()));
                 chatRoomAdapter.notifyItemInserted(chatMessages.size() - 1);
-                chatLayoutManager.scrollToPosition(chatMessages.size() - 1);
             }
         };
+
+        final LinearLayout messagesLayout = (LinearLayout) findViewById(R.id.all_messages_linearlayout);
+        messagesLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                int size = chatMessages.size();
+                if (chatLayoutManager.findLastCompletelyVisibleItemPosition() < size-1) {
+                    chatLayoutManager.scrollToPosition(size - 1);
+                }
+            }
+        });
     }
 
     @Override
@@ -180,7 +190,6 @@ public class ChatRoomActivity extends GestureActivity implements NavigationView.
         chatAttendeeMap = conversationManager.getChatAttendeeMap(conversationId);
         chatRoomAdapter = new ChatRoomAdapter(this, myId, chatAttendeeMap, chatMessages);
         chatView.setAdapter(chatRoomAdapter);
-        chatLayoutManager.scrollToPosition(chatMessages.size() - 1);
 
 
         /* set up adapter for chat attendee list */
@@ -200,7 +209,6 @@ public class ChatRoomActivity extends GestureActivity implements NavigationView.
         int[] to = new int[] {R.id.chat_attendee_name};
         chatAttendeeListAdapter = new SimpleAdapter(this, chatAttendeeAdapterList, R.layout.chat_attendee_list_item, from, to);
         chatAttendeeListView.setAdapter(chatAttendeeListAdapter);
-//        chatAttendeeListAdapter.notifyDataSetChanged();
     }
 
     @Override
@@ -248,7 +256,6 @@ public class ChatRoomActivity extends GestureActivity implements NavigationView.
             return;
         chatMessages.add(new Message(myId, conversationId, msg, new Date().getTime()));
         chatRoomAdapter.notifyItemInserted(chatMessages.size() - 1);
-        chatLayoutManager.scrollToPosition(chatMessages.size() - 1);
         sendMessageText.setText("");
 
         gcmMessage.sendMessage(myId, conversationId, msg, "MESSAGE", chatAttendeeTokenList, gcm);

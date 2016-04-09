@@ -38,8 +38,9 @@ import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.mono.calendar.CalendarHelper;
 import com.mono.chat.ChatRoomActivity;
-import com.mono.chat.DemoChat;
 import com.mono.chat.RegistrationIntentService;
+import com.mono.db.DatabaseHelper;
+import com.mono.db.dao.ConversationDataSource;
 import com.mono.details.EventDetailsActivity;
 import com.mono.model.Calendar;
 import com.mono.model.Event;
@@ -79,6 +80,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     private static final int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
     private static final String TAG = "MainActivity";
     private BroadcastReceiver mRegistrationBroadcastReceiver;
+    private String myId = "temporaryUserId_WillbeRetriveFromServerLaster_1";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -142,7 +144,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         //todo: change to code to get real userid from server
         SharedPreferences sharedPreferences =
                 PreferenceManager.getDefaultSharedPreferences(this);
-        sharedPreferences.edit().putString(SuperCalyPreferences.USER_ID, "temporaryUserId_WillbeRetriveFromServerLaster").apply();
+        sharedPreferences.edit().putString(SuperCalyPreferences.USER_ID, myId).apply();
 
         showHome();
         runDayOne();
@@ -459,14 +461,19 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         if (event == null) {
             return;
         }
+        ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
+        String conversationID = conversationDataSource.getConversationFromEvent(eventId);
+        if (conversationID == null) {
+            conversationID = conversationDataSource.createConversationFromEvent(event.title, eventId);
+        }
 
-        String[] testChatData = DemoChat.createTestData(this);
+//        String[] testChatData = DemoChat.createTestData(this);
         Intent intent = new Intent(this, ChatRoomActivity.class);
         intent.putExtra(ChatRoomActivity.EVENT_NAME, event.title);
         intent.putExtra(ChatRoomActivity.EVENT_START_TIME, event.startTime);
         intent.putExtra(ChatRoomActivity.EVENT_END_TIME, event.endTime);
-        intent.putExtra(ChatRoomActivity.CONVERSATION_ID, testChatData[0]);
-        intent.putExtra(ChatRoomActivity.MY_ID, testChatData[1]);
+        intent.putExtra(ChatRoomActivity.CONVERSATION_ID, conversationID);
+        intent.putExtra(ChatRoomActivity.MY_ID, myId);
 
         startActivityForResult(intent, RequestCodes.Activity.CHAT);
     }

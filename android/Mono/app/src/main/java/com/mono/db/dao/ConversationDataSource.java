@@ -47,6 +47,22 @@ public class ConversationDataSource extends DataSource{
 
         return id;
     }
+
+    public String getConversationFromEvent (String eventID) {
+        String conversationID = null;
+        try {
+            Cursor cursor = database.select(DatabaseValues.EventConversation.TABLE, new String[]{"*"},
+                    DatabaseValues.EventConversation.EVENT_ID + "=?", new String[]{eventID});
+            if (cursor.moveToFirst()) {
+                conversationID = cursor.getString(DatabaseValues.EventConversation.INDEX_C_ID);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return conversationID;
+    }
+
     //TODO: create a conversation initialized by other user
     public String createConversationWithConversation (Conversation conversation) {
         return conversation.getId();
