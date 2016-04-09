@@ -38,10 +38,11 @@ import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.mono.calendar.CalendarHelper;
 import com.mono.chat.ChatRoomActivity;
-import com.mono.chat.DemoChat;
+import com.mono.chat.ConversationManager;
 import com.mono.chat.RegistrationIntentService;
 import com.mono.details.EventDetailsActivity;
 import com.mono.model.Calendar;
+import com.mono.model.Conversation;
 import com.mono.model.Event;
 import com.mono.settings.Settings;
 import com.mono.settings.SettingsActivity;
@@ -460,13 +461,25 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             return;
         }
 
-        String[] testChatData = DemoChat.createTestData(this);
+        ConversationManager manager = ConversationManager.getInstance(this);
+        List<Conversation> conversations = manager.getConversations(eventId);
+
+        Conversation conversation;
+        if (!conversations.isEmpty()) {
+            conversation = conversations.get(0);
+        } else {
+            conversation = manager.createConversation(event.title, event.id);
+        }
+
+//        String[] testChatData = DemoChat.createTestData(this);
+//        conversation = new Conversation(testChatData[0]);
+
         Intent intent = new Intent(this, ChatRoomActivity.class);
         intent.putExtra(ChatRoomActivity.EVENT_NAME, event.title);
         intent.putExtra(ChatRoomActivity.EVENT_START_TIME, event.startTime);
         intent.putExtra(ChatRoomActivity.EVENT_END_TIME, event.endTime);
-        intent.putExtra(ChatRoomActivity.CONVERSATION_ID, testChatData[0]);
-        intent.putExtra(ChatRoomActivity.MY_ID, testChatData[1]);
+        intent.putExtra(ChatRoomActivity.CONVERSATION_ID, conversation.id);
+        intent.putExtra(ChatRoomActivity.MY_ID, "Me");
 
         startActivityForResult(intent, RequestCodes.Activity.CHAT);
     }
