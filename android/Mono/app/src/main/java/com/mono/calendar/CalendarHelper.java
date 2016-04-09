@@ -16,7 +16,6 @@ import com.mono.model.Event;
 import com.mono.model.Location;
 import com.mono.model.Reminder;
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -253,7 +252,7 @@ public class CalendarHelper {
         try {
             String dateTime = cursor.getString(CalendarValues.Event.INDEX_UPDATE_TIME);
             event.updateTime = DATE_FORMAT.parse(dateTime).getTime();
-        } catch (ParseException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 

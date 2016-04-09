@@ -273,16 +273,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             case SETTINGS:
                 showSettings();
                 break;
-            case R.id.nav_chat:
-                String[] testChatData = DemoChat.createTestData(this);
-                Intent intent = new Intent(this, ChatRoomActivity.class);
-                intent.putExtra(ChatRoomActivity.EVENT_NAME, "Birthday Party");
-                intent.putExtra(ChatRoomActivity.EVENT_DATE, "04/25/16");
-                intent.putExtra(ChatRoomActivity.EVENT_START_TIME, "3:00 PM");
-                intent.putExtra(ChatRoomActivity.EVENT_END_TIME, "4:30 PM");
-                intent.putExtra(ChatRoomActivity.CONVERSATION_ID, testChatData[0]);
-                intent.putExtra(ChatRoomActivity.MY_ID, testChatData[1]);
-                startActivity(intent);
         }
 
         drawer.closeDrawer(GravityCompat.START);
@@ -464,8 +454,21 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     }
 
     @Override
-    public void showChat(String id) {
+    public void showChat(String eventId) {
+        Event event = EventManager.getInstance(this).getEvent(eventId, false);
+        if (event == null) {
+            return;
+        }
 
+        String[] testChatData = DemoChat.createTestData(this);
+        Intent intent = new Intent(this, ChatRoomActivity.class);
+        intent.putExtra(ChatRoomActivity.EVENT_NAME, event.title);
+        intent.putExtra(ChatRoomActivity.EVENT_START_TIME, event.startTime);
+        intent.putExtra(ChatRoomActivity.EVENT_END_TIME, event.endTime);
+        intent.putExtra(ChatRoomActivity.CONVERSATION_ID, testChatData[0]);
+        intent.putExtra(ChatRoomActivity.MY_ID, testChatData[1]);
+
+        startActivityForResult(intent, RequestCodes.Activity.CHAT);
     }
 
     public static void triggerGooglePlayServices(AppCompatActivity activity) {

@@ -4,17 +4,9 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
-        android:id="@+id/action_search"
-        android:orderInCategory="100"
-        android:title="Search"
-        android:icon="@drawable/search_black"
-        app:showAsAction="always"/>
-
-    <item
         android:id="@+id/action_chat_group"
         android:orderInCategory="100"
         android:title="Chat groups"
-        android:icon="@drawable/menu_black"
+        android:icon="@drawable/ic_menu"
         app:showAsAction="always"/>
-
 </menu>

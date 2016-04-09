@@ -7,19 +7,33 @@ import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 
 import com.google.android.gms.gcm.GcmListenerService;
 import com.mono.MainActivity;
 import com.mono.R;
+import com.mono.model.Message;
+
+import java.util.Date;
 
 /**
  * Created by xuejing on 2/25/16.
  */
 public class MyGcmListenerService extends GcmListenerService {
+    public static final String GCM_INCOMING_INTENT = "com.mono.chat.MyGcmListenerService.INCOMING_INTENT";
+    public static final String GCM_MESSAGE_DATA = "com.mono.chat.MyGcmListenerService.MESSAGE_DATA";
 
     private static final String TAG = "MyGcmListenerService";
+    private LocalBroadcastManager broadcaster;
+    private ConversationManager conversationManager;
+
+    @Override
+    public void onCreate() {
+        broadcaster = LocalBroadcastManager.getInstance(this);
+        conversationManager = ConversationManager.getInstance(this);
+    }
 
     public void onMessageReceived(String from, Bundle data) {
         String message = data.getString(GcmMessage.MESSAGE);
@@ -43,6 +57,8 @@ public class MyGcmListenerService extends GcmListenerService {
          * that a message was received.
          */
         sendNotification(message);
+        conversationManager.saveChatMessageToDB(new Message(sender_id, conversation_id, message, new Date().getTime()));
+        broadcastMessage(data);
         // [END_EXCLUDE]
     }
 
@@ -79,5 +95,13 @@ public class MyGcmListenerService extends GcmListenerService {
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
         notificationManager.notify(0 /* ID of notification */, notificationBuilder.build());
+    }
+
+    private void broadcastMessage(Bundle data) {
+        Intent intent = new Intent(GCM_INCOMING_INTENT);
+        if (data != null) {
+            intent.putExtra(GCM_MESSAGE_DATA, data);
+        }
+        broadcaster.sendBroadcast(intent);
     }
 }

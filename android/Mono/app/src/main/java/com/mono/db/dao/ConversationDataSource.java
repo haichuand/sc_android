@@ -69,6 +69,49 @@ public class ConversationDataSource extends DataSource{
         return conversationId;
     }
 
+    public boolean createConversationWithConversationIdAndAttendees(String name, String eventID, String conversationID, List<String> attendeesID ) {
+        if (!createConversationWithConversationIdFromEvent(name, eventID, conversationID)) {
+            return false;
+        }
+
+        for(String id: attendeesID) {
+            ContentValues values = new ContentValues();
+            values.put(DatabaseValues.ConversationAttendee.C_ID, conversationID);
+            values.put(DatabaseValues.ConversationAttendee.ATTENDEE_ID, id);
+
+            try{
+                database.insert(DatabaseValues.ConversationAttendee.TABLE, values);
+            }catch (SQLException e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean createConversationWithConversationIdFromEvent(String name, String eventID, String conversationID) {
+        ContentValues conversationValues = new ContentValues();
+        conversationValues.put(DatabaseValues.Conversation.C_ID, conversationID);
+        conversationValues.put(DatabaseValues.Conversation.C_NAME, name);
+
+        ContentValues conversationEventValues = new ContentValues();
+        conversationEventValues.put(DatabaseValues.EventConversation.C_ID, eventID);
+        conversationEventValues.put(DatabaseValues.EventConversation.EVENT_ID, eventID);
+
+        try {
+            database.insert(DatabaseValues.Conversation.TABLE,conversationValues);
+            database.insert(DatabaseValues.EventConversation.TABLE,conversationEventValues);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    public int clearConversationTable() {
+        return database.delete(DatabaseValues.Conversation.TABLE, null, null);
+    }
+
     public void addMessageToConversation (Message msg) {
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.ConversationContent.C_ID, msg.getConversationId());

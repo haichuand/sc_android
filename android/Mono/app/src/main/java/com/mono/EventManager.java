@@ -159,12 +159,12 @@ public class EventManager {
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
 
+        if (timeZone == null) {
+            timeZone = TimeZone.getDefault().getID();
+        }
+
         String id = null;
         if (!dataSource.containsEvent(internalId, startTime, endTime)) {
-            if (timeZone == null) {
-                timeZone = TimeZone.getDefault().getID();
-            }
-
             id = dataSource.createEvent(
                 calendarId,
                 internalId,
@@ -378,10 +378,6 @@ public class EventManager {
         private final int actor;
         private final int status;
         private final Event event;
-
-        public EventAction(int action, int actor, Event event) {
-            this(action, actor, STATUS_OK, event);
-        }
 
         public EventAction(int action, int actor, int status, Event event) {
             this.action = action;

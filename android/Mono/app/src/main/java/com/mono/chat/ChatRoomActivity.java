@@ -1,17 +1,20 @@
 package com.mono.chat;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.design.widget.NavigationView;
+import android.support.v4.content.LocalBroadcastManager;
+import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -23,22 +26,28 @@ import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.mono.R;
 import com.mono.model.Attendee;
 import com.mono.model.Message;
+import com.mono.util.GestureActivity;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
-public class ChatRoomActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+public class ChatRoomActivity extends GestureActivity implements NavigationView.OnNavigationItemSelectedListener {
     //constants used to send and receive bundles
     public static final String CONVERSATION_ID = "conversationId";
     public static final String EVENT_START_TIME = "eventStartTime";
     public static final String EVENT_END_TIME = "eventEndTime";
     public static final String EVENT_NAME = "eventName";
-    public static final String EVENT_DATE = "eventDate";
     public static final String MY_ID = "myId";
     private static final String TAG = "ChatRoomActivity";
+
+    private static final SimpleDateFormat DATE_FORMAT;
+    private static final SimpleDateFormat TIME_FORMAT;
 
     private String conversationId;
     private String myId;
@@ -51,14 +60,21 @@ public class ChatRoomActivity extends AppCompatActivity implements NavigationVie
 
     private LinearLayoutManager chatLayoutManager;
     private ChatAttendeeMap chatAttendeeMap;
+    SimpleAdapter chatAttendeeListAdapter;
     private List<Message> chatMessages;
     private List<Map<String, String>> chatAttendeeAdapterList;
     private List<String> chatAttendeeTokenList; //GCM token list for sending messages
-    private int newMessageIndex; //starting index of new messages that need to be saved to database in chatMessages
+//    private int newMessageIndex; //starting index of new messages that need to be saved to database in chatMessages
     private ConversationManager conversationManager;
 
     private GoogleCloudMessaging gcm;
     private GcmMessage gcmMessage;
+    private BroadcastReceiver receiver;
+
+    static {
+        DATE_FORMAT = new SimpleDateFormat("M/d/yyyy", Locale.getDefault());
+        TIME_FORMAT = new SimpleDateFormat("h:mm a", Locale.getDefault());
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,13 +86,12 @@ public class ChatRoomActivity extends AppCompatActivity implements NavigationVie
         }
 
         conversationId = intent.getStringExtra(CONVERSATION_ID);
-        String eventStartTime = intent.getStringExtra(EVENT_START_TIME);
-        String eventEndTime = intent.getStringExtra(EVENT_END_TIME);
+        long eventStartTime = intent.getLongExtra(EVENT_START_TIME, 0);
+        long eventEndTime = intent.getLongExtra(EVENT_END_TIME, 0);
         String eventName = intent.getStringExtra(EVENT_NAME);
-        String eventDate = intent.getStringExtra(EVENT_DATE);
         myId = intent.getStringExtra(MY_ID);
 
-        if (eventStartTime == null || eventEndTime == null || eventName == null || eventDate == null || myId == null || conversationId == null) {
+        if (eventStartTime == 0 || eventEndTime == 0 || myId == null || conversationId == null) {
             Log.e(TAG, "Error: intent parameters missing");
             finish();
         }
@@ -85,28 +100,88 @@ public class ChatRoomActivity extends AppCompatActivity implements NavigationVie
 
         drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawer, toolbar,
-                R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+            R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
         toolbar = (Toolbar) findViewById(R.id.toolbar);
-        View toolbarView = getLayoutInflater().inflate(R.layout.chat_tool_bar, null);
-        ((TextView) toolbarView.findViewById(R.id.event_start_time)).setText(eventStartTime);
-        ((TextView) toolbarView.findViewById(R.id.event_end_time)).setText(eventEndTime);
-        ((TextView) toolbarView.findViewById(R.id.event_name)).setText(eventName);
-        ((TextView) toolbarView.findViewById(R.id.event_date)).setText(eventDate);
         setSupportActionBar(toolbar);
+
+        if (toolbar != null) {
+            View toolbarView = toolbar.findViewById(R.id.chat_toolbar);
+
+            TextView title = (TextView) toolbarView.findViewById(R.id.title);
+            title.setText(eventName);
+
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTimeInMillis(eventStartTime);
+            String date = DATE_FORMAT.format(calendar.getTime());
+            String start = TIME_FORMAT.format(calendar.getTime());
+
+            calendar.setTimeInMillis(eventEndTime);
+            String end = TIME_FORMAT.format(calendar.getTime());
+
+            TextView description = (TextView) toolbarView.findViewById(R.id.description);
+            description.setText(String.format("%s from %s to %s", date, start, end));
+        }
+
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
-            actionBar.setDisplayShowHomeEnabled(true);
         }
+
         chatView = (RecyclerView) findViewById(R.id.listMessages);
         chatAttendeeListView = (ListView) findViewById(R.id.chat_drawer_attendees);
         sendMessageText = (TextView) findViewById(R.id.sendMessageText);
         conversationManager = ConversationManager.getInstance(this);
-        chatAttendeeMap = conversationManager.getChatAttendeeMap(conversationId);
+
+        //set the RecyclerView for chat messages and its adapter
+        chatLayoutManager = new LinearLayoutManager(this);
+//        mchatLayoutManager.setReverseLayout(true);
+        chatLayoutManager.setStackFromEnd(true); //always scroll to bottom
+        chatView.setLayoutManager(chatLayoutManager);
+
+        // TODO: get GCM tokens from server and put in chatAttendeeTokenList
+        chatAttendeeTokenList = new ArrayList<>();
+        setChatAttendeeTokenList(); //only used during development
+
+        gcm = GoogleCloudMessaging.getInstance(this);
+        gcmMessage = GcmMessage.getInstance(this);
+        receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                Bundle data = intent.getBundleExtra(MyGcmListenerService.GCM_MESSAGE_DATA);
+                String conversation_id = data.getString(GcmMessage.CONVERSATION_ID);
+                //only continue if conversationId matches
+                if (!conversation_id.equals(conversationId))
+                    return;
+                String message = data.getString(GcmMessage.MESSAGE);
+                String sender_id = data.getString(GcmMessage.SENDER_ID);
+                //check if UI setup is complete first
+                if (chatMessages == null || chatRoomAdapter == null || chatLayoutManager == null)
+                    return;
+                chatMessages.add(new Message(sender_id, conversationId, message, new Date().getTime()));
+                chatRoomAdapter.notifyItemInserted(chatMessages.size() - 1);
+                chatLayoutManager.scrollToPosition(chatMessages.size() - 1);
+            }
+        };
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        LocalBroadcastManager.getInstance(this).registerReceiver(receiver, new IntentFilter(MyGcmListenerService.GCM_INCOMING_INTENT));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
         chatMessages = conversationManager.getChatMessages(conversationId);
+        chatAttendeeMap = conversationManager.getChatAttendeeMap(conversationId);
+        chatRoomAdapter = new ChatRoomAdapter(this, myId, chatAttendeeMap, chatMessages);
+        chatView.setAdapter(chatRoomAdapter);
+        chatLayoutManager.scrollToPosition(chatMessages.size() - 1);
+
 
         /* set up adapter for chat attendee list */
         HashMap<String, Attendee> newAttendeeMap = new HashMap<>(chatAttendeeMap.getChatAttendeeMap());
@@ -123,31 +198,15 @@ public class ChatRoomActivity extends AppCompatActivity implements NavigationVie
         }
         String[] from = new String[] {"name"};  //maps name to name textView
         int[] to = new int[] {R.id.chat_attendee_name};
-        SimpleAdapter chatAttendeeListAdapter = new SimpleAdapter(this, chatAttendeeAdapterList, R.layout.chat_attendee_list_item, from, to);
+        chatAttendeeListAdapter = new SimpleAdapter(this, chatAttendeeAdapterList, R.layout.chat_attendee_list_item, from, to);
         chatAttendeeListView.setAdapter(chatAttendeeListAdapter);
-
-        //set the RecyclerView for chat messages and its adapter
-        chatLayoutManager = new LinearLayoutManager(this);
-//        mchatLayoutManager.setReverseLayout(true);
-        chatLayoutManager.setStackFromEnd(true); //always scroll to bottom
-        chatView.setLayoutManager(chatLayoutManager);
-        chatRoomAdapter = new ChatRoomAdapter(myId, chatAttendeeMap, chatMessages, this);
-        chatView.setAdapter(chatRoomAdapter);
-        newMessageIndex = chatMessages.size();
-        chatLayoutManager.scrollToPosition(newMessageIndex - 1);
-
-        // TODO: get GCM tokens from server and put in chatAttendeeTokenList
-        chatAttendeeTokenList = new ArrayList<>();
-        setChatAttendeeTokenList();
-
-        gcm = GoogleCloudMessaging.getInstance(this);
-        gcmMessage = GcmMessage.getInstance(this);
+//        chatAttendeeListAdapter.notifyDataSetChanged();
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
-
+    protected void onStop() {
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver);
+        super.onStop();
     }
 
     @Override
@@ -167,10 +226,10 @@ public class ChatRoomActivity extends AppCompatActivity implements NavigationVie
                 finish();
                 break;
             case R.id.action_chat_group:
-                if (drawer.isDrawerOpen(Gravity.RIGHT)) {
-                    drawer.closeDrawer(Gravity.RIGHT);
+                if (drawer.isDrawerOpen(GravityCompat.END)) {
+                    drawer.closeDrawer(GravityCompat.END);
                 } else {
-                    drawer.openDrawer(Gravity.RIGHT);
+                    drawer.openDrawer(GravityCompat.END);
                 }
                 break;
         }
@@ -198,9 +257,11 @@ public class ChatRoomActivity extends AppCompatActivity implements NavigationVie
     }
 
     private void setChatAttendeeTokenList() {
-        chatAttendeeTokenList.add("c2LxofJLjHk:APA91bHhfKaGP0rfkSzGoBQIqG_kIDCkjUFigRYf0GS4z-rNDOhO_Yf0ERJDlqWSSEVBrZoxgD395YLMXuLNGQHXvX5WwIG0TkKoldbo0cEnc8S-lwOZkwUtT4SpKDeTONyRhMMJmOHc");
-        chatAttendeeTokenList.add("ftyG76-d9Yg:APA91bFJDJshrlGV-qFPjpdOtqNdusEmIrfR4I65f6us4biPlBCi2LiaC67cuteojw_lCSYsEuezVevOBYw3WwK-AI93Fm2iQik1JNS7lxt1xKUKB_PfFbgrXFMFYNA1QUvrAQ15wMm8");
-        chatAttendeeTokenList.add("cqGKPB-73Ps:APA91bFQEhedJ1_KGwIBWMJFYAMMZAVkwIw8iT5FoJiuXaqij1XWglYTKtGqhhntk1snoukzLMvJQL9-s7GZP4w_j05u55IpyYgSaNnXZe6bSKBlt1iQDg_OkMbCyA-Z3r8jvEqaDYDm");
+        if (!DemoChat.id1.equals(myId))
+            chatAttendeeTokenList.add("c8DQ6fncZQs:APA91bFe1yhxv03tIcbLguOk9-irBFQrl2k3TF9h4rExNzFGsxVvjmcgpWiW5UPud21hkw62a1Z7BP-J60zGPk1-YA5halrjwK2wKG_eum3dhobczTTkptfZo8RjsbpvuvlVYej3cJPp");
+        if (!DemoChat.id2.equals(myId))
+            chatAttendeeTokenList.add("fhqG2CPmeoY:APA91bFjk6QkIsgixkVrXCo62VaqDARCP1Jg9JWSdxcQVi6qFdB2nr3bYqVCj3o-nMGDLowm1rSz6LnozRk9fXjtL7embsVVuCol_lilBnTnLsyIp1g8AhQQ0iFS-yvYiqd5Z1WZcsUf");
+        if (!DemoChat.id3.equals(myId))
+            chatAttendeeTokenList.add("dNK-zOFMQT4:APA91bE0sYrJSAtIi0fGdmqFf-f_p_WMS5kbCC1g8s3kHfujB7Y8hVWh3dYn_lsazAVPkxykAHzy8wcHXNTG3saDpbhKH6OGrMPpYt7Gzlb1Yk0dGHlcf-7h8B0iFWBLrmqG1HXeFM6G");
     }
-
 }
