@@ -116,8 +116,10 @@ public class Attendee implements Parcelable {
         if (firstName != null && !firstName.isEmpty()) {
             return firstName + " " + lastName;
         }
-        else {
+        else if (userName != null && !userName.isEmpty()){
             return userName;
+        } else {
+            return email;
         }
     }
 }
