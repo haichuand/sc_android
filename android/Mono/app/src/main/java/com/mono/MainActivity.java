@@ -468,11 +468,13 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             return;
         }
 
-        ConversationManager manager = ConversationManager.getInstance(this);
-        List<Conversation> conversations = manager.getConversations(eventId);
+        ConversationManager conversationManager = ConversationManager.getInstance(this);
+        List<Conversation> conversations = conversationManager.getConversations(eventId);
 
-        String conversationId = null;
-        if (!conversations.isEmpty()) {
+        String conversationId;
+        if (conversations.isEmpty()) {
+            conversationId = conversationManager.createConversation(event.title, event.id);
+        } else {
             Conversation conversation = conversations.get(0);
             conversationId = conversation.id;
         }

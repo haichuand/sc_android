@@ -31,13 +31,8 @@ public class ConversationManager {
         return instance;
     }
 
-    public Conversation createConversation(String name, String eventId) {
-        String id = conversationDataSource.createConversationFromEvent(name, eventId);
-
-        Conversation conversation = new Conversation(id);
-        conversation.name = name;
-
-        return conversation;
+    public String createConversation(String name, String eventId) {
+        return conversationDataSource.createConversationFromEvent(name, eventId);
     }
 
     public List<Conversation> getConversations() {

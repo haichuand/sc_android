@@ -31,7 +31,6 @@ import com.mono.R;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.AttendeeDataSource;
 import com.mono.model.Attendee;
-import com.mono.model.Conversation;
 import com.mono.model.Message;
 import com.mono.network.GCMHelper;
 import com.mono.util.Common;
@@ -172,17 +171,13 @@ public class ChatRoomActivity extends GestureActivity {
                 }
             }
         });
-        addAttendeeTextView.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        addAttendeeTextView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                newlyAddedAttendee = allUsersList.get(i);
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> adapterView) {
-
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                newlyAddedAttendee = (Attendee) adapterView.getItemAtPosition(i);
             }
         });
+
         AttendeeDataSource attendeeDataSource = DatabaseHelper.getDataSource(this, AttendeeDataSource.class);
         allUsersList = attendeeDataSource.getAttendees();
         Collections.sort(allUsersList, new AttendeeUsernameComparator());
@@ -299,9 +294,7 @@ public class ChatRoomActivity extends GestureActivity {
     public void onSendButtonClicked(View view) {
         // Create New Conversation Upon 1st Message
         if (conversationId == null) {
-            Conversation conversation =
-                ConversationManager.getInstance(this).createConversation(eventName, eventId);
-            conversationId = conversation.id;
+            conversationId = ConversationManager.getInstance(this).createConversation(eventName, eventId);
         }
 
         String msg = sendMessageText.getText().toString();
@@ -329,11 +322,20 @@ public class ChatRoomActivity extends GestureActivity {
         if (newlyAddedAttendee == null) {
             return;
         }
+        //do not add duplicate attendee
+        for (Attendee attendee : chatAttendeeMap.toAttendeeList()) {
+            if (attendee.email.equals(newlyAddedAttendee.email))
+                return;
+        }
+
         conversationManager.addAttendee(conversationId, newlyAddedAttendee.id);
+        chatAttendeeMap.addAttendee(newlyAddedAttendee);
         Map<String, String> nameMap = new HashMap<>();
         nameMap.put("name", newlyAddedAttendee.toString());
         chatAttendeeAdapterList.add(nameMap);
         chatAttendeeListAdapter.notifyDataSetChanged();
+
+        newlyAddedAttendee = null;
     }
 
     class AttendeeUsernameComparator implements Comparator<Attendee> {
