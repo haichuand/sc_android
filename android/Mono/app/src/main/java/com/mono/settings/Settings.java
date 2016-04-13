@@ -56,9 +56,7 @@ public class Settings {
 
     public static Settings getInstance(Context context) {
         if (instance == null) {
-            instance = new Settings(context);
-        } else if (context != instance.context) {
-            instance.context = context;
+            instance = new Settings(context.getApplicationContext());
         }
 
         return instance;

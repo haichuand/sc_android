@@ -27,7 +27,10 @@ import android.widget.TextView;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.mono.R;
 import com.mono.model.Attendee;
+import com.mono.model.Conversation;
 import com.mono.model.Message;
+import com.mono.network.GCMHelper;
+import com.mono.util.Common;
 import com.mono.util.GestureActivity;
 
 import java.text.SimpleDateFormat;
@@ -44,6 +47,7 @@ public class ChatRoomActivity extends GestureActivity implements NavigationView.
     public static final String CONVERSATION_ID = "conversationId";
     public static final String EVENT_START_TIME = "eventStartTime";
     public static final String EVENT_END_TIME = "eventEndTime";
+    public static final String EVENT_ID = "eventId";
     public static final String EVENT_NAME = "eventName";
     public static final String MY_ID = "myId";
     private static final String TAG = "ChatRoomActivity";
@@ -51,6 +55,8 @@ public class ChatRoomActivity extends GestureActivity implements NavigationView.
     private static final SimpleDateFormat DATE_FORMAT;
     private static final SimpleDateFormat TIME_FORMAT;
 
+    private String eventName;
+    private String eventId;
     private String conversationId;
     private String myId;
     private Toolbar toolbar;
@@ -61,11 +67,11 @@ public class ChatRoomActivity extends GestureActivity implements NavigationView.
     private TextView sendMessageText;
 
     private LinearLayoutManager chatLayoutManager;
-    private ChatAttendeeMap chatAttendeeMap;
-    SimpleAdapter chatAttendeeListAdapter;
-    private List<Message> chatMessages;
-    private List<Map<String, String>> chatAttendeeAdapterList;
-    private List<String> chatAttendeeTokenList; //GCM token list for sending messages
+    private ChatAttendeeMap chatAttendeeMap = new ChatAttendeeMap();
+    private SimpleAdapter chatAttendeeListAdapter;
+    private List<Message> chatMessages = new ArrayList<>();
+    private List<Map<String, String>> chatAttendeeAdapterList = new ArrayList<>();
+    private List<String> chatAttendeeTokenList = new ArrayList<>(); //GCM token list for sending messages
 //    private int newMessageIndex; //starting index of new messages that need to be saved to database in chatMessages
     private ConversationManager conversationManager;
 
@@ -87,13 +93,14 @@ public class ChatRoomActivity extends GestureActivity implements NavigationView.
             finish();
         }
 
-        conversationId = intent.getStringExtra(CONVERSATION_ID);
+        eventId = intent.getStringExtra(EVENT_ID);
+        eventName = intent.getStringExtra(EVENT_NAME);
         long eventStartTime = intent.getLongExtra(EVENT_START_TIME, 0);
         long eventEndTime = intent.getLongExtra(EVENT_END_TIME, 0);
-        String eventName = intent.getStringExtra(EVENT_NAME);
+        conversationId = intent.getStringExtra(CONVERSATION_ID);
         myId = intent.getStringExtra(MY_ID);
 
-        if (eventStartTime == 0 || eventEndTime == 0 || myId == null || conversationId == null) {
+        if (eventStartTime == 0 || eventEndTime == 0 || myId == null) {
             Log.e(TAG, "Error: intent parameters missing");
             finish();
         }
@@ -140,6 +147,8 @@ public class ChatRoomActivity extends GestureActivity implements NavigationView.
         //set the RecyclerView for chat messages and its adapter
         chatLayoutManager = new LinearLayoutManager(this);
         chatView.setLayoutManager(chatLayoutManager);
+        chatRoomAdapter = new ChatRoomAdapter(this, myId, chatAttendeeMap, chatMessages);
+        chatView.setAdapter(chatRoomAdapter);
 
         // TODO: get GCM tokens from server and put in chatAttendeeTokenList
         chatAttendeeTokenList = new ArrayList<>();
@@ -151,17 +160,19 @@ public class ChatRoomActivity extends GestureActivity implements NavigationView.
             @Override
             public void onReceive(Context context, Intent intent) {
                 Bundle data = intent.getBundleExtra(MyGcmListenerService.GCM_MESSAGE_DATA);
-                String conversation_id = data.getString(GcmMessage.CONVERSATION_ID);
+                String conversation_id = data.getString(GCMHelper.CONVERSATION_ID);
                 //only continue if conversationId matches
-                if (conversation_id==null || !conversation_id.equals(conversationId))
-                    return;
-                String message = data.getString(GcmMessage.MESSAGE);
-                String sender_id = data.getString(GcmMessage.SENDER_ID);
-                //check if UI setup is complete first
-                if (chatMessages == null || chatRoomAdapter == null || chatLayoutManager == null)
-                    return;
-                chatMessages.add(new Message(sender_id, conversationId, message, new Date().getTime()));
-                chatRoomAdapter.notifyItemInserted(chatMessages.size() - 1);
+//                if (conversation_id==null || !conversation_id.equals(conversationId))
+//                    return;
+                String message = data.getString(GCMHelper.MESSAGE);
+                String sender_id = data.getString(GCMHelper.SENDER_ID);
+
+                if (Common.compareStrings(sender_id, myId)) {
+                    // Sent Confirmation
+                } else {
+                    chatMessages.add(new Message(sender_id, conversationId, message, new Date().getTime()));
+                    chatRoomAdapter.notifyItemInserted(chatMessages.size() - 1);
+                }
             }
         };
 
@@ -175,22 +186,19 @@ public class ChatRoomActivity extends GestureActivity implements NavigationView.
                 }
             }
         });
+
+        initialize();
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        LocalBroadcastManager.getInstance(this).registerReceiver(receiver, new IntentFilter(MyGcmListenerService.GCM_INCOMING_INTENT));
-    }
+    private void initialize() {
+        if (conversationId == null) {
+            return;
+        }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
         chatMessages = conversationManager.getChatMessages(conversationId);
         chatAttendeeMap = conversationManager.getChatAttendeeMap(conversationId);
         chatRoomAdapter = new ChatRoomAdapter(this, myId, chatAttendeeMap, chatMessages);
         chatView.setAdapter(chatRoomAdapter);
-
 
         /* set up adapter for chat attendee list */
         HashMap<String, Attendee> newAttendeeMap = new HashMap<>(chatAttendeeMap.getChatAttendeeMap());
@@ -209,6 +217,17 @@ public class ChatRoomActivity extends GestureActivity implements NavigationView.
         int[] to = new int[] {R.id.chat_attendee_name};
         chatAttendeeListAdapter = new SimpleAdapter(this, chatAttendeeAdapterList, R.layout.chat_attendee_list_item, from, to);
         chatAttendeeListView.setAdapter(chatAttendeeListAdapter);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        LocalBroadcastManager.getInstance(this).registerReceiver(receiver, new IntentFilter(MyGcmListenerService.GCM_INCOMING_INTENT));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
     }
 
     @Override
@@ -251,6 +270,13 @@ public class ChatRoomActivity extends GestureActivity implements NavigationView.
     }
 
     public void onSendButtonClicked(View view) {
+        // Create New Conversation Upon 1st Message
+        if (conversationId == null) {
+            Conversation conversation =
+                ConversationManager.getInstance(this).createConversation(eventName, eventId);
+            conversationId = conversation.id;
+        }
+
         String msg = sendMessageText.getText().toString();
         if (msg.isEmpty())
             return;
@@ -258,7 +284,7 @@ public class ChatRoomActivity extends GestureActivity implements NavigationView.
         chatRoomAdapter.notifyItemInserted(chatMessages.size() - 1);
         sendMessageText.setText("");
 
-        gcmMessage.sendMessage(myId, conversationId, msg, "MESSAGE", chatAttendeeTokenList, gcm);
+        gcmMessage.sendMessage(GCMHelper.getChatMessage(conversationId, myId, msg, chatAttendeeTokenList), gcm);
         Message message = new Message(myId, conversationId, msg, new Date().getTime());
         conversationManager.saveChatMessageToDB(message);
     }

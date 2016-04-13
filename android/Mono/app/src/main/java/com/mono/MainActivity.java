@@ -1,14 +1,9 @@
 package com.mono;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
@@ -17,7 +12,6 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
-import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
@@ -33,14 +27,12 @@ import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.mono.calendar.CalendarHelper;
 import com.mono.chat.ChatRoomActivity;
 import com.mono.chat.ConversationManager;
-import com.mono.chat.RegistrationIntentService;
 import com.mono.details.EventDetailsActivity;
+import com.mono.model.Account;
 import com.mono.model.Calendar;
 import com.mono.model.Conversation;
 import com.mono.model.Event;
@@ -63,7 +55,11 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     public static final String APP_DIR = "MonoFiles/";
 
     public static final int HOME = R.id.nav_home;
+    public static final int LOGIN = R.id.nav_login;
+    public static final int LOGOUT = R.id.nav_logout;
     public static final int SETTINGS = R.id.nav_settings;
+
+    private static final String EXTRA_EVENT_ID = "eventId";
 
     private Toolbar toolbar;
     private Spinner toolbarSpinner;
@@ -76,11 +72,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
     private ServiceScheduler scheduler;
     private GoogleClient googleClient;
-
-    private static final int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
-    private static final String TAG = "MainActivity";
-    private BroadcastReceiver mRegistrationBroadcastReceiver;
-    private String myId = "temporaryUserId_WillbeRetriveFromServerLaster_1";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,26 +101,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         googleClient = new GoogleClient(this);
         googleClient.initialize();
 
-        mRegistrationBroadcastReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                SharedPreferences sharedPreferences =
-                        PreferenceManager.getDefaultSharedPreferences(context);
-                boolean sentToken = sharedPreferences
-                        .getBoolean(SuperCalyPreferences.SENT_TOKEN_TO_SERVER, false);
-                if (sentToken) {
-                    Log.log(TAG,"Token retrieved and sent to server! You can now use gcmsender to send downstream messages to this app.");
-                } else {
-                    Log.log(TAG, "An error occurred while either fetching the InstanceID token");
-                }
-            }
-        };
-        if (checkPlayServices()) {
-            // Start IntentService to register this application with GCM.
-            Intent intent = new Intent(this, RegistrationIntentService.class);
-            startService(intent);
-        }
-
         start();
     }
 
@@ -141,10 +112,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         if (!Settings.getInstance(this).getPermissionCheck()) {
             PermissionManager.checkPermissions(this, RequestCodes.Permission.PERMISSION_CHECK);
         }
-        //todo: change to code to get real userid from server
-        SharedPreferences sharedPreferences =
-                PreferenceManager.getDefaultSharedPreferences(this);
-        sharedPreferences.edit().putString(SuperCalyPreferences.USER_ID, myId).apply();
 
         showHome();
         runDayOne();
@@ -162,14 +129,10 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
         navView.setCheckedItem(HOME);
         scheduler.run(this);
-
-        LocalBroadcastManager.getInstance(this).registerReceiver(mRegistrationBroadcastReceiver,
-                new IntentFilter(SuperCalyPreferences.REGISTRATION_COMPLETE));
     }
 
     @Override
     protected void onPause() {
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(mRegistrationBroadcastReceiver);
         super.onPause();
     }
 
@@ -227,6 +190,12 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         super.onActivityResult(requestCode, resultCode, data);
 
         switch (requestCode) {
+            case RequestCodes.Activity.LOGIN:
+                handleLogin(resultCode, data);
+                break;
+            case RequestCodes.Activity.LOGIN_CHAT:
+                handleLoginChat(resultCode, data);
+                break;
             case RequestCodes.Activity.SETTINGS:
                 handleSettings(resultCode, data);
                 break;
@@ -271,6 +240,12 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         switch (id) {
             case HOME:
                 showHome();
+                break;
+            case LOGIN:
+                showLogin();
+                break;
+            case LOGOUT:
+                AccountManager.getInstance(this).logout();
                 break;
             case SETTINGS:
                 showSettings();
@@ -391,6 +366,28 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     }
 
     @Override
+    public void showLogin() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        startActivityForResult(intent, RequestCodes.Activity.LOGIN);
+    }
+
+    public void handleLogin(int resultCode, Intent data) {
+        if (resultCode == RESULT_OK) {
+            Account account = data.getParcelableExtra(LoginActivity.EXTRA_ACCOUNT);
+            AccountManager.getInstance(this).setAccount(account);
+        }
+    }
+
+    public void handleLoginChat(int resultCode, Intent data) {
+        handleLogin(resultCode, data);
+
+        if (resultCode == RESULT_OK) {
+            String eventId = data.getStringExtra(EXTRA_EVENT_ID);
+            showChat(eventId);
+        }
+    }
+
+    @Override
     public void showSettings() {
         Intent intent = new Intent(this, SettingsActivity.class);
         startActivityForResult(intent, RequestCodes.Activity.SETTINGS);
@@ -462,22 +459,31 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             return;
         }
 
+        Account account = AccountManager.getInstance(this).getAccount();
+        if (account == null) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.putExtra(EXTRA_EVENT_ID, eventId);
+
+            startActivityForResult(intent, RequestCodes.Activity.LOGIN_CHAT);
+            return;
+        }
+
         ConversationManager manager = ConversationManager.getInstance(this);
         List<Conversation> conversations = manager.getConversations(eventId);
 
-        Conversation conversation;
+        String conversationId = null;
         if (!conversations.isEmpty()) {
-            conversation = conversations.get(0);
-        } else {
-            conversation = manager.createConversation(event.title, event.id);
+            Conversation conversation = conversations.get(0);
+            conversationId = conversation.id;
         }
 
         Intent intent = new Intent(this, ChatRoomActivity.class);
+        intent.putExtra(ChatRoomActivity.EVENT_ID, event.id);
         intent.putExtra(ChatRoomActivity.EVENT_NAME, event.title);
         intent.putExtra(ChatRoomActivity.EVENT_START_TIME, event.startTime);
         intent.putExtra(ChatRoomActivity.EVENT_END_TIME, event.endTime);
-        intent.putExtra(ChatRoomActivity.CONVERSATION_ID, conversation.id);
-        intent.putExtra(ChatRoomActivity.MY_ID, myId);
+        intent.putExtra(ChatRoomActivity.CONVERSATION_ID, conversationId);
+        intent.putExtra(ChatRoomActivity.MY_ID, account.username);
 
         startActivityForResult(intent, RequestCodes.Activity.CHAT);
     }
@@ -514,35 +520,19 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         long milliseconds = settings.getDayOne();
 
         if (milliseconds <= 0) {
-            settings.setDayOne(System.currentTimeMillis());
-            // Initialize Calendars
-            Set<Long> calendars = new HashSet<>();
-            List<Calendar> calendarList = CalendarHelper.getInstance(this).getCalendars();
-            for (Calendar calendar : calendarList) {
-                calendars.add(calendar.id);
-            }
-            settings.setCalendars(calendars);
-        }
-    }
+            try {
+                // Initialize Calendars
+                Set<Long> calendars = new HashSet<>();
+                List<Calendar> calendarList = CalendarHelper.getInstance(this).getCalendars();
+                for (Calendar calendar : calendarList) {
+                    calendars.add(calendar.id);
+                }
+                settings.setCalendars(calendars);
 
-    /**
-     * Check the device to make sure it has the Google Play Services APK. If
-     * it doesn't, display a dialog that allows users to download the APK from
-     * the Google Play Store or enable it in the device's system settings.
-     */
-    private boolean checkPlayServices() {
-        GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
-        int resultCode = apiAvailability.isGooglePlayServicesAvailable(this);
-        if (resultCode != ConnectionResult.SUCCESS) {
-            if (apiAvailability.isUserResolvableError(resultCode)) {
-                apiAvailability.getErrorDialog(this, resultCode, PLAY_SERVICES_RESOLUTION_REQUEST)
-                        .show();
-            } else {
-                //Log.i(TAG, "This device is not supported.");
-                finish();
+                settings.setDayOne(System.currentTimeMillis());
+            } catch (SecurityException e) {
+                e.printStackTrace();
             }
-            return false;
         }
-        return true;
     }
 }

@@ -56,10 +56,12 @@ public class LocationHelper {
             Criteria criteria = new Criteria();
             String provider = manager.getBestProvider(criteria, false);
 
-            android.location.Location location = manager.getLastKnownLocation(provider);
+            if (provider != null) {
+                android.location.Location location = manager.getLastKnownLocation(provider);
 
-            if (location != null) {
-                latLng = new LatLng(location.getLatitude(), location.getLongitude());
+                if (location != null) {
+                    latLng = new LatLng(location.getLatitude(), location.getLongitude());
+                }
             }
         } catch (SecurityException e) {
             e.printStackTrace();

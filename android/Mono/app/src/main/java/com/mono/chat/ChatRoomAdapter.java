@@ -83,7 +83,11 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatVi
             String userId = message.getUserId();
 
             Attendee attendee = chatAttendees.get(userId);
-            holder.senderName.setText(attendee.userName);
+            if (attendee != null) {
+                holder.senderName.setText(attendee.userName);
+            }
+
+            holder.senderName.setText(message.getUserId());
 
             if (!userColors.containsKey(userId)) {
                 userColors.put(userId, getRandomColor());

@@ -24,6 +24,8 @@
     <string name="action_logout">Sign Out</string>
 
     <string name="fragment_main">MainFragment</string>
+    <string name="fragment_login">LoginFragment</string>
+    <string name="fragment_register">RegisterFragment</string>
     <string name="fragment_calendar">CalendarFragment</string>
     <string name="fragment_calendar_events">CalendarEventsFragment</string>
     <string name="fragment_events">EventsFragment</string>
@@ -81,6 +83,19 @@
     <string name="guests">Guests</string>
     <string name="chats">Chats</string>
     <string name="friends">Friends</string>
+    <string name="phone">Phone</string>
+    <string name="email">Email</string>
+    <string name="email_phone">Email or Phone</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="log_in">Log In</string>
+    <string name="sign_up">Sign Up?</string>
+    <string name="register">Register</string>
+    <string name="name">Name</string>
+    <string name="first_name">First Name</string>
+    <string name="last_name">Last Name</string>
+    <string name="cancel">Cancel</string>
 
     <string name="me">Me</string>
     <string name="chat_input_hint">Your Message Here</string>

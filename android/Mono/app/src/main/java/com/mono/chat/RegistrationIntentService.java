@@ -9,8 +9,10 @@ import android.util.Log;
 
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.google.android.gms.iid.InstanceID;
+import com.mono.AccountManager;
 import com.mono.R;
 import com.mono.SuperCalyPreferences;
+import com.mono.model.Account;
 
 /**
  * Created by xuejing on 2/25/16.
@@ -23,16 +25,18 @@ public class RegistrationIntentService extends IntentService {
 
     }
 
-    public void onCreate () {
+    public void onCreate() {
         super.onCreate();
     }
 
-    public void onHandleIntent (Intent intent) {
+    @Override
+    public void onHandleIntent(Intent intent) {
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+
         try {
-            InstanceID instanceID = InstanceID.getInstance(this);
-            String token = instanceID.getToken(getString(R.string.gcm_defaultSenderId),
-                    GoogleCloudMessaging.INSTANCE_ID_SCOPE, null);
+            InstanceID instance = InstanceID.getInstance(this);
+            String token = instance.getToken(getString(R.string.gcm_defaultSenderId),
+                GoogleCloudMessaging.INSTANCE_ID_SCOPE, null);
 
             Log.i(TAG, "GCM Registration Token: " + token);
 
@@ -46,15 +50,12 @@ public class RegistrationIntentService extends IntentService {
             // on a third-party server, this ensures that we'll attempt the update at a later time.     
             sharedPreferences.edit().putBoolean(SuperCalyPreferences.SENT_TOKEN_TO_SERVER, false).apply();
         }
-        Intent registrationComplete = new Intent(SuperCalyPreferences.REGISTRATION_COMPLETE);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(registrationComplete);
+
+        intent = new Intent(SuperCalyPreferences.REGISTRATION_COMPLETE);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
     private void sendRegistrationToServer(String token) {
-        // Add custom implementation, as needed.
-        Log.i(TAG, token);
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        sharedPreferences.edit().putString(SuperCalyPreferences.USER_ID, token).apply();
-        Log.i(TAG, "the userid is successfully added to sharedPref, id = " + sharedPreferences.getString(SuperCalyPreferences.USER_ID,""));
+        AccountManager.getInstance(getApplicationContext()).setGCMToken(token);
     }
 }

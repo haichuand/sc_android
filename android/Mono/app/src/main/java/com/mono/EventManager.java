@@ -35,9 +35,7 @@ public class EventManager {
 
     public static EventManager getInstance(Context context) {
         if (instance == null) {
-            instance = new EventManager(context);
-        } else if (context != instance.context) {
-            instance.context = context;
+            instance = new EventManager(context.getApplicationContext());
         }
 
         return instance;
