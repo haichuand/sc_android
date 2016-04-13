@@ -110,4 +110,14 @@ public class Attendee implements Parcelable {
         dest.writeString(userName);
         dest.writeValue(isFriend);
     }
+
+    @Override
+    public String toString() {
+        if (firstName != null && !firstName.isEmpty()) {
+            return firstName + " " + lastName;
+        }
+        else {
+            return userName;
+        }
+    }
 }

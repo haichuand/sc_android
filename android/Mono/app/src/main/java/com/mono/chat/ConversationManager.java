@@ -60,4 +60,8 @@ public class ConversationManager {
     public void saveChatMessageToDB(Message message) {
         conversationDataSource.addMessageToConversation(message);
     }
+
+    public void addAttendee(String conversationId, String attendeeId) {
+        conversationDataSource.addAttendeeToConversation(conversationId, attendeeId);
+    }
 }

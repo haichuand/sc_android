@@ -143,6 +143,17 @@ public class ConversationDataSource extends DataSource{
         }
     }
 
+    public void addAttendeeToConversation(String conversationId, String attendeeId) {
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.ConversationAttendee.C_ID, conversationId);
+        values.put(DatabaseValues.ConversationAttendee.ATTENDEE_ID, attendeeId);
+        try {
+            database.insert(DatabaseValues.ConversationAttendee.TABLE, values);
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+
     public List<String> getConversationAttendeesIds (String conversationId) {
         List<String> attendeeList = new LinkedList<>();
 

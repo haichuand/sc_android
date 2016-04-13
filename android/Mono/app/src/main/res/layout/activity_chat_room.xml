@@ -57,7 +57,9 @@
         </LinearLayout>
     </LinearLayout>
 
+    <!--Navigation Drawer layout -->
     <LinearLayout
+        android:id="@+id/chat_drawer"
         android:layout_width="240dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
