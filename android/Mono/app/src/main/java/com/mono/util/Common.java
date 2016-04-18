@@ -36,7 +36,7 @@ public class Common {
     }
 
     public static String[] explode(String delimiter, String value) {
-        return value.split(delimiter);
+        return value.split("\\" + delimiter);
     }
 
     public static String implode(String delimiter, String[] values) {
@@ -57,6 +57,19 @@ public class Common {
         for (int i = 0; i < values.size(); i++) {
             String value = values.get(i);
             if (i > 0) builder.append(delimiter);
+            builder.append(value);
+        }
+
+        return builder.toString();
+    }
+
+    public static String repeat(String value, int length, String delimiter) {
+        StringBuilder builder = new StringBuilder();
+
+        for (int i = 0; i < length; i++) {
+            if (delimiter != null && i > 0) {
+                builder.append(delimiter);
+            }
             builder.append(value);
         }
 

@@ -46,11 +46,9 @@ public class Settings {
 
     private static Settings instance;
 
-    private Context context;
     private SharedPreferences preferences;
 
     private Settings(Context context) {
-        this.context = context;
         preferences = PreferenceManager.getDefaultSharedPreferences(context);
     }
 
@@ -72,6 +70,22 @@ public class Settings {
         Set<String> tempIds = preferences.getStringSet(PREF_CALENDARS, DEFAULT_CALENDARS);
         for (String id : tempIds) {
             calendarIds.add(Long.parseLong(id));
+        }
+
+        return calendarIds;
+    }
+
+    public long[] getCalendarsArray() {
+        long[] calendarIds = null;
+
+        Set<Long> tempIds = getCalendars();
+        if (!tempIds.isEmpty()) {
+            calendarIds = new long[tempIds.size()];
+
+            int i = 0;
+            for (Long id : tempIds) {
+                calendarIds[i++] = id;
+            }
         }
 
         return calendarIds;
