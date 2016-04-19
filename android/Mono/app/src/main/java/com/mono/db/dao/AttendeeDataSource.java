@@ -8,6 +8,9 @@ import com.mono.db.Database;
 import com.mono.db.DatabaseValues;
 import com.mono.model.Attendee;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by xuejing on 3/28/16.
  */
@@ -89,6 +92,34 @@ public class AttendeeDataSource extends DataSource {
         return user;
     }
 
+    public List<Attendee> getAttendees() {
+        List<Attendee> attendees = new ArrayList<>();
+
+        Cursor cursor = database.select(
+            DatabaseValues.User.TABLE,
+            DatabaseValues.User.PROJECTION
+        );
+
+        while (cursor.moveToNext()) {
+            Attendee attendee = cursorToAttendee(cursor);
+            attendees.add(attendee);
+        }
+
+        cursor.close();
+
+        return attendees;
+    }
+
+    public int removeAttendee(String id) {
+        return database.delete(
+            DatabaseValues.User.TABLE,
+            DatabaseValues.User.U_ID + " = ?",
+            new String[]{
+                id
+            }
+        );
+    }
+
     public int updateValues(String id, ContentValues values) {
         return database.update(
                 DatabaseValues.User.TABLE,
@@ -127,7 +158,6 @@ public class AttendeeDataSource extends DataSource {
      * For PROJECTION only.
      */
     private Attendee cursorToAttendee(Cursor cursor) {
-
         Attendee user = new Attendee(cursor.getString(DatabaseValues.User.INDEX_U_ID));
         user.mediaId = cursor.getString(DatabaseValues.User.INDEX_MEDIA_ID);
         user.email = cursor.getString(DatabaseValues.User.INDEX_EMAIL);
@@ -135,9 +165,8 @@ public class AttendeeDataSource extends DataSource {
         user.firstName = cursor.getString(DatabaseValues.User.INDEX_FIRST_NAME);
         user.lastName = cursor.getString(DatabaseValues.User.INDEX_LAST_NAME);
         user.userName = cursor.getString(DatabaseValues.User.INDEX_USER_NAME);
-        user.isFriend = cursor.getInt(DatabaseValues.User.INDEX_IS_FRIEND) == 1 ? true : false;
+        user.isFriend = cursor.getInt(DatabaseValues.User.INDEX_IS_FRIEND) > 0;
 
         return user;
     }
-
 }

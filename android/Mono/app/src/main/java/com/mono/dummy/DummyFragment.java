@@ -33,6 +33,7 @@ import com.mono.model.Attendee;
 import com.mono.model.Conversation;
 import com.mono.model.Event;
 import com.mono.model.Message;
+import com.mono.network.GCMHelper;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
 
 import java.io.BufferedReader;
@@ -203,7 +204,7 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
         recipients.add("c2LxofJLjHk:APA91bHhfKaGP0rfkSzGoBQIqG_kIDCkjUFigRYf0GS4z-rNDOhO_Yf0ERJDlqWSSEVBrZoxgD395YLMXuLNGQHXvX5WwIG0TkKoldbo0cEnc8S-lwOZkwUtT4SpKDeTONyRhMMJmOHc");
         GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(this.getContext());
         GcmMessage gcmMessage = GcmMessage.getInstance(this.getContext());
-        gcmMessage.sendMessage(sender_id, conversation_id, message, action, recipients, gcm);
+        gcmMessage.sendMessage(GCMHelper.getChatMessage(conversation_id, sender_id, message, recipients), gcm);
     }
 
     private void testDB(View view) {

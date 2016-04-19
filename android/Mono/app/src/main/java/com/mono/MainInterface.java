@@ -28,6 +28,8 @@ public interface MainInterface {
 
     void showHome();
 
+    void showLogin();
+
     void showSettings();
 
     void showWebActivity(Fragment fragment, int requestCode);

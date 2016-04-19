@@ -9,6 +9,7 @@ import com.mono.db.DatabaseValues;
 import com.mono.model.Attendee;
 import com.mono.model.Conversation;
 import com.mono.model.Message;
+import com.mono.util.Common;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -46,6 +47,22 @@ public class ConversationDataSource extends DataSource{
 
         return id;
     }
+
+    public String getConversationFromEvent (String eventID) {
+        String conversationID = null;
+        try {
+            Cursor cursor = database.select(DatabaseValues.EventConversation.TABLE, new String[]{"*"},
+                    DatabaseValues.EventConversation.EVENT_ID + "=?", new String[]{eventID});
+            if (cursor.moveToFirst()) {
+                conversationID = cursor.getString(DatabaseValues.EventConversation.INDEX_C_ID);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return conversationID;
+    }
+
     //TODO: create a conversation initialized by other user
     public String createConversationWithConversation (Conversation conversation) {
         return conversation.getId();
@@ -123,6 +140,17 @@ public class ConversationDataSource extends DataSource{
             database.insert(DatabaseValues.ConversationContent.TABLE, values);
         }catch (SQLException e) {
             e.printStackTrace();
+        }
+    }
+
+    public void addAttendeeToConversation(String conversationId, String attendeeId) {
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.ConversationAttendee.C_ID, conversationId);
+        values.put(DatabaseValues.ConversationAttendee.ATTENDEE_ID, attendeeId);
+        try {
+            database.insert(DatabaseValues.ConversationAttendee.TABLE, values);
+        } catch (SQLException ex) {
+            ex.printStackTrace();
         }
     }
 
@@ -225,6 +253,51 @@ public class ConversationDataSource extends DataSource{
         Conversation conversation = new Conversation(conversationId, conversationName, attendees, messages);
 
         return conversation;
+    }
+
+    public List<Conversation> getConversations() {
+        return getConversations(null);
+    }
+
+    public List<Conversation> getConversations(String eventId) {
+        List<Conversation> conversations = new ArrayList<>();
+
+        String[] projection = {
+            "c." + DatabaseValues.Conversation.C_ID,
+            "ec." + DatabaseValues.EventConversation.EVENT_ID,
+            "c." + DatabaseValues.Conversation.C_NAME
+        };
+
+        String query =
+            " SELECT " + Common.implode(", ", projection) +
+            " FROM " + DatabaseValues.EventConversation.TABLE + " ec" +
+            " INNER JOIN " + DatabaseValues.Conversation.TABLE + " c" +
+            " ON ec." + DatabaseValues.EventConversation.C_ID + " = c." + DatabaseValues.Conversation.C_ID;
+
+        String[] args = null;
+
+        if (eventId != null) {
+            query += " WHERE ec." + DatabaseValues.EventConversation.EVENT_ID + " = ?";
+            args = new String[]{
+                eventId
+            };
+        }
+
+        query += " ORDER BY c." + DatabaseValues.Conversation.C_NAME;
+
+        Cursor cursor = database.rawQuery(query, args);
+
+        while (cursor.moveToNext()) {
+            Conversation conversation = new Conversation(cursor.getString(0));
+            conversation.eventId = cursor.getString(1);
+            conversation.name = cursor.getString(2);
+
+            conversations.add(conversation);
+        }
+
+        cursor.close();
+
+        return conversations;
     }
 
     public List<Attendee> getConversationAttendees (String conversationId) {

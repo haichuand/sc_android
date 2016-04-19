@@ -15,6 +15,7 @@ import com.google.android.gms.gcm.GcmListenerService;
 import com.mono.MainActivity;
 import com.mono.R;
 import com.mono.model.Message;
+import com.mono.network.GCMHelper;
 
 import java.util.Date;
 
@@ -36,9 +37,9 @@ public class MyGcmListenerService extends GcmListenerService {
     }
 
     public void onMessageReceived(String from, Bundle data) {
-        String message = data.getString(GcmMessage.MESSAGE);
-        String sender_id = data.getString(GcmMessage.SENDER_ID);
-        String conversation_id = data.getString(GcmMessage.CONVERSATION_ID);
+        String message = data.getString(GCMHelper.MESSAGE);
+        String sender_id = data.getString(GCMHelper.SENDER_ID);
+        String conversation_id = data.getString(GCMHelper.CONVERSATION_ID);
         Log.d(TAG, "From: " + from);
         Log.d(TAG, "From user: " + sender_id);
         Log.d(TAG, "Message: " + message);
@@ -84,7 +85,7 @@ public class MyGcmListenerService extends GcmListenerService {
 
         Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
         NotificationCompat.Builder notificationBuilder = (NotificationCompat.Builder) new NotificationCompat.Builder(this)
-                .setSmallIcon(R.drawable.cast_ic_notification_0)
+                .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("GCM Message")
                 .setContentText(message)
                 .setAutoCancel(true)

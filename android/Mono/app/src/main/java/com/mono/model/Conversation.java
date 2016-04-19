@@ -6,10 +6,16 @@ import java.util.List;
  * Created by xuejing on 3/10/16.
  */
 public class Conversation {
-    String id;
-    String name;
-    List<Attendee> attendees;
-    List<Message> messages;
+
+    public final String id;
+    public String eventId;
+    public String name;
+    public List<Attendee> attendees;
+    public List<Message> messages;
+
+    public Conversation(String id) {
+        this.id = id;
+    }
 
     public Conversation(String id, String name) {
         this.id = id;

@@ -45,7 +45,9 @@ public class PermissionManager {
 
             if (info.requestedPermissions != null) {
                 String[] permissions = filterPermissions(activity, info.requestedPermissions);
-                ActivityCompat.requestPermissions(activity, permissions, requestCode);
+                if (permissions.length > 0) {
+                    ActivityCompat.requestPermissions(activity, permissions, requestCode);
+                }
             }
         } catch (NameNotFoundException e) {
             e.printStackTrace();

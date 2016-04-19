@@ -3,6 +3,8 @@ package com.mono.model;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.mono.util.Common;
+
 public class Attendee implements Parcelable {
 
     public final String id;
@@ -78,6 +80,21 @@ public class Attendee implements Parcelable {
     };
 
     @Override
+    public boolean equals(Object object) {
+        if (!(object instanceof Attendee)) {
+            return false;
+        }
+
+        Attendee attendee = (Attendee) object;
+
+        if (!Common.compareStrings(id, attendee.id)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    @Override
     public int describeContents() {
         return 0;
     }
@@ -92,5 +109,17 @@ public class Attendee implements Parcelable {
         dest.writeString(lastName);
         dest.writeString(userName);
         dest.writeValue(isFriend);
+    }
+
+    @Override
+    public String toString() {
+        if (firstName != null && !firstName.isEmpty()) {
+            return firstName + " " + lastName;
+        }
+        else if (userName != null && !userName.isEmpty()){
+            return userName;
+        } else {
+            return email;
+        }
     }
 }

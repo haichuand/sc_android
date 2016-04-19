@@ -8,9 +8,11 @@
     android:fitsSystemWindows="true">
 
     <!--Main content layout-->
-    <android.support.design.widget.CoordinatorLayout
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:fitsSystemWindows="true">
 
         <!--Toolbar layout-->
         <android.support.design.widget.AppBarLayout
@@ -35,6 +37,7 @@
 
         <!--Chat message list layout-->
         <LinearLayout
+            android:id="@+id/all_messages_linearlayout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical">
@@ -52,115 +55,21 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"/>
         </LinearLayout>
-    </android.support.design.widget.CoordinatorLayout>
+    </LinearLayout>
 
-    <!--ChatActivity drawer layout-->
+    <!--Navigation Drawer layout -->
     <LinearLayout
+        android:id="@+id/chat_drawer"
         android:layout_width="240dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:background="@android:color/white"
         android:layout_gravity="end"
-        android:paddingStart="24dp">
+        android:padding="10dp">
 
-        <!--List of current chat particpants-->
-        <ListView
-            android:id="@+id/chat_drawer_attendees"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:choiceMode="singleChoice"
-            android:divider="@android:color/transparent"
-            android:dividerHeight="10dp"
-            android:layout_marginTop="16dp"/>
-
-        <!--Add new participant-->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="16dp">
-
-            <ImageView
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@drawable/ic_add_white"
-                android:tint="@color/gray_1"/>
-
-            <EditText
-                android:id="@+id/edit_text_invite"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:background="@drawable/chat_search_box"
-                android:hint="Invite..."
-                android:layout_gravity="center_vertical"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp"
-                android:layout_weight="1"
-                android:padding="6dp"/>
-        </LinearLayout>
-
-        <!--Attachment-->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="32dp">
-
-            <ImageView
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@drawable/ic_attachment"
-                android:tint="@color/gray_1"/>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_weight="3"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp"
-                android:layout_gravity="center_vertical"
-                android:text="Attachment"
-                android:textSize="16sp"/>
-
-            <ImageView
-                android:id="@+id/chat_attachment"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_weight="1"
-                android:src="@drawable/ic_arrow_right"
-                android:tint="@color/gray_1"/>
-        </LinearLayout>
-
-        <!--Settings-->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="16dp">
-
-            <ImageView
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@drawable/ic_settings"
-                android:tint="@color/gray_1"/>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:layout_marginLeft="8dp"
-                android:layout_marginRight="8dp"
-                android:layout_weight="3"
-                android:text="@string/settings"
-                android:textSize="16sp"/>
-
-            <ImageView
-                android:id="@+id/chat_settings"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_weight="1"
-                android:src="@drawable/ic_arrow_right"
-                android:tint="@color/gray_1"/>
-        </LinearLayout>
+        <include
+            layout="@layout/chat_menu"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"/>
     </LinearLayout>
 </android.support.v4.widget.DrawerLayout>

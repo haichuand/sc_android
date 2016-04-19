@@ -68,7 +68,7 @@ public class DemoChat {
 //        preferences.edit().putString(testChatIdKey, conversationId).putString(myIdKey, id1).apply();
 
         //change id to match phone: Neuxs=id1, LG=id2, Samsung=id3
-        return new String[]{conversationId, id2};
+        return new String[]{conversationId, id1};
     }
 
 
