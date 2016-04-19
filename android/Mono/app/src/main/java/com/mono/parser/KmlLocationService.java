@@ -252,7 +252,8 @@ public class KmlLocationService extends IntentService{
     private static ArrayList<Location> parseGooglePlace(final String response, final String realAddress, final String placeId, final LatLngTime llt) {
         ArrayList<Location> locationList = new ArrayList<Location>();
         //add the real address get from the coordinates first
-        locationList.add(new Location(realAddress, placeId, llt.getLat(), llt.getLng(), realAddress.split(",")));
+        if(realAddress != null)
+            locationList.add(new Location(realAddress, placeId, llt.getLat(), llt.getLng(), realAddress.split(",")));
 
         try {
             JSONObject jsonObject = new JSONObject(response);
