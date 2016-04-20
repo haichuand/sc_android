@@ -12,7 +12,6 @@ import com.google.android.gms.iid.InstanceID;
 import com.mono.AccountManager;
 import com.mono.R;
 import com.mono.SuperCalyPreferences;
-import com.mono.model.Account;
 
 /**
  * Created by xuejing on 2/25/16.
@@ -57,5 +56,6 @@ public class RegistrationIntentService extends IntentService {
 
     private void sendRegistrationToServer(String token) {
         AccountManager.getInstance(getApplicationContext()).setGCMToken(token);
+        //TODO: send token to server and chatserver
     }
 }
