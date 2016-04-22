@@ -129,6 +129,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
         navView.setCheckedItem(HOME);
         scheduler.run(this);
+//        requestSync(false);
     }
 
     @Override
@@ -358,7 +359,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
     @Override
     public void requestSync(boolean force) {
-
+        scheduler.requestSync(this, force);
     }
 
     @Override
