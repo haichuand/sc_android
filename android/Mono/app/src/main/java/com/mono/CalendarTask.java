@@ -203,7 +203,7 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
                 settings.setCalendarUpdateTime(calendarId, lastUpdateTime);
             }
             // Check for Deletions
-            List<Event> events = dataSource.getEventsByTimePeriod(calendarId, 0, endTime);
+            List<Event> events = dataSource.getEvents(0, endTime, calendarId);
             List<Event> remoteEvents = helper.getEvents(calendarId, 0, endTime);
 
             if (!events.isEmpty() && !remoteEvents.isEmpty()) {

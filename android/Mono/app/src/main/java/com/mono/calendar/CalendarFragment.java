@@ -17,8 +17,6 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.widget.SearchView;
-import android.support.v7.widget.SearchView.OnQueryTextListener;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -34,8 +32,6 @@ import com.mono.MainInterface;
 import com.mono.R;
 import com.mono.calendar.CalendarEventsFragment.CalendarEventsListener;
 import com.mono.calendar.CalendarView.CalendarListener;
-import com.mono.db.DatabaseHelper;
-import com.mono.db.dao.EventDataSource;
 import com.mono.model.Event;
 import com.mono.settings.Settings;
 import com.mono.util.OnBackPressedListener;
@@ -44,6 +40,8 @@ import com.mono.util.SimpleTabLayout.Scrollable;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
 
 import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 
 public class CalendarFragment extends Fragment implements OnBackPressedListener, CalendarListener,
@@ -120,20 +118,6 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         menu.clear();
         inflater.inflate(R.menu.calendar, menu);
-
-        MenuItem item = menu.findItem(R.id.action_search);
-        SearchView searchView = (SearchView) item.getActionView();
-        searchView.setOnQueryTextListener(new OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String query) {
-                return false;
-            }
-
-            @Override
-            public boolean onQueryTextChange(String newText) {
-                return false;
-            }
-        });
     }
 
     @Override
@@ -141,6 +125,8 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         int id = item.getItemId();
 
         switch (id) {
+            case R.id.action_search:
+                return true;
             case R.id.action_add:
                 Event event = new Event();
                 event.type = Event.TYPE_CALENDAR;
@@ -161,6 +147,9 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
             case R.id.action_today:
                 calendarView.today();
                 return true;
+            case R.id.action_refresh:
+                mainInterface.requestSync(true);
+                return true;
         }
 
         return super.onOptionsItemSelected(item);
@@ -168,11 +157,13 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
 
     @Override
     public boolean onBackPressed() {
-        if (eventsFragment.onBackPressed()) {
-            return true;
-        }
+        return eventsFragment.onBackPressed();
+    }
 
-        return false;
+    @Override
+    public Map<Integer, List<Integer>> getMonthColors(int year, int month) {
+        long[] calendarIds = Settings.getInstance(getContext()).getCalendarsArray();
+        return EventManager.getInstance(getContext()).getEventColorsByMonth(year, month, calendarIds);
     }
 
     @Override
@@ -289,7 +280,9 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
     @Override
     public void onClick(String id, View view) {
         Event event = eventManager.getEvent(id, false);
-        mainInterface.showEventDetails(event);
+        if (event != null) {
+            mainInterface.showEventDetails(event);
+        }
     }
 
     @Override
@@ -431,17 +424,11 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
             return;
         }
 
-        EventDataSource dataSource =
-            DatabaseHelper.getDataSource(getContext(), EventDataSource.class);
-        String[] eventIds = dataSource.getEventIdsByDay(year, month, day);
+        long[] calendarIds = Settings.getInstance(getContext()).getCalendarsArray();
+        List<Event> events = eventManager.getEvents(year, month, day, calendarIds);
 
-        if (eventIds != null) {
-            eventsFragment.clear(true);
-
-            for (String id : eventIds) {
-                Event event = eventManager.getEvent(id, false);
-                eventsFragment.insert(0, event, true);
-            }
+        if (!events.isEmpty()) {
+            eventsFragment.setEvents(events);
 
             int height = calendarView.getPageHeight(year, month);
             eventsFragment.setHalfHeight(view.getMeasuredHeight() - height);

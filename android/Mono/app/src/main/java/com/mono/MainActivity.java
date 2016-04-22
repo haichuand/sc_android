@@ -357,6 +357,11 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     }
 
     @Override
+    public void requestSync(boolean force) {
+
+    }
+
+    @Override
     public void showHome() {
         FragmentManager manager = getSupportFragmentManager();
         manager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
@@ -412,6 +417,13 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
     @Override
     public void showEventDetails(Event event) {
+        if (event.calendarId == 0) {
+            long[] calendarIds = Settings.getInstance(this).getCalendarsArray();
+            if (calendarIds != null) {
+                event.calendarId = calendarIds[0];
+            }
+        }
+
         Intent intent = new Intent(this, EventDetailsActivity.class);
         intent.putExtra(EventDetailsActivity.EXTRA_EVENT, event);
         startActivityForResult(intent, RequestCodes.Activity.EVENT_DETAILS);

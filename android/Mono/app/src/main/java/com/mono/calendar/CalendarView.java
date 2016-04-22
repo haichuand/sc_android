@@ -16,8 +16,6 @@ import android.widget.TextView;
 import com.mono.R;
 import com.mono.calendar.CalendarPageAdapter.CalendarPageItem;
 import com.mono.calendar.CalendarPageAdapter.CalendarPageListener;
-import com.mono.db.DatabaseHelper;
-import com.mono.db.dao.EventDataSource;
 import com.mono.util.Colors;
 import com.mono.util.Pixels;
 import com.mono.util.SimpleDataSource;
@@ -29,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TimeZone;
 
 public class CalendarView extends RelativeLayout implements CalendarPageListener,
@@ -75,12 +74,6 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
     public CalendarView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         initialize(context, attrs, defStyleAttr, defStyleRes);
-
-        Calendar calendar = Calendar.getInstance();
-        int year = calendar.get(Calendar.YEAR);
-        int month = calendar.get(Calendar.MONTH);
-
-        scrollTo(year, month);
     }
 
     private void initialize(Context context, AttributeSet attrs, int defStyleAttr,
@@ -123,6 +116,8 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         addView(scrollText, params);
 
         array.recycle();
+
+        today();
     }
 
     public void onResume() {
@@ -131,6 +126,9 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
 
     public void setListener(CalendarListener listener) {
         this.listener = listener;
+
+        items.clear();
+        today();
     }
 
     public void setOnCellDropActions(String[] actions) {
@@ -289,9 +287,9 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         CalendarPageItem item = new CalendarPageItem(year, month, day);
         item.numDays = calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
 
-        EventDataSource dataSource =
-            DatabaseHelper.getDataSource(getContext(), EventDataSource.class);
-        item.eventColors = dataSource.getEventColorsByMonth(year, month);
+        if (listener != null) {
+            item.eventColors = listener.getMonthColors(item.year, item.month);
+        }
 
         return item;
     }
@@ -364,7 +362,7 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         }
     }
 
-    public void scrollTo(int year, int month) {
+    public void scrollToMonth(int year, int month) {
         recyclerView.stopScroll();
 
         int index = items.indexOf(new CalendarPageItem(year, month, 1));
@@ -392,7 +390,7 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         int year = calendar.get(Calendar.YEAR);
         int month = calendar.get(Calendar.MONTH);
 
-        scrollTo(year, month);
+        scrollToMonth(year, month);
     }
 
     public void select(int year, int month, int day, boolean selected) {
@@ -414,9 +412,9 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         if (index >= 0) {
             CalendarPageItem item = items.get(index);
 
-            EventDataSource dataSource =
-                DatabaseHelper.getDataSource(getContext(), EventDataSource.class);
-            item.eventColors = dataSource.getEventColorsByMonth(year, month);
+            if (listener != null) {
+                item.eventColors = listener.getMonthColors(year, month);
+            }
 
             adapter.notifyItemChanged(index);
         }
@@ -541,6 +539,8 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
     }
 
     public interface CalendarListener {
+
+        Map<Integer, List<Integer>> getMonthColors(int year, int month);
 
         void onDayChange(int day);
 
