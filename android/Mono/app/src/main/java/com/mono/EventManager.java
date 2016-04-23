@@ -84,8 +84,8 @@ public class EventManager {
                 long startTime = Long.parseLong(values[1]);
                 long endTime = Long.parseLong(values[2]);
 
-                CalendarEventProvider helper = CalendarEventProvider.getInstance(context);
-                event = helper.getEvent(eventId, startTime, endTime);
+                CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
+                event = provider.getEvent(eventId, startTime, endTime);
             }
 
             if (event == null) {
@@ -116,8 +116,8 @@ public class EventManager {
             }
         }
 
-        CalendarEventProvider helper = CalendarEventProvider.getInstance(context);
-        result.addAll(helper.getEvents(startTime, startTime + 365 * Constants.DAY_MS, limit));
+        CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
+        result.addAll(provider.getEvents(startTime, startTime + 365 * Constants.DAY_MS, limit));
 
         return result;
     }
@@ -125,8 +125,8 @@ public class EventManager {
     public List<Event> getEvents(long startTime, long endTime, long... calendarIds) {
         List<Event> result = new ArrayList<>();
 
-        CalendarEventProvider helper = CalendarEventProvider.getInstance(context);
-        result.addAll(helper.getEvents(startTime, endTime, calendarIds));
+        CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
+        result.addAll(provider.getEvents(startTime, endTime, calendarIds));
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
         List<Event> events = dataSource.getEvents(startTime, endTime, calendarIds);
@@ -145,8 +145,8 @@ public class EventManager {
     public List<Event> getEvents(int year, int month, int day, long... calendarIds) {
         List<Event> result = new ArrayList<>();
 
-        CalendarEventProvider helper = CalendarEventProvider.getInstance(context);
-        result.addAll(helper.getEvents(year, month, day, calendarIds));
+        CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
+        result.addAll(provider.getEvents(year, month, day, calendarIds));
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
         List<Event> events = dataSource.getEvents(year, month, day, calendarIds);
@@ -166,8 +166,8 @@ public class EventManager {
             long... calendarIds) {
         Map<Integer, List<Integer>> result = new HashMap<>();
 
-        CalendarEventProvider helper = CalendarEventProvider.getInstance(context);
-        result.putAll(helper.getEventColors(year, month, calendarIds));
+        CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
+        result.putAll(provider.getEventColors(year, month, calendarIds));
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
         Map<Integer, List<Integer>> entries = dataSource.getEventColors(year, month, calendarIds);

@@ -233,11 +233,20 @@ public class CalendarPageView extends LinearLayout implements OnClickListener {
                 cell.setToday(false);
                 cell.setSelected(false);
 
-                int color = 0;
                 if (item.eventColors.containsKey(day)) {
-                    color = item.eventColors.get(day).get(0) | 0xFF000000;
+                    List<Integer> eventColors = item.eventColors.get(day);
+
+                    int size = Math.min(eventColors.size(), CalendarTableCell.MAX_MARKER_COLORS);
+                    int[] colors = new int[size];
+
+                    for (int i = 0; i < size; i++) {
+                        colors[i] = eventColors.get(i) | 0xFF000000;
+                    }
+
+                    cell.setMarkerColor(colors);
+                } else {
+                    cell.clearMarkerColor();
                 }
-                cell.setMarkerColor(color);
 
                 day++;
             }

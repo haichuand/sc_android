@@ -434,7 +434,10 @@ public class CalendarEventProvider {
                             result.put(currentDay, new ArrayList<Integer>());
                         }
 
-                        result.get(currentDay).add(color);
+                        List<Integer> colors = result.get(currentDay);
+                        if (!colors.contains(color)) {
+                            colors.add(color);
+                        }
                     }
 
                     calendar.add(java.util.Calendar.DAY_OF_MONTH, 1);

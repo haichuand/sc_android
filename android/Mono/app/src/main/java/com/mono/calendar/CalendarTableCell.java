@@ -14,6 +14,8 @@ import com.mono.util.Pixels;
 
 public class CalendarTableCell extends RelativeLayout {
 
+    public static final int MAX_MARKER_COLORS = 2;
+
     private static final int MARKER_MARGIN_TOP_DP = 4;
     private static final int MARKER_WIDTH_DP = 6;
     private static final int TEXT_SIZE_DP = 16;
@@ -25,7 +27,7 @@ public class CalendarTableCell extends RelativeLayout {
 
     private String text;
     private int textColor;
-    private int markerColor;
+    private int[] markerColor;
 
     private boolean isToday;
 
@@ -77,12 +79,18 @@ public class CalendarTableCell extends RelativeLayout {
         textPaint.setColor(textColor);
         canvas.drawText(text, x, y, textPaint);
 
-        if (markerColor != 0) {
-            float left = x - markerWidth / 2;
+        if (markerColor != null && markerColor.length > 0) {
+            float markerWidth = this.markerWidth;
+            float offset = markerWidth * 0.69f;
+            float left = x - (markerWidth - (markerColor.length - 1) * offset) / 2;
             float top = y + textPaint.descent() + markerMarginTop - markerWidth / 2;
 
-            markerPaint.setColor(markerColor);
-            canvas.drawOval(left, top, left + markerWidth, top + markerWidth, markerPaint);
+            for (int i = markerColor.length - 1; i >= 0; i--) {
+                markerPaint.setColor(markerColor[i]);
+                canvas.drawOval(left, top, left + markerWidth, top + markerWidth, markerPaint);
+
+                left -= offset;
+            }
         }
     }
 
@@ -134,11 +142,15 @@ public class CalendarTableCell extends RelativeLayout {
     }
 
     public void setTextColor(int color) {
-        this.textColor = color;
+        textColor = color;
     }
 
-    public void setMarkerColor(int color) {
-        this.markerColor = color;
+    public void setMarkerColor(int[] colors) {
+        markerColor = colors;
+    }
+
+    public void clearMarkerColor() {
+        markerColor = null;
     }
 
     public void setLastStyle() {

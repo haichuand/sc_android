@@ -24,13 +24,13 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
 
     private Context context;
 
-    private CalendarEventProvider helper;
+    private CalendarEventProvider provider;
     private Settings settings;
 
     public CalendarTask(Context context) {
         this.context = context;
 
-        helper = CalendarEventProvider.getInstance(context);
+        provider = CalendarEventProvider.getInstance(context);
         settings = Settings.getInstance(context);
     }
 
@@ -64,7 +64,7 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
             long endMin = settings.getCalendarEndTime(calendarId, initialTime);
             long endMax = Math.min(endMin + 30 * Constants.DAY_MS, endTime);
 
-            Calendar calendar = helper.getEvents(calendarId, startMin, startMax, endMin, endMax);
+            Calendar calendar = provider.getEvents(calendarId, startMin, startMax, endMin, endMax);
             if (calendar == null) {
                 continue;
             }
@@ -182,7 +182,7 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
             long startTime = settings.getCalendarUpdateTime(calendarId, defaultTime);
             long endTime = settings.getCalendarEndTime(calendarId, 0);
             // Check for Changes
-            Calendar calendar = helper.getUpdates(calendarId, startTime, endTime);
+            Calendar calendar = provider.getUpdates(calendarId, startTime, endTime);
             if (calendar == null) {
                 continue;
             }
@@ -204,7 +204,7 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
             }
             // Check for Deletions
             List<Event> events = dataSource.getEvents(0, endTime, calendarId);
-            List<Event> remoteEvents = helper.getEvents(calendarId, 0, endTime);
+            List<Event> remoteEvents = provider.getEvents(calendarId, 0, endTime);
 
             if (!events.isEmpty() && !remoteEvents.isEmpty()) {
                 List<EventComparable> tempEvents = new ArrayList<>(events.size());
