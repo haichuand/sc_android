@@ -28,7 +28,6 @@ import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 
 import com.google.android.gms.maps.SupportMapFragment;
-import com.mono.calendar.CalendarHelper;
 import com.mono.chat.ChatRoomActivity;
 import com.mono.chat.ConversationManager;
 import com.mono.details.EventDetailsActivity;
@@ -36,6 +35,7 @@ import com.mono.model.Account;
 import com.mono.model.Calendar;
 import com.mono.model.Conversation;
 import com.mono.model.Event;
+import com.mono.provider.CalendarProvider;
 import com.mono.settings.Settings;
 import com.mono.settings.SettingsActivity;
 import com.mono.util.Colors;
@@ -538,7 +538,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             try {
                 // Initialize Calendars
                 Set<Long> calendars = new HashSet<>();
-                List<Calendar> calendarList = CalendarHelper.getInstance(this).getCalendars();
+                List<Calendar> calendarList = CalendarProvider.getInstance(this).getCalendars();
                 for (Calendar calendar : calendarList) {
                     calendars.add(calendar.id);
                 }

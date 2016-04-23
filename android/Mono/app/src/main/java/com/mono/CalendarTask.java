@@ -4,7 +4,6 @@ import android.content.Context;
 import android.os.AsyncTask;
 
 import com.mono.EventManager.EventAction;
-import com.mono.calendar.CalendarHelper;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.AttendeeDataSource;
 import com.mono.db.dao.EventAttendeeDataSource;
@@ -12,6 +11,7 @@ import com.mono.db.dao.EventDataSource;
 import com.mono.model.Attendee;
 import com.mono.model.Calendar;
 import com.mono.model.Event;
+import com.mono.provider.CalendarEventProvider;
 import com.mono.settings.Settings;
 import com.mono.util.Constants;
 import com.mono.util.Log;
@@ -24,13 +24,13 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
 
     private Context context;
 
-    private CalendarHelper helper;
+    private CalendarEventProvider helper;
     private Settings settings;
 
     public CalendarTask(Context context) {
         this.context = context;
 
-        helper = CalendarHelper.getInstance(context);
+        helper = CalendarEventProvider.getInstance(context);
         settings = Settings.getInstance(context);
     }
 
@@ -141,23 +141,23 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
         Event original = dataSource.getEvent(event.internalId, event.startTime, event.endTime);
 
         if (original == null) {
-            EventManager.getInstance(context).createEvent(
-                EventAction.ACTOR_NONE,
-                event.calendarId,
-                event.internalId,
-                event.externalId,
-                Event.TYPE_CALENDAR,
-                event.title,
-                event.description,
-                event.location != null ? event.location.name : null,
-                event.color,
-                event.startTime,
-                event.endTime,
-                event.timeZone,
-                event.endTimeZone,
-                event.allDay,
-                callback
-            );
+//            EventManager.getInstance(context).createEvent(
+//                EventAction.ACTOR_NONE,
+//                event.calendarId,
+//                event.internalId,
+//                event.externalId,
+//                Event.TYPE_CALENDAR,
+//                event.title,
+//                event.description,
+//                event.location != null ? event.location.name : null,
+//                event.color,
+//                event.startTime,
+//                event.endTime,
+//                event.timeZone,
+//                event.endTimeZone,
+//                event.allDay,
+//                callback
+//            );
         } else {
             EventManager.getInstance(context).updateEvent(
                 EventAction.ACTOR_NONE,

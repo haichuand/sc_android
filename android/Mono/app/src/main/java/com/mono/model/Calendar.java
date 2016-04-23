@@ -7,6 +7,8 @@ public class Calendar {
 
     public final long id;
     public String name;
+    public String timeZone;
+    public String owner;
     public String description;
     public int color;
 

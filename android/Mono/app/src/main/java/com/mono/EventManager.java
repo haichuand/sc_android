@@ -8,7 +8,9 @@ import com.mono.db.DatabaseValues;
 import com.mono.db.dao.EventAttendeeDataSource;
 import com.mono.db.dao.EventDataSource;
 import com.mono.model.Event;
+import com.mono.provider.CalendarEventProvider;
 import com.mono.util.Common;
+import com.mono.util.Constants;
 import com.mono.util.Log;
 import com.mono.util.Strings;
 
@@ -71,14 +73,26 @@ public class EventManager {
     }
 
     public Event getEvent(String id, boolean refresh) {
-        Event event;
+        Event event = null;
 
         if (cache.containsKey(id) && !refresh) {
             event = cache.get(id);
         } else {
-            EventDataSource dataSource =
-                DatabaseHelper.getDataSource(context, EventDataSource.class);
-            event = dataSource.getEvent(id);
+            String[] values = Common.explode(".", id);
+            if (values.length == 3) {
+                long eventId = Long.parseLong(values[0]);
+                long startTime = Long.parseLong(values[1]);
+                long endTime = Long.parseLong(values[2]);
+
+                CalendarEventProvider helper = CalendarEventProvider.getInstance(context);
+                event = helper.getEvent(eventId, startTime, endTime);
+            }
+
+            if (event == null) {
+                EventDataSource dataSource =
+                    DatabaseHelper.getDataSource(context, EventDataSource.class);
+                event = dataSource.getEvent(id);
+            }
 
             if (event != null) {
                 add(event);
@@ -102,11 +116,17 @@ public class EventManager {
             }
         }
 
+        CalendarEventProvider helper = CalendarEventProvider.getInstance(context);
+        result.addAll(helper.getEvents(startTime, startTime + 365 * Constants.DAY_MS, limit));
+
         return result;
     }
 
     public List<Event> getEvents(long startTime, long endTime, long... calendarIds) {
         List<Event> result = new ArrayList<>();
+
+        CalendarEventProvider helper = CalendarEventProvider.getInstance(context);
+        result.addAll(helper.getEvents(startTime, endTime, calendarIds));
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
         List<Event> events = dataSource.getEvents(startTime, endTime, calendarIds);
@@ -125,6 +145,9 @@ public class EventManager {
     public List<Event> getEvents(int year, int month, int day, long... calendarIds) {
         List<Event> result = new ArrayList<>();
 
+        CalendarEventProvider helper = CalendarEventProvider.getInstance(context);
+        result.addAll(helper.getEvents(year, month, day, calendarIds));
+
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
         List<Event> events = dataSource.getEvents(year, month, day, calendarIds);
 
@@ -142,6 +165,9 @@ public class EventManager {
     public Map<Integer, List<Integer>> getEventColorsByMonth(int year, int month,
             long... calendarIds) {
         Map<Integer, List<Integer>> result = new HashMap<>();
+
+        CalendarEventProvider helper = CalendarEventProvider.getInstance(context);
+        result.putAll(helper.getEventColors(year, month, calendarIds));
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
         Map<Integer, List<Integer>> entries = dataSource.getEventColors(year, month, calendarIds);

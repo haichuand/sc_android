@@ -13,7 +13,7 @@ public class Event implements Parcelable {
     public static final String TYPE_CALENDAR = "calendar";
     public static final String TYPE_USERSTAY = "userstay";
 
-    public final String id;
+    public String id;
     public String parentId;
     public long calendarId;
     public long internalId;

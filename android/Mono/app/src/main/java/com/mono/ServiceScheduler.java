@@ -14,8 +14,8 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.CalendarContract;
 
-import com.mono.calendar.CalendarHelper;
 import com.mono.model.Calendar;
+import com.mono.provider.CalendarProvider;
 import com.mono.settings.Settings;
 
 import java.util.ArrayList;
@@ -71,7 +71,7 @@ public class ServiceScheduler extends BroadcastReceiver {
 
         lastSyncRequest = currentTime;
 
-        List<Calendar> calendars = CalendarHelper.getInstance(context).getCalendars();
+        List<Calendar> calendars = CalendarProvider.getInstance(context).getCalendars();
         if (calendars.isEmpty()) {
             return;
         }

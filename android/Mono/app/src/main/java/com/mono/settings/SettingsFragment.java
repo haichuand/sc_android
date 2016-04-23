@@ -12,8 +12,8 @@ import android.preference.SwitchPreference;
 
 import com.mono.BuildConfig;
 import com.mono.R;
-import com.mono.calendar.CalendarHelper;
 import com.mono.model.Calendar;
+import com.mono.provider.CalendarProvider;
 
 import java.util.List;
 import java.util.Set;
@@ -37,7 +37,7 @@ public class SettingsFragment extends PreferenceFragment {
 
         Context context = getActivity();
 
-        List<Calendar> calendars = CalendarHelper.getInstance(context).getCalendars();
+        List<Calendar> calendars = CalendarProvider.getInstance(context).getCalendars();
         Set<Long> calendarIds = Settings.getInstance(context).getCalendars();
 
         for (Calendar calendar : calendars) {
