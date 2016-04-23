@@ -36,11 +36,6 @@ public class Location implements Parcelable {
         }
     }
 
-    public Location(String name, String dummy) {
-        this();
-        this.name = name;
-    }
-
     public Location(double latitude, double longitude) {
         this();
         this.latitude = latitude;

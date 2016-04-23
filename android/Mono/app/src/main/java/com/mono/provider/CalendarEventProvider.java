@@ -48,7 +48,7 @@ public class CalendarEventProvider {
         return instance;
     }
 
-    public long createEvent(int calendarId, String title, String description, String location,
+    public long createEvent(long calendarId, String title, String description, String location,
             int color, long startTime, long endTime, String timeZone, String endTimeZone,
             int allDay) throws SecurityException {
         long eventId = -1;
@@ -572,9 +572,7 @@ public class CalendarEventProvider {
     }
 
     private Event cursorToEvent(Cursor cursor) {
-        String id = String.format(
-            Locale.getDefault(),
-            "%d.%d.%d",
+        String id = createId(
             cursor.getLong(CalendarValues.Event.INDEX_ID),
             cursor.getLong(CalendarValues.Event.INDEX_START_TIME),
             cursor.getLong(CalendarValues.Event.INDEX_END_TIME)
@@ -598,7 +596,8 @@ public class CalendarEventProvider {
 
         String location = cursor.getString(CalendarValues.Event.INDEX_LOCATION);
         if (location != null && !location.isEmpty()) {
-            event.location = new Location(location);
+            event.location = new Location();
+            event.location.name = location;
         }
 
         event.color = cursor.getInt(CalendarValues.Event.INDEX_COLOR);
@@ -612,7 +611,9 @@ public class CalendarEventProvider {
 
         try {
             String dateTime = cursor.getString(CalendarValues.Event.INDEX_UPDATE_TIME);
-            event.updateTime = DATE_FORMAT.parse(dateTime).getTime();
+            if (dateTime != null) {
+                event.updateTime = DATE_FORMAT.parse(dateTime).getTime();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -621,9 +622,7 @@ public class CalendarEventProvider {
     }
 
     private Instance cursorToInstance(Cursor cursor) {
-        String id = String.format(
-            Locale.getDefault(),
-            "%d.%d.%d",
+        String id = createId(
             cursor.getLong(CalendarValues.Instance.INDEX_EVENT_ID),
             cursor.getLong(CalendarValues.Instance.INDEX_BEGIN),
             cursor.getLong(CalendarValues.Instance.INDEX_END)
@@ -671,6 +670,10 @@ public class CalendarEventProvider {
         }
 
         return result;
+    }
+
+    public static String createId(long eventId, long startTime, long endTime) {
+        return String.format(Locale.getDefault(), "%d.%d.%d", eventId, startTime, endTime);
     }
 
     private class Instance {

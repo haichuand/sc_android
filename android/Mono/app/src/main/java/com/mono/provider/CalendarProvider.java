@@ -82,6 +82,7 @@ public class CalendarProvider {
         calendar.owner = cursor.getString(CalendarValues.Calendar.INDEX_OWNER_ACCOUNT);
         calendar.accountName = cursor.getString(CalendarValues.Calendar.INDEX_ACCOUNT_NAME);
         calendar.accountType = cursor.getString(CalendarValues.Calendar.INDEX_ACCOUNT_TYPE);
+        calendar.primary = cursor.getInt(CalendarValues.Calendar.INDEX_PRIMARY) > 0;
 
         return calendar;
     }

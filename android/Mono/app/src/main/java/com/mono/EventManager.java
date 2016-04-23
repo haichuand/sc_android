@@ -263,6 +263,55 @@ public class EventManager {
         }
     }
 
+    public void createSyncEvent(int actor, long calendarId, String title, String description,
+            String location, int color, long startTime, long endTime, String timeZone,
+            String endTimeZone, boolean allDay, EventActionCallback callback) {
+        int status = EventAction.STATUS_OK;
+
+        Event event = null;
+
+        CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
+
+        if (timeZone == null) {
+            timeZone = TimeZone.getDefault().getID();
+        }
+
+        String id = null;
+
+        long eventId = provider.createEvent(
+            calendarId,
+            title,
+            description,
+            location,
+            color,
+            startTime,
+            endTime,
+            timeZone,
+            endTimeZone,
+            allDay ? 1 : 0
+        );
+
+        if (eventId > 0) {
+            id = CalendarEventProvider.createId(eventId, startTime, endTime);
+        }
+
+        if (id != null) {
+            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE, id);
+            event = getEvent(id, false);
+        } else {
+            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE_FAILED);
+            status = EventAction.STATUS_FAILED;
+        }
+
+        EventAction data = new EventAction(EventAction.ACTION_CREATE, actor, status, event);
+        if (!listeners.isEmpty()) {
+            sendToListeners(data);
+        }
+        if (callback != null) {
+            callback.onEventAction(data);
+        }
+    }
+
     public String createEvent (long calendarId, long internalId, String externalId,
                                String type, String title, String description, String location, int color,
                                long startTime, long endTime, String timeZone, String endTimeZone, boolean allDay) {

@@ -20,9 +20,35 @@
             android:padding="16dp">
 
             <com.mono.util.SimpleLabelLayout
+                android:id="@+id/calendar_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:label="@string/calendar"
+                app:labelColor="?attr/colorPrimary"
+                app:labelSize="14sp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="4dp">
+
+                    <TextView
+                        android:id="@+id/calendar"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/input"
+                        android:padding="6dp"
+                        android:singleLine="true"
+                        android:textSize="16sp"/>
+                </LinearLayout>
+            </com.mono.util.SimpleLabelLayout>
+
+            <com.mono.util.SimpleLabelLayout
                 android:id="@+id/title_layout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
                 app:label="@string/title"
                 app:labelColor="?attr/colorPrimary"
                 app:labelSize="14sp">

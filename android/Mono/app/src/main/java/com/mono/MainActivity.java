@@ -418,15 +418,29 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
     @Override
     public void showEventDetails(Event event) {
-        if (event.calendarId == 0) {
-            long[] calendarIds = Settings.getInstance(this).getCalendarsArray();
-            if (calendarIds != null) {
-                event.calendarId = calendarIds[0];
+        Calendar calendar = null;
+
+        if (event.calendarId > 0) {
+            calendar = CalendarProvider.getInstance(this).getCalendar(event.calendarId);
+        } else {
+            List<Calendar> calendars = CalendarProvider.getInstance(this).getCalendars();
+            for (Calendar item : calendars) {
+                if (item.primary) {
+                    event.calendarId = item.id;
+                    calendar = item;
+                    break;
+                }
             }
         }
 
+        if (calendar == null) {
+            return;
+        }
+
         Intent intent = new Intent(this, EventDetailsActivity.class);
+        intent.putExtra(EventDetailsActivity.EXTRA_CALENDAR, calendar);
         intent.putExtra(EventDetailsActivity.EXTRA_EVENT, event);
+
         startActivityForResult(intent, RequestCodes.Activity.EVENT_DETAILS);
     }
 
@@ -442,14 +456,29 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                     null
                 );
             } else {
-                event.internalId = System.currentTimeMillis();
+//                event.internalId = System.currentTimeMillis();
+//
+//                EventManager.getInstance(this).createEvent(
+//                    EventManager.EventAction.ACTOR_SELF,
+//                    event.calendarId,
+//                    event.internalId,
+//                    event.externalId,
+//                    event.type,
+//                    event.title,
+//                    event.description,
+//                    event.location != null ? event.location.name : null,
+//                    event.color,
+//                    event.startTime,
+//                    event.endTime,
+//                    event.timeZone,
+//                    event.endTimeZone,
+//                    event.allDay,
+//                    null
+//                );
 
-                EventManager.getInstance(this).createEvent(
+                EventManager.getInstance(this).createSyncEvent(
                     EventManager.EventAction.ACTOR_SELF,
                     event.calendarId,
-                    event.internalId,
-                    event.externalId,
-                    event.type,
                     event.title,
                     event.description,
                     event.location != null ? event.location.name : null,

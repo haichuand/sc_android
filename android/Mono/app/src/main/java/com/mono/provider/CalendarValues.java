@@ -17,7 +17,8 @@ public class CalendarValues {
             Calendars.CALENDAR_TIME_ZONE,
             Calendars.OWNER_ACCOUNT,
             Calendars.ACCOUNT_NAME,
-            Calendars.ACCOUNT_TYPE
+            Calendars.ACCOUNT_TYPE,
+            Calendars.IS_PRIMARY
         };
 
         public static final int INDEX_ID = 0;
@@ -27,6 +28,7 @@ public class CalendarValues {
         public static final int INDEX_OWNER_ACCOUNT = 4;
         public static final int INDEX_ACCOUNT_NAME = 5;
         public static final int INDEX_ACCOUNT_TYPE = 6;
+        public static final int INDEX_PRIMARY = 7;
     }
 
     public static class Event {

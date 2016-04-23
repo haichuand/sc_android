@@ -473,7 +473,8 @@ public class EventDataSource extends DataSource {
 
         String location = cursor.getString(DatabaseValues.Event.INDEX_LOCATION);
         if (location != null) {
-            event.location = new Location(location);
+            event.location = new Location();
+            event.location.name = location;
         }
 
         event.color = cursor.getInt(DatabaseValues.Event.INDEX_COLOR);
