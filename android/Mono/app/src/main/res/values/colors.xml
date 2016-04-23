@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">@color/brown</color>
-    <color name="colorPrimaryDark">@color/brown_dark</color>
-    <color name="colorAccent">@color/lavender</color>
+    <color name="colorPrimary">@color/blue_dark_2</color>
+    <color name="colorPrimaryDark">@color/blue_dark_1</color>
+    <color name="colorAccent">@color/blue_dark_2</color>
 
     <color name="beige">#EEEBE7</color>
     <color name="blue">#87CEEB</color>
     <color name="blue_1">#97B9D3</color>
     <color name="blue_dark">#5C6B7A</color>
     <color name="blue_dark_1">#485766</color>
+    <color name="blue_dark_2">#536174</color>
     <color name="brown">#91725F</color>
     <color name="brown_dark">#52413C</color>
     <color name="brown_light">#CBBBAD</color>

@@ -216,7 +216,7 @@
                         android:layout_gravity="center_vertical"
                         android:layout_marginStart="10dp"
                         android:src="@drawable/ic_map_white"
-                        android:tint="@color/brown"/>
+                        android:tint="?attr/colorPrimary"/>
                 </LinearLayout>
             </com.mono.util.SimpleLabelLayout>
 
