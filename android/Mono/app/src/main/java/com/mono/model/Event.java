@@ -14,6 +14,7 @@ public class Event implements Parcelable {
     public static final String TYPE_USERSTAY = "userstay";
 
     public final String id;
+    public String parentId;
     public long calendarId;
     public long internalId;
     public String externalId;
@@ -27,6 +28,7 @@ public class Event implements Parcelable {
     public String timeZone;
     public String endTimeZone;
     public boolean allDay;
+    public long lastRepeatTime;
     public long createTime;
     public long updateTime;
     public List<Attendee> attendees = new ArrayList<>();
@@ -42,6 +44,7 @@ public class Event implements Parcelable {
 
     public Event(Event event) {
         id = event.id;
+        parentId = event.parentId;
         calendarId = event.calendarId;
         internalId = event.internalId;
         externalId = event.externalId;
@@ -73,6 +76,7 @@ public class Event implements Parcelable {
 
     protected Event(Parcel in) {
         id = in.readString();
+        parentId = in.readString();
         calendarId = in.readLong();
         internalId = in.readLong();
         externalId = in.readString();
@@ -200,6 +204,7 @@ public class Event implements Parcelable {
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(id);
+        dest.writeString(parentId);
         dest.writeLong(calendarId);
         dest.writeLong(internalId);
         dest.writeString(externalId);

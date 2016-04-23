@@ -143,21 +143,14 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
             item.iconResId = R.drawable.circle;
             item.iconColor = event.color;
 
-            if (event.allDay) {
-                DATE_FORMAT.setTimeZone(TimeZone.getTimeZone(event.timeZone));
-                item.startTime = DATE_FORMAT.format(event.startTime);
-
-                DATE_FORMAT.setTimeZone(TimeZone.getTimeZone(event.getEndTimeZone()));
-                item.endTime = DATE_FORMAT.format(event.endTime);
-            } else {
-                TimeZone timeZone = TimeZone.getTimeZone(event.timeZone);
+            if (!event.allDay) {
+                TimeZone timeZone = TimeZone.getDefault();
                 DATE_FORMAT.setTimeZone(timeZone);
                 TIME_FORMAT.setTimeZone(timeZone);
                 String startDate = DATE_FORMAT.format(event.startTime);
 
                 item.startTime = TIME_FORMAT.format(event.startTime);
 
-                timeZone = TimeZone.getTimeZone(event.getEndTimeZone());
                 TIME_FORMAT.setTimeZone(timeZone);
                 DATE_FORMAT.setTimeZone(timeZone);
                 String endDate = DATE_FORMAT.format(event.endTime);
@@ -167,6 +160,11 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
                 } else {
                     item.endTime = endDate;
                 }
+            } else {
+                DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+                item.startTime = DATE_FORMAT.format(event.startTime);
+                item.endTime = DATE_FORMAT.format(event.endTime - 1);
             }
 
             item.title = event.title;
@@ -249,12 +247,11 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
         layoutManager.setScrollEnabled(state);
     }
 
-    public void clear(boolean notify) {
-        events.clear();
+    public void setEvents(List<Event> events) {
+        this.events.clear();
+        this.events.addAll(events);
 
-        if (notify) {
-            adapter.notifyDataSetChanged();
-        }
+        adapter.notifyDataSetChanged();
     }
 
     public void insert(int index, Event event, boolean notify) {

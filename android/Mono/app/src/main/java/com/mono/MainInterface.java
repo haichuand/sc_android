@@ -26,6 +26,8 @@ public interface MainInterface {
 
     void showSnackBar(int resId, int actionResId, int actionColor, OnClickListener listener);
 
+    void requestSync(boolean force);
+
     void showHome();
 
     void showLogin();

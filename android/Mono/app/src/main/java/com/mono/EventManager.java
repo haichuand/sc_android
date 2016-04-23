@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TimeZone;
 
@@ -87,11 +88,11 @@ public class EventManager {
         return event;
     }
 
-    public List<Event> getEvents(long startTime, int limit) {
+    public List<Event> getEvents(long startTime, int limit, long... calendarIds) {
         List<Event> result = new ArrayList<>(limit);
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-        List<Event> events = dataSource.getEvents(startTime, limit);
+        List<Event> events = dataSource.getEvents(startTime, limit, calendarIds);
 
         for (Event event : events) {
             add(event);
@@ -104,11 +105,11 @@ public class EventManager {
         return result;
     }
 
-    public List<Event> getEvents(long startTime, long endTime) {
+    public List<Event> getEvents(long startTime, long endTime, long... calendarIds) {
         List<Event> result = new ArrayList<>();
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-        List<Event> events = dataSource.getEventsByTimePeriod(startTime, endTime);
+        List<Event> events = dataSource.getEvents(startTime, endTime, calendarIds);
 
         for (Event event : events) {
             add(event);
@@ -116,6 +117,44 @@ public class EventManager {
             if (!result.contains(event)) {
                 result.add(event);
             }
+        }
+
+        return result;
+    }
+
+    public List<Event> getEvents(int year, int month, int day, long... calendarIds) {
+        List<Event> result = new ArrayList<>();
+
+        EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+        List<Event> events = dataSource.getEvents(year, month, day, calendarIds);
+
+        for (Event event : events) {
+            add(event);
+
+            if (!result.contains(event)) {
+                result.add(event);
+            }
+        }
+
+        return result;
+    }
+
+    public Map<Integer, List<Integer>> getEventColorsByMonth(int year, int month,
+            long... calendarIds) {
+        Map<Integer, List<Integer>> result = new HashMap<>();
+
+        EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+        Map<Integer, List<Integer>> entries = dataSource.getEventColors(year, month, calendarIds);
+
+        for (Entry<Integer, List<Integer>> entry : entries.entrySet()) {
+            int day = entry.getKey();
+            List<Integer> colors = entry.getValue();
+
+            if (!result.containsKey(day)) {
+                result.put(day, new ArrayList<Integer>());
+            }
+
+            result.get(day).addAll(colors);
         }
 
         return result;

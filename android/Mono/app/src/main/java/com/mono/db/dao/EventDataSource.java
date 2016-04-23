@@ -8,6 +8,10 @@ import com.mono.db.Database;
 import com.mono.db.DatabaseValues;
 import com.mono.model.Event;
 import com.mono.model.Location;
+import com.mono.util.Common;
+
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeUtils;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -177,16 +181,55 @@ public class EventDataSource extends DataSource {
         );
     }
 
-    public List<Event> getEvents(long startTime, int limit) {
+    private String getCalendarSelection(List<String> args, long[] calendarIds) {
+        String selection = String.format(
+            "%s IN (%s)",
+            DatabaseValues.Event.CALENDAR_ID,
+            Common.repeat("?", calendarIds.length, ", ")
+        );
+
+        for (long calendarId : calendarIds) {
+            args.add(String.valueOf(calendarId));
+        }
+
+        return selection;
+    }
+
+    private String getTimeSelection(List<String> args, long startTime, long endTime) {
+        String selection = String.format(
+            "(%s BETWEEN ? AND ? OR %s BETWEEN ? AND ?)",
+            DatabaseValues.Event.START_TIME,
+            DatabaseValues.Event.END_TIME
+        );
+
+        args.add(String.valueOf(startTime));
+        args.add(String.valueOf(endTime));
+        args.add(String.valueOf(startTime));
+        args.add(String.valueOf(endTime));
+
+        return selection;
+    }
+
+    public List<Event> getEvents(long startTime, int limit, long... calendarIds) {
         List<Event> events = new ArrayList<>();
+
+        List<String> args = new ArrayList<>();
+
+        String selection = "";
+        if (calendarIds != null && calendarIds.length > 0) {
+            selection = getCalendarSelection(args, calendarIds) + " AND ";
+        }
+
+        selection += DatabaseValues.Event.START_TIME + " < ?";
+        args.add(String.valueOf(startTime));
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
 
         Cursor cursor = database.select(
             DatabaseValues.Event.TABLE,
             DatabaseValues.Event.PROJECTION,
-            DatabaseValues.Event.START_TIME + " < ?",
-            new String[]{
-                String.valueOf(startTime)
-            },
+            selection,
+            selectionArgs,
             null,
             DatabaseValues.Event.START_TIME + " DESC",
             limit
@@ -202,18 +245,25 @@ public class EventDataSource extends DataSource {
         return events;
     }
 
-    public List<Event> getEventsByTimePeriod(long startTime, long endTime) {
+    public List<Event> getEvents(long startTime, long endTime, long... calendarIds) {
         List<Event> events = new ArrayList<>();
+
+        List<String> args = new ArrayList<>();
+
+        String selection = "";
+        if (calendarIds != null && calendarIds.length > 0) {
+            selection = getCalendarSelection(args, calendarIds) + " AND ";
+        }
+
+        selection += getTimeSelection(args, startTime, endTime);
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
 
         Cursor cursor = database.select(
             DatabaseValues.Event.TABLE,
             DatabaseValues.Event.PROJECTION,
-            DatabaseValues.Event.START_TIME + " >= ?" +
-            " AND " + DatabaseValues.Event.END_TIME + " <= ?",
-            new String[]{
-                String.valueOf(startTime),
-                String.valueOf(endTime)
-            },
+            selection,
+            selectionArgs,
             null,
             DatabaseValues.Event.START_TIME + " DESC",
             null
@@ -229,27 +279,53 @@ public class EventDataSource extends DataSource {
         return events;
     }
 
-    public List<Event> getEventsByTimePeriod(long calendarId, long startTime, long endTime) {
+    public List<Event> getEvents(int year, int month, int day, long... calendarIds) {
         List<Event> events = new ArrayList<>();
+
+        List<String> args = new ArrayList<>();
+
+        String selection = "";
+        if (calendarIds != null && calendarIds.length > 0) {
+            selection = getCalendarSelection(args, calendarIds) + " AND ";
+        }
+
+        DateTime dateTime = new DateTime(year, month + 1, day, 0, 0);
+        long startTime = dateTime.minusHours(12).getMillis();
+        long endTime = dateTime.plusDays(1).plusHours(12).getMillis();
+
+        selection += getTimeSelection(args, startTime, endTime);
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
 
         Cursor cursor = database.select(
             DatabaseValues.Event.TABLE,
             DatabaseValues.Event.PROJECTION,
-            DatabaseValues.Event.CALENDAR_ID + " = ?" +
-            " AND " + DatabaseValues.Event.START_TIME + " >= ?" +
-            " AND " + DatabaseValues.Event.END_TIME + " <= ?",
-            new String[]{
-                String.valueOf(calendarId),
-                String.valueOf(startTime),
-                String.valueOf(endTime)
-            },
+            selection,
+            selectionArgs,
             null,
             DatabaseValues.Event.START_TIME + " DESC",
             null
         );
 
+        Calendar calendar;
+        Calendar local = Calendar.getInstance();
+        Calendar utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+
         while (cursor.moveToNext()) {
             Event event = cursorToEvent(cursor);
+
+            calendar = !event.allDay ? local : utc;
+
+            calendar.setTimeInMillis(event.startTime);
+            int startDay = calendar.get(Calendar.DAY_OF_MONTH);
+
+            calendar.setTimeInMillis(!event.allDay ? event.endTime : event.endTime - 1);
+            int endDay = calendar.get(Calendar.DAY_OF_MONTH);
+
+            if (!Common.between(day, startDay, endDay)) {
+                continue;
+            }
+
             events.add(event);
         }
 
@@ -258,115 +334,73 @@ public class EventDataSource extends DataSource {
         return events;
     }
 
-    public String[] getEventIdsByDay(int year, int month, int day) {
-        String[] result = null;
-
-        Calendar calendar = Calendar.getInstance();
-        calendar.set(Calendar.MILLISECOND, 0);
-
-        calendar.set(year, month, day, 0, 0, 0);
-        calendar.add(Calendar.DAY_OF_MONTH, -1);
-        long startTime = calendar.getTimeInMillis();
-
-        calendar.set(year, month, day, 0, 0, 0);
-        calendar.add(Calendar.DAY_OF_MONTH, 1);
-        long endTime = calendar.getTimeInMillis();
-
-        Cursor cursor = database.select(
-            DatabaseValues.Event.TABLE,
-            new String[]{
-                DatabaseValues.Event.ID,
-                DatabaseValues.Event.START_TIME,
-                DatabaseValues.Event.TIMEZONE
-            },
-            DatabaseValues.Event.START_TIME + " BETWEEN ? AND ?",
-            new String[]{
-                String.valueOf(startTime),
-                String.valueOf(endTime)
-            },
-            null,
-            DatabaseValues.Event.START_TIME + " DESC",
-            null
-        );
-
-        int count = cursor.getCount();
-
-        if (count > 0) {
-            List<String> tempResult = new ArrayList<>(count);
-
-            while (cursor.moveToNext()) {
-                String id = cursor.getString(0);
-                long time = cursor.getLong(1);
-                String timeZone = cursor.getString(2);
-
-                calendar.setTimeInMillis(time);
-                calendar.setTimeZone(TimeZone.getTimeZone(timeZone));
-
-                if (calendar.get(Calendar.DAY_OF_MONTH) == day) {
-                    tempResult.add(id);
-                }
-            }
-
-            if (!tempResult.isEmpty()) {
-                result = tempResult.toArray(new String[tempResult.size()]);
-            }
-        }
-
-        cursor.close();
-
-        return result;
-    }
-
-    public Map<Integer, List<Integer>> getEventColorsByMonth(int year, int month) {
+    public Map<Integer, List<Integer>> getEventColors(int year, int month, long... calendarIds) {
         Map<Integer, List<Integer>> result = new HashMap<>();
 
-        Calendar calendar = Calendar.getInstance();
-        calendar.set(Calendar.MILLISECOND, 0);
+        List<String> args = new ArrayList<>();
 
-        calendar.set(year, month, 1, 0, 0, 0);
-        calendar.add(Calendar.DAY_OF_MONTH, -1);
-        long startTime = calendar.getTimeInMillis();
+        String selection = "";
+        if (calendarIds != null && calendarIds.length > 0) {
+            selection = getCalendarSelection(args, calendarIds) + " AND ";
+        }
 
-        calendar.set(year, month, 2, 0, 0, 0);
-        calendar.add(Calendar.MONTH, 1);
-        long endTime = calendar.getTimeInMillis();
+        DateTime dateTime = new DateTime(year, month + 1, 1, 0, 0);
+        long startTime = dateTime.minusHours(12).getMillis();
+        long endTime = dateTime.plusMonths(1).plusHours(12).getMillis();
+
+        selection += getTimeSelection(args, startTime, endTime);
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
 
         Cursor cursor = database.select(
             DatabaseValues.Event.TABLE,
             new String[]{
                 DatabaseValues.Event.COLOR,
                 DatabaseValues.Event.START_TIME,
-                DatabaseValues.Event.TIMEZONE
+                DatabaseValues.Event.END_TIME,
+                DatabaseValues.Event.ALL_DAY
             },
-            DatabaseValues.Event.START_TIME + " BETWEEN ? AND ?",
-            new String[]{
-                String.valueOf(startTime),
-                String.valueOf(endTime)
-            },
+            selection,
+            selectionArgs,
             null,
             DatabaseValues.Event.START_TIME + " DESC",
             null
         );
 
-        int currentDay = -1;
+        Calendar calendar;
+        Calendar local = Calendar.getInstance();
+        Calendar utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
         while (cursor.moveToNext()) {
             int color = cursor.getInt(0);
-            long time = cursor.getLong(1);
-            String timeZone = cursor.getString(2);
+            long startMillis = cursor.getLong(1);
+            long endMillis = cursor.getLong(2);
+            boolean allDay = cursor.getInt(3) > 0;
 
-            calendar.setTimeInMillis(time);
-            calendar.setTimeZone(TimeZone.getTimeZone(timeZone));
+            if (!allDay) {
+                calendar = local;
+            } else {
+                endMillis -= 1;
+                calendar = utc;
+            }
 
-            if (calendar.get(Calendar.MONTH) == month) {
-                int day = calendar.get(Calendar.DAY_OF_MONTH);
-                if (day != currentDay) {
-                    currentDay = day;
-                    result.put(day, new ArrayList<Integer>());
+            int numDays = (int) (DateTimeUtils.toJulianDayNumber(endMillis) -
+                DateTimeUtils.toJulianDayNumber(startMillis)) + 1;
+
+            calendar.setTimeInMillis(startMillis);
+
+            for (int i = 0; i < numDays; i++) {
+                if (calendar.get(Calendar.MONTH) == month) {
+                    int currentDay = calendar.get(Calendar.DAY_OF_MONTH);
+
+                    if (!result.containsKey(currentDay)) {
+                        result.put(currentDay, new ArrayList<Integer>());
+                    }
+
+                    result.get(currentDay).add(color);
                 }
 
-                List<Integer> colors = result.get(day);
-                colors.add(color);
+                calendar.add(Calendar.DAY_OF_MONTH, 1);
             }
         }
 
