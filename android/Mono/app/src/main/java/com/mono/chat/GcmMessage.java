@@ -39,7 +39,7 @@ public class GcmMessage {
         sendTask = new AsyncTask<Void, Object, String>() {
             @Override
             protected String doInBackground(Void... params) {
-                String id = "monoApp" + (System.currentTimeMillis()) + Long.toString(random.nextLong());
+                String id = "superCalyMessage" + (System.currentTimeMillis()) + Long.toString(random.nextLong());
                 Log.d(TAG, "messageid: " + id);
 
                 try {

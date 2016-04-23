@@ -37,6 +37,7 @@ public class MyGcmListenerService extends GcmListenerService {
     }
 
     public void onMessageReceived(String from, Bundle data) {
+        //TODO: need to handle different actions
         String message = data.getString(GCMHelper.MESSAGE);
         String sender_id = data.getString(GCMHelper.SENDER_ID);
         String conversation_id = data.getString(GCMHelper.CONVERSATION_ID);
