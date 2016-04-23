@@ -90,7 +90,7 @@ public class GCMHelper {
         return args;
     }
 
-    /*******************new added functions for generating gcm message payload**************************/
+    /*******************new added functions for generating gcm message payload********************/
 
     public static Bundle getRegisterPayload(String senderId, String gcmId) {
         Bundle args = new Bundle();
@@ -101,7 +101,8 @@ public class GCMHelper {
         return args;
     }
 
-    public static Bundle getStartConversationPayload(String creatorId, String conversationId, String recipients) {
+    public static Bundle getStartConversationPayload(String creatorId, String conversationId,
+                                                     String recipients) {
         Bundle args = new Bundle();
         args.putString(ACTION, ACTION_START_CONVERSATION);
         args.putString(CREATOR_ID, creatorId);
@@ -130,7 +131,8 @@ public class GCMHelper {
         return args;
     }
 
-    public static Bundle getConversationMessagePayload(String senderId, String conversationId, String recipients, String message) {
+    public static Bundle getConversationMessagePayload(String senderId, String conversationId,
+                                                       String recipients, String message) {
         Bundle args = new Bundle();
         args.putString(ACTION, ACTION_CONVERSATION_MESSAGE);
         args.putString(SENDER_ID, senderId);
@@ -141,7 +143,8 @@ public class GCMHelper {
         return args;
     }
 
-    public static Bundle getLeaveConversationPayload(String senderId, String conversationId, String recipients) {
+    public static Bundle getLeaveConversationPayload(String senderId, String conversationId,
+                                                     String recipients) {
         Bundle args = new Bundle();
         args.putString(ACTION, ACTION_LEAVE_CONVERSATION);
         args.putString(SENDER_ID, senderId);
@@ -151,7 +154,8 @@ public class GCMHelper {
         return args;
     }
 
-    public static Bundle getDropConversationAttendeePayload(String senderId, String conversationId, String targetUserId, String recipients) {
+    public static Bundle getDropConversationAttendeePayload(String senderId, String conversationId,
+                                                            String targetUserId, String recipients) {
         Bundle args = new Bundle();
         args.putString(ACTION, ACTION_DROP_CONVERSATION_ATTENDEE);
         args.putString(SENDER_ID, senderId);
