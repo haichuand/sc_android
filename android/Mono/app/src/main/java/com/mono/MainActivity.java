@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.NavigationView.OnNavigationItemSelectedListener;
@@ -31,6 +30,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.mono.chat.ChatRoomActivity;
 import com.mono.chat.ConversationManager;
 import com.mono.details.EventDetailsActivity;
+import com.mono.intro.IntroActivity;
 import com.mono.model.Account;
 import com.mono.model.Calendar;
 import com.mono.model.Conversation;
@@ -40,7 +40,6 @@ import com.mono.settings.Settings;
 import com.mono.settings.SettingsActivity;
 import com.mono.util.Colors;
 import com.mono.util.GoogleClient;
-import com.mono.util.Log;
 import com.mono.util.OnBackPressedListener;
 import com.mono.util.SimpleTabLayout;
 import com.mono.web.WebActivity;
@@ -55,6 +54,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     public static final String APP_DIR = "MonoFiles/";
 
     public static final int HOME = R.id.nav_home;
+    public static final int INTRO = R.id.nav_intro;
     public static final int LOGIN = R.id.nav_login;
     public static final int LOGOUT = R.id.nav_logout;
     public static final int SETTINGS = R.id.nav_settings;
@@ -106,15 +106,11 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
     protected void start() {
         triggerGooglePlayServices(this);
-
-        Log.initialize(this);
-
-        if (!Settings.getInstance(this).getPermissionCheck()) {
-            PermissionManager.checkPermissions(this, RequestCodes.Permission.PERMISSION_CHECK);
-        }
-
         showHome();
-        runDayOne();
+
+        if (Settings.getInstance(this).getDayOne() <= 0) {
+            showIntro();
+        }
     }
 
     @Override
@@ -203,6 +199,9 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             case RequestCodes.Activity.EVENT_DETAILS:
                 handleEventDetails(resultCode, data);
                 break;
+            case RequestCodes.Activity.INTRO:
+                handleIntro(resultCode, data);
+                break;
         }
     }
 
@@ -219,18 +218,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[],
-            @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        if (requestCode == RequestCodes.Permission.PERMISSION_CHECK) {
-            Settings.getInstance(this).setPermissionCheck(true);
-        } else {
-            PermissionManager.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        }
-    }
-
-    @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         if (item.isCheckable() && item.isChecked()) {
             return false;
@@ -241,6 +228,9 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         switch (id) {
             case HOME:
                 showHome();
+                break;
+            case INTRO:
+                showIntro();
                 break;
             case LOGIN:
                 showLogin();
@@ -369,6 +359,35 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
         MainFragment mainFragment = new MainFragment();
         setFragment(this, mainFragment, getString(R.string.fragment_main), false);
+    }
+
+    @Override
+    public void showIntro() {
+        Intent intent = new Intent(this, IntroActivity.class);
+        startActivityForResult(intent, RequestCodes.Activity.INTRO);
+    }
+
+    public void handleIntro(int resultCode, Intent data) {
+        if (resultCode == RESULT_OK) {
+            Settings settings = Settings.getInstance(this);
+            long milliseconds = settings.getDayOne();
+
+            if (milliseconds <= 0) {
+                try {
+                    // Initialize Calendars
+                    Set<Long> calendars = new HashSet<>();
+                    List<Calendar> calendarList = CalendarProvider.getInstance(this).getCalendars();
+                    for (Calendar calendar : calendarList) {
+                        calendars.add(calendar.id);
+                    }
+                    settings.setCalendars(calendars);
+
+                    settings.setDayOne(System.currentTimeMillis());
+                } catch (SecurityException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     @Override
@@ -557,26 +576,5 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         }
 
         transaction.commit();
-    }
-
-    public void runDayOne() {
-        Settings settings = Settings.getInstance(this);
-        long milliseconds = settings.getDayOne();
-
-        if (milliseconds <= 0) {
-            try {
-                // Initialize Calendars
-                Set<Long> calendars = new HashSet<>();
-                List<Calendar> calendarList = CalendarProvider.getInstance(this).getCalendars();
-                for (Calendar calendar : calendarList) {
-                    calendars.add(calendar.id);
-                }
-                settings.setCalendars(calendars);
-
-                settings.setDayOne(System.currentTimeMillis());
-            } catch (SecurityException e) {
-                e.printStackTrace();
-            }
-        }
     }
 }

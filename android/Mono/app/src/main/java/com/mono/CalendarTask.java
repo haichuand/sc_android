@@ -36,7 +36,7 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
 
     @Override
     protected Object doInBackground(Object... params) {
-        Log.debug(getClass().getSimpleName(), "Running");
+        Log.getInstance(context).debug(getClass().getSimpleName(), "Running");
 
         Set<Long> calendarIds = settings.getCalendars();
         if (calendarIds.isEmpty()) {

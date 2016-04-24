@@ -30,6 +30,8 @@ public interface MainInterface {
 
     void showHome();
 
+    void showIntro();
+
     void showLogin();
 
     void showSettings();

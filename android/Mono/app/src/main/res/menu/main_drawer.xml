@@ -16,6 +16,11 @@
         android:checkableBehavior="single">
 
         <item
+            android:id="@+id/nav_intro"
+            android:icon="@drawable/ic_clipboard_white"
+            android:title="@string/intro"/>
+
+        <item
             android:id="@+id/nav_login"
             android:icon="@drawable/ic_clipboard_white"
             android:title="@string/action_login"/>

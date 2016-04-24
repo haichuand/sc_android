@@ -32,8 +32,11 @@ public class EventManager {
     private final Map<String, Event> cache = new HashMap<>();
     private final List<EventBroadcastListener> listeners = new ArrayList<>();
 
+    private Log log;
+
     private EventManager(Context context) {
         this.context = context;
+        log = Log.getInstance(context);
     }
 
     public static EventManager getInstance(Context context) {
@@ -247,10 +250,10 @@ public class EventManager {
         }
 
         if (id != null) {
-            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE, id);
+            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE, id);
             event = getEvent(id, false);
         } else {
-            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE_FAILED);
+            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE_FAILED);
             status = EventAction.STATUS_FAILED;
         }
 
@@ -296,10 +299,10 @@ public class EventManager {
         }
 
         if (id != null) {
-            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE, id);
+            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE, id);
             event = getEvent(id, false);
         } else {
-            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE_FAILED);
+            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE_FAILED);
             status = EventAction.STATUS_FAILED;
         }
 
@@ -344,10 +347,10 @@ public class EventManager {
         );
 
         if (id != null) {
-            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE, id);
+            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE, id);
             event = getEvent(id, false);
         } else {
-            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE_FAILED);
+            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE_FAILED);
             status = EventAction.STATUS_FAILED;
         }
         return id;
@@ -437,9 +440,9 @@ public class EventManager {
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
         if (dataSource.updateValues(id, values) > 0) {
-            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE, id);
+            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE, id);
         } else {
-            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE_FAILED, id);
+            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE_FAILED, id);
         }
 
         EventAction data = new EventAction(EventAction.ACTION_UPDATE, actor, status, original);
@@ -460,9 +463,9 @@ public class EventManager {
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
         if (dataSource.removeEvent(id) > 0) {
-            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_REMOVE, id);
+            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_REMOVE, id);
         } else {
-            Log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_REMOVE_FAILED, id);
+            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_REMOVE_FAILED, id);
         }
 
         EventAction data = new EventAction(EventAction.ACTION_REMOVE, actor, status, event);
