@@ -23,6 +23,8 @@ import com.mono.util.SimpleLinearLayoutManager;
 import com.mono.util.SimpleSlideView.SimpleSlideViewListener;
 import com.mono.util.Views;
 
+import org.joda.time.DateTime;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -52,6 +54,8 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
 
     private final Map<String, CalendarEventsItem> items = new HashMap<>();
     private final List<Event> events = new ArrayList<>();
+
+    private long currentTime;
 
     private Animator animator;
 
@@ -147,9 +151,15 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
                 TimeZone timeZone = TimeZone.getDefault();
                 DATE_FORMAT.setTimeZone(timeZone);
                 TIME_FORMAT.setTimeZone(timeZone);
+
+                String currentDate = DATE_FORMAT.format(currentTime);
                 String startDate = DATE_FORMAT.format(event.startTime);
 
-                item.startTime = TIME_FORMAT.format(event.startTime);
+                if (startDate.equals(currentDate)) {
+                    item.startTime = TIME_FORMAT.format(event.startTime);
+                } else {
+                    item.startTime = startDate;
+                }
 
                 TIME_FORMAT.setTimeZone(timeZone);
                 DATE_FORMAT.setTimeZone(timeZone);
@@ -247,7 +257,10 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
         layoutManager.setScrollEnabled(state);
     }
 
-    public void setEvents(List<Event> events) {
+    public void setEvents(int year, int month, int day, List<Event> events) {
+        currentTime = new DateTime(year, month + 1, day, 0, 0).getMillis();
+
+        this.items.clear();
         this.events.clear();
         this.events.addAll(events);
 

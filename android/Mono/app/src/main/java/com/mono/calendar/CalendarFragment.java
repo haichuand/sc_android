@@ -428,7 +428,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         List<Event> events = eventManager.getEvents(year, month, day, calendarIds);
 
         if (!events.isEmpty()) {
-            eventsFragment.setEvents(events);
+            eventsFragment.setEvents(year, month, day, events);
 
             int height = calendarView.getPageHeight(year, month);
             eventsFragment.setHalfHeight(view.getMeasuredHeight() - height);
