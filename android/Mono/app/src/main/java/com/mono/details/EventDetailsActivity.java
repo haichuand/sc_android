@@ -32,7 +32,6 @@ import com.mono.model.Attendee;
 import com.mono.model.Calendar;
 import com.mono.model.Event;
 import com.mono.model.Location;
-import com.mono.util.Colors;
 import com.mono.util.GestureActivity;
 import com.mono.util.TimeZoneHelper;
 
@@ -337,7 +336,6 @@ public class EventDetailsActivity extends GestureActivity {
         event = new Event(original);
 
         this.calendar.setText(calendar.name);
-        this.calendar.setTextColor(calendar.color);
 
         if (event.title != null) {
             title.setText(event.title);
@@ -405,31 +403,19 @@ public class EventDetailsActivity extends GestureActivity {
     }
 
     public void showColorPicker() {
-        int[] colorIds = {
-            R.color.blue,
-            R.color.blue_dark,
-            R.color.brown,
-            R.color.green,
-            R.color.lavender,
-            R.color.orange,
-            R.color.purple,
-            R.color.red_1,
-            R.color.yellow_1
-        };
-
-        int color;
-
-        do {
-            int colorId = colorIds[(int) (Math.random() * colorIds.length) % colorIds.length];
-            color = Colors.getColor(this, colorId);
-
-            if (colorIds.length == 1) {
-                break;
+        ColorPickerDialog dialog = new ColorPickerDialog(
+            this,
+            event.color,
+            new ColorPickerDialog.OnColorSetListener() {
+                @Override
+                public void onColorSet(int color) {
+                    colorPicker.setColorFilter(color);
+                    event.color = color;
+                }
             }
-        } while (color == event.color);
+        );
 
-        colorPicker.setColorFilter(color);
-        event.color = color;
+        dialog.show();
     }
 
     public void showPlacePicker() {
