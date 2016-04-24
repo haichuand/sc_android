@@ -14,7 +14,8 @@ import com.mono.model.Location;
 import com.mono.util.Common;
 
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeUtils;
+import org.joda.time.DateTimeZone;
+import org.joda.time.Days;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -22,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 
 public class CalendarEventProvider {
 
@@ -310,7 +310,9 @@ public class CalendarEventProvider {
     public List<Event> getEvents(int year, int month, int day, long... calendarIds) {
         List<Event> events = new ArrayList<>();
 
-        DateTime dateTime = new DateTime(year, month + 1, day, 0, 0);
+        month++; // Joda-Time Compatible
+
+        DateTime dateTime = new DateTime(year, month, day, 0, 0);
         long startTime = dateTime.minusHours(12).getMillis();
         long endTime = dateTime.plusDays(1).plusHours(12).getMillis();
 
@@ -339,20 +341,24 @@ public class CalendarEventProvider {
             List<Event> tempEvents = cursorInstancesToEvents(cursor);
             cursor.close();
 
-            java.util.Calendar current;
-            java.util.Calendar local = java.util.Calendar.getInstance();
-            java.util.Calendar utc = java.util.Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-
             for (Event event : tempEvents) {
-                current = !event.allDay ? local : utc;
+                long startMillis = event.startTime;
+                long endMillis = event.endTime;
 
-                current.setTimeInMillis(event.startTime);
-                int startDay = current.get(java.util.Calendar.DAY_OF_MONTH);
+                if (!event.allDay) {
+                    dateTime = dateTime.withZone(DateTimeZone.getDefault());
+                } else {
+                    endMillis -= 1;
+                    dateTime = dateTime.withZone(DateTimeZone.UTC);
+                }
 
-                current.setTimeInMillis(!event.allDay ? event.endTime : event.endTime - 1);
-                int endDay = current.get(java.util.Calendar.DAY_OF_MONTH);
+                DateTime current = new DateTime(year, month, day, 0, 0);
+                DateTime start = dateTime.withMillis(startMillis).withTimeAtStartOfDay();
 
-                if (!Common.between(day, startDay, endDay)) {
+                DateTime end = dateTime.withMillis(endMillis).withTimeAtStartOfDay();
+                end = end.plusDays(1).minusMillis(1);
+
+                if (current.isBefore(start) || current.isAfter(end)) {
                     continue;
                 }
 
@@ -368,7 +374,9 @@ public class CalendarEventProvider {
     public Map<Integer, List<Integer>> getEventColors(int year, int month, long... calendarIds) {
         Map<Integer, List<Integer>> result = new HashMap<>();
 
-        DateTime dateTime = new DateTime(year, month + 1, 1, 0, 0);
+        month++; // Joda-Time Compatible
+
+        DateTime dateTime = new DateTime(year, month, 1, 0, 0);
         long startTime = dateTime.minusHours(12).getMillis();
         long endTime = dateTime.plusMonths(1).plusHours(12).getMillis();
 
@@ -400,35 +408,31 @@ public class CalendarEventProvider {
         );
 
         if (cursor != null) {
-            java.util.Calendar calendar;
-            java.util.Calendar local = java.util.Calendar.getInstance();
-            java.util.Calendar utc = java.util.Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-
             while (cursor.moveToNext()) {
-                int color = cursor.getInt(1);
-                if (color == 0) {
-                    color = cursor.getInt(0);
-                }
-
+                int calendarColor = cursor.getInt(0);
+                int eventColor = cursor.getInt(1);
                 long startMillis = cursor.getLong(2);
                 long endMillis = cursor.getLong(3);
                 boolean allDay = cursor.getInt(4) > 0;
 
+                int color = eventColor == 0 ? calendarColor : eventColor;
+
                 if (!allDay) {
-                    calendar = local;
+                    dateTime = dateTime.withZone(DateTimeZone.getDefault());
                 } else {
                     endMillis -= 1;
-                    calendar = utc;
+                    dateTime = dateTime.withZone(DateTimeZone.UTC);
                 }
 
-                int numDays = (int) (DateTimeUtils.toJulianDayNumber(endMillis) -
-                    DateTimeUtils.toJulianDayNumber(startMillis)) + 1;
+                DateTime start = dateTime.withMillis(startMillis).withTimeAtStartOfDay();
+                DateTime end = dateTime.withMillis(endMillis).withTimeAtStartOfDay();
+                int numDays = Days.daysBetween(start, end).getDays() + 1;
 
-                calendar.setTimeInMillis(startMillis);
+                dateTime = dateTime.withMillis(startMillis);
 
                 for (int i = 0; i < numDays; i++) {
-                    if (calendar.get(java.util.Calendar.MONTH) == month) {
-                        int currentDay = calendar.get(java.util.Calendar.DAY_OF_MONTH);
+                    if (dateTime.getMonthOfYear() == month) {
+                        int currentDay = dateTime.getDayOfMonth();
 
                         if (!result.containsKey(currentDay)) {
                             result.put(currentDay, new ArrayList<Integer>());
@@ -440,7 +444,7 @@ public class CalendarEventProvider {
                         }
                     }
 
-                    calendar.add(java.util.Calendar.DAY_OF_MONTH, 1);
+                    dateTime = dateTime.plusDays(1);
                 }
             }
 
@@ -465,13 +469,11 @@ public class CalendarEventProvider {
             Events.SYNC_DATA5
         );
 
-        java.util.Calendar tempCalendar = java.util.Calendar.getInstance();
+        DateTime dateTime = new DateTime(startTime);
+        String start = DATE_FORMAT.format(dateTime.toDate());
 
-        tempCalendar.setTimeInMillis(startTime);
-        String start = DATE_FORMAT.format(tempCalendar.getTime());
-
-        tempCalendar.setTimeInMillis(endTime);
-        String end = DATE_FORMAT.format(tempCalendar.getTime());
+        dateTime = dateTime.withMillis(endTime);
+        String end = DATE_FORMAT.format(dateTime.toDate());
 
         String[] selectionArgs = {
             String.valueOf(calendarId),
