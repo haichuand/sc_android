@@ -14,14 +14,14 @@ import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.gcm.GoogleCloudMessaging;
-import com.mono.chat.GcmMessage;
 import com.mono.chat.MyGcmListenerService;
 import com.mono.chat.RegistrationIntentService;
 import com.mono.model.Account;
 import com.mono.network.ChatServerManager;
 import com.mono.network.GCMHelper;
-import com.mono.network.HttpManager;
+import com.mono.network.HttpServerManager;
+
+import org.json.JSONObject;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -117,16 +117,48 @@ public class LoginActivity extends AppCompatActivity {
         showFragment(new LoginFragment(), tag, false);
     }
 
-    public void submitLogin(String username, String password) {
+    public void submitLogin(String emailOrPhone, String password) {
         if (!hasToken) {
             return;
         }
+        HttpServerManager httpServerManager = new HttpServerManager(this);
+        String toastMessage = null;
+        switch (httpServerManager.loginUser(emailOrPhone, password)) {
+            case 0:
+                getUserInfoAndSetAccount(emailOrPhone, httpServerManager);
+                finish();
+                break;
+            case 1:
+            case 2:
+                toastMessage = "Incorrect login information";
+                break;
+            case -1:
+                toastMessage = "Server error. Please try again";
+                break;
+        }
+        if (toastMessage != null) {
+            Toast.makeText(this, toastMessage, Toast.LENGTH_LONG).show();
+        }
+    }
 
-        GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(this);
+    private void getUserInfoAndSetAccount(String emailOrPhone, HttpServerManager httpServerManager) {
+        JSONObject responseJson;
+        if (emailOrPhone.contains("@")) {
+            responseJson = httpServerManager.getUserByEmail(emailOrPhone);
+        } else {
+            responseJson = httpServerManager.getUserByPhone(emailOrPhone);
+        }
 
-        GcmMessage gcmMessage = GcmMessage.getInstance(this);
-        Bundle args = GCMHelper.getLoginMessage(username, password);
-        gcmMessage.sendMessage(args, gcm);
+        try {
+            Account account = new Account(responseJson.getInt(HttpServerManager.UID));
+            account.firstName = responseJson.getString(HttpServerManager.FIRST_NAME);
+            account.lastName = responseJson.getString(HttpServerManager.LAST_NAME);
+            account.username = responseJson.getString(HttpServerManager.USER_NAME);
+            account.email = responseJson.getString(HttpServerManager.EMAIL);
+            AccountManager.getInstance(this).setAccount(account);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void onLogin(Bundle data) {
@@ -153,33 +185,28 @@ public class LoginActivity extends AppCompatActivity {
         showFragment(new RegisterFragment(), tag, true);
     }
 
-    public void submitRegister(String firstName, String lastName, String email, String password) {
+    public void submitRegister(String firstName, String lastName, String userName, String email, String password) {
 
         if (!hasToken) {
             return;
         }
 
-        AccountManager manager = AccountManager.getInstance(this);
-        String token = manager.getGCMToken();
-        String userId = HttpManager.sendRegister(new String[] {
-                email, firstName, token, lastName, null, null, manager.getAccount().username
-        });
-
+        String token = AccountManager.getInstance(this).getGCMToken();
+        HttpServerManager httpServerManager = new HttpServerManager(this);
         String toastMessage;
-        if (userId == null) {
-            toastMessage = "Registration unsuccessful. Please try again.";
-        } else {
-            ChatServerManager.sendRegister(userId, token);
+        int uId = httpServerManager.createUser(email, firstName, token, lastName, null, null, userName, password);
+        if (uId > 0) {
+            ChatServerManager chatServerManager = new ChatServerManager(this);
+            chatServerManager.sendRegister(uId, token);
             toastMessage = "Registration successful.";
+            finish();
+        } else if (uId == 0){
+            toastMessage = "The email address or phone number has already been used.";
+        } else {
+            toastMessage = "Registration unsuccessful. Please try again.";
         }
 
         Toast.makeText(this, toastMessage, Toast.LENGTH_LONG).show();
-//
-//        GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(this);
-//
-//        GcmMessage gcmMessage = GcmMessage.getInstance(this);
-//        Bundle args = GCMHelper.getRegisterMessage(firstName, lastName, email, password);
-//        gcmMessage.sendMessage(args, gcm);
     }
 
     /**

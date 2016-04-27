@@ -58,6 +58,6 @@ public class GcmMessage {
                 sendTask = null;
                 Log.d(TAG, "onPostExecute: result: " + result);
             }
-        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        }.execute();
     }
 }

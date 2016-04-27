@@ -120,6 +120,7 @@ public class RegisterFragment extends Fragment {
         String email = fields[INDEX_EMAIL].getText().toString().trim();
         String password = fields[INDEX_PASSWORD].getText().toString().trim();
         String confirmPassword = fields[INDEX_CONFIRM_PASSWORD].getText().toString().trim();
+        String userName = (firstName + lastName).toLowerCase();
 
         if (!password.equals(confirmPassword)) {
             int color = Colors.getColor(getContext(), R.color.red_1);
@@ -132,7 +133,7 @@ public class RegisterFragment extends Fragment {
         }
 
         password = Common.md5(password);
-        activity.submitRegister(firstName, lastName, email, password);
+        activity.submitRegister(firstName, lastName, userName, email, password);
     }
 
     public void onCancel() {

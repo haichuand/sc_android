@@ -9,9 +9,18 @@ public class Account implements Parcelable {
     public String username;
     public String firstName;
     public String lastName;
+    public String email;
 
     public Account(long id) {
         this.id = id;
+    }
+
+    public Account(long id, String email, String firstName, String lastName, String username) {
+        this.id = id;
+        this.email = email;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.username = username;
     }
 
     protected Account(Parcel in) {
@@ -19,6 +28,7 @@ public class Account implements Parcelable {
         username = in.readString();
         firstName = in.readString();
         lastName = in.readString();
+        email = in.readString();
     }
 
     public static final Creator<Account> CREATOR = new Creator<Account>() {
@@ -44,5 +54,6 @@ public class Account implements Parcelable {
         dest.writeString(username);
         dest.writeString(firstName);
         dest.writeString(lastName);
+        dest.writeString(email);
     }
 }

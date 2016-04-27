@@ -12,6 +12,8 @@ import com.google.android.gms.iid.InstanceID;
 import com.mono.AccountManager;
 import com.mono.R;
 import com.mono.SuperCalyPreferences;
+import com.mono.network.ChatServerManager;
+import com.mono.network.HttpServerManager;
 
 /**
  * Created by xuejing on 2/25/16.
@@ -57,5 +59,10 @@ public class RegistrationIntentService extends IntentService {
     private void sendRegistrationToServer(String token) {
         AccountManager.getInstance(getApplicationContext()).setGCMToken(token);
         //TODO: send token to server and chatserver
+        HttpServerManager httpServerManager = new HttpServerManager(this);
+        long accountId = AccountManager.getInstance(this).getAccount().id;
+        httpServerManager.updateUserGcmId(accountId, token);
+        ChatServerManager chatServerManager = new ChatServerManager(this);
+        chatServerManager.updateUserGcmId(accountId, token);
     }
 }

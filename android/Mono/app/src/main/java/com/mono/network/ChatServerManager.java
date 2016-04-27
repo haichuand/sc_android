@@ -1,22 +1,32 @@
 package com.mono.network;
 
+import android.content.Context;
+import android.os.Bundle;
+
 import com.google.android.gms.gcm.GoogleCloudMessaging;
+import com.mono.chat.GcmMessage;
 
 public class ChatServerManager {
 
-    private static GoogleCloudMessaging gcm;
+    public static final String ACTION = "action";
+    public static final String SENDER_ID = "senderId";
+    public static final String GCM_ID = "gcmId";
 
-    private ChatServerManager() {}
+    private GoogleCloudMessaging gcm;
+    private Context context;
 
-    static {
-        gcm = new GoogleCloudMessaging();
+    public ChatServerManager(Context context) {
+        this.context = context;
+        gcm = GoogleCloudMessaging.getInstance(context);
     }
 
-    public static void sendRegister(String uId, String gcmToken) {
-
+    public void sendRegister(long uId, String gcmToken) {
+        Bundle bundle = GCMHelper.getRegisterPayload(uId + "", gcmToken);
+        GcmMessage.getInstance(context).sendMessage(bundle, gcm);
     }
 
-    public static void sendLogin(String uId, String gcmToken) {
-
+    public void updateUserGcmId(long userId, String gcmToken) {
+        Bundle bundle = GCMHelper.getUpdateGcmIdPayload(userId + "", gcmToken);
+        GcmMessage.getInstance(context).sendMessage(bundle, gcm);
     }
 }

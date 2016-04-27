@@ -109,7 +109,7 @@ public class LoginFragment extends Fragment {
         Account account = AccountManager.getInstance(getContext()).getAccount();
 
         if (account != null) {
-            fields[INDEX_USERNAME].setText(account.username);
+            fields[INDEX_USERNAME].setText(account.email);
         } else {
             TelephonyManager manager =
                 (TelephonyManager) getActivity().getSystemService(Context.TELEPHONY_SERVICE);
