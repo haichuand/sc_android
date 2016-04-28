@@ -132,12 +132,12 @@ public class GCMHelper {
     }
 
     public static Bundle getConversationMessagePayload(String senderId, String conversationId,
-                                                       String recipients, String message) {
+                                                       List<String> recipients, String message) {
         Bundle args = new Bundle();
         args.putString(ACTION, ACTION_CONVERSATION_MESSAGE);
         args.putString(SENDER_ID, senderId);
         args.putString(CONVERSATION_ID, conversationId);
-        args.putString(RECIPIENTS, recipients);
+        args.putString(RECIPIENTS, Common.implode(",", recipients));
         args.putString(MESSAGE, message);
 
         return args;

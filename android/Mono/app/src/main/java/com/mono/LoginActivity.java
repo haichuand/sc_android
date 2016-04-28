@@ -16,6 +16,8 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.mono.chat.MyGcmListenerService;
 import com.mono.chat.RegistrationIntentService;
+import com.mono.db.DatabaseHelper;
+import com.mono.db.dao.AttendeeDataSource;
 import com.mono.model.Account;
 import com.mono.network.ChatServerManager;
 import com.mono.network.GCMHelper;
@@ -126,6 +128,7 @@ public class LoginActivity extends AppCompatActivity {
         switch (httpServerManager.loginUser(emailOrPhone, password)) {
             case 0:
                 getUserInfoAndSetAccount(emailOrPhone, httpServerManager);
+                resetUserTable(httpServerManager);
                 finish();
                 break;
             case 1:
@@ -155,13 +158,29 @@ public class LoginActivity extends AppCompatActivity {
             account.lastName = responseJson.getString(HttpServerManager.LAST_NAME);
             account.username = responseJson.getString(HttpServerManager.USER_NAME);
             account.email = responseJson.getString(HttpServerManager.EMAIL);
-            AccountManager.getInstance(this).setAccount(account);
+            AccountManager accountManager = AccountManager.getInstance(this);
+            accountManager.setAccount(account);
+
+            //refresh GCM tokens on http and chat servers
+            String token = accountManager.getGCMToken();
+            if (httpServerManager.updateUserGcmId(account.id, token) != 0) {
+                Toast.makeText(this, "Error updating GCM token on http server", Toast.LENGTH_LONG).show();
+            }
+            new ChatServerManager(this).updateUserGcmId(account.id, token);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+
+    private void resetUserTable(HttpServerManager httpServerManager) {
+        AttendeeDataSource attendeeDataSource = DatabaseHelper.getDataSource(this, AttendeeDataSource.class);
+        attendeeDataSource.clearAttendeeTable();
+        httpServerManager.addAllRegisteredUsersToUserTable(attendeeDataSource);
+    }
+
     public void onLogin(Bundle data) {
+//        Log.d("LoginActivity", "onLogin");
         int status = Integer.parseInt(data.getString("status"));
         String username = data.getString("username");
 

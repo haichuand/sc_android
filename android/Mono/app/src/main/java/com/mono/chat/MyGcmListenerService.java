@@ -38,13 +38,16 @@ public class MyGcmListenerService extends GcmListenerService {
 
     public void onMessageReceived(String from, Bundle data) {
         //TODO: need to handle different actions
-        String message = data.getString(GCMHelper.MESSAGE);
-        String sender_id = data.getString(GCMHelper.SENDER_ID);
-        String conversation_id = data.getString(GCMHelper.CONVERSATION_ID);
-        Log.d(TAG, "From: " + from);
-        Log.d(TAG, "From user: " + sender_id);
-        Log.d(TAG, "Message: " + message);
-        Log.d(TAG, "Conversaiton_id: " + conversation_id);
+        String action = data.getString(GCMHelper.ACTION);
+        if (action == null)
+            return;
+
+        switch (action) {
+            case GCMHelper.ACTION_CONVERSATION_MESSAGE:
+                processMessage(from, data);
+                break;
+        }
+
 
         // [START_EXCLUDE]
         /**
@@ -58,10 +61,21 @@ public class MyGcmListenerService extends GcmListenerService {
          * In some cases it may be useful to show a notification indicating to the user
          * that a message was received.
          */
+
+        // [END_EXCLUDE]
+    }
+
+    private void processMessage(String from, Bundle data) {
+        String message = data.getString(GCMHelper.MESSAGE);
+        String sender_id = data.getString(GCMHelper.SENDER_ID);
+        String conversation_id = data.getString(GCMHelper.CONVERSATION_ID);
+        Log.d(TAG, "From: " + from);
+        Log.d(TAG, "From user: " + sender_id);
+        Log.d(TAG, "Message: " + message);
+        Log.d(TAG, "Conversaiton_id: " + conversation_id);
         sendNotification(message);
         conversationManager.saveChatMessageToDB(new Message(sender_id, conversation_id, message, new Date().getTime()));
         broadcastMessage(data);
-        // [END_EXCLUDE]
     }
 
     public void onMessageSent(String msgId) {

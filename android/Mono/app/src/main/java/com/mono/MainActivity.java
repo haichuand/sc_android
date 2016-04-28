@@ -38,6 +38,7 @@ import com.mono.model.Event;
 import com.mono.provider.CalendarProvider;
 import com.mono.settings.Settings;
 import com.mono.settings.SettingsActivity;
+import com.mono.social.ChatsFragment;
 import com.mono.util.Colors;
 import com.mono.util.GoogleClient;
 import com.mono.util.OnBackPressedListener;
@@ -535,6 +536,13 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         String conversationId;
         if (conversations.isEmpty()) {
             conversationId = conversationManager.createConversation(event.title, event.id);
+            Conversation conversation = conversationManager.getConversationById(conversationId);
+            //TODO: send conversation to http server
+
+            ChatsFragment chatsFragment = (ChatsFragment) getSupportFragmentManager().findFragmentByTag(getString(R.string.fragment_chats));
+            if (chatsFragment != null) {
+                chatsFragment.insert(Integer.MAX_VALUE, conversation, true);
+            }
         } else {
             Conversation conversation = conversations.get(0);
             conversationId = conversation.id;
@@ -546,7 +554,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         intent.putExtra(ChatRoomActivity.EVENT_START_TIME, event.startTime);
         intent.putExtra(ChatRoomActivity.EVENT_END_TIME, event.endTime);
         intent.putExtra(ChatRoomActivity.CONVERSATION_ID, conversationId);
-        intent.putExtra(ChatRoomActivity.MY_ID, account.username);
+        intent.putExtra(ChatRoomActivity.MY_ID, String.valueOf(account.id));
 
         startActivityForResult(intent, RequestCodes.Activity.CHAT);
     }

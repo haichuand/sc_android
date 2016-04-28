@@ -17,7 +17,7 @@ public class ChatAttendeeMap {
         chatAttendeeMap = new HashMap<>();
     }
 
-    public Map<String, Attendee> getChatAttendeeMap() {
+    public Map<String, Attendee> getAttendeeMap() {
         return chatAttendeeMap;
     }
 

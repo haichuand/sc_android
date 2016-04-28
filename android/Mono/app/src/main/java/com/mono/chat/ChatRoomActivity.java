@@ -75,9 +75,10 @@ public class ChatRoomActivity extends GestureActivity {
     private LinearLayoutManager chatLayoutManager;
     private ChatAttendeeMap chatAttendeeMap = new ChatAttendeeMap();
     private SimpleAdapter chatAttendeeListAdapter;
-    private List<Message> chatMessages = new ArrayList<>();
-    private List<Map<String, String>> chatAttendeeAdapterList = new ArrayList<>();
-    private List<String> chatAttendeeTokenList = new ArrayList<>(); //GCM token list for sending messages
+    private List<Message> chatMessages;
+    private List<Map<String, String>> chatAttendeeAdapterList;
+//    private List<String> chatAttendeeTokenList = new ArrayList<>(); //GCM token list for sending messages
+    private List<String> chatAttendeeIdList; //list of chat attendee ids for sending message
     private List<Attendee> allUsersList;
     private Attendee newlyAddedAttendee;
     private ConversationManager conversationManager;
@@ -150,16 +151,41 @@ public class ChatRoomActivity extends GestureActivity {
         chatAttendeeListView = (ListView) findViewById(R.id.chat_drawer_attendees);
         sendMessageText = (TextView) findViewById(R.id.sendMessageText);
         conversationManager = ConversationManager.getInstance(this);
+        initialize();
+    }
 
-        //set the RecyclerView for chat messages and its adapter
+    private void initialize() {
+        if (conversationId == null) {
+            return;
+        }
+
+        //set up main chat main view
         chatLayoutManager = new LinearLayoutManager(this);
         chatView.setLayoutManager(chatLayoutManager);
+        chatMessages = conversationManager.getChatMessages(conversationId);
+        chatAttendeeMap = conversationManager.getChatAttendeeMap(conversationId);
         chatRoomAdapter = new ChatRoomAdapter(this, myId, chatAttendeeMap, chatMessages);
         chatView.setAdapter(chatRoomAdapter);
 
-        // TODO: get GCM tokens from server and put in chatAttendeeTokenList
-        chatAttendeeTokenList = new ArrayList<>();
-        setChatAttendeeTokenList(); //only used during development
+        chatAttendeeIdList = conversationManager.getChatAttendeeIdList(chatAttendeeMap, myId);
+
+        /* set up adapter for chat attendee list */
+        HashMap<String, Attendee> attendeeMapCopy = new HashMap<>(chatAttendeeMap.getAttendeeMap());
+        chatAttendeeAdapterList = new ArrayList<>();
+        HashMap<String, String> attendeeItem = new HashMap<>();
+        attendeeItem.put("name", "Me");
+        chatAttendeeAdapterList.add(attendeeItem); //put my name first in attendee list
+        attendeeMapCopy.remove(String.valueOf(myId));
+        for (Map.Entry entry : attendeeMapCopy.entrySet()) { //then put other attendees in the list
+            attendeeItem = new HashMap<>();
+            String name = ((Attendee) entry.getValue()).toString();
+            attendeeItem.put("name", name);
+            chatAttendeeAdapterList.add(attendeeItem);
+        }
+        String[] from = new String[] {"name"};  //maps name to name textView
+        int[] to = new int[] {R.id.chat_attendee_name};
+        chatAttendeeListAdapter = new SimpleAdapter(this, chatAttendeeAdapterList, R.layout.chat_attendee_list_item, from, to);
+        chatAttendeeListView.setAdapter(chatAttendeeListAdapter);
 
         //set up auto complete text view for inviting friends
         addAttendeeTextView = (AutoCompleteTextView) findViewById(R.id.edit_text_invite);
@@ -207,46 +233,18 @@ public class ChatRoomActivity extends GestureActivity {
         };
 
         final LinearLayout messagesLayout = (LinearLayout) findViewById(R.id.all_messages_linearlayout);
-        messagesLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                int size = chatMessages.size();
-                if (chatLayoutManager.findLastCompletelyVisibleItemPosition() < size-1) {
-                    chatLayoutManager.scrollToPosition(size - 1);
+        if (messagesLayout != null) {
+            messagesLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    int size = chatMessages.size();
+                    if (chatLayoutManager.findLastCompletelyVisibleItemPosition() < size-1) {
+                        chatLayoutManager.scrollToPosition(size - 1);
+                    }
                 }
-            }
-        });
-
-        initialize();
-    }
-
-    private void initialize() {
-        if (conversationId == null) {
-            return;
+            });
         }
 
-        chatMessages = conversationManager.getChatMessages(conversationId);
-        chatAttendeeMap = conversationManager.getChatAttendeeMap(conversationId);
-        chatRoomAdapter = new ChatRoomAdapter(this, myId, chatAttendeeMap, chatMessages);
-        chatView.setAdapter(chatRoomAdapter);
-
-        /* set up adapter for chat attendee list */
-        HashMap<String, Attendee> attendeeMapCopy = new HashMap<>(chatAttendeeMap.getChatAttendeeMap());
-        chatAttendeeAdapterList = new ArrayList<>();
-        HashMap<String, String> attendeeItem = new HashMap<>();
-        attendeeItem.put("name", "Me");
-        chatAttendeeAdapterList.add(attendeeItem); //put my name first in attendee list
-        attendeeMapCopy.remove(String.valueOf(myId));
-        for (Map.Entry entry : attendeeMapCopy.entrySet()) { //then put other attendees in the list
-            attendeeItem = new HashMap<>();
-            String name = ((Attendee) entry.getValue()).toString();
-            attendeeItem.put("name", name);
-            chatAttendeeAdapterList.add(attendeeItem);
-        }
-        String[] from = new String[] {"name"};  //maps name to name textView
-        int[] to = new int[] {R.id.chat_attendee_name};
-        chatAttendeeListAdapter = new SimpleAdapter(this, chatAttendeeAdapterList, R.layout.chat_attendee_list_item, from, to);
-        chatAttendeeListView.setAdapter(chatAttendeeListAdapter);
     }
 
     @Override
@@ -304,18 +302,9 @@ public class ChatRoomActivity extends GestureActivity {
         chatRoomAdapter.notifyItemInserted(chatMessages.size() - 1);
         sendMessageText.setText("");
 
-        gcmMessage.sendMessage(GCMHelper.getChatMessage(conversationId, myId, msg, chatAttendeeTokenList), gcm);
+        gcmMessage.sendMessage(GCMHelper.getConversationMessagePayload(myId, conversationId, chatAttendeeIdList, msg), gcm);
         Message message = new Message(myId, conversationId, msg, new Date().getTime());
         conversationManager.saveChatMessageToDB(message);
-    }
-
-    private void setChatAttendeeTokenList() {
-        if (!DemoChat.id1.equals(myId))
-            chatAttendeeTokenList.add("c8DQ6fncZQs:APA91bFe1yhxv03tIcbLguOk9-irBFQrl2k3TF9h4rExNzFGsxVvjmcgpWiW5UPud21hkw62a1Z7BP-J60zGPk1-YA5halrjwK2wKG_eum3dhobczTTkptfZo8RjsbpvuvlVYej3cJPp");
-        if (!DemoChat.id2.equals(myId))
-            chatAttendeeTokenList.add("fhqG2CPmeoY:APA91bFjk6QkIsgixkVrXCo62VaqDARCP1Jg9JWSdxcQVi6qFdB2nr3bYqVCj3o-nMGDLowm1rSz6LnozRk9fXjtL7embsVVuCol_lilBnTnLsyIp1g8AhQQ0iFS-yvYiqd5Z1WZcsUf");
-        if (!DemoChat.id3.equals(myId))
-            chatAttendeeTokenList.add("dNK-zOFMQT4:APA91bE0sYrJSAtIi0fGdmqFf-f_p_WMS5kbCC1g8s3kHfujB7Y8hVWh3dYn_lsazAVPkxykAHzy8wcHXNTG3saDpbhKH6OGrMPpYt7Gzlb1Yk0dGHlcf-7h8B0iFWBLrmqG1HXeFM6G");
     }
 
     public void onAddAttendeeButtonClicked(View view) {
@@ -334,8 +323,10 @@ public class ChatRoomActivity extends GestureActivity {
         nameMap.put("name", newlyAddedAttendee.toString());
         chatAttendeeAdapterList.add(nameMap);
         chatAttendeeListAdapter.notifyDataSetChanged();
+        chatAttendeeIdList.add(newlyAddedAttendee.id);
 
         newlyAddedAttendee = null;
+        addAttendeeTextView.setText("");
     }
 
     class AttendeeUsernameComparator implements Comparator<Attendee> {

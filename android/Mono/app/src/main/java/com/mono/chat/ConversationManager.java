@@ -8,6 +8,7 @@ import com.mono.model.Attendee;
 import com.mono.model.Conversation;
 import com.mono.model.Message;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -39,6 +40,10 @@ public class ConversationManager {
         return conversationDataSource.getConversations();
     }
 
+    public Conversation getConversationById(String conversationId) {
+        return conversationDataSource.getConversation(conversationId);
+    }
+
     public List<Conversation> getConversations(String eventId) {
         return conversationDataSource.getConversations(eventId);
     }
@@ -58,5 +63,11 @@ public class ConversationManager {
 
     public void addAttendee(String conversationId, String attendeeId) {
         conversationDataSource.addAttendeeToConversation(conversationId, attendeeId);
+    }
+
+    public List<String> getChatAttendeeIdList(ChatAttendeeMap attendeeMap, String myId) {
+        ArrayList<String> attendeeIdList = new ArrayList<>(attendeeMap.getAttendeeMap().keySet());
+        attendeeIdList.remove(myId);
+        return attendeeIdList;
     }
 }

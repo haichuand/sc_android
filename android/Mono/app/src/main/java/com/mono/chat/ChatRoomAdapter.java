@@ -48,7 +48,7 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatVi
             List<Message> chatMessageList) {
         this.context = context;
         this.myId = myId;
-        this.chatAttendees = attendeeMap.getChatAttendeeMap();
+        this.chatAttendees = attendeeMap.getAttendeeMap();
         this.chatMessages = chatMessageList;
     }
 

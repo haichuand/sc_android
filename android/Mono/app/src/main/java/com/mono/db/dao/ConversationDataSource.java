@@ -38,6 +38,8 @@ public class ConversationDataSource extends DataSource{
         conversationEventValues.put(DatabaseValues.EventConversation.C_ID, id);
         conversationEventValues.put(DatabaseValues.EventConversation.EVENT_ID, eventID);
 
+        //TODO: get event attendees and insert into conversation_attendees table
+
         try {
             database.insert(DatabaseValues.Conversation.TABLE,conversationValues);
             database.insert(DatabaseValues.EventConversation.TABLE,conversationEventValues);

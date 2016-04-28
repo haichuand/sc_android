@@ -4,8 +4,10 @@ import android.content.Context;
 import android.os.AsyncTask;
 
 import com.mono.AccountManager;
+import com.mono.db.dao.AttendeeDataSource;
 import com.mono.model.Account;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -31,6 +33,8 @@ public class HttpServerManager {
     public static final String GET_USER_CONVERSATIONS_URL = SERVER_URL + "/SuperCaly/rest/user/userConversations/";
     public static final String CREATE_EVENT_URL = SERVER_URL + "/SuperCaly/rest/event/createEvent";
     public static final String UPDATE_GCM_ID_URL = SERVER_URL + "/SuperCaly/rest/user/updateUserGcmId/";
+    public static final String GET_ALL_USER_ID_URL = SERVER_URL + "/SuperCaly/rest/user/getAllUserId";
+    public static final String CREATE_CONVERSATION_URL = SERVER_URL + "/SuperCaly/rest/conversation/createConversation";
 
     //http server return codes
     public static final int STATUS_OK = 0;
@@ -63,6 +67,7 @@ public class HttpServerManager {
     public static final String CREATE_TIME = "createTime";
     public static final String ATTENDEES_ID = "attendeesId";
     public static final String STATUS = "status";
+    public static final String CONVERSATION_ID = "cId";
 
     private Context context;
 
@@ -127,7 +132,47 @@ public class HttpServerManager {
         return -1;
     }
 
+    public int addAllRegisteredUsersToUserTable(AttendeeDataSource attendeeDataSource) {
+        JSONObject allUserIds = getAllRegisteredUserIds();
+        if (allUserIds == null)
+            return 0;
+        int count = 0;
+        try {
+            JSONArray userIdArray = allUserIds.getJSONArray("allUserId");
+            int length = userIdArray.length();
+            for (int i=0; i<length; i++) {
+                String userId = userIdArray.get(i).toString();
+                JSONObject userInfo = getUserInfo(userId);
+                attendeeDataSource.createAttendeeWithAttendeeId(userInfo.getString(UID), userInfo.getString(MEDIA_ID),
+                        userInfo.getString(EMAIL), userInfo.getString(PHONE_NUMBER), userInfo.getString(FIRST_NAME),
+                        userInfo.getString(LAST_NAME), userInfo.getString(USER_NAME), true);
+                count ++;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return count;
+    }
+
+    public JSONObject getAllRegisteredUserIds() {
+        try {
+            return queryServer(null, GET_ALL_USER_ID_URL, GET);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public JSONObject getUserInfo(int userId) {
+        try {
+            return queryServer(null, GET_USER_URL + userId, GET);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public JSONObject getUserInfo(String userId) {
         try {
             return queryServer(null, GET_USER_URL + userId, GET);
         } catch (Exception e) {
@@ -195,6 +240,23 @@ public class HttpServerManager {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public int createConversation(String conversationId, String title, long creatorId, long[] attendeesId) {
+        try {
+            JSONObject conversationInfo = getJSONObject(
+                    new String[] {CONVERSATION_ID, TITLE, CREATOR_ID, ATTENDEES_ID},
+                    new Object[] {conversationId, title, creatorId, attendeesId}
+            );
+            JSONObject responseJson = queryServer(conversationInfo, CREATE_CONVERSATION_URL, POST);
+            if (responseJson.has(STATUS)) {
+                return responseJson.getInt(STATUS);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return -1;
     }
 
 
