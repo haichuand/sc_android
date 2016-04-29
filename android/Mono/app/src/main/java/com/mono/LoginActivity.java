@@ -204,8 +204,8 @@ public class LoginActivity extends AppCompatActivity {
         showFragment(new RegisterFragment(), tag, true);
     }
 
-    public void submitRegister(String firstName, String lastName, String userName, String email, String password) {
-
+    public void submitRegister(String email, String phone, String firstName, String lastName,
+            String userName, String password) {
         if (!hasToken) {
             return;
         }
@@ -213,7 +213,7 @@ public class LoginActivity extends AppCompatActivity {
         String token = AccountManager.getInstance(this).getGCMToken();
         HttpServerManager httpServerManager = new HttpServerManager(this);
         String toastMessage;
-        int uId = httpServerManager.createUser(email, firstName, token, lastName, null, null, userName, password);
+        int uId = httpServerManager.createUser(email, firstName, token, lastName, null, phone, userName, password);
         if (uId > 0) {
             ChatServerManager chatServerManager = new ChatServerManager(this);
             chatServerManager.sendRegister(uId, token);

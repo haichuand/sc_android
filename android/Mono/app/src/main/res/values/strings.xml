@@ -102,6 +102,7 @@
     <string name="cancel">Cancel</string>
     <string name="next">Continue</string>
     <string name="start">Start</string>
+    <string name="or">Or</string>
 
     <string name="me">Me</string>
     <string name="chat_input_hint">Your Message Here</string>

@@ -31,6 +31,7 @@
     <color name="yellow">#FDF8A6</color>
     <color name="yellow_1">#F0E68C</color>
 
+    <color name="translucent_75">#C0FFFFFF</color>
     <color name="translucent_50">#80FFFFFF</color>
     <color name="translucent_25">#40FFFFFF</color>
     <color name="translucent_12">#20FFFFFF</color>

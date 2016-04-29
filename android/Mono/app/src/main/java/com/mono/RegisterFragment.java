@@ -19,11 +19,12 @@ import com.mono.util.Common;
 
 public class RegisterFragment extends Fragment {
 
-    private static final int INDEX_FIRST_NAME = 0;
-    private static final int INDEX_LAST_NAME = 1;
-    private static final int INDEX_EMAIL = 2;
-    private static final int INDEX_PASSWORD = 3;
-    private static final int INDEX_CONFIRM_PASSWORD = 4;
+    private static final int INDEX_EMAIL = 0;
+    private static final int INDEX_PHONE = 1;
+    private static final int INDEX_FIRST_NAME = 2;
+    private static final int INDEX_LAST_NAME = 3;
+    private static final int INDEX_PASSWORD = 4;
+    private static final int INDEX_CONFIRM_PASSWORD = 5;
 
     private LoginActivity activity;
 
@@ -49,10 +50,11 @@ public class RegisterFragment extends Fragment {
             Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_register, container, false);
 
-        fields = new EditText[5];
+        fields = new EditText[6];
+        fields[INDEX_EMAIL] = (EditText) view.findViewById(R.id.email);
+        fields[INDEX_PHONE] = (EditText) view.findViewById(R.id.phone);
         fields[INDEX_FIRST_NAME] = (EditText) view.findViewById(R.id.first_name);
         fields[INDEX_LAST_NAME] = (EditText) view.findViewById(R.id.last_name);
-        fields[INDEX_EMAIL] = (EditText) view.findViewById(R.id.email);
         fields[INDEX_PASSWORD] = (EditText) view.findViewById(R.id.password);
         fields[INDEX_CONFIRM_PASSWORD] = (EditText) view.findViewById(R.id.confirm_password);
 
@@ -70,12 +72,21 @@ public class RegisterFragment extends Fragment {
             @Override
             public void afterTextChanged(Editable s) {
                 boolean isEnabled = true;
-                for (EditText editText : fields) {
-                    if (editText.getText().toString().trim().isEmpty()) {
-                        isEnabled = false;
-                        break;
+
+                String email = fields[INDEX_EMAIL].getText().toString().trim();
+                String phone = fields[INDEX_PHONE].getText().toString().trim();
+
+                if (email.isEmpty() && phone.isEmpty()) {
+                    isEnabled = false;
+                } else {
+                    for (int i = 2; i < fields.length; i++) {
+                        if (fields[i].getText().toString().trim().isEmpty()) {
+                            isEnabled = false;
+                            break;
+                        }
                     }
                 }
+
                 submit.setEnabled(isEnabled);
 
                 int colorId = isEnabled ? android.R.color.white : R.color.translucent_50;
@@ -115,9 +126,10 @@ public class RegisterFragment extends Fragment {
             }
         }
 
+        String email = fields[INDEX_EMAIL].getText().toString().trim();
+        String phone = fields[INDEX_PHONE].getText().toString().trim();
         String firstName = fields[INDEX_FIRST_NAME].getText().toString().trim();
         String lastName = fields[INDEX_LAST_NAME].getText().toString().trim();
-        String email = fields[INDEX_EMAIL].getText().toString().trim();
         String password = fields[INDEX_PASSWORD].getText().toString().trim();
         String confirmPassword = fields[INDEX_CONFIRM_PASSWORD].getText().toString().trim();
         String userName = (firstName + lastName).toLowerCase();
@@ -133,7 +145,7 @@ public class RegisterFragment extends Fragment {
         }
 
         password = Common.md5(password);
-        activity.submitRegister(firstName, lastName, userName, email, password);
+        activity.submitRegister(email, phone, firstName, lastName, userName, password);
     }
 
     public void onCancel() {
