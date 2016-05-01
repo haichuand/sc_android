@@ -32,7 +32,7 @@ public class ConversationManager {
         return instance;
     }
 
-    public String createConversation(String name, String eventId) {
+    public String createConversation(String name, String creatorId, String eventId) {
         return conversationDataSource.createConversationFromEvent(name, eventId);
     }
 
@@ -63,6 +63,10 @@ public class ConversationManager {
 
     public void addAttendee(String conversationId, String attendeeId) {
         conversationDataSource.addAttendeeToConversation(conversationId, attendeeId);
+    }
+
+    public boolean setConversationSyncNeeded(String conversationId, boolean isSynNeeded) {
+        return conversationDataSource.setConversationSyncNeeded(conversationId, isSynNeeded);
     }
 
     public List<String> getChatAttendeeIdList(ChatAttendeeMap attendeeMap, String myId) {

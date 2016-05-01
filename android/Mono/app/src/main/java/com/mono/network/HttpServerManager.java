@@ -16,8 +16,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 public class HttpServerManager {
@@ -35,6 +36,7 @@ public class HttpServerManager {
     public static final String UPDATE_GCM_ID_URL = SERVER_URL + "/SuperCaly/rest/user/updateUserGcmId/";
     public static final String GET_ALL_USER_ID_URL = SERVER_URL + "/SuperCaly/rest/user/getAllUserId";
     public static final String CREATE_CONVERSATION_URL = SERVER_URL + "/SuperCaly/rest/conversation/createConversation";
+    public static final String GET_CONVERSATION_URL = SERVER_URL + "/SuperCaly/rest/conversation/";
 
     //http server return codes
     public static final int STATUS_OK = 0;
@@ -242,21 +244,34 @@ public class HttpServerManager {
         return null;
     }
 
-    public int createConversation(String conversationId, String title, long creatorId, long[] attendeesId) {
+    public boolean createConversation(String conversationId, String title, String creatorId, List<String> attendeesId) {
+        ArrayList<Long> attendeesLongId = new ArrayList<>();
         try {
+            for (String attendee : attendeesId) {
+                attendeesLongId.add(Long.valueOf(attendee));
+            }
             JSONObject conversationInfo = getJSONObject(
                     new String[] {CONVERSATION_ID, TITLE, CREATOR_ID, ATTENDEES_ID},
-                    new Object[] {conversationId, title, creatorId, attendeesId}
+                    new Object[] {conversationId, title, creatorId, new JSONArray(attendeesLongId)}
             );
             JSONObject responseJson = queryServer(conversationInfo, CREATE_CONVERSATION_URL, POST);
-            if (responseJson.has(STATUS)) {
-                return responseJson.getInt(STATUS);
+            if (responseJson.has(STATUS) && responseJson.getInt(STATUS) == 0) {
+               return true;
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return -1;
+        return false;
+    }
+
+    public JSONObject getConversation(String conversationId) {
+        try {
+            return queryServer(null, GET_CONVERSATION_URL + conversationId, GET);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
 
@@ -275,7 +290,7 @@ public class HttpServerManager {
         return jsonObject;
     }
 
-    private JSONObject queryServer(final JSONObject data, final String urlString, final String method) throws JSONException, MalformedURLException, IOException, ExecutionException, InterruptedException {
+    private JSONObject queryServer(final JSONObject data, final String urlString, final String method) throws JSONException, IOException, ExecutionException, InterruptedException {
 
         AsyncTask<Void, Void, JSONObject> serverTask = new AsyncTask<Void, Void, JSONObject>() {
             @Override
