@@ -291,9 +291,9 @@ public class ChatRoomActivity extends GestureActivity {
 
     public void onSendButtonClicked(View view) {
         // Create New Conversation Upon 1st Message
-        if (conversationId == null) {
-            conversationId = ConversationManager.getInstance(this).createConversation(eventName, eventId);
-        }
+//        if (conversationId == null) {
+//            conversationId = ConversationManager.getInstance(this).createConversation(eventName, eventId);
+//        }
 
         String msg = sendMessageText.getText().toString();
         if (msg.isEmpty())

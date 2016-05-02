@@ -1,5 +1,6 @@
 package com.mono.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -8,6 +9,7 @@ import java.util.List;
 public class Conversation {
 
     public final String id;
+    public String creatorId;
     public String eventId;
     public String name;
     public List<Attendee> attendees;
@@ -17,13 +19,15 @@ public class Conversation {
         this.id = id;
     }
 
-    public Conversation(String id, String name) {
+    public Conversation(String id, String creatorId, String name) {
         this.id = id;
+        this.creatorId = creatorId;
         this.name = name;
     }
 
-    public Conversation(String id, String name, List<Attendee> attendees, List<Message> messages) {
+    public Conversation(String id, String creatorId, String name, List<Attendee> attendees, List<Message> messages) {
         this.id = id;
+        this.creatorId = creatorId;
         this.name = name;
         this.attendees = attendees;
         this.messages = messages;
@@ -47,5 +51,44 @@ public class Conversation {
 
     public List<Message> getMessage() {
         return this.messages;
+    }
+
+    public List<String> getAttendeeIdList() {
+        List<String> attendeeIdList = new ArrayList<>();
+        if (attendees == null || attendees.isEmpty()) {
+            return attendeeIdList;
+        }
+        for (Attendee attendee : attendees) {
+            attendeeIdList.add(attendee.id);
+        }
+        return attendeeIdList;
+    }
+
+    public String getCreatorId() {
+        return creatorId;
+    }
+
+    public void setCreatorId(String creatorId) {
+        this.creatorId = creatorId;
+    }
+
+    public String getEventId() {
+        return eventId;
+    }
+
+    public void setAttendees(List<Attendee> attendees) {
+        this.attendees = attendees;
+    }
+
+    public List<Message> getMessages() {
+        return messages;
+    }
+
+    public void setMessages(List<Message> messages) {
+        this.messages = messages;
+    }
+
+    public void setEventId(String eventId) {
+        this.eventId = eventId;
     }
 }

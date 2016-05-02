@@ -14,9 +14,17 @@ import android.util.Log;
 import com.google.android.gms.gcm.GcmListenerService;
 import com.mono.MainActivity;
 import com.mono.R;
+import com.mono.db.DatabaseHelper;
+import com.mono.db.dao.ConversationDataSource;
 import com.mono.model.Message;
 import com.mono.network.GCMHelper;
+import com.mono.network.HttpServerManager;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
 import java.util.Date;
 
 /**
@@ -29,11 +37,13 @@ public class MyGcmListenerService extends GcmListenerService {
     private static final String TAG = "MyGcmListenerService";
     private LocalBroadcastManager broadcaster;
     private ConversationManager conversationManager;
+    private HttpServerManager httpServerManager;
 
     @Override
     public void onCreate() {
         broadcaster = LocalBroadcastManager.getInstance(this);
         conversationManager = ConversationManager.getInstance(this);
+        httpServerManager = new HttpServerManager(this);
     }
 
     public void onMessageReceived(String from, Bundle data) {
@@ -45,6 +55,9 @@ public class MyGcmListenerService extends GcmListenerService {
         switch (action) {
             case GCMHelper.ACTION_CONVERSATION_MESSAGE:
                 processMessage(from, data);
+                break;
+            case GCMHelper.ACTION_START_CONVERSATION:
+                addNewConversation(from, data);
                 break;
         }
 
@@ -76,6 +89,34 @@ public class MyGcmListenerService extends GcmListenerService {
         sendNotification(message);
         conversationManager.saveChatMessageToDB(new Message(sender_id, conversation_id, message, new Date().getTime()));
         broadcastMessage(data);
+    }
+
+    private boolean addNewConversation(String from, Bundle data) {
+        String conversationId = data.getString(GCMHelper.CONVERSATION_ID);
+        if (conversationId == null || conversationId.isEmpty()) {
+            Log.e(TAG, "Error: no conversationId");
+            return false;
+        }
+        //get conversation details from server
+        JSONObject conversationInfo = httpServerManager.getConversation(conversationId);
+        try {
+            String title = conversationInfo.getString(HttpServerManager.TITLE);
+            String creatorId = conversationInfo.getLong(HttpServerManager.CREATOR_ID) + "";
+            JSONArray attendeesArray = conversationInfo.getJSONArray(HttpServerManager.ATTENDEES_ID);
+            ArrayList<String> attendeesList = new ArrayList<>();
+            if (attendeesArray != null && attendeesArray.length() > 0) {
+                for (int i=0; i<attendeesArray.length(); i++) {
+                    attendeesList.add(attendeesArray.get(i).toString());
+                }
+            }
+
+            ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
+            conversationDataSource.createConversation(conversationId, creatorId, title, attendeesList);
+            return true;
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     public void onMessageSent(String msgId) {

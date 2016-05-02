@@ -35,6 +35,8 @@ import com.mono.model.Account;
 import com.mono.model.Calendar;
 import com.mono.model.Conversation;
 import com.mono.model.Event;
+import com.mono.network.ChatServerManager;
+import com.mono.network.HttpServerManager;
 import com.mono.provider.CalendarProvider;
 import com.mono.settings.Settings;
 import com.mono.settings.SettingsActivity;
@@ -536,9 +538,25 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
         String conversationId;
         if (conversations.isEmpty()) {
-            conversationId = conversationManager.createConversation(event.title, event.id);
+            conversationId = conversationManager.createConversation(event.title, account.id + "", event.id);
             Conversation conversation = conversationManager.getConversationById(conversationId);
-            //TODO: send conversation to http server
+            List<String> attendees = conversation.getAttendeeIdList();
+
+            HttpServerManager httpServerManager = new HttpServerManager(this);
+            String myId = account.id + "";
+            if (!attendees.contains(myId)) {
+                attendees.add(myId);
+            }
+
+            if (httpServerManager.createConversation(conversationId, event.title, myId, attendees)) {
+                attendees.remove(myId);
+                if (!attendees.isEmpty()) {
+                    ChatServerManager chatServerManager = new ChatServerManager(this);
+                    chatServerManager.startConversation(myId, conversationId, attendees);
+                }
+            } else { //set conversation sync_needed flag to true
+                conversationManager.setConversationSyncNeeded(conversationId, true);
+            }
 
             ChatsFragment chatsFragment = (ChatsFragment) getSupportFragmentManager().findFragmentByTag(getString(R.string.fragment_chats));
             if (chatsFragment != null) {

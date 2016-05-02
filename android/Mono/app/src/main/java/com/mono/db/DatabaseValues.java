@@ -231,17 +231,21 @@ public class DatabaseValues {
 
         public static final String C_ID = "`c_id`";
         public static final String C_NAME = "`c_name`";
-
+        public static final String C_CREATOR = "`c_creator`"; //conversation's creator id
+        public static final String C_SYNC_NEEDED = "`c_sync_needed`"; //flag for if needs to be synced with server when network is available
 
 
         public static final String[] PROJECTION = {
                 Conversation.C_ID,
-                Conversation.C_NAME
+                Conversation.C_NAME,
+                Conversation.C_CREATOR,
+                Conversation.C_SYNC_NEEDED
         };
 
         public static final int INDEX_C_ID = 0;
         public static final int INDEX_C_NAME = 1;
-
+        public static final int INDEX_C_CREATOR = 2;
+        public static final int INDEX_C_SYNC_NEEDED = 3;
 
         public static final String CREATE_TABLE;
         public static final String DROP_TABLE;
@@ -249,7 +253,9 @@ public class DatabaseValues {
         static {
             String[] parameters = {
                     C_ID + " TEXT PRIMARY KEY",
-                    C_NAME + " TEXT"
+                    C_NAME + " TEXT",
+                    C_CREATOR + " TEXT",
+                    C_SYNC_NEEDED + "INTEGER DEFAULT 0"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);
