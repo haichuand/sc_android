@@ -196,7 +196,7 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
     public void sendMessage(View view) {
         GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(this.getContext());
         GcmMessage gcmMessage = GcmMessage.getInstance(this.getContext());
-        sendRegistration(gcm, gcmMessage);
+        //sendRegistration(gcm, gcmMessage);
     }
 
     public void sendRegistration(GoogleCloudMessaging gcm, GcmMessage gcmMessage) {
@@ -205,7 +205,41 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
         gcmMessage.sendMessage(registerBundle, gcm);
     }
 
+    public void sendDropConversationAttendees(GoogleCloudMessaging gcm, GcmMessage gcmMessage) {
+        String senderId = "210";
+        String conversationId = "conversationId...";
+        String recipients = "210";
+        String userIds = "1,2";
+        Bundle conversationDropBundle = GCMHelper.getDropConversationAttendeesPayload(senderId, conversationId, userIds, recipients);
+        gcmMessage.sendMessage(conversationDropBundle, gcm);
+    }
+
+    public void sendAddConversationAttendees(GoogleCloudMessaging gcm, GcmMessage gcmMessage) {
+        String senderId = "210";
+        String conversationId = "conversationId...";
+        String recipients = "210";
+        String userIds = "3,4";
+        Bundle conversationAddBundle = GCMHelper.getAddConversationAttendeesPayload(senderId, conversationId, userIds, recipients);
+        gcmMessage.sendMessage(conversationAddBundle, gcm);
+    }
+
+    public void sendUpdateConversation(GoogleCloudMessaging gcm, GcmMessage gcmMessage) {
+        String senderId = "210";
+        String conversationId = "conversationId...";
+        String recipients = "210";
+        String newTitle = "newTitle";
+        Bundle conversationTitleBundle = GCMHelper.getUpdateConversationTitlePayload(senderId, conversationId, newTitle, recipients);
+        gcmMessage.sendMessage(conversationTitleBundle, gcm);
+    }
+
+
+
     private void testDB(View view) {
+        GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(this.getContext());
+        GcmMessage gcmMessage = GcmMessage.getInstance(this.getContext());
+        //sendUpdateConversation(gcm, gcmMessage);
+        //sendAddConversationAttendees(gcm, gcmMessage);
+        //sendDropConversationAttendees(gcm, gcmMessage);
     }
 
 }

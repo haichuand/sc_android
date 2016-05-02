@@ -41,7 +41,7 @@ public class MyGcmListenerService extends GcmListenerService {
         String action = data.getString(GCMHelper.ACTION);
         if (action == null)
             return;
-
+        
         switch (action) {
             case GCMHelper.ACTION_CONVERSATION_MESSAGE:
                 processMessage(from, data);

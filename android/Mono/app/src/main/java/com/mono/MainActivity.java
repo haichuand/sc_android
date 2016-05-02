@@ -59,6 +59,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     public static final int LOGIN = R.id.nav_login;
     public static final int LOGOUT = R.id.nav_logout;
     public static final int SETTINGS = R.id.nav_settings;
+    public static final int LOCATION = R.id.nav_location;
 
     private static final String EXTRA_EVENT_ID = "eventId";
 

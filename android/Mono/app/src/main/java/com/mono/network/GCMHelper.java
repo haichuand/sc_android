@@ -17,9 +17,12 @@ public class GCMHelper {
     public static final String ACTION_UPDATE_EVENT = "UPDATE_EVENT";
     public static final String ACTION_START_CONVERSATION= "START_CONVERSATION";
     public static final String ACTION_CONVERSATION_MESSAGE = "CONVERSATION_MESSAGE";
-    public static final String ACTION_DROP_CONVERSATION_ATTENDEE = "DROP_CONVERSATION_ATTENDEE";
+    public static final String ACTION_DROP_CONVERSATION_ATTENDEES = "DROP_CONVERSATION_ATTENDEES";
     public static final String ACTION_UPDATE_GCM_ID = "UPDATE_GCM_ID";
     public static final String ACTION_LEAVE_CONVERSATION = "LEAVE_CONVERSATION";
+    public static final String ACTION_ADD_CONVERSATION_ATTENDEES = "ADD_CONVERSATION_ATTENDEES";
+    public static final String ACTION_UPDATE_CONVERSATION_TITLE = "UPDATE_CONVERSATION_TITLE";
+
 
     public static final String CONVERSATION_ID = "conversationId";
     public static final String SENDER_ID = "senderId";
@@ -29,6 +32,8 @@ public class GCMHelper {
     public static final String CREATOR_ID = "creatorId";
     public static final String EVENT_ID = "eventId";
     public static final String TARGET_USER_ID = "targetUserId";
+    public static final String TITLE = "title";
+    public static final String USER_IDS = "userIds";
 
     public static final String USERNAME = "username";
     public static final String EMAIL = "email";
@@ -154,12 +159,36 @@ public class GCMHelper {
         return args;
     }
 
-    public static Bundle getDropConversationAttendeePayload(String senderId, String conversationId,
-                                                            String targetUserId, String recipients) {
+    public static Bundle getDropConversationAttendeesPayload(String senderId, String conversationId,
+                                                            String userIds, String recipients) {
         Bundle args = new Bundle();
-        args.putString(ACTION, ACTION_DROP_CONVERSATION_ATTENDEE);
+        args.putString(ACTION, ACTION_DROP_CONVERSATION_ATTENDEES);
         args.putString(SENDER_ID, senderId);
-        args.putString(TARGET_USER_ID, targetUserId);
+        args.putString(USER_IDS, userIds);
+        args.putString(CONVERSATION_ID, conversationId);
+        args.putString(RECIPIENTS, recipients);
+
+        return args;
+    }
+
+    public static Bundle getAddConversationAttendeesPayload(String senderId, String conversationId,
+                                                             String userIds, String recipients) {
+        Bundle args = new Bundle();
+        args.putString(ACTION, ACTION_ADD_CONVERSATION_ATTENDEES);
+        args.putString(SENDER_ID, senderId);
+        args.putString(USER_IDS, userIds);
+        args.putString(CONVERSATION_ID, conversationId);
+        args.putString(RECIPIENTS, recipients);
+
+        return args;
+    }
+
+    public static Bundle getUpdateConversationTitlePayload(String senderId, String conversationId,
+                                                            String newTitle, String recipients) {
+        Bundle args = new Bundle();
+        args.putString(ACTION, ACTION_UPDATE_CONVERSATION_TITLE);
+        args.putString(SENDER_ID, senderId);
+        args.putString(TITLE, newTitle);
         args.putString(CONVERSATION_ID, conversationId);
         args.putString(RECIPIENTS, recipients);
 
