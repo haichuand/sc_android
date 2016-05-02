@@ -41,4 +41,6 @@ public interface MainInterface {
     void showEventDetails(Event event);
 
     void showChat(String eventId);
+
+    void showLocationSetting();
 }

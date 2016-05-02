@@ -31,6 +31,7 @@ import com.mono.chat.ChatRoomActivity;
 import com.mono.chat.ConversationManager;
 import com.mono.details.EventDetailsActivity;
 import com.mono.intro.IntroActivity;
+import com.mono.locationSetting.LocationSettingActivity;
 import com.mono.model.Account;
 import com.mono.model.Calendar;
 import com.mono.model.Conversation;
@@ -61,7 +62,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     public static final int LOGIN = R.id.nav_login;
     public static final int LOGOUT = R.id.nav_logout;
     public static final int SETTINGS = R.id.nav_settings;
-    public static final int LOCATION = R.id.nav_location;
+    public static final int LOCATION_SETTING = R.id.nav_location_setting;
 
     private static final String EXTRA_EVENT_ID = "eventId";
 
@@ -206,6 +207,8 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             case RequestCodes.Activity.INTRO:
                 handleIntro(resultCode, data);
                 break;
+            case RequestCodes.Activity.LOCATION_SETTING:
+                break;
         }
     }
 
@@ -244,6 +247,9 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                 break;
             case SETTINGS:
                 showSettings();
+                break;
+            case LOCATION_SETTING:
+                showLocationSetting();
                 break;
         }
 
@@ -576,6 +582,11 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         intent.putExtra(ChatRoomActivity.MY_ID, String.valueOf(account.id));
 
         startActivityForResult(intent, RequestCodes.Activity.CHAT);
+    }
+
+    public void showLocationSetting() {
+        Intent intent = new Intent(this, LocationSettingActivity.class);
+        startActivityForResult(intent, RequestCodes.Activity.LOCATION_SETTING);
     }
 
     public static void triggerGooglePlayServices(AppCompatActivity activity) {

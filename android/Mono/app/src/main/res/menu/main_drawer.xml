@@ -36,8 +36,8 @@
             android:title="@string/settings"/>
 
         <item
-            android:id="@+id/nav_location"
+            android:id="@+id/nav_location_setting"
             android:icon="@drawable/ic_clipboard_white"
-            android:title="@string/location"/>
+            android:title="@string/location_setting"/>
     </group>
 </menu>
