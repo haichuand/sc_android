@@ -110,8 +110,8 @@ public class ChatRoomActivity extends GestureActivity {
         conversationId = intent.getStringExtra(CONVERSATION_ID);
         myId = intent.getStringExtra(MY_ID);
 
-        if (eventStartTime == 0 || eventEndTime == 0 || myId == null) {
-            Log.e(TAG, "Error: intent parameters missing");
+        if (myId == null) {
+            Log.e(TAG, "Error: missing myId");
             finish();
         }
 
@@ -136,16 +136,18 @@ public class ChatRoomActivity extends GestureActivity {
             TextView title = (TextView) toolbarView.findViewById(R.id.title);
             title.setText(eventName);
 
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(eventStartTime);
-            String date = DATE_FORMAT.format(calendar.getTime());
-            String start = TIME_FORMAT.format(calendar.getTime());
+            if(eventStartTime != 0 && eventEndTime != 0) {
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTimeInMillis(eventStartTime);
+                String date = DATE_FORMAT.format(calendar.getTime());
+                String start = TIME_FORMAT.format(calendar.getTime());
 
-            calendar.setTimeInMillis(eventEndTime);
-            String end = TIME_FORMAT.format(calendar.getTime());
+                calendar.setTimeInMillis(eventEndTime);
+                String end = TIME_FORMAT.format(calendar.getTime());
 
-            TextView description = (TextView) toolbarView.findViewById(R.id.description);
-            description.setText(String.format("%s from %s to %s", date, start, end));
+                TextView description = (TextView) toolbarView.findViewById(R.id.description);
+                description.setText(String.format("%s from %s to %s", date, start, end));
+            }
         }
 
         ActionBar actionBar = getSupportActionBar();
@@ -235,8 +237,8 @@ public class ChatRoomActivity extends GestureActivity {
                 Bundle data = intent.getBundleExtra(MyGcmListenerService.GCM_MESSAGE_DATA);
                 String conversation_id = data.getString(GCMHelper.CONVERSATION_ID);
                 //only continue if conversationId matches
-//                if (conversation_id==null || !conversation_id.equals(conversationId))
-//                    return;
+                if (conversation_id==null || !conversation_id.equals(conversationId))
+                    return;
                 String message = data.getString(GCMHelper.MESSAGE);
                 String sender_id = data.getString(GCMHelper.SENDER_ID);
 

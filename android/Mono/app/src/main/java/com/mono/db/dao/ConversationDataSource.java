@@ -370,8 +370,13 @@ public class ConversationDataSource extends DataSource{
                     DatabaseValues.User.TABLE,
                     new String[]{
                             DatabaseValues.User.U_ID,
+                            DatabaseValues.User.MEDIA_ID,
+                            DatabaseValues.User.EMAIL,
+                            DatabaseValues.User.PHONE_NUMBER,
+                            DatabaseValues.User.FIRST_NAME,
+                            DatabaseValues.User.LAST_NAME,
                             DatabaseValues.User.USER_NAME,
-                            DatabaseValues.User.EMAIL
+                            DatabaseValues.User.IS_FRIEND
                     },
                     DatabaseValues.User.U_ID + " = ?",
                     new String[]{
@@ -380,7 +385,8 @@ public class ConversationDataSource extends DataSource{
             );
 
             if(cursor.moveToNext()) {
-                Attendee attendee = new Attendee(cursor.getString(0), cursor.getString(1),cursor.getString(2));
+                Attendee attendee = new Attendee(cursor.getString(0), cursor.getString(1), cursor.getString(2),
+                        cursor.getString(3), cursor.getString(4), cursor.getString(5), cursor.getString(6), true);
                 attendees.add(attendee);
             }
             cursor.close();

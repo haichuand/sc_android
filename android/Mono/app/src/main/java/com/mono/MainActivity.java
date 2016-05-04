@@ -25,6 +25,7 @@ import android.view.View.OnClickListener;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.SupportMapFragment;
 import com.mono.chat.ChatRoomActivity;
@@ -580,6 +581,35 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         intent.putExtra(ChatRoomActivity.EVENT_END_TIME, event.endTime);
         intent.putExtra(ChatRoomActivity.CONVERSATION_ID, conversationId);
         intent.putExtra(ChatRoomActivity.MY_ID, String.valueOf(account.id));
+
+        startActivityForResult(intent, RequestCodes.Activity.CHAT);
+    }
+
+    @Override
+    public void showExistingChat(String conversationId) {
+        ConversationManager conversationManager = ConversationManager.getInstance(this);
+        Conversation conversation = conversationManager.getConversationById(conversationId);
+        if (conversation == null) {
+            Toast.makeText(this, "Cannot find conversation with id: " + conversationId, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        EventManager eventManager = EventManager.getInstance(this);
+        Event event = null;
+        if (conversation.eventId != null) {
+            event = eventManager.getEvent(conversation.eventId, true);
+        }
+        Intent intent = new Intent(this, ChatRoomActivity.class);
+        if (event == null) {
+            intent.putExtra(ChatRoomActivity.EVENT_NAME, conversation.name);
+        } else {
+            intent.putExtra(ChatRoomActivity.EVENT_ID, event.id);
+            intent.putExtra(ChatRoomActivity.EVENT_NAME, event.title);
+            intent.putExtra(ChatRoomActivity.EVENT_START_TIME, event.startTime);
+            intent.putExtra(ChatRoomActivity.EVENT_END_TIME, event.endTime);
+        }
+
+        intent.putExtra(ChatRoomActivity.CONVERSATION_ID, conversationId);
+        intent.putExtra(ChatRoomActivity.MY_ID, String.valueOf(AccountManager.getInstance(this).getAccount().id));
 
         startActivityForResult(intent, RequestCodes.Activity.CHAT);
     }

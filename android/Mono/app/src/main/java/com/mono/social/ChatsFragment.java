@@ -105,17 +105,20 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
 
             item.title = chat.name;
 
-            Event event = EventManager.getInstance(getContext()).getEvent(chat.eventId, false);
+            if (chat.eventId != null) {
+                Event event = EventManager.getInstance(getContext()).getEvent(chat.eventId, false);
+                if (event != null) {
+                    Calendar calendar = Calendar.getInstance();
+                    calendar.setTimeInMillis(event.startTime);
+                    String date = DATE_FORMAT.format(calendar.getTime());
+                    String start = TIME_FORMAT.format(calendar.getTime());
 
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(event.startTime);
-            String date = DATE_FORMAT.format(calendar.getTime());
-            String start = TIME_FORMAT.format(calendar.getTime());
+                    calendar.setTimeInMillis(event.endTime);
+                    String end = TIME_FORMAT.format(calendar.getTime());
 
-            calendar.setTimeInMillis(event.endTime);
-            String end = TIME_FORMAT.format(calendar.getTime());
-
-            item.description = String.format("%s from %s to %s", date, start, end);
+                    item.description = String.format("%s from %s to %s", date, start, end);
+                }
+            }
 
             items.put(id, item);
         }
@@ -135,7 +138,7 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
 
         if (item != null) {
             if (mainInterface != null) {
-                mainInterface.showChat(item.eventId);
+                mainInterface.showExistingChat(item.id);
             }
         }
 
