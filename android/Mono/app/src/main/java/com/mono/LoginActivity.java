@@ -129,6 +129,7 @@ public class LoginActivity extends AppCompatActivity {
             case 0:
                 getUserInfoAndSetAccount(emailOrPhone, httpServerManager);
                 resetUserTable(httpServerManager);
+                Toast.makeText(this, "Login successful", Toast.LENGTH_LONG).show();
                 finish();
                 break;
             case 1:

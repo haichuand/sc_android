@@ -11,6 +11,8 @@ import java.util.Map;
  * Created by hduan on 3/15/2016.
  */
 public class ChatAttendeeMap {
+
+    //maps attendeeId (String) to Attendee
     private Map<String, Attendee> chatAttendeeMap;
 
     public ChatAttendeeMap() {

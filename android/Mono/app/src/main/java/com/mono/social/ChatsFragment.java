@@ -66,7 +66,7 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        chats.addAll(ConversationManager.getInstance(getContext()).getConversations());
+        chats.addAll(ConversationManager.getInstance(getContext()).getAllConversations());
     }
 
     @Override

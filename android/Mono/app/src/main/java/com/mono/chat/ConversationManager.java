@@ -3,6 +3,7 @@ package com.mono.chat;
 import android.content.Context;
 
 import com.mono.db.DatabaseHelper;
+import com.mono.db.dao.AttendeeDataSource;
 import com.mono.db.dao.ConversationDataSource;
 import com.mono.model.Attendee;
 import com.mono.model.Conversation;
@@ -19,10 +20,12 @@ public class ConversationManager {
     private static ConversationManager instance;
     private Context context;
     private ConversationDataSource conversationDataSource;
+    private AttendeeDataSource attendeeDataSource;
 
     private ConversationManager(Context context) {
         this.context = context;
         conversationDataSource = DatabaseHelper.getDataSource(context, ConversationDataSource.class);
+        attendeeDataSource = DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
     }
 
     public static ConversationManager getInstance(Context context) {
@@ -38,6 +41,10 @@ public class ConversationManager {
 
     public List<Conversation> getConversations() {
         return conversationDataSource.getConversations();
+    }
+
+    public List<Conversation> getAllConversations() {
+        return conversationDataSource.getAllConversations();
     }
 
     public Conversation getConversationById(String conversationId) {
@@ -65,6 +72,10 @@ public class ConversationManager {
         conversationDataSource.addAttendeeToConversation(conversationId, attendeeId);
     }
 
+    public void addAttendees(String conversationId, List<String> attendeeIds) {
+        conversationDataSource.addAttendeesToConversation(conversationId, attendeeIds);
+    }
+
     public boolean setConversationSyncNeeded(String conversationId, boolean isSynNeeded) {
         return conversationDataSource.setConversationSyncNeeded(conversationId, isSynNeeded);
     }
@@ -73,5 +84,9 @@ public class ConversationManager {
         ArrayList<String> attendeeIdList = new ArrayList<>(attendeeMap.getAttendeeMap().keySet());
         attendeeIdList.remove(myId);
         return attendeeIdList;
+    }
+
+    public Attendee getAttendeeById(String id) {
+        return attendeeDataSource.getAttendeeById(id);
     }
 }

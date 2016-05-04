@@ -167,6 +167,19 @@ public class ConversationDataSource extends DataSource{
         }
     }
 
+    public void addAttendeesToConversation(String conversationId, List<String> attendeeIds) {
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.ConversationAttendee.C_ID, conversationId);
+        try {
+            for (String id : attendeeIds) {
+                values.put(DatabaseValues.ConversationAttendee.ATTENDEE_ID, id);
+                database.insert(DatabaseValues.ConversationAttendee.TABLE, values);
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+
     public List<String> getConversationAttendeesIds (String conversationId) {
         List<String> attendeeList = new LinkedList<>();
 
@@ -306,6 +319,39 @@ public class ConversationDataSource extends DataSource{
             conversation.eventId = cursor.getString(1);
             conversation.name = cursor.getString(2);
             conversation.creatorId = cursor.getString(3);
+
+            conversations.add(conversation);
+        }
+
+        cursor.close();
+
+        return conversations;
+    }
+
+    /**
+     * Get all conversations in database, including those that do not associate with an event
+     * @return
+     */
+    public List<Conversation> getAllConversations() {
+        List<Conversation> conversations = new ArrayList<>();
+
+        String[] projection = {
+                DatabaseValues.Conversation.C_ID,
+                DatabaseValues.Conversation.C_NAME,
+                DatabaseValues.Conversation.C_CREATOR
+        };
+
+        String query =
+                " SELECT " + Common.implode(", ", projection) +
+                        " FROM " + DatabaseValues.Conversation.TABLE +
+                        " ORDER BY " + DatabaseValues.Conversation.C_ID + " DESC";
+
+        Cursor cursor = database.rawQuery(query, null);
+
+        while (cursor.moveToNext()) {
+            Conversation conversation = new Conversation(cursor.getString(0));
+            conversation.name = cursor.getString(1);
+            conversation.creatorId = cursor.getString(2);
 
             conversations.add(conversation);
         }

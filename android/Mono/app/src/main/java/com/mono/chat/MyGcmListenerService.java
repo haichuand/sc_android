@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.NotificationCompat;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.android.gms.gcm.GcmListenerService;
 import com.mono.MainActivity;
@@ -19,12 +20,14 @@ import com.mono.db.dao.ConversationDataSource;
 import com.mono.model.Message;
 import com.mono.network.GCMHelper;
 import com.mono.network.HttpServerManager;
+import com.mono.util.Common;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 
 /**
@@ -58,6 +61,9 @@ public class MyGcmListenerService extends GcmListenerService {
                 break;
             case GCMHelper.ACTION_START_CONVERSATION:
                 addNewConversation(from, data);
+                break;
+            case GCMHelper.ACTION_ADD_CONVERSATION_ATTENDEES:
+                addConversationAttendees(from, data);
                 break;
         }
 
@@ -99,8 +105,9 @@ public class MyGcmListenerService extends GcmListenerService {
         }
         //get conversation details from server
         JSONObject conversationInfo = httpServerManager.getConversation(conversationId);
+        String title = "";
         try {
-            String title = conversationInfo.getString(HttpServerManager.TITLE);
+            title = conversationInfo.getString(HttpServerManager.TITLE);
             String creatorId = conversationInfo.getLong(HttpServerManager.CREATOR_ID) + "";
             JSONArray attendeesArray = conversationInfo.getJSONArray(HttpServerManager.ATTENDEES_ID);
             ArrayList<String> attendeesList = new ArrayList<>();
@@ -111,12 +118,25 @@ public class MyGcmListenerService extends GcmListenerService {
             }
 
             ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
-            conversationDataSource.createConversation(conversationId, creatorId, title, attendeesList);
+            if (!conversationDataSource.createConversation(conversationId, creatorId, title, attendeesList)) {
+                Toast.makeText(this, "Error creating conversation with id: " + conversationId + "; title: " + title, Toast.LENGTH_LONG).show();
+            } else {
+                sendNotification("Added new conversation with title: " + title + "; attendees: " + attendeesList);
+            }
             return true;
         } catch (JSONException e) {
             e.printStackTrace();
         }
         return false;
+    }
+
+    private void addConversationAttendees(String from, Bundle data) {
+        String senderId = data.getString(GCMHelper.SENDER_ID);
+        String conversationId = data.getString(GCMHelper.CONVERSATION_ID);
+        String[] userIds = Common.explode(",", data.getString(GCMHelper.USER_IDS));
+        ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
+        conversationDataSource.addAttendeesToConversation(conversationId, Arrays.asList(userIds));
+        sendNotification("Added new users to conversation with id: " + conversationId + "; new users: " + userIds);
     }
 
     public void onMessageSent(String msgId) {

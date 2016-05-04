@@ -2,6 +2,7 @@ package com.mono.network;
 
 import android.content.Context;
 import android.os.AsyncTask;
+import android.widget.Toast;
 
 import com.mono.AccountManager;
 import com.mono.db.dao.AttendeeDataSource;
@@ -27,8 +28,8 @@ public class HttpServerManager {
     public static final String GET_USER_URL = SERVER_URL + "/SuperCaly/rest/user/basicInfo/";
     public static final String GET_USER_BY_EMAIL_URL = SERVER_URL + "/SuperCaly/rest/user/getUserByEmail/";
     public static final String GET_USER_BY_PHONE_URL = SERVER_URL + "/SuperCaly/rest/user/getUserByPhoneNumber/";
-    public static final String VERIFY_USER_BY_EMAIL_URL = SERVER_URL + "/SuperCaly/rest/user/verifyUserByEmail/";
-    public static final String VERIFY_USER_BY_PHONE_URL = SERVER_URL + "/SuperCaly/rest/user/verifyUserByPhoneNumber/";
+    public static final String VERIFY_USER_BY_EMAIL_URL = SERVER_URL + "/SuperCaly/rest/user/verifyUserByEmail";
+    public static final String VERIFY_USER_BY_PHONE_URL = SERVER_URL + "/SuperCaly/rest/user/verifyUserByPhoneNumber";
     public static final String EDIT_USER_URL = SERVER_URL + "/SuperCaly/rest/user/basicInfo/";
     public static final String GET_USER_EVENTS_URL = SERVER_URL + "/SuperCaly/rest/user/userEvents/";
     public static final String GET_USER_CONVERSATIONS_URL = SERVER_URL + "/SuperCaly/rest/user/userConversations/";
@@ -37,6 +38,9 @@ public class HttpServerManager {
     public static final String GET_ALL_USER_ID_URL = SERVER_URL + "/SuperCaly/rest/user/getAllUserId";
     public static final String CREATE_CONVERSATION_URL = SERVER_URL + "/SuperCaly/rest/conversation/createConversation";
     public static final String GET_CONVERSATION_URL = SERVER_URL + "/SuperCaly/rest/conversation/";
+    public static final String ADD_CONVERSATION_ATTENDEES_URL = SERVER_URL + "/SuperCaly/rest/conversation/addAttendees";
+    public static final String UPDATE_CONVERSATION_TITLE_URL = SERVER_URL + "/SuperCaly/rest/conversation/updateTitle";
+    public static final String DROP_CONVERSATION_ATTENDEES_URL = SERVER_URL + "/SuperCaly/rest/conversation/dropAttendees";
 
     //http server return codes
     public static final int STATUS_OK = 0;
@@ -103,18 +107,27 @@ public class HttpServerManager {
     }
 
     public int loginUser(String emailOrPhone, String password) {
+        JSONObject jsonObject;
         String url;
-        if (emailOrPhone.contains("@")) {
-//            url = VERIFY_USER_BY_EMAIL_URL + "{" + emailOrPhone + "}/{" + password + "}";
-            url = VERIFY_USER_BY_EMAIL_URL + emailOrPhone + "/" + password;
-        } else {
-            url = VERIFY_USER_BY_PHONE_URL + emailOrPhone + "/" + password;
-        }
-
         try {
-            JSONObject responseJson = queryServer(null, url, POST);
+            if (emailOrPhone.contains("@")) {
+                url = VERIFY_USER_BY_EMAIL_URL;
+                jsonObject = getJSONObject(
+                        new String[]{EMAIL, PASSWORD},
+                        new String[]{emailOrPhone, password}
+                );
+            } else {
+                url = VERIFY_USER_BY_PHONE_URL;
+                jsonObject = getJSONObject(
+                        new String[]{PHONE_NUMBER, PASSWORD},
+                        new String[]{emailOrPhone, password}
+                );
+            }
+            JSONObject responseJson = queryServer(jsonObject, url, POST);
             if (responseJson != null && responseJson.has(STATUS)) {
                 return responseJson.getInt(STATUS);
+            } else if (responseJson.has(UID)) {
+                return 0;
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -255,7 +268,7 @@ public class HttpServerManager {
                     new Object[] {conversationId, title, creatorId, new JSONArray(attendeesLongId)}
             );
             JSONObject responseJson = queryServer(conversationInfo, CREATE_CONVERSATION_URL, POST);
-            if (responseJson.has(STATUS) && responseJson.getInt(STATUS) == 0) {
+            if (responseJson != null && responseJson.has(STATUS) && responseJson.getInt(STATUS) == 0) {
                return true;
             }
         } catch (Exception e) {
@@ -274,6 +287,71 @@ public class HttpServerManager {
         return null;
     }
 
+    /**
+     *
+     * @param conversationId
+     * @param newAttendeesId
+     * @return NO_CONVERSATION = 4, OK=3, NO_USER=1, Error=-1
+     */
+    public int addConversationAttendees(String conversationId, List<String> newAttendeesId) {
+        try {
+            JSONObject jsonObject = getJSONObject(
+                    new String[]{CONVERSATION_ID, ATTENDEES_ID},
+                    new Object[]{conversationId, new JSONArray(newAttendeesId)}
+            );
+            JSONObject responseJson = queryServer(jsonObject, ADD_CONVERSATION_ATTENDEES_URL, POST);
+            if (responseJson != null && responseJson.has(STATUS)) {
+                return  responseJson.getInt(STATUS);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return -1;
+    }
+
+    /**
+     *
+     * @param conversationId
+     * @param attendeesId
+     * @return NO_CONVERSATION = 4, OK=3, NO_USER=1, Error=-1
+     */
+    public int dropConversationAttendees(String conversationId, List<String> attendeesId) {
+        try {
+            JSONObject jsonObject = getJSONObject(
+                    new String[]{CONVERSATION_ID, ATTENDEES_ID},
+                    new Object[]{conversationId, new JSONArray(attendeesId)}
+            );
+            JSONObject responseJson = queryServer(jsonObject, DROP_CONVERSATION_ATTENDEES_URL, POST);
+            if (responseJson != null && responseJson.has(STATUS)) {
+                return  responseJson.getInt(STATUS);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return -1;
+    }
+
+    /**
+     *
+     * @param conversationId
+     * @param newTitle
+     * @return NO_CONVERSATION = 4, OK=3, Error=-1
+     */
+    public int updateConversationTitle(String conversationId, String newTitle) {
+        try {
+            JSONObject jsonObject = getJSONObject(
+                    new String[]{CONVERSATION_ID, TITLE},
+                    new String[]{conversationId, newTitle}
+            );
+            JSONObject responseJson = queryServer(jsonObject, UPDATE_CONVERSATION_TITLE_URL, POST);
+            if (responseJson != null && responseJson.has(STATUS)) {
+                return  responseJson.getInt(STATUS);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return -1;
+    }
 
     public JSONObject getJSONObject(String[] keys, Object[] values) throws JSONException {
         if (keys.length != values.length) {
@@ -320,6 +398,7 @@ public class HttpServerManager {
                         return new JSONObject(builder.toString());
                     } else {
                         System.out.println(connection.getResponseMessage());
+                        Toast.makeText(context, "Server response code & message: " + responseCode + " " + connection.getResponseMessage(), Toast.LENGTH_LONG).show();
                     }
                 } catch (Exception ex) {
                     ex.printStackTrace();

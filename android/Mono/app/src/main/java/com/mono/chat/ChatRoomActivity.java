@@ -25,14 +25,16 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.mono.R;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.AttendeeDataSource;
 import com.mono.model.Attendee;
 import com.mono.model.Message;
+import com.mono.network.ChatServerManager;
 import com.mono.network.GCMHelper;
+import com.mono.network.HttpServerManager;
 import com.mono.util.Common;
 import com.mono.util.GestureActivity;
 
@@ -80,12 +82,12 @@ public class ChatRoomActivity extends GestureActivity {
 //    private List<String> chatAttendeeTokenList = new ArrayList<>(); //GCM token list for sending messages
     private List<String> chatAttendeeIdList; //list of chat attendee ids for sending message
     private List<Attendee> allUsersList;
-    private Attendee newlyAddedAttendee;
+    private List<String> newlyAddedAttendeeIds = new ArrayList<>();
+    private Attendee mostRecentAddedAttendee = null;
     private ConversationManager conversationManager;
-
-    private GoogleCloudMessaging gcm;
-    private GcmMessage gcmMessage;
     private BroadcastReceiver receiver;
+    private HttpServerManager httpServerManager;
+    private ChatServerManager chatServerManager;
 
     static {
         DATE_FORMAT = new SimpleDateFormat("M/d/yyyy", Locale.getDefault());
@@ -116,8 +118,12 @@ public class ChatRoomActivity extends GestureActivity {
         setContentView(R.layout.activity_chat_room);
 
         drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawer, toolbar,
-            R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close) {
+            @Override
+            public void onDrawerClosed(View drawerView) {
+                addNewAttendeesIfPresent();
+            }
+        };
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
@@ -151,6 +157,8 @@ public class ChatRoomActivity extends GestureActivity {
         chatAttendeeListView = (ListView) findViewById(R.id.chat_drawer_attendees);
         sendMessageText = (TextView) findViewById(R.id.sendMessageText);
         conversationManager = ConversationManager.getInstance(this);
+        httpServerManager = new HttpServerManager(this);
+        chatServerManager = new ChatServerManager(this);
         initialize();
     }
 
@@ -189,6 +197,11 @@ public class ChatRoomActivity extends GestureActivity {
 
         //set up auto complete text view for inviting friends
         addAttendeeTextView = (AutoCompleteTextView) findViewById(R.id.edit_text_invite);
+        AttendeeDataSource attendeeDataSource = DatabaseHelper.getDataSource(this, AttendeeDataSource.class);
+        allUsersList = attendeeDataSource.getAttendees();
+        Collections.sort(allUsersList, new AttendeeUsernameComparator());
+        ArrayAdapter<Attendee> addAttendeeAdapter = new ArrayAdapter<Attendee>(this, android.R.layout.simple_dropdown_item_1line, allUsersList);
+        addAttendeeTextView.setAdapter(addAttendeeAdapter);
         addAttendeeTextView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View view, boolean hasFocus) {
@@ -197,21 +210,25 @@ public class ChatRoomActivity extends GestureActivity {
                 }
             }
         });
+        addAttendeeTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                addAttendeeTextView.showDropDown();
+            }
+        });
         addAttendeeTextView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                newlyAddedAttendee = (Attendee) adapterView.getItemAtPosition(i);
+                Attendee attendee = (Attendee) adapterView.getItemAtPosition(i);
+                if (myId.equals(attendee.id) || chatAttendeeMap.getAttendeeMap().keySet().contains(attendee.id) || newlyAddedAttendeeIds.contains(attendee.id)) {
+                    Toast.makeText(ChatRoomActivity.this, "User already added to chat", Toast.LENGTH_SHORT).show();
+                    addAttendeeTextView.setText("");
+                } else {
+                    mostRecentAddedAttendee = attendee;
+                }
             }
         });
 
-        AttendeeDataSource attendeeDataSource = DatabaseHelper.getDataSource(this, AttendeeDataSource.class);
-        allUsersList = attendeeDataSource.getAttendees();
-        Collections.sort(allUsersList, new AttendeeUsernameComparator());
-        ArrayAdapter<Attendee> addAttendeeAdapter = new ArrayAdapter<Attendee>(this, android.R.layout.simple_dropdown_item_1line, allUsersList);
-        addAttendeeTextView.setAdapter(addAttendeeAdapter);
-
-        gcm = GoogleCloudMessaging.getInstance(this);
-        gcmMessage = GcmMessage.getInstance(this);
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -259,6 +276,12 @@ public class ChatRoomActivity extends GestureActivity {
     }
 
     @Override
+    protected void onPause() {
+        addNewAttendeesIfPresent();
+        super.onPause();
+    }
+
+    @Override
     protected void onStop() {
         LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver);
         super.onStop();
@@ -290,10 +313,6 @@ public class ChatRoomActivity extends GestureActivity {
     }
 
     public void onSendButtonClicked(View view) {
-        // Create New Conversation Upon 1st Message
-//        if (conversationId == null) {
-//            conversationId = ConversationManager.getInstance(this).createConversation(eventName, eventId);
-//        }
 
         String msg = sendMessageText.getText().toString();
         if (msg.isEmpty())
@@ -302,31 +321,61 @@ public class ChatRoomActivity extends GestureActivity {
         chatRoomAdapter.notifyItemInserted(chatMessages.size() - 1);
         sendMessageText.setText("");
 
-        gcmMessage.sendMessage(GCMHelper.getConversationMessagePayload(myId, conversationId, chatAttendeeIdList, msg), gcm);
+        chatServerManager.sendConversationMessage(myId, conversationId, chatAttendeeIdList, msg);
         Message message = new Message(myId, conversationId, msg, new Date().getTime());
         conversationManager.saveChatMessageToDB(message);
     }
 
     public void onAddAttendeeButtonClicked(View view) {
-        if (newlyAddedAttendee == null) {
+        addAttendeeTextView.setText("");
+        if (mostRecentAddedAttendee == null) {
             return;
         }
-        //do not add duplicate attendee
-        for (Attendee attendee : chatAttendeeMap.toAttendeeList()) {
-            if (attendee.email.equals(newlyAddedAttendee.email))
-                return;
-        }
+        newlyAddedAttendeeIds.add(mostRecentAddedAttendee.id);
 
-        conversationManager.addAttendee(conversationId, newlyAddedAttendee.id);
-        chatAttendeeMap.addAttendee(newlyAddedAttendee);
         Map<String, String> nameMap = new HashMap<>();
-        nameMap.put("name", newlyAddedAttendee.toString());
+        nameMap.put("name", mostRecentAddedAttendee.toString());
         chatAttendeeAdapterList.add(nameMap);
         chatAttendeeListAdapter.notifyDataSetChanged();
-        chatAttendeeIdList.add(newlyAddedAttendee.id);
 
-        newlyAddedAttendee = null;
-        addAttendeeTextView.setText("");
+        mostRecentAddedAttendee = null;
+    }
+
+    private void addNewAttendeesIfPresent() {
+        if (newlyAddedAttendeeIds.isEmpty()) {
+            return;
+        }
+
+        String message = null;
+        switch (httpServerManager.addConversationAttendees(conversationId, newlyAddedAttendeeIds)) {
+            case 3: //ok
+                break;
+            case 1: //no user
+                message = "Cannot find one or more users in database";
+                break;
+            case 4:
+                message = "Cannot find conversation with id: " + conversationId + "in database";
+                break;
+            case -1:
+                message = "Server unavailable. Mark as SYNC_NEEDED";
+                //TODO: mark Conversation_Attendees table as Sync_Needed
+                break;
+        }
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        //notifiy existing conversation attendees of new users
+        if (!chatAttendeeIdList.isEmpty()) {
+            chatServerManager.addConversationAttendees(myId, conversationId, newlyAddedAttendeeIds, chatAttendeeIdList);
+        }
+        //notify new users of being added to conversation
+        chatServerManager.startConversation(myId, conversationId, newlyAddedAttendeeIds);
+
+        conversationManager.addAttendees(conversationId, newlyAddedAttendeeIds);
+
+        for (String id : newlyAddedAttendeeIds) {
+            chatAttendeeMap.addAttendee(conversationManager.getAttendeeById(id));
+            chatAttendeeIdList.add(id);
+        }
+        newlyAddedAttendeeIds.clear();
     }
 
     class AttendeeUsernameComparator implements Comparator<Attendee> {
