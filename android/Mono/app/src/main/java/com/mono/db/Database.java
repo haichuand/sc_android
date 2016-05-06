@@ -32,20 +32,26 @@ public class Database {
     }
 
     public Cursor select(String table, String[] projection) {
-        return select(table, projection, null, null, null, null, null);
+        return select(table, projection, null, null, null, null, null, null);
     }
 
     public Cursor select(String table, String[] projection, String selection,
             String[] selectionArgs) {
-        return select(table, projection, selection, selectionArgs, null, null, null);
-    }
-
-    public Cursor select(String table, String[] projection, String sortOrder) {
-        return select(table, projection, null, null, null, sortOrder, null);
+        return select(table, projection, selection, selectionArgs, null, null, null, null);
     }
 
     public Cursor select(String table, String[] projection, String selection,
-            String[] selectionArgs, String groupBy, String sortOrder, Integer limit) {
+            String[] selectionArgs, String sortOrder) {
+        return select(table, projection, selection, selectionArgs, null, sortOrder, null, null);
+    }
+
+    public Cursor select(String table, String[] projection, String sortOrder) {
+        return select(table, projection, null, null, null, sortOrder, null, null);
+    }
+
+    public Cursor select(String table, String[] projection, String selection,
+            String[] selectionArgs, String groupBy, String sortOrder, Integer offset,
+            Integer limit) {
         return rawQuery(
             "SELECT " +
             Common.implode(", ", projection) +
@@ -53,7 +59,8 @@ public class Database {
             (!Common.isEmpty(selection) ? " WHERE " + selection : "") +
             (!Common.isEmpty(groupBy) ? " GROUP BY " + groupBy : "") +
             (!Common.isEmpty(sortOrder) ? " ORDER BY " + sortOrder : "") +
-            (limit != null && limit > 0 ? " LIMIT " + limit : ""),
+            (limit != null ? " LIMIT " + limit : "") +
+            (offset != null ? " OFFSET " + offset : ""),
             selectionArgs
         );
     }

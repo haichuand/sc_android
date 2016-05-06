@@ -273,7 +273,8 @@ public class CalendarEventProvider {
         return events;
     }
 
-    public List<Event> getEvents(long startTime, long endTime, int limit, long... calendarIds) {
+    public List<Event> getEvents(long startTime, long endTime, int offset, int limit,
+            int direction, long... calendarIds) {
         List<Event> events = new ArrayList<>();
 
         Uri.Builder builder = Instances.CONTENT_URI.buildUpon();
@@ -288,13 +289,14 @@ public class CalendarEventProvider {
         }
 
         String[] selectionArgs = args.toArray(new String[args.size()]);
+        String order = direction < 0 ? " DESC" : "";
 
         Cursor cursor = context.getContentResolver().query(
             builder.build(),
             CalendarValues.Instance.PROJECTION,
             selection,
             selectionArgs,
-            Instances.BEGIN + " LIMIT " + limit
+            Instances.BEGIN + " " + order + " LIMIT " + limit + " OFFSET " + offset
         );
 
         if (cursor != null) {

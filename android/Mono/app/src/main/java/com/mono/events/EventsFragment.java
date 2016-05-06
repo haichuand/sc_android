@@ -21,14 +21,13 @@ import com.mono.MainInterface;
 import com.mono.R;
 import com.mono.events.ListFragment.ListListener;
 import com.mono.model.Event;
+import com.mono.util.SimpleTabLayout.Scrollable;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
 import com.mono.util.SimpleTabPagerAdapter;
 import com.mono.util.SimpleViewPager;
 
-import java.util.List;
-
 public class EventsFragment extends Fragment implements OnPageChangeListener, ListListener,
-        EventBroadcastListener, TabPagerCallback {
+        EventBroadcastListener, TabPagerCallback, Scrollable {
 
     public static final int TAB_ALL = 0;
     public static final int TAB_FAVORITE = 1;
@@ -154,13 +153,13 @@ public class EventsFragment extends Fragment implements OnPageChangeListener, Li
 
         switch (position) {
             case TAB_ALL:
-                fragment.insert(0, eventManager.getEvent(id, false), true);
+                fragment.insert(0, eventManager.getEvent(id, false));
 
                 mainInterface.setTabLayoutBadge(TAB_FAVORITE, 0,
                     String.valueOf(fragment.getCount()));
                 break;
             case TAB_FAVORITE:
-                fragment.remove(eventManager.getEvent(id, false), true);
+                fragment.remove(eventManager.getEvent(id, false));
 
                 int count = fragment.getCount();
                 mainInterface.setTabLayoutBadge(TAB_FAVORITE, 0,
@@ -214,30 +213,6 @@ public class EventsFragment extends Fragment implements OnPageChangeListener, Li
     }
 
     @Override
-    public List<? extends Event> onRefresh(int position, long startTime, long endTime) {
-        switch (position) {
-            case TAB_ALL:
-                return eventManager.getEvents(startTime, endTime);
-            case TAB_FAVORITE:
-                break;
-        }
-
-        return null;
-    }
-
-    @Override
-    public List<? extends Event> onMore(int position, long startTime, int limit) {
-        switch (position) {
-            case TAB_ALL:
-                return eventManager.getEvents(startTime, limit);
-            case TAB_FAVORITE:
-                break;
-        }
-
-        return null;
-    }
-
-    @Override
     public void onEventBroadcast(final EventAction data) {
         getActivity().runOnUiThread(new Runnable() {
             @Override
@@ -272,5 +247,13 @@ public class EventsFragment extends Fragment implements OnPageChangeListener, Li
     @Override
     public void onPageSelected() {
 
+    }
+
+    @Override
+    public void scrollToTop() {
+        Fragment fragment = tabPagerAdapter.getItem(viewPager.getCurrentItem());
+        if (fragment instanceof Scrollable) {
+            ((Scrollable) fragment).scrollToTop();
+        }
     }
 }

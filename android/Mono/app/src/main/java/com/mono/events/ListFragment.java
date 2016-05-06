@@ -3,9 +3,6 @@ package com.mono.events;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener;
-import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.RecyclerView.OnScrollListener;
 import android.view.LayoutInflater;
@@ -13,12 +10,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.mono.EventManager;
 import com.mono.EventManager.EventAction;
 import com.mono.EventManager.EventBroadcastListener;
 import com.mono.R;
 import com.mono.events.ListAdapter.ListItem;
 import com.mono.model.Event;
-import com.mono.util.Common;
 import com.mono.util.SimpleDataSource;
 import com.mono.util.SimpleLinearLayoutManager;
 import com.mono.util.SimpleSlideView.SimpleSlideViewListener;
@@ -35,14 +32,19 @@ import java.util.Map;
 public class ListFragment extends Fragment implements SimpleDataSource<ListItem>,
         SimpleSlideViewListener, EventBroadcastListener, Scrollable {
 
-    private static final int REFRESH_LIMIT = 10;
+    private static final int PRECACHE_AMOUNT = 20;
+    private static final int PRECACHE_OFFSET = 10;
 
     public static final String EXTRA_POSITION = "position";
+
+    private static final SimpleDateFormat DATETIME_FORMAT;
+    private static final SimpleDateFormat DATE_FORMAT;
+    private static final SimpleDateFormat DATE_FORMAT_2;
+    private static final SimpleDateFormat TIME_FORMAT;
 
     private int position;
     private ListListener listener;
 
-    private SwipeRefreshLayout refreshLayout;
     private RecyclerView recyclerView;
     private SimpleLinearLayoutManager layoutManager;
     private ListAdapter adapter;
@@ -51,13 +53,17 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
     private final Map<String, ListItem> items = new HashMap<>();
     private final List<Event> events = new ArrayList<>();
 
-    private AsyncTask<Long, Void, List<? extends Event>> task;
+    private AsyncTask<Void, Void, List<Event>> task;
+    private long startTime;
+    private int futureOffset;
+    private int pastOffset;
 
-    private Calendar calendar;
-    private SimpleDateFormat simpleDateFormat;
-    private SimpleDateFormat timeFormat;
-    private SimpleDateFormat dateFormat;
-    private SimpleDateFormat otherDateFormat;
+    static {
+        DATETIME_FORMAT = new SimpleDateFormat("MMM d, yyyy h:mm a", Locale.getDefault());
+        DATE_FORMAT = new SimpleDateFormat("MMM d", Locale.getDefault());
+        DATE_FORMAT_2 = new SimpleDateFormat("M/d/yy", Locale.getDefault());
+        TIME_FORMAT = new SimpleDateFormat("h:mm a", Locale.getDefault());
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -73,43 +79,22 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
             listener = (ListListener) fragment;
         }
 
-        calendar = Calendar.getInstance();
-
-        simpleDateFormat = new SimpleDateFormat("MMM d, yyyy h:mm a", Locale.getDefault());
-        timeFormat = new SimpleDateFormat("h:mm a", Locale.getDefault());
-        dateFormat = new SimpleDateFormat("MMM d", Locale.getDefault());
-        otherDateFormat = new SimpleDateFormat("M/d/yy", Locale.getDefault());
+        startTime = System.currentTimeMillis();
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_list, container, false);
-
-        refreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.refresh_layout);
-        refreshLayout.setColorSchemeResources(R.color.colorAccent);
-        refreshLayout.setOnRefreshListener(new OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                refresh();
-            }
-        });
+        View view = inflater.inflate(R.layout.fragment_list_2, container, false);
 
         recyclerView = (RecyclerView) view.findViewById(R.id.list);
+        recyclerView.setVerticalScrollBarEnabled(false);
         recyclerView.setLayoutManager(layoutManager = new SimpleLinearLayoutManager(getActivity()));
         recyclerView.setAdapter(adapter = new ListAdapter(this));
         recyclerView.addOnScrollListener(new OnScrollListener() {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                LinearLayoutManager manager =
-                    (LinearLayoutManager) recyclerView.getLayoutManager();
-
-                int lastPosition = manager.findLastVisibleItemPosition();
-                if (lastPosition == events.size() - 1) {
-                    if (task == null) {
-                        more();
-                    }
-                }
+                handleInfiniteScroll(dy);
             }
         });
 
@@ -118,7 +103,7 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         text = (TextView) view.findViewById(R.id.text);
         text.setVisibility(events.isEmpty() ? View.VISIBLE : View.INVISIBLE);
 
-        more();
+        today();
 
         return view;
     }
@@ -153,27 +138,27 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
     }
 
     private String getDateString(long time) {
-        calendar.setTimeInMillis(System.currentTimeMillis());
+        Calendar calendar = Calendar.getInstance();
         int currentYear = calendar.get(Calendar.YEAR);
         int currentMonth = calendar.get(Calendar.MONTH);
-        int currentDay = calendar.get(Calendar.DATE);
+        int currentDay = calendar.get(Calendar.DAY_OF_MONTH);
 
         calendar.setTimeInMillis(time);
         int year = calendar.get(Calendar.YEAR);
         int month = calendar.get(Calendar.MONTH);
-        int day = calendar.get(Calendar.DATE);
+        int day = calendar.get(Calendar.DAY_OF_MONTH);
 
-        SimpleDateFormat simpleDateFormat;
+        SimpleDateFormat dateFormat;
 
         if (year == currentYear && month == currentMonth && day == currentDay) {
-            simpleDateFormat = timeFormat;
+            dateFormat = TIME_FORMAT;
         } else if (year == currentYear) {
-            simpleDateFormat = dateFormat;
+            dateFormat = DATE_FORMAT;
         } else {
-            simpleDateFormat = otherDateFormat;
+            dateFormat = DATE_FORMAT_2;
         }
 
-        return simpleDateFormat.format(calendar.getTime());
+        return dateFormat.format(calendar.getTime());
     }
 
     @Override
@@ -243,7 +228,7 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         switch (data.getAction()) {
             case EventAction.ACTION_CREATE:
                 if (data.getStatus() == EventAction.STATUS_OK) {
-                    insert(0, data.getEvent(), true);
+                    insert(0, data.getEvent());
 
                     if (data.getActor() == EventAction.ACTOR_SELF) {
                         scrollTo(data.getEvent());
@@ -252,66 +237,129 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
                 break;
             case EventAction.ACTION_UPDATE:
                 if (data.getStatus() == EventAction.STATUS_OK) {
-                    update(data.getEvent(), true);
+                    update(data.getEvent());
                 }
                 break;
             case EventAction.ACTION_REMOVE:
                 if (data.getStatus() == EventAction.STATUS_OK) {
-                    remove(data.getEvent(), true);
+                    remove(data.getEvent());
                 }
                 break;
         }
     }
 
-    public void insert(int index, Event event, boolean notify) {
-        if (!events.contains(event)) {
-            index = Common.clamp(index, 0, events.size());
-            events.add(index, event);
+    public void insert(int index, Event event) {
+        List<Event> events = new ArrayList<>();
+        events.add(event);
 
-            if (notify) {
-                adapter.notifyItemInserted(index);
+        insert(index, events);
+    }
+
+    public void insert(int index, List<Event> items) {
+        int size = 0;
+
+        for (Event event : items) {
+            if (events.contains(event)) {
+                continue;
             }
+
+            events.add(index + size, event);
+            size++;
         }
 
         text.setVisibility(View.INVISIBLE);
+        adapter.notifyItemRangeInserted(index, size);
     }
 
-    public void insert(int index, List<? extends Event> events, boolean notify) {
-        int size = events.size();
-
-        for (int i = 0; i < size; i++) {
-            insert(index + i, events.get(i), false);
-        }
-
-        if (notify) {
-            adapter.notifyItemRangeInserted(index, events.size() - size);
-        }
-    }
-
-    public void update(Event event, boolean notify) {
+    public void update(Event event) {
         int index = events.indexOf(event);
 
         if (index >= 0) {
-            if (notify) {
-                adapter.notifyItemChanged(index);
-            }
+            adapter.notifyItemChanged(index);
         }
     }
 
-    public void remove(Event event, boolean notify) {
+    public void remove(Event event) {
         int index = events.indexOf(event);
 
         if (index >= 0) {
             events.remove(index);
-
-            if (notify) {
-                adapter.notifyItemRemoved(index);
-            }
+            adapter.notifyItemRemoved(index);
         }
 
         if (events.isEmpty()) {
             text.setVisibility(View.VISIBLE);
         }
+    }
+
+    private void handleInfiniteScroll(int deltaY) {
+        if (task != null) {
+            return;
+        }
+
+        int position;
+
+        if (deltaY < 0) {
+            position = layoutManager.findFirstVisibleItemPosition();
+            if (position <= PRECACHE_OFFSET) {
+                prepend();
+            }
+        } else if (deltaY > 0) {
+            position = layoutManager.findLastVisibleItemPosition();
+            if (position >= Math.max(events.size() - 1 - PRECACHE_OFFSET, 0)) {
+                append();
+            }
+        }
+    }
+
+    private void prepend() {
+        if (task != null) {
+            task.cancel(true);
+            task = null;
+        }
+
+        task = new AsyncTask<Void, Void, List<Event>>() {
+            @Override
+            protected List<Event> doInBackground(Void... params) {
+                EventManager manager = EventManager.getInstance(getContext());
+                return manager.getEventsByOffset(startTime, futureOffset, PRECACHE_AMOUNT, 1);
+            }
+
+            @Override
+            protected void onPostExecute(List<Event> result) {
+                if (!result.isEmpty()) {
+                    insert(0, result);
+                    futureOffset += result.size();
+                }
+
+                task = null;
+            }
+        }.execute();
+    }
+
+    private void append() {
+        if (task != null) {
+            task.cancel(true);
+            task = null;
+        }
+
+        task = new AsyncTask<Void, Void, List<Event>>() {
+            @Override
+            protected List<Event> doInBackground(Void... params) {
+                EventManager manager = EventManager.getInstance(getContext());
+                return manager.getEventsByOffset(startTime, pastOffset, PRECACHE_AMOUNT, -1);
+            }
+
+            @Override
+            protected void onPostExecute(List<Event> result) {
+                if (!result.isEmpty()) {
+                    insert(events.size(), result);
+                    pastOffset += result.size();
+                }
+
+                task = null;
+            }
+        }.execute();
     }
 
     public void scrollTo(Event event) {
@@ -322,80 +370,17 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         }
     }
 
-    public void refresh() {
-        if (task != null) {
-            task.cancel(true);
-        }
+    public void today() {
+        events.clear();
+        adapter.notifyDataSetChanged();
 
-        long startTime = 0, endTime = System.currentTimeMillis();
-        if (!events.isEmpty()) {
-            startTime = events.get(0).startTime;
-        }
-
-        task = new AsyncTask<Long, Void, List<? extends Event>>() {
-            @Override
-            protected List<? extends Event> doInBackground(Long... params) {
-                long startTime = params[0];
-                long endTime = params[1];
-
-                if (listener != null) {
-                    return listener.onRefresh(position, startTime, endTime);
-                }
-
-                return null;
-            }
-
-            @Override
-            protected void onPostExecute(List<? extends Event> result) {
-                if (result != null) {
-                    insert(0, result, true);
-                }
-
-                refreshLayout.setRefreshing(false);
-                task = null;
-            }
-        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, startTime, endTime);
-    }
-
-    public void more() {
-        if (task != null) {
-            task.cancel(true);
-        }
-
-        long startTime;
-
-        if (!events.isEmpty()) {
-            startTime = events.get(events.size() - 1).startTime;
-        } else {
-            startTime = System.currentTimeMillis();
-        }
-
-        task = new AsyncTask<Long, Void, List<? extends Event>>() {
-            @Override
-            protected List<? extends Event> doInBackground(Long... params) {
-                long startTime = params[0];
-
-                if (listener != null) {
-                    return listener.onMore(position, startTime, REFRESH_LIMIT);
-                }
-
-                return null;
-            }
-
-            @Override
-            protected void onPostExecute(List<? extends Event> result) {
-                if (result != null) {
-                    insert(events.size(), result, true);
-                }
-
-                task = null;
-            }
-        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, startTime);
+        startTime = System.currentTimeMillis();
+        append();
     }
 
     @Override
     public void scrollToTop() {
-        recyclerView.smoothScrollToPosition(0);
+
     }
 
     public interface ListListener {
@@ -409,9 +394,5 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         void onFavoriteClick(int position, String id);
 
         void onDeleteClick(int position, String id);
-
-        List<? extends Event> onRefresh(int position, long startTime, long endTime);
-
-        List<? extends Event> onMore(int position, long startTime, int limit);
     }
 }
