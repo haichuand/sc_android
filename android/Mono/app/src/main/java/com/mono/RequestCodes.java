@@ -16,6 +16,7 @@ public class RequestCodes {
         public static final int LOGIN_CHAT = 8;
         public static final int INTRO = 9;
         public static final int LOCATION_SETTING = 10;
+        public static final int CONTACTS = 11;
     }
 
     public static class Permission {

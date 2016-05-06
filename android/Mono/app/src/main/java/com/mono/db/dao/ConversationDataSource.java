@@ -168,6 +168,19 @@ public class ConversationDataSource extends DataSource{
         }
     }
 
+    public void addAttendeesToConversation(String conversationId, List<String> attendeeIds) {
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.ConversationAttendee.C_ID, conversationId);
+        try {
+            for (String id : attendeeIds) {
+                values.put(DatabaseValues.ConversationAttendee.ATTENDEE_ID, id);
+                database.insert(DatabaseValues.ConversationAttendee.TABLE, values);
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+
     public List<String> getConversationAttendeesIds (String conversationId) {
         List<String> attendeeList = new LinkedList<>();
 
@@ -316,6 +329,39 @@ public class ConversationDataSource extends DataSource{
         return conversations;
     }
 
+    /**
+     * Get all conversations in database, including those that do not associate with an event
+     * @return
+     */
+    public List<Conversation> getAllConversations() {
+        List<Conversation> conversations = new ArrayList<>();
+
+        String[] projection = {
+                DatabaseValues.Conversation.C_ID,
+                DatabaseValues.Conversation.C_NAME,
+                DatabaseValues.Conversation.C_CREATOR
+        };
+
+        String query =
+                " SELECT " + Common.implode(", ", projection) +
+                        " FROM " + DatabaseValues.Conversation.TABLE +
+                        " ORDER BY " + DatabaseValues.Conversation.C_ID + " DESC";
+
+        Cursor cursor = database.rawQuery(query, null);
+
+        while (cursor.moveToNext()) {
+            Conversation conversation = new Conversation(cursor.getString(0));
+            conversation.name = cursor.getString(1);
+            conversation.creatorId = cursor.getString(2);
+
+            conversations.add(conversation);
+        }
+
+        cursor.close();
+
+        return conversations;
+    }
+
     public List<Attendee> getConversationAttendees (String conversationId) {
         List<String> attendeesId = getConversationAttendeesIds(conversationId);
         List<Attendee> attendees = new ArrayList<>();
@@ -325,8 +371,13 @@ public class ConversationDataSource extends DataSource{
                     DatabaseValues.User.TABLE,
                     new String[]{
                             DatabaseValues.User.U_ID,
+                            DatabaseValues.User.MEDIA_ID,
+                            DatabaseValues.User.EMAIL,
+                            DatabaseValues.User.PHONE_NUMBER,
+                            DatabaseValues.User.FIRST_NAME,
+                            DatabaseValues.User.LAST_NAME,
                             DatabaseValues.User.USER_NAME,
-                            DatabaseValues.User.EMAIL
+                            DatabaseValues.User.IS_FRIEND
                     },
                     DatabaseValues.User.U_ID + " = ?",
                     new String[]{
@@ -335,7 +386,8 @@ public class ConversationDataSource extends DataSource{
             );
 
             if(cursor.moveToNext()) {
-                Attendee attendee = new Attendee(cursor.getString(0), cursor.getString(1),cursor.getString(2));
+                Attendee attendee = new Attendee(cursor.getString(0), cursor.getString(1), cursor.getString(2),
+                        cursor.getString(3), cursor.getString(4), cursor.getString(5), cursor.getString(6), true);
                 attendees.add(attendee);
             }
             cursor.close();

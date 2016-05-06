@@ -211,7 +211,8 @@ public class EventDataSource extends DataSource {
         return selection;
     }
 
-    public List<Event> getEvents(long startTime, int limit, long... calendarIds) {
+    public List<Event> getEvents(long startTime, int offset, int limit, int direction,
+            long... calendarIds) {
         List<Event> events = new ArrayList<>();
 
         List<String> args = new ArrayList<>();
@@ -221,7 +222,16 @@ public class EventDataSource extends DataSource {
             selection = getCalendarSelection(args, calendarIds) + " AND ";
         }
 
-        selection += DatabaseValues.Event.START_TIME + " < ?";
+        String operator, order;
+        if (direction >= 0) {
+            operator = ">";
+            order = " ASC";
+        } else {
+            operator = "<";
+            order = " DESC";
+        }
+
+        selection += DatabaseValues.Event.START_TIME + " " + operator + " ?";
         args.add(String.valueOf(startTime));
 
         String[] selectionArgs = args.toArray(new String[args.size()]);
@@ -232,7 +242,8 @@ public class EventDataSource extends DataSource {
             selection,
             selectionArgs,
             null,
-            DatabaseValues.Event.START_TIME + " DESC",
+            DatabaseValues.Event.START_TIME + " " + order,
+            offset,
             limit
         );
 
@@ -265,9 +276,7 @@ public class EventDataSource extends DataSource {
             DatabaseValues.Event.PROJECTION,
             selection,
             selectionArgs,
-            null,
-            DatabaseValues.Event.START_TIME + " DESC",
-            null
+            DatabaseValues.Event.START_TIME + " DESC"
         );
 
         while (cursor.moveToNext()) {
@@ -303,9 +312,7 @@ public class EventDataSource extends DataSource {
             DatabaseValues.Event.PROJECTION,
             selection,
             selectionArgs,
-            null,
-            DatabaseValues.Event.START_TIME + " DESC",
-            null
+            DatabaseValues.Event.START_TIME + " DESC"
         );
 
         Calendar calendar;
@@ -363,9 +370,7 @@ public class EventDataSource extends DataSource {
             },
             selection,
             selectionArgs,
-            null,
-            DatabaseValues.Event.START_TIME + " DESC",
-            null
+            DatabaseValues.Event.START_TIME + " DESC"
         );
 
         Calendar calendar;

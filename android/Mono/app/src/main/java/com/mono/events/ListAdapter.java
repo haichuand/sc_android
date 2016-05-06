@@ -1,5 +1,6 @@
 package com.mono.events;
 
+import android.content.Context;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.view.ViewGroup;
@@ -84,17 +85,27 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.Holder> {
         public void onBind(ListItem holderItem) {
             SimpleSlideView tempView = (SimpleSlideView) itemView;
             tempView.clear();
-            tempView.addLeftButton(Colors.getColor(tempView.getContext(), R.color.lavender),
+
+            Context context = tempView.getContext();
+
+            tempView.addLeftButton(Colors.getColor(context, R.color.lavender),
                 R.drawable.ic_chat_white);
-            tempView.addLeftButton(Colors.getColor(tempView.getContext(), R.color.brown_light),
+            tempView.addLeftButton(Colors.getColor(context, R.color.brown_light),
                 R.drawable.ic_star_border_white);
-            tempView.addRightButton(Colors.getColor(tempView.getContext(), R.color.red),
+            tempView.addRightButton(Colors.getColor(context, R.color.red),
                 R.drawable.ic_trash_white);
 
             icon.setImageResource(holderItem.iconResId);
             icon.setColorFilter(holderItem.iconColor | 0xFF000000);
 
-            title.setText(holderItem.title);
+            if (holderItem.title != null && !holderItem.title.isEmpty()) {
+                title.setText(holderItem.title);
+                title.setTextColor(Colors.getColor(context, R.color.gray_dark));
+            } else {
+                title.setText(R.string.untitled);
+                title.setTextColor(Colors.getColor(context, R.color.gray_light_3));
+            }
+
             description.setText(holderItem.description);
             date.setText(holderItem.dateTime);
         }

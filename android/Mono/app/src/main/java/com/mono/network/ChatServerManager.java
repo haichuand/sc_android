@@ -16,26 +16,49 @@ public class ChatServerManager {
     public static final String GCM_ID = "gcmId";
 
     private GoogleCloudMessaging gcm;
+    private GcmMessage gcmMessage;
     private Context context;
 
     public ChatServerManager(Context context) {
         this.context = context;
         gcm = GoogleCloudMessaging.getInstance(context);
+        gcmMessage = GcmMessage.getInstance(context);
     }
 
     public void sendRegister(long uId, String gcmToken) {
         Bundle bundle = GCMHelper.getRegisterPayload(uId + "", gcmToken);
-        GcmMessage.getInstance(context).sendMessage(bundle, gcm);
+        gcmMessage.sendMessage(bundle, gcm);
     }
 
     public void updateUserGcmId(long userId, String gcmToken) {
         Bundle bundle = GCMHelper.getUpdateGcmIdPayload(userId + "", gcmToken);
-        GcmMessage.getInstance(context).sendMessage(bundle, gcm);
+        gcmMessage.sendMessage(bundle, gcm);
     }
 
     public void startConversation(String creatorId, String conversationId, List<String> recipients) {
         String recipientsString = Common.implode(",", recipients);
         Bundle bundle = GCMHelper.getStartConversationPayload(creatorId, conversationId, recipientsString);
-        GcmMessage.getInstance(context).sendMessage(bundle, gcm);
+        gcmMessage.sendMessage(bundle, gcm);
+    }
+
+    public void addConversationAttendees(String senderId, String conversationId, List<String> userIds, List<String> recipientIds) {
+        Bundle bundle = GCMHelper.getAddConversationAttendeesPayload(
+                senderId, conversationId, Common.implode(",", userIds), Common.implode(",", recipientIds));
+        gcmMessage.sendMessage(bundle, gcm);
+    }
+
+    public void dropConversationAttendees(String senderId, String conversationId, String userIds, List<String> recipients) {
+        Bundle bundle = GCMHelper.getDropConversationAttendeesPayload(senderId, conversationId, userIds, Common.implode(",", recipients));
+        gcmMessage.sendMessage(bundle, gcm);
+    }
+
+    public void updateConversationTitle(String senderId, String conversationId, String newTitle, List<String> recipients) {
+        Bundle bundle = GCMHelper.getUpdateConversationTitlePayload(senderId, conversationId, newTitle, Common.implode(",", recipients));
+        gcmMessage.sendMessage(bundle, gcm);
+    }
+
+    public void sendConversationMessage(String senderId, String conversationId, List<String> recipients, String msg) {
+        Bundle bundle = GCMHelper.getConversationMessagePayload(senderId, conversationId, recipients, msg);
+        gcmMessage.sendMessage(bundle, gcm);
     }
 }

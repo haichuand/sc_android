@@ -42,5 +42,8 @@ public interface MainInterface {
 
     void showChat(String eventId);
 
+    //used to get conversation not associated with any event
+    void showExistingChat(String conversationId);
+
     void showLocationSetting();
 }
