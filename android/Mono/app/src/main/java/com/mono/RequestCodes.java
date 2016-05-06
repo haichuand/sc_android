@@ -22,4 +22,9 @@ public class RequestCodes {
 
         public static final int PERMISSION_CHECK = 1;
     }
+
+    public static class DeviceSettings {
+
+        public static final int DEVICE_LOCATION_SETTING = 11;
+    }
 }

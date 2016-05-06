@@ -38,6 +38,7 @@
     <string name="fragment_maps">MapsFragment</string>
     <string name="fragment_dummy">DummyFragment</string>
     <string name="fragment_settings">SettingsFragment</string>
+    <string name="fragment_location_setting">LocationSettingFragment</string>
 
     <string name="settings_cat_general_key">category_general</string>
     <string name="settings_cat_general_title">General</string>

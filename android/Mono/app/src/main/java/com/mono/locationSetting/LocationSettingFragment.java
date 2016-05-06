@@ -15,12 +15,12 @@ import com.mono.R;
  * Created by xuejing on 4/30/16.
  */
 public class LocationSettingFragment extends Fragment {
-    private MainInterface mainInterface;
     private LocationSettingActivity activity;
 
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
+        Log.i("LocationSetting", "inside Location Seeting Fragment");
         if (context instanceof LocationSettingActivity) {
             activity = (LocationSettingActivity) context;
         }
@@ -44,8 +44,12 @@ public class LocationSettingFragment extends Fragment {
     }
 
     @Override
+    public void onStop() {
+        super.onStop();
+    }
+
+    @Override
     public void onPause() {
         super.onPause();
     }
 }
-
