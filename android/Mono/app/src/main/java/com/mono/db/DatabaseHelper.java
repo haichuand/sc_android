@@ -4,16 +4,20 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import com.mono.AccountManager;
 import com.mono.db.dao.DataSource;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "database.db";
+    private static final Random random = new Random();
     public static final int DATABASE_VERSION = 1;
+    public static Context context;
 
     private static DatabaseHelper instance;
 
@@ -30,7 +34,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (instance == null) {
             instance = new DatabaseHelper(context);
         }
-
+        context = context;
         return instance;
     }
 
@@ -130,5 +134,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public static <T extends DataSource> T getDataSource(Context context, Class<T> key) {
         return getInstance(context).getDataSource(key);
+    }
+
+    public static String UniqueIdGenerator (String modelName) {
+        return AccountManager.getInstance(context).getUserId()+"_" + modelName + Long.toString(System.currentTimeMillis()) + Long.toString(random.nextLong());
     }
 }

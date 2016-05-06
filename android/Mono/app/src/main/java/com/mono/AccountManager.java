@@ -90,6 +90,10 @@ public class AccountManager {
         return preferences.getString(PREF_GCM_TOKEN, null);
     }
 
+    public String getUserId() {
+        return preferences.getString(ACCOUNT_ID_KEY, null);
+    }
+
     public void setGCMToken(String value) {
         SharedPreferences.Editor editor = preferences.edit();
         editor.putString(PREF_GCM_TOKEN, value);

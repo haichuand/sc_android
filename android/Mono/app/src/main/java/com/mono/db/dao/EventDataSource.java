@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.database.SQLException;
 
 import com.mono.db.Database;
+import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
 import com.mono.model.Event;
 import com.mono.model.Location;
@@ -29,7 +30,7 @@ public class EventDataSource extends DataSource {
     public String createEvent(long calendarId, long internalId, String externalId, String type,
             String title, String description, String location, int color, long startTime,
             long endTime, String timeZone, String endTimeZone, int allDay, long createTime) {
-        String id = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
+        String id = DatabaseHelper.UniqueIdGenerator(this.getClass().getSimpleName());
 
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.Event.ID, id);

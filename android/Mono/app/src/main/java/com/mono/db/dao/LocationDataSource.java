@@ -6,6 +6,7 @@ import android.database.SQLException;
 import android.util.Log;
 
 import com.mono.db.Database;
+import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
 import com.mono.model.Location;
 
@@ -18,7 +19,7 @@ public class LocationDataSource extends DataSource{
     }
 
     public String createLocation (String name, String googlePlaceId, Double latitude, Double longitude, String address) {
-        String id = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
+        String id = DatabaseHelper.UniqueIdGenerator(this.getClass().getSimpleName());
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.Location.LOC_ID, id);
         values.put(DatabaseValues.Location.NAME, name);

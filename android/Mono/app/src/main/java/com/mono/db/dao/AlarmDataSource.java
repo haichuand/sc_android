@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.database.SQLException;
 
 import com.mono.db.Database;
+import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
 import com.mono.model.Alarm;
 
@@ -20,7 +21,7 @@ public class AlarmDataSource extends  DataSource{
     }
 
     public String createAlarmForEvent(String eventId, long alarmTime, long createTime, boolean enabled) {
-        String alarmId = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
+        String alarmId = DatabaseHelper.UniqueIdGenerator(this.getClass().getSimpleName());
         int enabledInt = enabled ? 1 : 0; //1: enabled; 0: disabled
 
         ContentValues alarmValues = new ContentValues();
