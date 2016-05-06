@@ -201,7 +201,7 @@ public class DummyFragment extends Fragment implements TabPagerCallback {
 
     public void sendRegistration(GoogleCloudMessaging gcm, GcmMessage gcmMessage) {
         String senderId = "210";
-        Bundle registerBundle = GCMHelper.getRegisterPayload(senderId, AccountManager.getInstance(this.getContext()).getGCMToken());
+            Bundle registerBundle = GCMHelper.getRegisterPayload(senderId, AccountManager.getInstance(this.getContext()).getGCMToken());
         gcmMessage.sendMessage(registerBundle, gcm);
     }
 

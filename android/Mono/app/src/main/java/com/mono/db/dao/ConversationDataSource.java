@@ -30,7 +30,7 @@ public class ConversationDataSource extends DataSource{
     * Params: name of the conversation, the id of associated event
     * */
     public String createConversationFromEvent (String name, String eventID) {
-        String id = DatabaseHelper.UniqueIdGenerator(this.getClass().getSimpleName());
+        String id = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
         ContentValues conversationValues = new ContentValues();
         conversationValues.put(DatabaseValues.Conversation.C_ID, id);
         conversationValues.put(DatabaseValues.Conversation.C_NAME, name);

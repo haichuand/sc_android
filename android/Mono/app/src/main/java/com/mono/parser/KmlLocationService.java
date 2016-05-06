@@ -141,24 +141,28 @@ public class KmlLocationService extends IntentService{
             if(requestResult != null) {
                 locationList = parseGooglePlace(requestResult, address, place_id, llt);
                 //TODO: remove later, for testing purpose only:
-                String placeCandidates = "Place candidates: ";
+                String placeCandidates = "Place candidates: \n";
                 String locationId = "";
                 int counter = 1;
+                String firstPlaceName = "";
                 //todo: pick the location if the user had been there
                 //now simply pick the first location of returned locations
                 if(!locationList.isEmpty()) {
                     for (Location location : locationList) {
-                        locationId = location.id;
                         //check if the location exists in the database
                         if (locationDataSource.getLocationByGooglePlaceId(location.googlePlaceId) == null) {
                             locationId = locationDataSource.createLocation(location.name, location.googlePlaceId, location.latitude, location.longitude, location.getAddress());
+                            //todo:this id would be used to map a location record to a event in eventLocationTable
                             location.id = locationId;
                         }
                         placeCandidates += "Place " + counter + ". " + location.name + "\n";
+                        //TODO: Temporarily use the second place name as the event title
+                        if(counter == 2)
+                            firstPlaceName = location.name;
                         counter++;
                     }
-                    Location location = locationList.get(0);
-                    event_id = eventManager.createEvent(-1, -1, null, Event.TYPE_USERSTAY, address, placeCandidates, null,
+                    //create a userstay event
+                    event_id = eventManager.createEvent(-1, -1, null, Event.TYPE_USERSTAY, firstPlaceName, placeCandidates, address,
                             1,startTime, endTime, null, null, false);
                     Log.d(TAG, "event with id: " + event_id + " created");
                 }

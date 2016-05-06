@@ -15,9 +15,7 @@ import java.util.Random;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "database.db";
-    private static final Random random = new Random();
     public static final int DATABASE_VERSION = 1;
-    public static Context context;
 
     private static DatabaseHelper instance;
 
@@ -34,7 +32,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (instance == null) {
             instance = new DatabaseHelper(context);
         }
-        context = context;
         return instance;
     }
 
@@ -136,7 +133,4 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return getInstance(context).getDataSource(key);
     }
 
-    public static String UniqueIdGenerator (String modelName) {
-        return AccountManager.getInstance(context).getUserId()+"_" + modelName + Long.toString(System.currentTimeMillis()) + Long.toString(random.nextLong());
-    }
 }

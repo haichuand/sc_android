@@ -23,7 +23,7 @@ public class AttendeeDataSource extends DataSource {
 
     public String createAttendee (String mediaId, String email, String phoneNumber, String firstName, String lastName, String userName, boolean isFriend) {
 
-        String id = DatabaseHelper.UniqueIdGenerator(this.getClass().getSimpleName());
+        String id = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
         int isFriendInt = isFriend ? 1 : 0;
 
         ContentValues values = new ContentValues();
