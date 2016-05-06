@@ -1,5 +1,9 @@
 package com.mono.util;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+
 import java.security.MessageDigest;
 import java.util.List;
 
@@ -94,5 +98,10 @@ public class Common {
         }
 
         return result;
+    }
+
+    public static boolean isConnectedToInternet(Context context) {
+        NetworkInfo activeNetwork = ((ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE)).getActiveNetworkInfo();
+        return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
     }
 }

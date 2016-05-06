@@ -44,6 +44,7 @@ import com.mono.settings.Settings;
 import com.mono.settings.SettingsActivity;
 import com.mono.social.ChatsFragment;
 import com.mono.util.Colors;
+import com.mono.util.Common;
 import com.mono.util.GoogleClient;
 import com.mono.util.OnBackPressedListener;
 import com.mono.util.SimpleTabLayout;
@@ -545,6 +546,10 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
         String conversationId;
         if (conversations.isEmpty()) {
+            if (!Common.isConnectedToInternet(this)) {
+                Toast.makeText(this, "No network connection. Cannot create new event", Toast.LENGTH_SHORT).show();
+                return;
+            }
             conversationId = conversationManager.createConversation(event.title, account.id + "", event.id);
             Conversation conversation = conversationManager.getConversationById(conversationId);
             List<String> attendees = conversation.getAttendeeIdList();

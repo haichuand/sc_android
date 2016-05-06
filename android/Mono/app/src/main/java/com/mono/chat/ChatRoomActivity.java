@@ -315,7 +315,10 @@ public class ChatRoomActivity extends GestureActivity {
     }
 
     public void onSendButtonClicked(View view) {
-
+        if (!Common.isConnectedToInternet(this)) {
+            Toast.makeText(this, "No network connection. Cannot send message", Toast.LENGTH_SHORT).show();
+            return;
+        }
         String msg = sendMessageText.getText().toString();
         if (msg.isEmpty())
             return;
