@@ -114,9 +114,11 @@ public class Attendee implements Parcelable {
     @Override
     public String toString() {
         if (firstName != null && !firstName.isEmpty()) {
-            return firstName + " " + lastName;
-        }
-        else if (userName != null && !userName.isEmpty()){
+            if (lastName != null && !lastName.isEmpty()) {
+                return firstName + " " + lastName;
+            }
+            return firstName;
+        } else if (userName != null && !userName.isEmpty()){
             return userName;
         } else {
             return email;

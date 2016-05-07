@@ -7,6 +7,7 @@ import com.mono.db.dao.AttendeeDataSource;
 import com.mono.db.dao.ConversationDataSource;
 import com.mono.model.Attendee;
 import com.mono.model.Conversation;
+import com.mono.model.Event;
 import com.mono.model.Message;
 
 import java.util.ArrayList;
@@ -35,8 +36,8 @@ public class ConversationManager {
         return instance;
     }
 
-    public String createConversation(String name, String creatorId, String eventId) {
-        return conversationDataSource.createConversationFromEvent(name, eventId);
+    public String createConversation(String name, String creatorId, Event event) {
+        return conversationDataSource.createConversationFromEvent(name, event, creatorId);
     }
 
     public List<Conversation> getConversations() {
@@ -76,6 +77,11 @@ public class ConversationManager {
         conversationDataSource.addAttendeesToConversation(conversationId, attendeeIds);
     }
 
+    public void setAttendees(String conversationId, List<String> attendeeIds) {
+        conversationDataSource.clearConversationAttendees(conversationId);
+        conversationDataSource.addAttendeesToConversation(conversationId, attendeeIds);
+    }
+
     public boolean setConversationSyncNeeded(String conversationId, boolean isSynNeeded) {
         return conversationDataSource.setConversationSyncNeeded(conversationId, isSynNeeded);
     }
@@ -88,5 +94,9 @@ public class ConversationManager {
 
     public Attendee getAttendeeById(String id) {
         return attendeeDataSource.getAttendeeById(id);
+    }
+
+    public List<Attendee> getAllUserList() {
+        return attendeeDataSource.getAttendees();
     }
 }

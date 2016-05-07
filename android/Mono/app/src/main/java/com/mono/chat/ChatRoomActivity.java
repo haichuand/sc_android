@@ -28,9 +28,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.mono.R;
-import com.mono.db.DatabaseHelper;
-import com.mono.db.dao.AttendeeDataSource;
 import com.mono.model.Attendee;
+import com.mono.model.AttendeeUsernameComparator;
 import com.mono.model.Message;
 import com.mono.network.ChatServerManager;
 import com.mono.network.GCMHelper;
@@ -42,7 +41,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -79,9 +77,7 @@ public class ChatRoomActivity extends GestureActivity {
     private SimpleAdapter chatAttendeeListAdapter;
     private List<Message> chatMessages;
     private List<Map<String, String>> chatAttendeeAdapterList;
-//    private List<String> chatAttendeeTokenList = new ArrayList<>(); //GCM token list for sending messages
     private List<String> chatAttendeeIdList; //list of chat attendee ids for sending message
-    private List<Attendee> allUsersList;
     private List<String> newlyAddedAttendeeIds = new ArrayList<>();
     private Attendee mostRecentAddedAttendee = null;
     private ConversationManager conversationManager;
@@ -199,8 +195,7 @@ public class ChatRoomActivity extends GestureActivity {
 
         //set up auto complete text view for inviting friends
         addAttendeeTextView = (AutoCompleteTextView) findViewById(R.id.edit_text_invite);
-        AttendeeDataSource attendeeDataSource = DatabaseHelper.getDataSource(this, AttendeeDataSource.class);
-        allUsersList = attendeeDataSource.getAttendees();
+        List<Attendee> allUsersList = conversationManager.getAllUserList();
         Collections.sort(allUsersList, new AttendeeUsernameComparator());
         ArrayAdapter<Attendee> addAttendeeAdapter = new ArrayAdapter<Attendee>(this, android.R.layout.simple_dropdown_item_1line, allUsersList);
         addAttendeeTextView.setAdapter(addAttendeeAdapter);
@@ -223,7 +218,7 @@ public class ChatRoomActivity extends GestureActivity {
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 Attendee attendee = (Attendee) adapterView.getItemAtPosition(i);
                 if (myId.equals(attendee.id) || chatAttendeeMap.getAttendeeMap().keySet().contains(attendee.id) || newlyAddedAttendeeIds.contains(attendee.id)) {
-                    Toast.makeText(ChatRoomActivity.this, "User already added to chat", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ChatRoomActivity.this, "User already in chat", Toast.LENGTH_SHORT).show();
                     addAttendeeTextView.setText("");
                 } else {
                     mostRecentAddedAttendee = attendee;
@@ -366,7 +361,10 @@ public class ChatRoomActivity extends GestureActivity {
                 //TODO: mark Conversation_Attendees table as Sync_Needed
                 break;
         }
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        if (message != null) {
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        }
+
         //notifiy existing conversation attendees of new users
         if (!chatAttendeeIdList.isEmpty()) {
             chatServerManager.addConversationAttendees(myId, conversationId, newlyAddedAttendeeIds, chatAttendeeIdList);
@@ -381,13 +379,5 @@ public class ChatRoomActivity extends GestureActivity {
             chatAttendeeIdList.add(id);
         }
         newlyAddedAttendeeIds.clear();
-    }
-
-    class AttendeeUsernameComparator implements Comparator<Attendee> {
-
-        @Override
-        public int compare(Attendee attendee1, Attendee attendee2) {
-            return attendee1.toString().compareToIgnoreCase(attendee2.toString());
-        }
     }
 }

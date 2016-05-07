@@ -5,10 +5,10 @@ import android.database.Cursor;
 import android.database.SQLException;
 
 import com.mono.db.Database;
-import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
 import com.mono.model.Attendee;
 import com.mono.model.Conversation;
+import com.mono.model.Event;
 import com.mono.model.Message;
 import com.mono.util.Common;
 
@@ -29,22 +29,25 @@ public class ConversationDataSource extends DataSource{
     * Create a conversation from an event with
     * Params: name of the conversation, the id of associated event
     * */
-    public String createConversationFromEvent (String name, String eventID) {
+    public String createConversationFromEvent (String name, Event event, String creatorId) {
         String id = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
         ContentValues conversationValues = new ContentValues();
         conversationValues.put(DatabaseValues.Conversation.C_ID, id);
         conversationValues.put(DatabaseValues.Conversation.C_NAME, name);
-        //TODO: get event creator and put into conversation table
+        conversationValues.put(DatabaseValues.Conversation.C_CREATOR, creatorId);
 
         ContentValues conversationEventValues = new ContentValues();
         conversationEventValues.put(DatabaseValues.EventConversation.C_ID, id);
-        conversationEventValues.put(DatabaseValues.EventConversation.EVENT_ID, eventID);
+        conversationEventValues.put(DatabaseValues.EventConversation.EVENT_ID, event.id);
 
-        //TODO: get event attendees and insert into conversation_attendees table
-
+        ArrayList<String> attendeeIds = new ArrayList<>();
+        for (Attendee attendee : event.attendees) {
+            attendeeIds.add(attendee.id);
+        }
         try {
             database.insert(DatabaseValues.Conversation.TABLE,conversationValues);
             database.insert(DatabaseValues.EventConversation.TABLE,conversationEventValues);
+            addAttendeesToConversation(id, attendeeIds);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -72,8 +75,8 @@ public class ConversationDataSource extends DataSource{
         return conversation.getId();
     }
 
-    public String createConversationWithSelectedAttendees (String name, String eventID, List<String> attendeesID) {
-        String conversationId = createConversationFromEvent(name, eventID);
+    public String createConversationWithSelectedAttendees (String name, Event event, List<String> attendeesID, String creatorId) {
+        String conversationId = createConversationFromEvent(name, event, creatorId);
 
         for(String id: attendeesID) {
             ContentValues values = new ContentValues();
@@ -141,6 +144,10 @@ public class ConversationDataSource extends DataSource{
 
     public int clearConversationTable() {
         return database.delete(DatabaseValues.Conversation.TABLE, null, null);
+    }
+
+    public int clearConversationAttendees(String conversationId) {
+        return database.delete(DatabaseValues.ConversationAttendee.TABLE, DatabaseValues.ConversationAttendee.C_ID + "='" + conversationId + "'", null);
     }
 
     public void addMessageToConversation (Message msg) {

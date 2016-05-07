@@ -235,4 +235,15 @@ public class Event implements Parcelable {
     public String getEndTimeZone() {
         return endTimeZone == null ? timeZone : endTimeZone;
     }
+
+    public List<String> getAttendeeIdList() {
+        List<String> attendeeIdList = new ArrayList<>();
+        if (attendees == null || attendees.isEmpty()) {
+            return attendeeIdList;
+        }
+        for (Attendee attendee : attendees) {
+            attendeeIdList.add(attendee.id);
+        }
+        return attendeeIdList;
+    }
 }
