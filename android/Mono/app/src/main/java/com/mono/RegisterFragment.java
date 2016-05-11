@@ -71,22 +71,7 @@ public class RegisterFragment extends Fragment {
 
             @Override
             public void afterTextChanged(Editable s) {
-                boolean isEnabled = true;
-
-                String email = fields[INDEX_EMAIL].getText().toString().trim();
-                String phone = fields[INDEX_PHONE].getText().toString().trim();
-
-                if (email.isEmpty() && phone.isEmpty()) {
-                    isEnabled = false;
-                } else {
-                    for (int i = 2; i < fields.length; i++) {
-                        if (fields[i].getText().toString().trim().isEmpty()) {
-                            isEnabled = false;
-                            break;
-                        }
-                    }
-                }
-
+                boolean isEnabled = verify();
                 submit.setEnabled(isEnabled);
 
                 int colorId = isEnabled ? android.R.color.white : R.color.translucent_50;
@@ -119,11 +104,29 @@ public class RegisterFragment extends Fragment {
         return view;
     }
 
-    public void onSubmit() {
-        for (EditText editText : fields) {
-            if (editText.getText().toString().trim().isEmpty()) {
-                return;
+    public boolean verify() {
+        boolean result = true;
+
+        String email = fields[INDEX_EMAIL].getText().toString().trim();
+        String phone = fields[INDEX_PHONE].getText().toString().trim();
+
+        if (email.isEmpty() && phone.isEmpty()) {
+            result = false;
+        } else {
+            for (int i = 2; i < fields.length; i++) {
+                if (fields[i].getText().toString().trim().isEmpty()) {
+                    result = false;
+                    break;
+                }
             }
+        }
+
+        return result;
+    }
+
+    public void onSubmit() {
+        if (!verify()) {
+            return;
         }
 
         String email = fields[INDEX_EMAIL].getText().toString().trim();

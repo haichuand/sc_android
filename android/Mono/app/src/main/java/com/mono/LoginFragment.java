@@ -64,13 +64,7 @@ public class LoginFragment extends Fragment {
 
             @Override
             public void afterTextChanged(Editable s) {
-                boolean isEnabled = true;
-                for (EditText editText : fields) {
-                    if (editText.getText().toString().trim().isEmpty()) {
-                        isEnabled = false;
-                        break;
-                    }
-                }
+                boolean isEnabled = verify();
                 submit.setEnabled(isEnabled);
 
                 int colorId = isEnabled ? android.R.color.white : R.color.translucent_50;
@@ -121,11 +115,22 @@ public class LoginFragment extends Fragment {
         }
     }
 
-    public void onSubmit() {
+    public boolean verify() {
+        boolean result = true;
+
         for (EditText editText : fields) {
             if (editText.getText().toString().trim().isEmpty()) {
-                return;
+                result = false;
+                break;
             }
+        }
+
+        return result;
+    }
+
+    public void onSubmit() {
+        if (!verify()) {
+            return;
         }
 
         String username = fields[INDEX_USERNAME].getText().toString().trim();
