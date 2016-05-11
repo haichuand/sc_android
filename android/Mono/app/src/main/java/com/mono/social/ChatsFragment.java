@@ -34,7 +34,7 @@ import java.util.Locale;
 import java.util.Map;
 
 public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem>,
-        SimpleSlideViewListener, Scrollable {
+        SimpleSlideViewListener, Scrollable, ConversationManager.ConversationBroadcastListener {
 
     private static final SimpleDateFormat DATE_FORMAT;
     private static final SimpleDateFormat TIME_FORMAT;
@@ -48,6 +48,7 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
 
     private final Map<String, ListItem> items = new HashMap<>();
     private final List<Conversation> chats = new ArrayList<>();
+    private ConversationManager conversationManager;
 
     static {
         DATE_FORMAT = new SimpleDateFormat("M/d/yyyy", Locale.getDefault());
@@ -61,12 +62,14 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
         if (context instanceof MainInterface) {
             mainInterface = (MainInterface) context;
         }
+        conversationManager = ConversationManager.getInstance(context);
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         chats.addAll(ConversationManager.getInstance(getContext()).getAllConversations());
+        conversationManager.addListener(this);
     }
 
     @Override
@@ -84,6 +87,12 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
         text.setVisibility(chats.isEmpty() ? View.VISIBLE : View.INVISIBLE);
 
         return view;
+    }
+
+    @Override
+    public void onDestroy() {
+        conversationManager.removeListener(this);
+        super.onDestroy();
     }
 
     @Override
@@ -266,5 +275,14 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
     @Override
     public void scrollToTop() {
         recyclerView.smoothScrollToPosition(0);
+    }
+
+    @Override
+    public void onNewConversation(Conversation conversation, int index) {
+        insert(index, conversation, true);
+    }
+
+    @Override
+    public void onNewConversationAttendees(String conversationId, List<String> newAttendees) {
     }
 }

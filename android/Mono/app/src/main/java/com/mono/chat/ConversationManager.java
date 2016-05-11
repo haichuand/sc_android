@@ -7,7 +7,6 @@ import com.mono.db.dao.AttendeeDataSource;
 import com.mono.db.dao.ConversationDataSource;
 import com.mono.model.Attendee;
 import com.mono.model.Conversation;
-import com.mono.model.Event;
 import com.mono.model.Message;
 
 import java.util.ArrayList;
@@ -22,6 +21,7 @@ public class ConversationManager {
     private Context context;
     private ConversationDataSource conversationDataSource;
     private AttendeeDataSource attendeeDataSource;
+    private final List<ConversationBroadcastListener> listeners = new ArrayList<>();
 
     private ConversationManager(Context context) {
         this.context = context;
@@ -31,13 +31,13 @@ public class ConversationManager {
 
     public static ConversationManager getInstance(Context context) {
         if (instance == null) {
-            instance = new ConversationManager(context);
+            instance = new ConversationManager(context.getApplicationContext());
         }
         return instance;
     }
 
-    public String createConversation(String name, String creatorId, Event event) {
-        return conversationDataSource.createConversationFromEvent(name, event, creatorId);
+    public String createConversation(String name, String eventId, List<String> attendeeIds, String creatorId) {
+        return conversationDataSource.createConversationWithSelectedAttendees(name, eventId, attendeeIds, creatorId);
     }
 
     public List<Conversation> getConversations() {
@@ -98,5 +98,30 @@ public class ConversationManager {
 
     public List<Attendee> getAllUserList() {
         return attendeeDataSource.getAttendees();
+    }
+
+    public void addListener (ConversationBroadcastListener listener) {
+        listeners.add(listener);
+    }
+
+    public void removeListener (ConversationBroadcastListener listener) {
+        listeners.remove(listener);
+    }
+
+    public void notifyListenersNewConversation(Conversation conversation, int index) {
+        for (ConversationBroadcastListener listener : listeners) {
+            listener.onNewConversation(conversation, index);
+        }
+    }
+
+    public void notifyListenersNewConversationAttendees (String conversationId, List<String> newAttendeeIds) {
+        for (ConversationBroadcastListener listener : listeners) {
+            listener.onNewConversationAttendees(conversationId, newAttendeeIds);
+        }
+    }
+
+    public interface ConversationBroadcastListener {
+        void onNewConversation(Conversation conversation, int index);
+        void onNewConversationAttendees (String conversationId, List<String> newAttendeeIds);
     }
 }

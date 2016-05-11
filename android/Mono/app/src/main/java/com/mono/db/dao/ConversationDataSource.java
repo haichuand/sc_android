@@ -75,19 +75,36 @@ public class ConversationDataSource extends DataSource{
         return conversation.getId();
     }
 
-    public String createConversationWithSelectedAttendees (String name, Event event, List<String> attendeesID, String creatorId) {
-        String conversationId = createConversationFromEvent(name, event, creatorId);
+    /**
+     * Does not copy event attendees to conversation. Conversation attendees only come from attendeesID list
+     * @param name
+     * @param eventId
+     * @param attendeesID
+     * @param creatorId
+     * @return
+     */
+    public String createConversationWithSelectedAttendees (String name, String eventId, List<String> attendeesID, String creatorId) {
+        String conversationId = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
+        ContentValues conversationValues = new ContentValues();
+        conversationValues.put(DatabaseValues.Conversation.C_ID, conversationId);
+        conversationValues.put(DatabaseValues.Conversation.C_NAME, name);
+        conversationValues.put(DatabaseValues.Conversation.C_CREATOR, creatorId);
 
-        for(String id: attendeesID) {
-            ContentValues values = new ContentValues();
-            values.put(DatabaseValues.ConversationAttendee.C_ID, conversationId);
-            values.put(DatabaseValues.ConversationAttendee.ATTENDEE_ID, id);
+        ContentValues conversationEventValues = new ContentValues();
+        conversationEventValues.put(DatabaseValues.EventConversation.C_ID, conversationId);
+        conversationEventValues.put(DatabaseValues.EventConversation.EVENT_ID, eventId);
 
-            try{
+        try {
+            database.insert(DatabaseValues.Conversation.TABLE, conversationValues);
+            database.insert(DatabaseValues.EventConversation.TABLE, conversationEventValues);
+            for(String attendeeId: attendeesID) {
+                ContentValues values = new ContentValues();
+                values.put(DatabaseValues.ConversationAttendee.C_ID, conversationId);
+                values.put(DatabaseValues.ConversationAttendee.ATTENDEE_ID, attendeeId);
                 database.insert(DatabaseValues.ConversationAttendee.TABLE, values);
-            }catch (SQLException e) {
-                e.printStackTrace();
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
 
         return conversationId;
@@ -188,6 +205,18 @@ public class ConversationDataSource extends DataSource{
         }
     }
 
+    public void dropAttendeesFromConversation (String conversationId, List<String> userIds) {
+        String where = DatabaseValues.ConversationAttendee.C_ID + "='"+ conversationId + "'";
+        try {
+            for (String id : userIds) {
+                database.delete(DatabaseValues.ConversationAttendee.TABLE,
+                        where + " AND " + DatabaseValues.ConversationAttendee.ATTENDEE_ID + "='" + id + "'", null);
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+
     public List<String> getConversationAttendeesIds (String conversationId) {
         List<String> attendeeList = new LinkedList<>();
 
@@ -263,7 +292,7 @@ public class ConversationDataSource extends DataSource{
     }
 
     public Conversation getConversation (String conversationId) {
-        String conversationName = "", creatorId = "";
+        String conversationName = "", creatorId = "", eventId = "";
         Cursor cursor = database.select(
                 DatabaseValues.Conversation.TABLE,
                 new String[]{
@@ -272,7 +301,7 @@ public class ConversationDataSource extends DataSource{
                 },
                 DatabaseValues.Conversation.C_ID + " =?",
                 new String[]{
-                        String.valueOf(conversationId)
+                        conversationId
                 }
         );
 
@@ -281,12 +310,25 @@ public class ConversationDataSource extends DataSource{
             creatorId = cursor.getString(1);
         }
 
+        cursor = database.select(
+                DatabaseValues.EventConversation.TABLE,
+                new String[] {
+                        DatabaseValues.EventConversation.EVENT_ID
+                },
+                DatabaseValues.EventConversation.C_ID + "=?",
+                new String[] {
+                        conversationId
+                }
+        );
+        if (cursor.moveToFirst()) {
+            eventId = cursor.getString(0);
+        }
         cursor.close();
 
         List<Attendee> attendees = getConversationAttendees(conversationId);
         List<Message> messages = getConversationMessages(conversationId);
 
-        return new Conversation(conversationId, creatorId, conversationName, attendees, messages);
+        return new Conversation(conversationId, eventId, creatorId, conversationName, attendees, messages);
     }
 
     public List<Conversation> getConversations() {

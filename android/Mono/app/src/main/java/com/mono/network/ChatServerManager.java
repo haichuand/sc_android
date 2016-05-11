@@ -47,8 +47,9 @@ public class ChatServerManager {
         gcmMessage.sendMessage(bundle, gcm);
     }
 
-    public void dropConversationAttendees(String senderId, String conversationId, String userIds, List<String> recipients) {
-        Bundle bundle = GCMHelper.getDropConversationAttendeesPayload(senderId, conversationId, userIds, Common.implode(",", recipients));
+    public void dropConversationAttendees(String senderId, String conversationId, List<String> userIds, List<String> recipientIds) {
+        Bundle bundle = GCMHelper.getDropConversationAttendeesPayload(
+                senderId, conversationId, Common.implode(",", userIds), Common.implode(",", recipientIds));
         gcmMessage.sendMessage(bundle, gcm);
     }
 

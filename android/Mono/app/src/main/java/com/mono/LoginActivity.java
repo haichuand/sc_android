@@ -14,13 +14,11 @@ import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.mono.chat.MyGcmListenerService;
 import com.mono.chat.RegistrationIntentService;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.AttendeeDataSource;
 import com.mono.model.Account;
 import com.mono.network.ChatServerManager;
-import com.mono.network.GCMHelper;
 import com.mono.network.HttpServerManager;
 
 import org.json.JSONObject;
@@ -32,7 +30,7 @@ public class LoginActivity extends AppCompatActivity {
     private static final int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
 
     private BroadcastReceiver registrationReceiver;
-    private BroadcastReceiver gcmReceiver;
+//    private BroadcastReceiver gcmReceiver;
     private boolean hasToken;
 
     @Override
@@ -50,21 +48,21 @@ public class LoginActivity extends AppCompatActivity {
             }
         };
 
-        gcmReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                Bundle data = intent.getBundleExtra(MyGcmListenerService.GCM_MESSAGE_DATA);
-
-                String action = data.getString("action");
-                if (action != null) {
-                    switch (action) {
-                        case GCMHelper.ACTION_LOGIN:
-                            onLogin(data);
-                            break;
-                    }
-                }
-            }
-        };
+//        gcmReceiver = new BroadcastReceiver() {
+//            @Override
+//            public void onReceive(Context context, Intent intent) {
+//                Bundle data = intent.getBundleExtra(MyGcmListenerService.GCM_MESSAGE_DATA);
+//
+//                String action = data.getString("action");
+//                if (action != null) {
+//                    switch (action) {
+//                        case GCMHelper.ACTION_LOGIN:
+//                            onLogin(data);
+//                            break;
+//                    }
+//                }
+//            }
+//        };
 
         String token = AccountManager.getInstance(this).getGCMToken();
         hasToken = token != null;
@@ -89,8 +87,8 @@ public class LoginActivity extends AppCompatActivity {
         LocalBroadcastManager.getInstance(this).registerReceiver(registrationReceiver,
                 new IntentFilter(SuperCalyPreferences.REGISTRATION_COMPLETE));
 
-        LocalBroadcastManager.getInstance(this).registerReceiver(gcmReceiver,
-                new IntentFilter(MyGcmListenerService.GCM_INCOMING_INTENT));
+//        LocalBroadcastManager.getInstance(this).registerReceiver(gcmReceiver,
+//                new IntentFilter(MyGcmListenerService.GCM_INCOMING_INTENT));
     }
 
     @Override
@@ -98,7 +96,7 @@ public class LoginActivity extends AppCompatActivity {
         super.onPause();
 
         LocalBroadcastManager.getInstance(this).unregisterReceiver(registrationReceiver);
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(gcmReceiver);
+//        LocalBroadcastManager.getInstance(this).unregisterReceiver(gcmReceiver);
     }
 
     public void showFragment(Fragment fragment, String tag, boolean addToBackStack) {

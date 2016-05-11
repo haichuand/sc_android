@@ -7,16 +7,19 @@ import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 import android.widget.Toast;
 
 import com.google.android.gms.gcm.GcmListenerService;
+import com.mono.AccountManager;
 import com.mono.MainActivity;
 import com.mono.R;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.ConversationDataSource;
+import com.mono.model.Conversation;
 import com.mono.model.Message;
 import com.mono.network.GCMHelper;
 import com.mono.network.HttpServerManager;
@@ -29,6 +32,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Created by xuejing on 2/25/16.
@@ -41,12 +45,14 @@ public class MyGcmListenerService extends GcmListenerService {
     private LocalBroadcastManager broadcaster;
     private ConversationManager conversationManager;
     private HttpServerManager httpServerManager;
+    private Handler handler;
 
     @Override
     public void onCreate() {
         broadcaster = LocalBroadcastManager.getInstance(this);
         conversationManager = ConversationManager.getInstance(this);
         httpServerManager = new HttpServerManager(this);
+        handler = new Handler();
     }
 
     public void onMessageReceived(String from, Bundle data) {
@@ -64,6 +70,9 @@ public class MyGcmListenerService extends GcmListenerService {
                 break;
             case GCMHelper.ACTION_ADD_CONVERSATION_ATTENDEES:
                 addConversationAttendees(from, data);
+                break;
+            case GCMHelper.ACTION_DROP_CONVERSATION_ATTENDEES:
+                dropConversationAttendees(from, data);
                 break;
         }
 
@@ -122,6 +131,13 @@ public class MyGcmListenerService extends GcmListenerService {
                 Toast.makeText(this, "Error creating conversation with id: " + conversationId + "; title: " + title, Toast.LENGTH_LONG).show();
             } else {
                 sendNotification("Added new conversation with title: " + title + "; attendees: " + attendeesList);
+                final Conversation conversation = conversationDataSource.getConversation(conversationId);
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        conversationManager.notifyListenersNewConversation(conversation, 0);
+                    }
+                });
             }
             return true;
         } catch (JSONException e) {
@@ -132,11 +148,18 @@ public class MyGcmListenerService extends GcmListenerService {
 
     private void addConversationAttendees(String from, Bundle data) {
         String senderId = data.getString(GCMHelper.SENDER_ID);
-        String conversationId = data.getString(GCMHelper.CONVERSATION_ID);
+        final String conversationId = data.getString(GCMHelper.CONVERSATION_ID);
         String[] userIds = Common.explode(",", data.getString(GCMHelper.USER_IDS));
         ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
-        conversationDataSource.addAttendeesToConversation(conversationId, Arrays.asList(userIds));
-        sendNotification("Added new users to conversation with id: " + conversationId + "; new users: " + userIds);
+        final List<String> newAttendeeIds = Arrays.asList(userIds);
+        conversationDataSource.addAttendeesToConversation(conversationId, newAttendeeIds);
+        sendNotification("Added new users to conversation with id: " + conversationId + "; new users: " + Arrays.asList(userIds));
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                conversationManager.notifyListenersNewConversationAttendees(conversationId, newAttendeeIds);
+            }
+        });
     }
 
     public void onMessageSent(String msgId) {
@@ -146,6 +169,22 @@ public class MyGcmListenerService extends GcmListenerService {
     public void onSendError(String msgId, String error) {
         Log.d(TAG, "Fail to send Message: " + msgId );
         Log.d(TAG, "Error while sending: " + error);
+    }
+
+    private void dropConversationAttendees(String from, Bundle data) {
+//        String senderId = data.getString(GCMHelper.SENDER_ID);
+        String conversationId = data.getString(GCMHelper.CONVERSATION_ID);
+        String[] userIds = Common.explode(",", data.getString(GCMHelper.USER_IDS));
+        List<String> userList = Arrays.asList(userIds);
+        ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
+        String myId = AccountManager.getInstance(this).getAccount().id + "";
+        if (userList.contains(myId)) { //myself is dropped from conversation
+            conversationDataSource.clearConversationAttendees(conversationId);
+            sendNotification("Dropped from conversation with id: " + conversationId);
+        } else { //other users are dropped from conversation
+            conversationDataSource.dropAttendeesFromConversation(conversationId, userList);
+            sendNotification("Removed users " + userList + " from conversation: " + conversationId);
+        }
     }
 
     /**

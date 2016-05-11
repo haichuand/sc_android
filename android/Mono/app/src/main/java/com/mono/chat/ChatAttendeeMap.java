@@ -42,4 +42,8 @@ public class ChatAttendeeMap {
         }
         return list;
     }
+
+    public void clear() {
+        chatAttendeeMap = new HashMap<>();
+    }
 }

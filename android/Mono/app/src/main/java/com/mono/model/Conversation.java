@@ -33,6 +33,15 @@ public class Conversation {
         this.messages = messages;
     }
 
+    public Conversation(String id, String eventId, String creatorId, String name, List<Attendee> attendees, List<Message> messages) {
+        this.id = id;
+        this.eventId = eventId;
+        this.creatorId = creatorId;
+        this.name = name;
+        this.attendees = attendees;
+        this.messages = messages;
+    }
+
     public String getId() {
         return this.id;
     }

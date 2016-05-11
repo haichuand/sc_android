@@ -65,7 +65,8 @@
         android:orientation="vertical"
         android:background="@android:color/white"
         android:layout_gravity="end"
-        android:padding="10dp">
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp" >
 
         <include
             layout="@layout/chat_menu"

@@ -32,7 +32,6 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -55,7 +54,6 @@ import com.mono.network.HttpServerManager;
 import com.mono.provider.CalendarProvider;
 import com.mono.settings.Settings;
 import com.mono.settings.SettingsActivity;
-import com.mono.social.ChatsFragment;
 import com.mono.util.Colors;
 import com.mono.util.Common;
 import com.mono.util.GoogleClient;
@@ -95,7 +93,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     private ServiceScheduler scheduler;
     private GoogleClient googleClient;
 
-    private Attendee selectedAttendee = null; //attendee selected in AutoCompleteTextView
+//    private Attendee selectedAttendee = null; //attendee selected in AutoCompleteTextView
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -383,6 +381,13 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
     @Override
     public void showHome() {
+        Account account = AccountManager.getInstance(this).getAccount();
+        if (account == null) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            startActivityForResult(intent, RequestCodes.Activity.LOGIN_CHAT);
+            return;
+        }
+
         FragmentManager manager = getSupportFragmentManager();
         manager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
 
@@ -549,15 +554,15 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             return;
         }
 
+//        Account account = AccountManager.getInstance(this).getAccount();
+//        if (account == null) {
+//            Intent intent = new Intent(this, LoginActivity.class);
+//            intent.putExtra(EXTRA_EVENT_ID, eventId);
+//
+//            startActivityForResult(intent, RequestCodes.Activity.LOGIN_CHAT);
+//            return;
+//        }
         Account account = AccountManager.getInstance(this).getAccount();
-        if (account == null) {
-            Intent intent = new Intent(this, LoginActivity.class);
-            intent.putExtra(EXTRA_EVENT_ID, eventId);
-
-            startActivityForResult(intent, RequestCodes.Activity.LOGIN_CHAT);
-            return;
-        }
-
         ConversationManager conversationManager = ConversationManager.getInstance(this);
         List<Conversation> conversations = conversationManager.getConversations(eventId);
         String conversationId;
@@ -570,7 +575,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             showCreateChatDialog(account, event, conversationManager);
         } else {
             Conversation conversation = conversations.get(0);
-            startChatRoomActivity(event.id, event.title, event.startTime, event.endTime, conversation.id, account.id+"");
+            startChatRoomActivity(event.id, event.startTime, event.endTime, conversation.id, account.id+"");
         }
     }
 
@@ -590,9 +595,9 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
         String myId = String.valueOf(AccountManager.getInstance(this).getAccount().id);
         if (event == null) {
-            startChatRoomActivity(null, conversation.name, 0, 0, conversationId, myId);
+            startChatRoomActivity(null, 0, 0, conversationId, myId);
         } else {
-            startChatRoomActivity(event.id, event.title, event.startTime, event.endTime, conversationId, myId);
+            startChatRoomActivity(event.id, event.startTime, event.endTime, conversationId, myId);
         }
     }
 
@@ -602,7 +607,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         final Dialog dialog = new Dialog(this);
 
         dialog.setContentView(R.layout.dialog_create_chat);
-        EditText titleInput = (EditText) dialog.findViewById(R.id.create_chat_title_input);
+        final EditText titleInput = (EditText) dialog.findViewById(R.id.create_chat_title_input);
         titleInput.setText(event.title, TextView.BufferType.EDITABLE);
         final LinearLayout checkBoxLayout = (LinearLayout) dialog.findViewById(R.id.create_chat_attendees);
 
@@ -663,39 +668,49 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                     Toast.makeText(MainActivity.this, "User already in list", Toast.LENGTH_SHORT).show();
                     addAttendeeTextView.setText("");
                 } else {
-                    selectedAttendee = attendee;
+//                    selectedAttendee = attendee;
+                    addCheckBoxFromAttendee(checkBoxLayout, attendee, checkedChangeListener);
+                    checkedChatAttendeeIds.add(attendee.id);
+                    listChatAttendeeIds.add(attendee.id);
+                    addAttendeeTextView.setText("");
                 }
             }
         });
 
-        //set listener for add button
-        ImageView addAttendeeButton = (ImageView) dialog.findViewById(R.id.create_chat_add_button);
-        addAttendeeButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (selectedAttendee != null) {
-                    addCheckBoxFromAttendee(checkBoxLayout, selectedAttendee, checkedChangeListener);
-                    checkedChatAttendeeIds.add(selectedAttendee.id);
-                    listChatAttendeeIds.add(selectedAttendee.id);
-                    addAttendeeTextView.setText("");
-                    selectedAttendee = null;
-                }
-            }
-        });
+//        //set listener for add button
+//        ImageView addAttendeeButton = (ImageView) dialog.findViewById(R.id.create_chat_add_button);
+//        addAttendeeButton.setOnClickListener(new OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                if (selectedAttendee != null) {
+//                    addCheckBoxFromAttendee(checkBoxLayout, selectedAttendee, checkedChangeListener);
+//                    checkedChatAttendeeIds.add(selectedAttendee.id);
+//                    listChatAttendeeIds.add(selectedAttendee.id);
+//                    addAttendeeTextView.setText("");
+//                    selectedAttendee = null;
+//                }
+//            }
+//        });
 
         //set listeners for Create and Cancel buttons
         Button createButton = (Button) dialog.findViewById(R.id.create_chat_create_button);
         createButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (checkedChatAttendeeIds.size() < 1) {
-                    Toast.makeText(MainActivity.this, "Please select one or more participants", Toast.LENGTH_LONG).show();
+                if (checkedChatAttendeeIds.size() <= 1) { //including myId
+                    Toast.makeText(MainActivity.this, "Chat must have at least two participants", Toast.LENGTH_LONG).show();
+                    return;
                 }
-                String conversationId = conversationManager.createConversation(event.title, account.id + "", event);
+                String conversationTitle = titleInput.getText().toString();
+                if (conversationTitle.isEmpty()) {
+                    Toast.makeText(MainActivity.this, "Conversation title cannot be empty", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                String conversationId = conversationManager.createConversation(conversationTitle, event.id, checkedChatAttendeeIds, myId);
                 Conversation conversation = conversationManager.getConversationById(conversationId);
 
                 //checkedChatAttendeeIds should contain myId
-                if (httpServerManager.createConversation(conversation.id, event.title, myId, checkedChatAttendeeIds)) {
+                if (httpServerManager.createConversation(conversation.id, conversationTitle, myId, checkedChatAttendeeIds)) {
                     checkedChatAttendeeIds.remove(myId);
                     ChatServerManager chatServerManager = new ChatServerManager(MainActivity.this);
                     chatServerManager.startConversation(myId, conversation.id, checkedChatAttendeeIds);
@@ -704,12 +719,13 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                     checkedChatAttendeeIds.remove(myId);
                 }
 
-                ChatsFragment chatsFragment = (ChatsFragment) getSupportFragmentManager().findFragmentByTag(getString(R.string.fragment_chats));
-                if (chatsFragment != null) {
-                    chatsFragment.insert(Integer.MAX_VALUE, conversation, true);
-                }
-                conversationManager.setAttendees(conversation.id, checkedChatAttendeeIds);
-                startChatRoomActivity(event.id, event.title, event.startTime, event.endTime, conversation.id, myId);
+//                ChatsFragment chatsFragment = (ChatsFragment) getSupportFragmentManager().findFragmentByTag(getString(R.string.fragment_chats));
+//                if (chatsFragment != null) {
+//                    chatsFragment.insert(Integer.MAX_VALUE, conversation, true);
+//                }
+                conversationManager.notifyListenersNewConversation(conversation, 0);
+
+                startChatRoomActivity(event.id, event.startTime, event.endTime, conversation.id, myId);
                 dialog.dismiss();
             }
         });
@@ -734,10 +750,10 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         return checkBox;
     }
 
-    public void startChatRoomActivity(String eventId, String eventTitle, long startTime, long endTime, String conversationId, String accountId) {
+    public void startChatRoomActivity(String eventId, long startTime, long endTime, String conversationId, String accountId) {
         Intent intent = new Intent(this, ChatRoomActivity.class);
         intent.putExtra(ChatRoomActivity.EVENT_ID, eventId);
-        intent.putExtra(ChatRoomActivity.EVENT_NAME, eventTitle);
+//        intent.putExtra(ChatRoomActivity.EVENT_NAME, eventTitle);
         intent.putExtra(ChatRoomActivity.EVENT_START_TIME, startTime);
         intent.putExtra(ChatRoomActivity.EVENT_END_TIME, endTime);
         intent.putExtra(ChatRoomActivity.CONVERSATION_ID, conversationId);
