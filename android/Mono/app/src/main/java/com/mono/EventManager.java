@@ -138,6 +138,8 @@ public class EventManager {
                 int index = result.indexOf(event);
                 result.remove(index);
                 result.add(index, event);
+            } else {
+                result.add(event);
             }
         }
 

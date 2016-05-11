@@ -184,7 +184,8 @@ public class EventDataSource extends DataSource {
 
     private String getCalendarSelection(List<String> args, long[] calendarIds) {
         String selection = String.format(
-            "%s IN (%s)",
+            "(%s <= 0 OR %s IN (%s))",
+            DatabaseValues.Event.CALENDAR_ID,
             DatabaseValues.Event.CALENDAR_ID,
             Common.repeat("?", calendarIds.length, ", ")
         );

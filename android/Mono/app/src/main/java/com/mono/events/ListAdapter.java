@@ -108,6 +108,12 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.Holder> {
 
             description.setText(holderItem.description);
             date.setText(holderItem.dateTime);
+
+            if (holderItem.dateTimeColor != 0) {
+                date.setTextColor(holderItem.dateTimeColor);
+            } else {
+                date.setTextColor(Colors.getColor(context, R.color.gray_light_3));
+            }
         }
 
         public void onViewRecycled() {
@@ -126,6 +132,7 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.Holder> {
         public String title;
         public String description;
         public String dateTime;
+        public int dateTimeColor;
 
         public ListItem(String id) {
             this.id = id;

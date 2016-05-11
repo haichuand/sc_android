@@ -16,6 +16,7 @@ import com.mono.EventManager.EventBroadcastListener;
 import com.mono.R;
 import com.mono.events.ListAdapter.ListItem;
 import com.mono.model.Event;
+import com.mono.util.Colors;
 import com.mono.util.SimpleDataSource;
 import com.mono.util.SimpleLinearLayoutManager;
 import com.mono.util.SimpleSlideView.SimpleSlideViewListener;
@@ -132,6 +133,10 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
 
         if (item != null) {
             item.dateTime = getDateString(event.startTime);
+
+            if (event.startTime > System.currentTimeMillis()) {
+                item.dateTimeColor = Colors.getColor(getContext(), R.color.green);
+            }
         }
 
         return item;
