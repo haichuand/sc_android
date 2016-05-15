@@ -471,23 +471,13 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
     @Override
     public void showEventDetails(Event event) {
-        Calendar calendar = null;
+        Calendar calendar;
 
         if (event.calendarId > 0) {
             calendar = CalendarProvider.getInstance(this).getCalendar(event.calendarId);
         } else {
-            List<Calendar> calendars = CalendarProvider.getInstance(this).getCalendars();
-            for (Calendar item : calendars) {
-                if (item.primary) {
-                    event.calendarId = item.id;
-                    calendar = item;
-                    break;
-                }
-            }
-        }
-
-        if (calendar == null) {
-            return;
+            calendar = new Calendar(event.calendarId);
+            calendar.name = getString(R.string.local_calendar);
         }
 
         Intent intent = new Intent(this, EventDetailsActivity.class);

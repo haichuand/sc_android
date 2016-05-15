@@ -33,6 +33,7 @@ import com.mono.R;
 import com.mono.calendar.CalendarEventsFragment.CalendarEventsListener;
 import com.mono.calendar.CalendarView.CalendarListener;
 import com.mono.model.Event;
+import com.mono.provider.CalendarProvider;
 import com.mono.settings.Settings;
 import com.mono.util.OnBackPressedListener;
 import com.mono.util.Pixels;
@@ -130,6 +131,15 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
             case R.id.action_add:
                 Event event = new Event();
                 event.type = Event.TYPE_CALENDAR;
+
+                List<com.mono.model.Calendar> calendars =
+                    CalendarProvider.getInstance(getContext()).getCalendars();
+                for (com.mono.model.Calendar calendar : calendars) {
+                    if (calendar.primary) {
+                        event.calendarId = calendar.id;
+                        break;
+                    }
+                }
 
                 CalendarView.Date date = calendarView.getCurrentSelected();
                 if (date != null) {

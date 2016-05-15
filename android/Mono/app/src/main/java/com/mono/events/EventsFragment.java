@@ -20,11 +20,15 @@ import com.mono.EventManager.EventBroadcastListener;
 import com.mono.MainInterface;
 import com.mono.R;
 import com.mono.events.ListFragment.ListListener;
+import com.mono.model.Calendar;
 import com.mono.model.Event;
+import com.mono.provider.CalendarProvider;
 import com.mono.util.SimpleTabLayout.Scrollable;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
 import com.mono.util.SimpleTabPagerAdapter;
 import com.mono.util.SimpleViewPager;
+
+import java.util.List;
 
 public class EventsFragment extends Fragment implements OnPageChangeListener, ListListener,
         EventBroadcastListener, TabPagerCallback, Scrollable {
@@ -104,6 +108,15 @@ public class EventsFragment extends Fragment implements OnPageChangeListener, Li
             case R.id.action_add:
                 Event event = new Event();
                 event.type = Event.TYPE_CALENDAR;
+
+                List<Calendar> calendars =
+                    CalendarProvider.getInstance(getContext()).getCalendars();
+                for (Calendar calendar : calendars) {
+                    if (calendar.primary) {
+                        event.calendarId = calendar.id;
+                        break;
+                    }
+                }
 
                 mainInterface.showEventDetails(event);
                 return true;

@@ -108,6 +108,7 @@
     <string name="location_setting">Location Setting</string>
     <string name="untitled">Untitled</string>
     <string name="users">Users</string>
+    <string name="local_calendar">Local Calendar</string>
 
     <string name="me">Me</string>
     <string name="chat_input_hint">Your Message Here</string>
