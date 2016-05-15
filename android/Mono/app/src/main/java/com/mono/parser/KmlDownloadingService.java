@@ -43,6 +43,9 @@ public class KmlDownloadingService extends IntentService {
     }
 
     public static final String KML_FILENAME = "LocationHistory.kml";
+    public static final String REGULAR = "regular";
+    public static final String FIRST_TIME = "firstTime";
+    public static final String DOWNLOAD_TYPE = "downloadType";
 
     public static final String COOKIE_URL = "https://www.google.com/maps/timeline";
     public static final String KML_URL = "https://www.google.com/maps/timeline/kml?authuser=0";
@@ -58,9 +61,18 @@ public class KmlDownloadingService extends IntentService {
     }
 
     protected void onHandleIntent (Intent intent) {
-        Log.i(TAG, "Service running");
+        String downloadType = intent.getExtras().getString(DOWNLOAD_TYPE);
+        Log.i(TAG, "downloadType: "+downloadType);
         if(isSignedIn()) {
-            downloadKML(KML_URL + "&pb=" + getPbValue(),KML_FILENAME);
+            if(downloadType.equals("regular")) {
+                downloadKML(KML_URL + "&pb=" + getPbValue(0),KML_FILENAME);
+            }
+            else {
+                for(int i = 0; i <= 7; i++) {
+                    String fileName = "FirstTimeLocationHistory"+i+".kml";
+                    downloadKML(KML_URL + "&pb=" + getPbValue(i),fileName);
+                }
+            }
         }
     }
 
@@ -91,8 +103,8 @@ public class KmlDownloadingService extends IntentService {
         return cookie != null && cookie.contains("SID=");
     }
 
-    private String getPbValue() {
-        Calendar cal = getDate();
+    private String getPbValue(int dayBeforeToday) {
+        Calendar cal = getDate(dayBeforeToday);
         int year = cal.get(Calendar.YEAR);
         int month = cal.get(Calendar.MONTH);
         int date = cal.get(Calendar.DATE);
@@ -114,11 +126,11 @@ public class KmlDownloadingService extends IntentService {
         else
             oneDayBefore--;
 
-        return "!1m8!1m3!1i"+ oneYearBefore + "!2i" +oneMonthBefore + "!3i" + oneDayBefore + "!2m3!1i" + year + "!2i" +month + "!3i" + date;
+        return "!1m8!1m3!1i"+ year + "!2i" +month + "!3i" + date + "!2m3!1i" + year + "!2i" +month + "!3i" + date;
     }
 
-    private Calendar getDate() {
-        long timestampLong = System.currentTimeMillis();
+    private Calendar getDate(int dayBeforeToday) {
+        long timestampLong = System.currentTimeMillis()-dayBeforeToday*24*60*60*1000;
         Date d = new Date(timestampLong);
         Calendar c = Calendar.getInstance();
         c.setTime(d);

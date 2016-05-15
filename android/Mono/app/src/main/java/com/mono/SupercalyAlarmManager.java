@@ -28,6 +28,7 @@ public class SupercalyAlarmManager {
     }
 
     public void scheduleAlarm(int frequencyInHour) {
+        Log.d(TAG, "Alarm scheduled for every " + frequencyInHour + " hour");
         // Construct an intent that will execute the AlarmReceiver
         Intent intent = new Intent(context, SuperCalyAlarmReceiver.class);
         intent.setAction(SuperCalyAlarmReceiver.ACTION_ALARM_RECEIVER);

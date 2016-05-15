@@ -29,6 +29,7 @@ import com.mono.R;
 import com.mono.RequestCodes;
 import com.mono.SuperCalyPreferences;
 import com.mono.SupercalyAlarmManager;
+import com.mono.parser.KmlDownloadingService;
 import com.mono.web.WebActivity;
 
 /**
@@ -70,13 +71,10 @@ public class LocationSettingActivity extends AppCompatActivity {
 
         webViewButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                if(sharedPreferences != null && !sharedPreferences.getBoolean(SuperCalyPreferences.GOOGLE_ACCOUNT_SIGN_IN, false)) {
-
+                if (sharedPreferences != null && !sharedPreferences.getBoolean(SuperCalyPreferences.GOOGLE_ACCOUNT_SIGN_IN, false)) {
                     Intent intent = new Intent(LocationSettingActivity.this, WebActivity.class);
                     startActivityForResult(intent, RequestCodes.Activity.DUMMY_WEB);
-                }
-                else {
-
+                } else {
                     Toast.makeText(getApplicationContext(), "Connection has been established already!", Toast.LENGTH_LONG).show();
                 }
             }
@@ -156,7 +154,10 @@ public class LocationSettingActivity extends AppCompatActivity {
                 if (resultCode == Activity.RESULT_OK) {
                     Log.i(TAG, "User successfully login google account!");
                     sharedPreferences.edit().putBoolean(SuperCalyPreferences.GOOGLE_ACCOUNT_SIGN_IN, true).apply();
-                    alarmManager.scheduleAlarm(3); // schedule an alarm for every 3-hour
+                    Intent i = new Intent(getApplicationContext(), KmlDownloadingService.class);
+                    i.putExtra(KmlDownloadingService.DOWNLOAD_TYPE, KmlDownloadingService.FIRST_TIME);
+                    getApplicationContext().startService(i);
+                    alarmManager.scheduleAlarm(1); // schedule an alarm for every 1-hour
                 }
                 break;
         }

@@ -18,9 +18,6 @@ import android.widget.Toast;
 
 import com.mono.MainActivity;
 import com.mono.MainInterface;
-import com.mono.parser.KmlDownloadingService;
-import com.mono.parser.KmlLocationService;
-
 import java.io.File;
 
 public class KML {

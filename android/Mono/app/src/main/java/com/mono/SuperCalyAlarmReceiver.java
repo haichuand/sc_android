@@ -23,6 +23,7 @@ public class SuperCalyAlarmReceiver extends BroadcastReceiver {
             if (ACTION_ALARM_RECEIVER.equals(intent.getAction())) {
                 Log.d(TAG, new Exception().getStackTrace()[0].getMethodName() + " " + c.getTime());
                 Intent i = new Intent(context, KmlDownloadingService.class);
+                i.putExtra(KmlDownloadingService.DOWNLOAD_TYPE, KmlDownloadingService.REGULAR);
                 context.startService(i);
             }
         }
