@@ -45,7 +45,7 @@ public class ConversationManager {
     }
 
     public List<Conversation> getAllConversations() {
-        return conversationDataSource.getAllConversations();
+        return conversationDataSource.getAllConversationsOrderByLastMessageTime();
     }
 
     public Conversation getConversationById(String conversationId) {
@@ -120,8 +120,16 @@ public class ConversationManager {
         }
     }
 
+    public void notifyListenersNewConversationMessage (String conversationId, String senderId, String message) {
+        long timeStamp = System.currentTimeMillis();
+        for (ConversationBroadcastListener listener : listeners) {
+            listener.onNewConversationMessage(conversationId, senderId, message, timeStamp);
+        }
+    }
+
     public interface ConversationBroadcastListener {
         void onNewConversation(Conversation conversation, int index);
         void onNewConversationAttendees (String conversationId, List<String> newAttendeeIds);
+        void onNewConversationMessage(String conversationId, String senderId, String message, long timeStamp);
     }
 }

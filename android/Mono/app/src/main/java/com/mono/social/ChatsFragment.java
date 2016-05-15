@@ -26,9 +26,9 @@ import com.mono.util.SimpleSlideView.SimpleSlideViewListener;
 import com.mono.util.SimpleTabLayout.Scrollable;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -47,7 +47,7 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
     private TextView text;
 
     private final Map<String, ListItem> items = new HashMap<>();
-    private final List<Conversation> chats = new ArrayList<>();
+    private final List<Conversation> chats = new LinkedList<>();
     private ConversationManager conversationManager;
 
     static {
@@ -284,5 +284,23 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
 
     @Override
     public void onNewConversationAttendees(String conversationId, List<String> newAttendees) {
+    }
+
+    @Override
+    public void onNewConversationMessage(String conversationId, String senderId, String message, long timeStamp) {
+        int index = -1;
+        for (int i=0; i<chats.size(); i++) {
+            if (chats.get(i).getId().equals(conversationId)) {
+                chats.get(i).lastMessageTime = timeStamp;
+                index = i;
+                break;
+            }
+        }
+        if (index != -1 && index != 0) {
+            LinkedList<Conversation> linkedChats = (LinkedList<Conversation>) chats;
+            Conversation chat = linkedChats.remove(index);
+            linkedChats.addFirst(chat);
+            adapter.notifyDataSetChanged();
+        }
     }
 }

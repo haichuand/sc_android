@@ -411,6 +411,41 @@ public class ConversationDataSource extends DataSource{
         return conversations;
     }
 
+    public List<Conversation> getAllConversationsOrderByLastMessageTime() {
+        List<Conversation> conversations = new ArrayList<>();
+
+        String[] projection = {
+                DatabaseValues.Conversation.TABLE + "." + DatabaseValues.Conversation.C_ID,
+                DatabaseValues.Conversation.C_NAME,
+                DatabaseValues.Conversation.C_CREATOR,
+                DatabaseValues.EventConversation.TABLE + "." + DatabaseValues.EventConversation.EVENT_ID,
+                "MAX(" + DatabaseValues.ConversationContent.TIMESTAMP + ")"
+        };
+
+        String query =
+                " SELECT " + Common.implode(", ", projection) +
+                " FROM " + DatabaseValues.Conversation.TABLE +
+                        " LEFT JOIN " + DatabaseValues.EventConversation.TABLE + " ON " + DatabaseValues.Conversation.TABLE + "." + DatabaseValues.Conversation.C_ID + "=" + DatabaseValues.EventConversation.TABLE + "." + DatabaseValues.EventConversation.C_ID +
+                        " LEFT JOIN " + DatabaseValues.ConversationContent.TABLE + " ON " + DatabaseValues.Conversation.TABLE + "." + DatabaseValues.Conversation.C_ID + "=" + DatabaseValues.ConversationContent.TABLE + "." + DatabaseValues.ConversationContent.C_ID +
+                        " GROUP BY " + DatabaseValues.Conversation.TABLE + "." + DatabaseValues.Conversation.C_ID +
+                        " ORDER BY MAX(" + DatabaseValues.ConversationContent.TABLE + "." + DatabaseValues.ConversationContent.TIMESTAMP + ") DESC";
+
+        Cursor cursor = database.rawQuery(query, null);
+
+        while (cursor.moveToNext()) {
+            Conversation conversation = new Conversation(cursor.getString(0));
+            conversation.name = cursor.getString(1);
+            conversation.creatorId = cursor.getString(2);
+            conversation.eventId = cursor.getString(3);
+            conversation.lastMessageTime = cursor.getLong(4);
+            conversations.add(conversation);
+        }
+
+        cursor.close();
+
+        return conversations;
+    }
+
     public List<Attendee> getConversationAttendees (String conversationId) {
         List<String> attendeesId = getConversationAttendeesIds(conversationId);
         List<Attendee> attendees = new ArrayList<>();
