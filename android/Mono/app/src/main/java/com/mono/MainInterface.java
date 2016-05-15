@@ -46,4 +46,6 @@ public interface MainInterface {
     void showExistingChat(String conversationId);
 
     void showLocationSetting();
+
+    void showDummy();
 }

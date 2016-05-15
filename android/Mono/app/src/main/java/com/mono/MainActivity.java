@@ -41,6 +41,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.mono.chat.ChatRoomActivity;
 import com.mono.chat.ConversationManager;
 import com.mono.details.EventDetailsActivity;
+import com.mono.dummy.DummyActivity;
 import com.mono.intro.IntroActivity;
 import com.mono.locationSetting.LocationSettingActivity;
 import com.mono.model.Account;
@@ -78,6 +79,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     public static final int LOGOUT = R.id.nav_logout;
     public static final int SETTINGS = R.id.nav_settings;
     public static final int LOCATION_SETTING = R.id.nav_location_setting;
+    public static final int DUMMY = R.id.nav_dummy;
 
     private static final String EXTRA_EVENT_ID = "eventId";
 
@@ -267,6 +269,9 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                 break;
             case LOCATION_SETTING:
                 showLocationSetting();
+                break;
+            case DUMMY:
+                showDummy();
                 break;
         }
 
@@ -471,23 +476,13 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
     @Override
     public void showEventDetails(Event event) {
-        Calendar calendar = null;
+        Calendar calendar;
 
         if (event.calendarId > 0) {
             calendar = CalendarProvider.getInstance(this).getCalendar(event.calendarId);
         } else {
-            List<Calendar> calendars = CalendarProvider.getInstance(this).getCalendars();
-            for (Calendar item : calendars) {
-                if (item.primary) {
-                    event.calendarId = item.id;
-                    calendar = item;
-                    break;
-                }
-            }
-        }
-
-        if (calendar == null) {
-            return;
+            calendar = new Calendar(event.calendarId);
+            calendar.name = getString(R.string.local_calendar);
         }
 
         Intent intent = new Intent(this, EventDetailsActivity.class);
@@ -762,10 +757,15 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         startActivityForResult(intent, RequestCodes.Activity.CHAT);
     }
 
-
     public void showLocationSetting() {
         Intent intent = new Intent(this, LocationSettingActivity.class);
         startActivityForResult(intent, RequestCodes.Activity.LOCATION_SETTING);
+    }
+
+    @Override
+    public void showDummy() {
+        Intent intent = new Intent(this, DummyActivity.class);
+        startActivityForResult(intent, RequestCodes.Activity.DUMMY);
     }
 
     public static void triggerGooglePlayServices(AppCompatActivity activity) {

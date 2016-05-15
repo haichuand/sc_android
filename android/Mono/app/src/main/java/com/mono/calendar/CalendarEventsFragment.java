@@ -27,6 +27,8 @@ import org.joda.time.DateTime;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -263,6 +265,13 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
         this.items.clear();
         this.events.clear();
         this.events.addAll(events);
+
+        Collections.sort(this.events, new Comparator<Event>() {
+            @Override
+            public int compare(Event e1, Event e2) {
+                return Long.compare(e2.startTime, e1.startTime);
+            }
+        });
 
         adapter.notifyDataSetChanged();
     }

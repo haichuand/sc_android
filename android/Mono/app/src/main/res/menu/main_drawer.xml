@@ -39,5 +39,10 @@
             android:id="@+id/nav_location_setting"
             android:icon="@drawable/ic_clipboard_white"
             android:title="@string/location_setting"/>
+
+        <item
+            android:id="@+id/nav_dummy"
+            android:icon="@drawable/ic_clipboard_white"
+            android:title="@string/dummy"/>
     </group>
 </menu>

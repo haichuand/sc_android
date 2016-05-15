@@ -25,10 +25,13 @@ import com.mono.util.SimpleTabLayout.Scrollable;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
 
 public class ListFragment extends Fragment implements SimpleDataSource<ListItem>,
         SimpleSlideViewListener, EventBroadcastListener, Scrollable {
@@ -57,7 +60,9 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
     private AsyncTask<Void, Void, List<Event>> task;
     private long startTime;
     private int futureOffset;
+    private int futureOffsetProvider;
     private int pastOffset;
+    private int pastOffsetProvider;
 
     static {
         DATETIME_FORMAT = new SimpleDateFormat("MMM d, yyyy h:mm a", Locale.getDefault());
@@ -132,7 +137,8 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         }
 
         if (item != null) {
-            item.dateTime = getDateString(event.startTime);
+            TimeZone timeZone = event.allDay ? TimeZone.getTimeZone("UTC") : TimeZone.getDefault();
+            item.dateTime = getDateString(event.startTime, timeZone);
 
             if (event.startTime > System.currentTimeMillis()) {
                 item.dateTimeColor = Colors.getColor(getContext(), R.color.green);
@@ -142,7 +148,7 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         return item;
     }
 
-    private String getDateString(long time) {
+    private String getDateString(long time, TimeZone timeZone) {
         Calendar calendar = Calendar.getInstance();
         int currentYear = calendar.get(Calendar.YEAR);
         int currentMonth = calendar.get(Calendar.MONTH);
@@ -162,6 +168,8 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         } else {
             dateFormat = DATE_FORMAT_2;
         }
+
+        dateFormat.setTimeZone(timeZone);
 
         return dateFormat.format(calendar.getTime());
     }
@@ -327,14 +335,24 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
             @Override
             protected List<Event> doInBackground(Void... params) {
                 EventManager manager = EventManager.getInstance(getContext());
-                return manager.getEventsByOffset(startTime, futureOffset, PRECACHE_AMOUNT, 1);
+
+                List<Event> result = manager.getEventsFromProviderByOffset(startTime,
+                    futureOffsetProvider, PRECACHE_AMOUNT, 1);
+                futureOffsetProvider += result.size();
+
+                List<Event> events = manager.getEventsByOffset(startTime, futureOffset,
+                    PRECACHE_AMOUNT, 1);
+                futureOffset += events.size();
+
+                combine(result, events);
+
+                return result;
             }
 
             @Override
             protected void onPostExecute(List<Event> result) {
                 if (!result.isEmpty()) {
                     insert(0, result);
-                    futureOffset += result.size();
                 }
 
                 task = null;
@@ -352,19 +370,48 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
             @Override
             protected List<Event> doInBackground(Void... params) {
                 EventManager manager = EventManager.getInstance(getContext());
-                return manager.getEventsByOffset(startTime, pastOffset, PRECACHE_AMOUNT, -1);
+
+                List<Event> result = manager.getEventsFromProviderByOffset(startTime,
+                    pastOffsetProvider, PRECACHE_AMOUNT, -1);
+                pastOffsetProvider += result.size();
+
+                List<Event> events = manager.getEventsByOffset(startTime, pastOffset,
+                    PRECACHE_AMOUNT, -1);
+                pastOffset += events.size();
+
+                combine(result, events);
+
+                return result;
             }
 
             @Override
             protected void onPostExecute(List<Event> result) {
                 if (!result.isEmpty()) {
                     insert(events.size(), result);
-                    pastOffset += result.size();
                 }
 
                 task = null;
             }
         }.execute();
+    }
+
+    private void combine(List<Event> result, List<Event> events) {
+        for (Event event : events) {
+            if (result.contains(event)) {
+                int index = result.indexOf(event);
+                result.remove(index);
+                result.add(index, event);
+            } else {
+                result.add(event);
+            }
+        }
+
+        Collections.sort(result, new Comparator<Event>() {
+            @Override
+            public int compare(Event e1, Event e2) {
+                return Long.compare(e2.startTime, e1.startTime);
+            }
+        });
     }
 
     public void scrollTo(Event event) {
@@ -376,7 +423,15 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
     }
 
     public void today() {
+        recyclerView.stopScroll();
+
         events.clear();
+
+        futureOffset = 0;
+        futureOffsetProvider = 0;
+        pastOffset = 0;
+        pastOffsetProvider = 0;
+
         adapter.notifyDataSetChanged();
 
         startTime = System.currentTimeMillis();
@@ -385,7 +440,7 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
 
     @Override
     public void scrollToTop() {
-
+        today();
     }
 
     public interface ListListener {

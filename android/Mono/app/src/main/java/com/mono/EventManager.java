@@ -15,8 +15,6 @@ import com.mono.util.Log;
 import com.mono.util.Strings;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -111,7 +109,22 @@ public class EventManager {
             long... calendarIds) {
         List<Event> result = new ArrayList<>(limit);
 
-        long start, end, range = 365 * Constants.DAY_MS;
+        EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+        List<Event> events = dataSource.getEvents(startTime, offset, limit, direction, calendarIds);
+
+        for (Event event : events) {
+            add(event);
+            result.add(event);
+        }
+
+        return result;
+    }
+
+    public List<Event> getEventsFromProviderByOffset(long startTime, int offset, int limit,
+            int direction, long... calendarIds) {
+        List<Event> result = new ArrayList<>(limit);
+
+        long start, end, range = 10 * 365 * Constants.DAY_MS;
 
         if (direction >= 0) {
             start = startTime;
@@ -124,31 +137,10 @@ public class EventManager {
         CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
         List<Event> events = provider.getEvents(start, end, offset, limit, direction, calendarIds);
 
-        if (!events.isEmpty()) {
-            result.addAll(events);
-        }
-
-        EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-        events = dataSource.getEvents(startTime, offset, limit, direction, calendarIds);
-
         for (Event event : events) {
             add(event);
-
-            if (result.contains(event)) {
-                int index = result.indexOf(event);
-                result.remove(index);
-                result.add(index, event);
-            } else {
-                result.add(event);
-            }
+            result.add(event);
         }
-
-        Collections.sort(result, new Comparator<Event>() {
-            @Override
-            public int compare(Event e1, Event e2) {
-                return Long.compare(e2.startTime, e1.startTime);
-            }
-        });
 
         return result;
     }

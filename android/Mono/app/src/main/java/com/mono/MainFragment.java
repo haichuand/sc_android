@@ -1,7 +1,6 @@
 package com.mono;
 
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -11,7 +10,6 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.mono.calendar.CalendarFragment;
-import com.mono.dummy.DummyFragment;
 import com.mono.events.EventsFragment;
 import com.mono.maps.MapsFragment;
 import com.mono.social.SocialFragment;
@@ -28,7 +26,6 @@ public class MainFragment extends Fragment implements OnBackPressedListener, OnP
     public static final int TAB_EVENTS = 1;
     public static final int TAB_SOCIAL = 2;
     public static final int TAB_MAPS = 3;
-    public static final int TAB_DUMMY = 4;
 
     private MainInterface mainInterface;
 
@@ -56,10 +53,9 @@ public class MainFragment extends Fragment implements OnBackPressedListener, OnP
         Drawable drawable = CalendarFragment.createCalendarIcon(getContext(), String.valueOf(day));
         tabPagerAdapter.add(drawable, null, new CalendarFragment());
 
-        tabPagerAdapter.add(R.drawable.ic_heart_border_white, null, new EventsFragment());
+        tabPagerAdapter.add(R.drawable.ic_list, null, new EventsFragment());
         tabPagerAdapter.add(R.drawable.ic_chat_white, null, new SocialFragment());
         tabPagerAdapter.add(R.drawable.ic_map_white, null, new MapsFragment());
-        tabPagerAdapter.add(R.drawable.ic_chat_white, null, new DummyFragment());
     }
 
     @Override
@@ -76,16 +72,6 @@ public class MainFragment extends Fragment implements OnBackPressedListener, OnP
         onPageSelected(TAB_CALENDAR);
 
         return view;
-    }
-
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        switch (requestCode) {
-            case RequestCodes.Activity.DUMMY_WEB:
-                Fragment fragment = tabPagerAdapter.getItem(TAB_DUMMY);
-                fragment.onActivityResult(requestCode, resultCode, data);
-                break;
-        }
     }
 
     @Override

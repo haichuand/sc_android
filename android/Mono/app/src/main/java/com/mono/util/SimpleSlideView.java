@@ -40,8 +40,8 @@ public class SimpleSlideView extends RelativeLayout implements OnTouchListener {
 
     private SimpleSlideViewListener listener;
 
-    private final List<ImageView> leftButtons = new ArrayList<>();
-    private final List<ImageView> rightButtons = new ArrayList<>();
+    private final List<View> leftButtons = new ArrayList<>();
+    private final List<View> rightButtons = new ArrayList<>();
 
     private int buttonWidth;
 
@@ -98,6 +98,10 @@ public class SimpleSlideView extends RelativeLayout implements OnTouchListener {
         params.height = height;
         buttonLayout.setLayoutParams(params);
 
+        setListener(listener);
+    }
+
+    public void setListener(SimpleSlideViewListener listener) {
         this.listener = listener;
     }
 
@@ -112,11 +116,11 @@ public class SimpleSlideView extends RelativeLayout implements OnTouchListener {
     public void addLeftButton(int color, int resId) {
         int id = INITIAL_ID;
         if (!leftButtons.isEmpty()) {
-            ImageView prev = leftButtons.get(leftButtons.size() - 1);
+            View prev = leftButtons.get(leftButtons.size() - 1);
             id = prev.getId();
         }
 
-        ImageView view = createButton(id - 1, color, resId);
+        View view = createButton(id - 1, color, resId);
 
         final int position = leftButtons.size();
         view.setOnClickListener(new OnClickListener() {
@@ -140,11 +144,11 @@ public class SimpleSlideView extends RelativeLayout implements OnTouchListener {
     public void addRightButton(int color, int resId) {
         int id = INITIAL_ID;
         if (!rightButtons.isEmpty()) {
-            ImageView prev = rightButtons.get(rightButtons.size() - 1);
+            View prev = rightButtons.get(rightButtons.size() - 1);
             id = prev.getId();
         }
 
-        ImageView view = createButton(id + 1, color, resId);
+        View view = createButton(id + 1, color, resId);
 
         final int position = rightButtons.size();
         view.setOnClickListener(new OnClickListener() {
@@ -166,17 +170,23 @@ public class SimpleSlideView extends RelativeLayout implements OnTouchListener {
         leftBound = -rightButtons.size() * buttonWidth;
     }
 
-    private ImageView createButton(int id, int color, int resId) {
-        ImageView view = new ImageView(getContext());
+    private View createButton(int id, int color, int resId) {
+        SimpleClickableView view = new SimpleClickableView(getContext());
         view.setId(id);
         view.setBackgroundColor(color);
-        view.setImageResource(resId);
-        view.setScaleType(ImageView.ScaleType.CENTER);
 
         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
             buttonWidth, ViewGroup.LayoutParams.MATCH_PARENT
         );
         view.setLayoutParams(params);
+
+        ImageView imageView = new ImageView(getContext());
+        imageView.setImageResource(resId);
+        imageView.setScaleType(ImageView.ScaleType.CENTER);
+
+        view.addView(imageView,new ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+        ));
 
         return view;
     }
