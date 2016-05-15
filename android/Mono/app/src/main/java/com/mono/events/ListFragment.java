@@ -423,7 +423,15 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
     }
 
     public void today() {
+        recyclerView.stopScroll();
+
         events.clear();
+
+        futureOffset = 0;
+        futureOffsetProvider = 0;
+        pastOffset = 0;
+        pastOffsetProvider = 0;
+
         adapter.notifyDataSetChanged();
 
         startTime = System.currentTimeMillis();
@@ -432,7 +440,7 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
 
     @Override
     public void scrollToTop() {
-
+        today();
     }
 
     public interface ListListener {

@@ -53,7 +53,7 @@ public class MainFragment extends Fragment implements OnBackPressedListener, OnP
         Drawable drawable = CalendarFragment.createCalendarIcon(getContext(), String.valueOf(day));
         tabPagerAdapter.add(drawable, null, new CalendarFragment());
 
-        tabPagerAdapter.add(R.drawable.ic_heart_border_white, null, new EventsFragment());
+        tabPagerAdapter.add(R.drawable.ic_list, null, new EventsFragment());
         tabPagerAdapter.add(R.drawable.ic_chat_white, null, new SocialFragment());
         tabPagerAdapter.add(R.drawable.ic_map_white, null, new MapsFragment());
     }
