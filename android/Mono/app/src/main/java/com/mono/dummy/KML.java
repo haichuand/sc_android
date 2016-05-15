@@ -2,24 +2,16 @@ package com.mono.dummy;
 
 import android.app.Activity;
 import android.app.DownloadManager;
-import android.app.DownloadManager.Query;
 import android.app.DownloadManager.Request;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.support.v4.app.Fragment;
-import android.util.Log;
 import android.webkit.CookieManager;
 import android.widget.Toast;
 
 import com.mono.MainActivity;
-import com.mono.MainInterface;
-import com.mono.parser.KmlDownloadingService;
-import com.mono.parser.KmlLocationService;
 
 import java.io.File;
 
@@ -32,16 +24,16 @@ public class KML {
     public static final String TEST_PB_VALUE = "!1m8!1m3!1i2015!2i10!3i24!2m3!1i2015!2i10!3i24";
 
     private Context kmlContext;
-    private MainInterface mainInterface;
+    private DummyActivity activity;
 
     private long downloadId;
     private BroadcastReceiver downloadReceiver;
 
     private KMLParameters parameters;
 
-    public KML(Context context, MainInterface mainInterface) {
+    public KML(Context context, DummyActivity activity) {
         this.kmlContext = context;
-        this.mainInterface = mainInterface;
+        this.activity = activity;
     }
 
     public void onResume() {
@@ -120,7 +112,7 @@ public class KML {
         if (isSignedIn()) {
             downloadKML(KML_URL + "&pb=" + parameters.pbValue, parameters.filename);
         } else {
-            mainInterface.showWebActivity(parameters.fragment, parameters.requestCode);
+            activity.showWebActivity(parameters.fragment, parameters.requestCode);
         }
     }
 
