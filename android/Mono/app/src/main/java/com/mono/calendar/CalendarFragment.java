@@ -216,64 +216,86 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
 
         switch (action) {
             case ACTION_MOVE:
-                event.calendarId = System.currentTimeMillis();
                 event.startTime = startTime;
                 event.endTime = endTime;
 
-                eventManager.updateEvent(EventAction.ACTOR_SELF, id, event,
-                    new EventManager.EventActionCallback() {
-                        @Override
-                        public void onEventAction(EventAction data) {
-                            if (data.getStatus() == EventAction.STATUS_OK) {
-                                calendarView.onCellClick(year, month, day);
-                                mainInterface.showSnackBar(R.string.event_action_move,
-                                    R.string.undo, 0, new View.OnClickListener() {
-                                        @Override
-                                        public void onClick(View view) {
+                if (event.source == Event.SOURCE_DATABASE) {
+                    eventManager.updateEvent(EventAction.ACTOR_SELF, id, event,
+                        new EventManager.EventActionCallback() {
+                            @Override
+                            public void onEventAction(EventAction data) {
+                                if (data.getStatus() == EventAction.STATUS_OK) {
+                                    calendarView.onCellClick(year, month, day);
+                                    mainInterface.showSnackBar(R.string.event_action_move,
+                                        R.string.undo, 0, new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View view) {
 
+                                            }
                                         }
-                                    }
-                                );
+                                    );
+                                }
                             }
                         }
-                    }
-                );
+                    );
+                } else if (event.source == Event.SOURCE_PROVIDER) {
+
+                }
                 break;
             case ACTION_COPY:
-                long internalId = System.currentTimeMillis();
+                EventManager.EventActionCallback callback = new EventManager.EventActionCallback() {
+                    @Override
+                    public void onEventAction(EventAction data) {
+                        if (data.getStatus() == EventAction.STATUS_OK) {
+                            calendarView.onCellClick(year, month, day);
+                            mainInterface.showSnackBar(R.string.event_action_copy,
+                                R.string.undo, 0, new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View view) {
 
-                eventManager.createEvent(
-                    EventAction.ACTOR_SELF,
-                    event.calendarId,
-                    internalId,
-                    event.externalId,
-                    Event.TYPE_CALENDAR,
-                    event.title,
-                    event.description,
-                    event.location != null ? event.location.name : null,
-                    event.color,
-                    startTime,
-                    endTime,
-                    event.timeZone,
-                    event.endTimeZone,
-                    event.allDay,
-                    new EventManager.EventActionCallback() {
-                        @Override
-                        public void onEventAction(EventAction data) {
-                            if (data.getStatus() == EventAction.STATUS_OK) {
-                                calendarView.onCellClick(year, month, day);
-                                mainInterface.showSnackBar(R.string.event_action_copy,
-                                    R.string.undo, 0, new View.OnClickListener() {
-                                        @Override
-                                        public void onClick(View view) {
-
-                                        }
                                     }
-                                );
-                            }
+                                }
+                            );
                         }
                     }
-                );
+                };
+
+                if (event.source == Event.SOURCE_DATABASE) {
+                    long internalId = System.currentTimeMillis();
+
+                    eventManager.createEvent(
+                        EventAction.ACTOR_SELF,
+                        event.calendarId,
+                        internalId,
+                        event.externalId,
+                        Event.TYPE_CALENDAR,
+                        event.title,
+                        event.description,
+                        event.location != null ? event.location.name : null,
+                        event.color,
+                        startTime,
+                        endTime,
+                        event.timeZone,
+                        event.endTimeZone,
+                        event.allDay,
+                        callback
+                    );
+                } else if (event.source == Event.SOURCE_PROVIDER) {
+                    eventManager.createSyncEvent(
+                        EventAction.ACTOR_SELF,
+                        event.calendarId,
+                        event.title,
+                        event.description,
+                        event.location != null ? event.location.name : null,
+                        event.color,
+                        startTime,
+                        endTime,
+                        event.timeZone,
+                        event.endTimeZone,
+                        event.allDay,
+                        callback
+                    );
+                }
                 break;
         }
     }

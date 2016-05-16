@@ -32,6 +32,7 @@ import com.mono.model.Attendee;
 import com.mono.model.Calendar;
 import com.mono.model.Event;
 import com.mono.model.Location;
+import com.mono.provider.CalendarProvider;
 import com.mono.util.GestureActivity;
 import com.mono.util.TimeZoneHelper;
 
@@ -41,6 +42,7 @@ import org.joda.time.DateTimeZone;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -89,6 +91,12 @@ public class EventDetailsActivity extends GestureActivity {
         }
 
         calendar = (TextView) findViewById(R.id.calendar);
+        calendar.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showCalendarPicker();
+            }
+        });
 
         title = (EditText) findViewById(R.id.title);
         title.addTextChangedListener(new TextWatcher() {
@@ -400,6 +408,32 @@ public class EventDetailsActivity extends GestureActivity {
     public void close() {
         event = null;
         onBackPressed();
+    }
+
+    public void showCalendarPicker() {
+        final List<Calendar> calendars = CalendarProvider.getInstance(this).getCalendars();
+        final CharSequence[] items = new CharSequence[1 + calendars.size()];
+
+        items[0] = getString(R.string.local_calendar);
+        for (int i = 0; i < calendars.size(); i++) {
+            items[1 + i] = calendars.get(i).name;
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AppTheme_Dialog_Alert);
+        builder.setItems(items, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if (which > 0) {
+                    Calendar cal = calendars.get(which);
+                    event.calendarId = cal.id;
+                } else {
+                    event.calendarId = -1;
+                }
+
+                calendar.setText(items[which]);
+            }
+        });
+        builder.create().show();
     }
 
     public void showColorPicker() {

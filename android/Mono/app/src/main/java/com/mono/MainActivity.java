@@ -504,40 +504,42 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                     null
                 );
             } else {
-//                event.internalId = System.currentTimeMillis();
-//
-//                EventManager.getInstance(this).createEvent(
-//                    EventManager.EventAction.ACTOR_SELF,
-//                    event.calendarId,
-//                    event.internalId,
-//                    event.externalId,
-//                    event.type,
-//                    event.title,
-//                    event.description,
-//                    event.location != null ? event.location.name : null,
-//                    event.color,
-//                    event.startTime,
-//                    event.endTime,
-//                    event.timeZone,
-//                    event.endTimeZone,
-//                    event.allDay,
-//                    null
-//                );
+                if (event.calendarId > 0) {
+                    EventManager.getInstance(this).createSyncEvent(
+                        EventManager.EventAction.ACTOR_SELF,
+                        event.calendarId,
+                        event.title,
+                        event.description,
+                        event.location != null ? event.location.name : null,
+                        event.color,
+                        event.startTime,
+                        event.endTime,
+                        event.timeZone,
+                        event.endTimeZone,
+                        event.allDay,
+                        null
+                    );
+                } else {
+                    event.internalId = System.currentTimeMillis();
 
-                EventManager.getInstance(this).createSyncEvent(
-                    EventManager.EventAction.ACTOR_SELF,
-                    event.calendarId,
-                    event.title,
-                    event.description,
-                    event.location != null ? event.location.name : null,
-                    event.color,
-                    event.startTime,
-                    event.endTime,
-                    event.timeZone,
-                    event.endTimeZone,
-                    event.allDay,
-                    null
-                );
+                    EventManager.getInstance(this).createEvent(
+                        EventManager.EventAction.ACTOR_SELF,
+                        event.calendarId,
+                        event.internalId,
+                        event.externalId,
+                        event.type,
+                        event.title,
+                        event.description,
+                        event.location != null ? event.location.name : null,
+                        event.color,
+                        event.startTime,
+                        event.endTime,
+                        event.timeZone,
+                        event.endTimeZone,
+                        event.allDay,
+                        null
+                    );
+                }
             }
         }
     }
