@@ -65,12 +65,12 @@ public class KmlDownloadingService extends IntentService {
         Log.i(TAG, "downloadType: "+downloadType);
         if(isSignedIn()) {
             if(downloadType.equals("regular")) {
-                downloadKML(KML_URL + "&pb=" + getPbValue(0),KML_FILENAME);
+                downloadKML(KML_URL + "&pb=" + getPbValue(0, true),KML_FILENAME);
             }
             else {
                 for(int i = 0; i <= 7; i++) {
                     String fileName = "FirstTimeLocationHistory"+i+".kml";
-                    downloadKML(KML_URL + "&pb=" + getPbValue(i),fileName);
+                    downloadKML(KML_URL + "&pb=" + getPbValue(i, false),fileName);
                 }
             }
         }
@@ -103,7 +103,7 @@ public class KmlDownloadingService extends IntentService {
         return cookie != null && cookie.contains("SID=");
     }
 
-    private String getPbValue(int dayBeforeToday) {
+    private String getPbValue(int dayBeforeToday, boolean isRegular) {
         Calendar cal = getDate(dayBeforeToday);
         int year = cal.get(Calendar.YEAR);
         int month = cal.get(Calendar.MONTH);
@@ -125,8 +125,11 @@ public class KmlDownloadingService extends IntentService {
         }
         else
             oneDayBefore--;
-
-        return "!1m8!1m3!1i"+ year + "!2i" +month + "!3i" + date + "!2m3!1i" + year + "!2i" +month + "!3i" + date;
+        
+        if(isRegular)
+            return "!1m8!1m3!1i"+ oneYearBefore + "!2i" + oneMonthBefore + "!3i" + oneDayBefore + "!2m3!1i" + year + "!2i" +month + "!3i" + date;
+        else
+            return "!1m8!1m3!1i"+ year + "!2i" +month + "!3i" + date + "!2m3!1i" + year + "!2i" +month + "!3i" + date;
     }
 
     private Calendar getDate(int dayBeforeToday) {
