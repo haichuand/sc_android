@@ -125,10 +125,10 @@ public class KmlDownloadingService extends IntentService {
         }
         else
             oneDayBefore--;
-        
-        if(isRegular)
-            return "!1m8!1m3!1i"+ oneYearBefore + "!2i" + oneMonthBefore + "!3i" + oneDayBefore + "!2m3!1i" + year + "!2i" +month + "!3i" + date;
-        else
+
+//        if(isRegular)
+//            return "!1m8!1m3!1i"+ oneYearBefore + "!2i" + oneMonthBefore + "!3i" + oneDayBefore + "!2m3!1i" + year + "!2i" +month + "!3i" + date;
+//        else
             return "!1m8!1m3!1i"+ year + "!2i" +month + "!3i" + date + "!2m3!1i" + year + "!2i" +month + "!3i" + date;
     }
 
