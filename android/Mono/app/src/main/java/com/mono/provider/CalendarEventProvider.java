@@ -583,6 +583,7 @@ public class CalendarEventProvider {
         );
 
         Event event = new Event(id);
+        event.source = Event.SOURCE_PROVIDER;
         event.calendarId = cursor.getLong(CalendarValues.Event.INDEX_CALENDAR_ID);
         event.internalId = cursor.getLong(CalendarValues.Event.INDEX_ID);
         event.externalId = cursor.getString(CalendarValues.Event.INDEX_REMOTE_ID);

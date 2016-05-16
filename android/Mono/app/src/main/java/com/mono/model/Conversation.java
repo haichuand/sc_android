@@ -14,6 +14,7 @@ public class Conversation {
     public String name;
     public List<Attendee> attendees;
     public List<Message> messages;
+    public long lastMessageTime;
 
     public Conversation(String id) {
         this.id = id;

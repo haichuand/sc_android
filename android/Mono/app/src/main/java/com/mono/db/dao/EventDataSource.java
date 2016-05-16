@@ -5,7 +5,6 @@ import android.database.Cursor;
 import android.database.SQLException;
 
 import com.mono.db.Database;
-import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
 import com.mono.model.Event;
 import com.mono.model.Location;
@@ -472,6 +471,7 @@ public class EventDataSource extends DataSource {
      */
     private Event cursorToEvent(Cursor cursor) {
         Event event = new Event(cursor.getString(DatabaseValues.Event.INDEX_ID));
+        event.source = Event.SOURCE_DATABASE;
         event.internalId = cursor.getLong(DatabaseValues.Event.INDEX_INTERNAL_ID);
         event.externalId = cursor.getString(DatabaseValues.Event.INDEX_EXTERNAL_ID);
         event.type = cursor.getString(DatabaseValues.Event.INDEX_TYPE);

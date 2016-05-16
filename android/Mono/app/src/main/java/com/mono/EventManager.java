@@ -68,9 +68,11 @@ public class EventManager {
     }
 
     private void add(Event event) {
-        EventAttendeeDataSource eventAttendeeDataSource =
-            DatabaseHelper.getDataSource(context, EventAttendeeDataSource.class);
-        event.attendees = eventAttendeeDataSource.getAttendees(event.id);
+        if (event.source == Event.SOURCE_DATABASE) {
+            EventAttendeeDataSource eventAttendeeDataSource =
+                DatabaseHelper.getDataSource(context, EventAttendeeDataSource.class);
+            event.attendees = eventAttendeeDataSource.getAttendees(event.id);
+        }
 
         cache.put(event.id, event);
     }

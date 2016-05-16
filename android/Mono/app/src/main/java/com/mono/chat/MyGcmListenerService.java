@@ -8,10 +8,8 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.NotificationCompat;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.google.android.gms.gcm.GcmListenerService;
 import com.mono.AccountManager;
@@ -42,14 +40,14 @@ public class MyGcmListenerService extends GcmListenerService {
     public static final String GCM_MESSAGE_DATA = "com.mono.chat.MyGcmListenerService.MESSAGE_DATA";
 
     private static final String TAG = "MyGcmListenerService";
-    private LocalBroadcastManager broadcaster;
+//    private LocalBroadcastManager broadcaster;
     private ConversationManager conversationManager;
     private HttpServerManager httpServerManager;
     private Handler handler;
 
     @Override
     public void onCreate() {
-        broadcaster = LocalBroadcastManager.getInstance(this);
+//        broadcaster = LocalBroadcastManager.getInstance(this);
         conversationManager = ConversationManager.getInstance(this);
         httpServerManager = new HttpServerManager(this);
         handler = new Handler();
@@ -94,16 +92,22 @@ public class MyGcmListenerService extends GcmListenerService {
     }
 
     private void processMessage(String from, Bundle data) {
-        String message = data.getString(GCMHelper.MESSAGE);
-        String sender_id = data.getString(GCMHelper.SENDER_ID);
-        String conversation_id = data.getString(GCMHelper.CONVERSATION_ID);
+        final String message = data.getString(GCMHelper.MESSAGE);
+        final String sender_id = data.getString(GCMHelper.SENDER_ID);
+        final String conversation_id = data.getString(GCMHelper.CONVERSATION_ID);
         Log.d(TAG, "From: " + from);
         Log.d(TAG, "From user: " + sender_id);
         Log.d(TAG, "Message: " + message);
         Log.d(TAG, "Conversaiton_id: " + conversation_id);
         sendNotification(message);
         conversationManager.saveChatMessageToDB(new Message(sender_id, conversation_id, message, new Date().getTime()));
-        broadcastMessage(data);
+//        broadcastMessage(data);
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                conversationManager.notifyListenersNewConversationMessage(conversation_id, sender_id, message);
+            }
+        });
     }
 
     private boolean addNewConversation(String from, Bundle data) {
@@ -128,7 +132,7 @@ public class MyGcmListenerService extends GcmListenerService {
 
             ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
             if (!conversationDataSource.createConversation(conversationId, creatorId, title, attendeesList)) {
-                Toast.makeText(this, "Error creating conversation with id: " + conversationId + "; title: " + title, Toast.LENGTH_LONG).show();
+                Log.d(TAG, "Conversation with id: " + conversationId + " already exists");
             } else {
                 sendNotification("Added new conversation with title: " + title + "; attendees: " + attendeesList);
                 final Conversation conversation = conversationDataSource.getConversation(conversationId);
@@ -213,11 +217,11 @@ public class MyGcmListenerService extends GcmListenerService {
         notificationManager.notify(0 /* ID of notification */, notificationBuilder.build());
     }
 
-    private void broadcastMessage(Bundle data) {
-        Intent intent = new Intent(GCM_INCOMING_INTENT);
-        if (data != null) {
-            intent.putExtra(GCM_MESSAGE_DATA, data);
-        }
-        broadcaster.sendBroadcast(intent);
-    }
+//    private void broadcastMessage(Bundle data) {
+//        Intent intent = new Intent(GCM_INCOMING_INTENT);
+//        if (data != null) {
+//            intent.putExtra(GCM_MESSAGE_DATA, data);
+//        }
+//        broadcaster.sendBroadcast(intent);
+//    }
 }

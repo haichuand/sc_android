@@ -1,11 +1,7 @@
 package com.mono.chat;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Bundle;
-import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
@@ -34,7 +30,6 @@ import com.mono.model.AttendeeUsernameComparator;
 import com.mono.model.Conversation;
 import com.mono.model.Message;
 import com.mono.network.ChatServerManager;
-import com.mono.network.GCMHelper;
 import com.mono.network.HttpServerManager;
 import com.mono.util.Common;
 import com.mono.util.GestureActivity;
@@ -84,7 +79,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
 //    private List<String> newlyAddedAttendeeIds = new ArrayList<>();
 //    private Attendee mostRecentAddedAttendee = null;
     private ConversationManager conversationManager;
-    private BroadcastReceiver receiver;
+//    private BroadcastReceiver receiver;
     private HttpServerManager httpServerManager;
     private ChatServerManager chatServerManager;
     private CompoundButton.OnCheckedChangeListener checkedChangeListener;
@@ -257,25 +252,25 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
             }
         });
 
-        receiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                Bundle data = intent.getBundleExtra(MyGcmListenerService.GCM_MESSAGE_DATA);
-                String conversation_id = data.getString(GCMHelper.CONVERSATION_ID);
-                //only continue if conversationId matches
-                if (conversation_id==null || !conversation_id.equals(conversationId))
-                    return;
-                String message = data.getString(GCMHelper.MESSAGE);
-                String sender_id = data.getString(GCMHelper.SENDER_ID);
-
-                if (Common.compareStrings(sender_id, myId)) {
-                    // Sent Confirmation
-                } else {
-                    chatMessages.add(new Message(sender_id, conversationId, message, new Date().getTime()));
-                    chatRoomAdapter.notifyItemInserted(chatMessages.size() - 1);
-                }
-            }
-        };
+//        receiver = new BroadcastReceiver() {
+//            @Override
+//            public void onReceive(Context context, Intent intent) {
+//                Bundle data = intent.getBundleExtra(MyGcmListenerService.GCM_MESSAGE_DATA);
+//                String conversation_id = data.getString(GCMHelper.CONVERSATION_ID);
+//                //only continue if conversationId matches
+//                if (conversation_id==null || !conversation_id.equals(conversationId))
+//                    return;
+//                String message = data.getString(GCMHelper.MESSAGE);
+//                String sender_id = data.getString(GCMHelper.SENDER_ID);
+//
+//                if (Common.compareStrings(sender_id, myId)) {
+//                    // Sent Confirmation
+//                } else {
+//                    chatMessages.add(new Message(sender_id, conversationId, message, new Date().getTime()));
+//                    chatRoomAdapter.notifyItemInserted(chatMessages.size() - 1);
+//                }
+//            }
+//        };
 
         final LinearLayout messagesLayout = (LinearLayout) findViewById(R.id.all_messages_linearlayout);
         if (messagesLayout != null) {
@@ -296,7 +291,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     @Override
     protected void onStart() {
         super.onStart();
-        LocalBroadcastManager.getInstance(this).registerReceiver(receiver, new IntentFilter(MyGcmListenerService.GCM_INCOMING_INTENT));
+//        LocalBroadcastManager.getInstance(this).registerReceiver(receiver, new IntentFilter(MyGcmListenerService.GCM_INCOMING_INTENT));
     }
 
     @Override
@@ -314,7 +309,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
 
     @Override
     protected void onStop() {
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver);
+//        LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver);
         super.onStop();
     }
 
@@ -369,6 +364,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         chatServerManager.sendConversationMessage(myId, conversationId, chatAttendeeIdList, msg);
         Message message = new Message(myId, conversationId, msg, new Date().getTime());
         conversationManager.saveChatMessageToDB(message);
+        conversationManager.notifyListenersNewConversationMessage(conversationId, myId, msg);
     }
 
 //    public void onAddAttendeeButtonClicked(View view) {
@@ -554,6 +550,18 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
                 chatAttendeeIdList.add(attendee.id);
                 updateChatAttendeeIdList.add(attendee.id);
             }
+        }
+    }
+
+    @Override
+    public void onNewConversationMessage(String incomingConversationId, String senderId, String message, long timeStamp) {
+        if (incomingConversationId==null || !incomingConversationId.equals(conversationId) || senderId==null || senderId.equals(myId)){
+            return;
+        }
+
+        if (!Common.compareStrings(senderId, myId)) {
+            chatMessages.add(new Message(senderId, incomingConversationId, message, timeStamp));
+            chatRoomAdapter.notifyItemInserted(chatMessages.size() - 1);
         }
     }
 }
