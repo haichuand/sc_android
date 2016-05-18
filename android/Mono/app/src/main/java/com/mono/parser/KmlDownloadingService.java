@@ -42,7 +42,8 @@ public class KmlDownloadingService extends IntentService {
         endOfMonthMap.put(11,31);
     }
 
-    public static final String KML_FILENAME = "LocationHistory.kml";
+    public static final String KML_FILENAME_TODAY = "LocationHistoryToday.kml";
+    public static final String KML_FILENAME_YESTERDAY = "LocationHistoryYesterday.kml";
     public static final String REGULAR = "regular";
     public static final String FIRST_TIME = "firstTime";
     public static final String DOWNLOAD_TYPE = "downloadType";
@@ -65,12 +66,13 @@ public class KmlDownloadingService extends IntentService {
         Log.i(TAG, "downloadType: "+downloadType);
         if(isSignedIn()) {
             if(downloadType.equals("regular")) {
-                downloadKML(KML_URL + "&pb=" + getPbValue(0, true),KML_FILENAME);
+                downloadKML(KML_URL + "&pb=" + getPbValue(0),KML_FILENAME_TODAY);
+                //downloadKML(KML_URL + "&pb=" + getPbValue(0),KML_FILENAME_YESTERDAY);
             }
             else {
                 for(int i = 0; i <= 7; i++) {
                     String fileName = "FirstTimeLocationHistory"+i+".kml";
-                    downloadKML(KML_URL + "&pb=" + getPbValue(i, false),fileName);
+                    downloadKML(KML_URL + "&pb=" + getPbValue(i),fileName);
                 }
             }
         }
@@ -103,7 +105,7 @@ public class KmlDownloadingService extends IntentService {
         return cookie != null && cookie.contains("SID=");
     }
 
-    private String getPbValue(int dayBeforeToday, boolean isRegular) {
+    private String getPbValue(int dayBeforeToday) {
         Calendar cal = getDate(dayBeforeToday);
         int year = cal.get(Calendar.YEAR);
         int month = cal.get(Calendar.MONTH);
@@ -126,9 +128,6 @@ public class KmlDownloadingService extends IntentService {
         else
             oneDayBefore--;
 
-//        if(isRegular)
-//            return "!1m8!1m3!1i"+ oneYearBefore + "!2i" + oneMonthBefore + "!3i" + oneDayBefore + "!2m3!1i" + year + "!2i" +month + "!3i" + date;
-//        else
             return "!1m8!1m3!1i"+ year + "!2i" +month + "!3i" + date + "!2m3!1i" + year + "!2i" +month + "!3i" + date;
     }
 

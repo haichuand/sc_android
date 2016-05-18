@@ -28,6 +28,8 @@ import com.mono.network.GCMHelper;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class DummyFragment extends Fragment {
 
@@ -78,29 +80,29 @@ public class DummyFragment extends Fragment {
         send_button.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                sendMessage(view);
+                sendRegistration(view);
             }
         });
 
         db_test.setOnClickListener(new OnClickListener() {
             public void onClick(View view) {
-                testDB(view);
+                sendMessage(view);
             }
         });
 
         view.findViewById(R.id.download).setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                alarmManager.scheduleAlarm(3); // schedule an alarm for every 3-hour
+                //alarmManager.scheduleAlarm(3); // schedule an alarm for every 3-hour
                 kml.getKML(getParentFragment(), RequestCodes.Activity.DUMMY_WEB,
-                    new DownloadListener() {
-                        @Override
-                        public void onFinish(int status, Uri uri) {
-                            if (uri != null) {
-                                //outputFile(uri.getPath());
+                        new DownloadListener() {
+                            @Override
+                            public void onFinish(int status, Uri uri) {
+                                if (uri != null) {
+                                    //outputFile(uri.getPath());
+                                }
                             }
                         }
-                    }
                 );
             }
         });
@@ -161,15 +163,21 @@ public class DummyFragment extends Fragment {
         }
     }
 
-    public void sendMessage(View view) {
+    public void sendRegistration(View view) {
         GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(this.getContext());
         GcmMessage gcmMessage = GcmMessage.getInstance(this.getContext());
         //sendRegistration(gcm, gcmMessage);
     }
 
+    public void sendMessage(View view) {
+        GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(this.getContext());
+        GcmMessage gcmMessage = GcmMessage.getInstance(this.getContext());
+        //sendConversationMessage(gcm, gcmMessage);
+    }
+
     public void sendRegistration(GoogleCloudMessaging gcm, GcmMessage gcmMessage) {
         String senderId = "210";
-            Bundle registerBundle = GCMHelper.getRegisterPayload(senderId, AccountManager.getInstance(this.getContext()).getGCMToken());
+        Bundle registerBundle = GCMHelper.getRegisterPayload(senderId, AccountManager.getInstance(this.getContext()).getGCMToken());
         gcmMessage.sendMessage(registerBundle, gcm);
     }
 
@@ -180,6 +188,15 @@ public class DummyFragment extends Fragment {
         String userIds = "1,2";
         Bundle conversationDropBundle = GCMHelper.getDropConversationAttendeesPayload(senderId, conversationId, userIds, recipients);
         gcmMessage.sendMessage(conversationDropBundle, gcm);
+    }
+
+    public void sendConversationMessage(GoogleCloudMessaging gcm, GcmMessage gcmMessage) {
+        String senderId = "210";
+        String conversationId = "conversationId...";
+        String recipients = "210";
+        String msg = "I am sending message to myself";
+        Bundle conversationMessageBundle = GCMHelper.getConversationMessagePayload(senderId, conversationId, new ArrayList<>(Arrays.asList("210")), msg);
+        gcmMessage.sendMessage(conversationMessageBundle, gcm);
     }
 
     public void sendAddConversationAttendees(GoogleCloudMessaging gcm, GcmMessage gcmMessage) {
