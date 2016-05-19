@@ -16,7 +16,6 @@ import com.mono.R;
 import com.mono.calendar.CalendarEventsAdapter.CalendarEventsItem;
 import com.mono.model.Event;
 import com.mono.util.Colors;
-import com.mono.util.Common;
 import com.mono.util.OnBackPressedListener;
 import com.mono.util.Pixels;
 import com.mono.util.SimpleDataSource;
@@ -297,44 +296,76 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
         adapter.notifyDataSetChanged();
     }
 
-    public void insert(int index, Event event, boolean notify) {
-        if (!events.contains(event)) {
-            index = Common.clamp(index, 0, events.size());
-            events.add(index, event);
+    public void insert(Event event, boolean scrollTo, boolean notify) {
+        if (events.contains(event)) {
+            return;
+        }
 
-            if (notify) {
-                adapter.notifyItemInserted(index);
+        events.add(event);
+
+        Collections.sort(events, new Comparator<Event>() {
+            @Override
+            public int compare(Event e1, Event e2) {
+                return Long.compare(e1.startTime, e2.startTime);
+            }
+        });
+
+        if (notify) {
+            int index = events.indexOf(event);
+            adapter.notifyItemInserted(index);
+
+            if (scrollTo) {
+                recyclerView.smoothScrollToPosition(index);
             }
         }
     }
 
-    public void refresh(Event event, boolean notify) {
+    public void refresh(Event event, boolean scrollTo, boolean notify) {
         int index = events.indexOf(event);
+        if (index < 0) {
+            return;
+        }
 
-        if (index >= 0) {
-            events.remove(index);
-            events.add(index, event);
-            items.remove(event.id);
+        events.remove(index);
+        items.remove(event.id);
 
-            if (notify) {
-                adapter.notifyItemChanged(index);
+        events.add(event);
+
+        Collections.sort(events, new Comparator<Event>() {
+            @Override
+            public int compare(Event e1, Event e2) {
+                return Long.compare(e1.startTime, e2.startTime);
+            }
+        });
+
+        if (notify) {
+            adapter.notifyItemChanged(index);
+
+            int currentIndex = events.indexOf(event);
+            if (currentIndex != index) {
+                adapter.notifyItemMoved(index, currentIndex);
+            }
+
+            if (scrollTo) {
+                recyclerView.smoothScrollToPosition(currentIndex);
             }
         }
     }
 
     public void remove(Event event, boolean notify) {
         int index = events.indexOf(event);
+        if (index < 0) {
+            return;
+        }
 
-        if (index >= 0) {
-            events.remove(index);
+        events.remove(index);
 
-            if (notify) {
-                adapter.notifyItemRemoved(index);
-            }
+        if (notify) {
+            adapter.notifyItemRemoved(index);
+        }
 
-            if (events.isEmpty()) {
-                hide(true);
-            }
+        if (events.isEmpty()) {
+            hide(true);
         }
     }
 

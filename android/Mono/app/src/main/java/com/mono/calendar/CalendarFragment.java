@@ -405,16 +405,18 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
 
                 CalendarView.Date date = calendarView.getCurrentSelected();
                 if (date != null && year == date.year && month == date.month && day == date.day) {
+                    boolean scrollTo = data.getActor() == EventAction.ACTOR_SELF;
+
                     switch (data.getAction()) {
                         case EventAction.ACTION_CREATE:
                             if (eventsFragment.getState() != CalendarEventsFragment.STATE_NONE) {
-                                eventsFragment.insert(0, event, true);
+                                eventsFragment.insert(event, scrollTo, true);
                             } else {
                                 showEventsFragment(year, month, day);
                             }
                             break;
                         case EventAction.ACTION_UPDATE:
-                            eventsFragment.refresh(event, true);
+                            eventsFragment.refresh(event, scrollTo, true);
                             break;
                         case EventAction.ACTION_REMOVE:
                             eventsFragment.remove(event, true);
