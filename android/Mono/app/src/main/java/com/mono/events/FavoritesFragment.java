@@ -4,7 +4,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.RecyclerView.OnScrollListener;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -36,11 +35,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 
-public class ListFragment extends Fragment implements SimpleDataSource<ListItem>,
+public class FavoritesFragment extends Fragment implements SimpleDataSource<ListItem>,
         SimpleSlideViewListener, EventBroadcastListener, Scrollable {
-
-    private static final int PRECACHE_AMOUNT = 20;
-    private static final int PRECACHE_OFFSET = 10;
 
     public static final String EXTRA_POSITION = "position";
 
@@ -60,11 +56,6 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
     private final List<Event> events = new ArrayList<>();
 
     private AsyncTask<Void, Void, List<Event>> task;
-    private long startTime;
-    private int futureOffset;
-    private int futureOffsetProvider;
-    private int pastOffset;
-    private int pastOffsetProvider;
 
     static {
         DATE_FORMAT = new SimpleDateFormat("MMM d", Locale.getDefault());
@@ -96,19 +87,13 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         recyclerView.setVerticalScrollBarEnabled(false);
         recyclerView.setLayoutManager(layoutManager = new SimpleLinearLayoutManager(getActivity()));
         recyclerView.setAdapter(adapter = new ListAdapter(this));
-        recyclerView.addOnScrollListener(new OnScrollListener() {
-            @Override
-            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                handleInfiniteScroll(dy);
-            }
-        });
 
         adapter.setDataSource(this);
 
         text = (TextView) view.findViewById(R.id.text);
         text.setVisibility(events.isEmpty() ? View.VISIBLE : View.INVISIBLE);
 
-        today();
+        append();
 
         return view;
     }
@@ -246,11 +231,6 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         boolean scrollTo = data.getActor() == EventAction.ACTOR_SELF;
 
         switch (data.getAction()) {
-            case EventAction.ACTION_CREATE:
-                if (data.getStatus() == EventAction.STATUS_OK) {
-                    insert(data.getEvent(), scrollTo);
-                }
-                break;
             case EventAction.ACTION_UPDATE:
                 if (data.getStatus() == EventAction.STATUS_OK) {
                     update(data.getEvent(), scrollTo);
@@ -348,61 +328,6 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         }
     }
 
-    private void handleInfiniteScroll(int deltaY) {
-        if (task != null) {
-            return;
-        }
-
-        int position;
-
-        if (deltaY < 0) {
-            position = layoutManager.findFirstVisibleItemPosition();
-            if (position <= PRECACHE_OFFSET) {
-                prepend();
-            }
-        } else if (deltaY > 0) {
-            position = layoutManager.findLastVisibleItemPosition();
-            if (position >= Math.max(events.size() - 1 - PRECACHE_OFFSET, 0)) {
-                append();
-            }
-        }
-    }
-
-    private void prepend() {
-        if (task != null) {
-            task.cancel(true);
-            task = null;
-        }
-
-        task = new AsyncTask<Void, Void, List<Event>>() {
-            @Override
-            protected List<Event> doInBackground(Void... params) {
-                EventManager manager = EventManager.getInstance(getContext());
-
-                List<Event> result = manager.getEventsFromProviderByOffset(startTime,
-                    futureOffsetProvider, PRECACHE_AMOUNT, 1);
-                futureOffsetProvider += result.size();
-
-                List<Event> events = manager.getEventsByOffset(startTime, futureOffset,
-                    PRECACHE_AMOUNT, 1);
-                futureOffset += events.size();
-
-                combine(result, events);
-
-                return result;
-            }
-
-            @Override
-            protected void onPostExecute(List<Event> result) {
-                if (!result.isEmpty()) {
-                    insert(0, result);
-                }
-
-                task = null;
-            }
-        }.execute();
-    }
-
     private void append() {
         if (task != null) {
             task.cancel(true);
@@ -413,18 +338,7 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
             @Override
             protected List<Event> doInBackground(Void... params) {
                 EventManager manager = EventManager.getInstance(getContext());
-
-                List<Event> result = manager.getEventsFromProviderByOffset(startTime,
-                    pastOffsetProvider, PRECACHE_AMOUNT, -1);
-                pastOffsetProvider += result.size();
-
-                List<Event> events = manager.getEventsByOffset(startTime, pastOffset,
-                    PRECACHE_AMOUNT, -1);
-                pastOffset += events.size();
-
-                combine(result, events);
-
-                return result;
+                return new ArrayList<>();
             }
 
             @Override
@@ -438,25 +352,6 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         }.execute();
     }
 
-    private void combine(List<Event> result, List<Event> events) {
-        for (Event event : events) {
-            if (result.contains(event)) {
-                int index = result.indexOf(event);
-                result.remove(index);
-                result.add(index, event);
-            } else {
-                result.add(event);
-            }
-        }
-
-        Collections.sort(result, new Comparator<Event>() {
-            @Override
-            public int compare(Event e1, Event e2) {
-                return Long.compare(e2.startTime, e1.startTime);
-            }
-        });
-    }
-
     public void scrollTo(Event event) {
         int index = events.indexOf(event);
 
@@ -465,26 +360,9 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         }
     }
 
-    public void today() {
-        recyclerView.stopScroll();
-
-        events.clear();
-
-        futureOffset = 0;
-        futureOffsetProvider = 0;
-        pastOffset = 0;
-        pastOffsetProvider = 0;
-
-        adapter.notifyDataSetChanged();
-
-        LocalDate date = new LocalDate().plusDays(1);
-        startTime = date.toDateTimeAtStartOfDay().minusMillis(1).getMillis();
-        append();
-    }
-
     @Override
     public void scrollToTop() {
-        today();
+
     }
 
     public interface ListListener {
