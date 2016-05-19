@@ -11,14 +11,13 @@ import com.mono.model.Location;
 import com.mono.util.Common;
 
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeUtils;
+import org.joda.time.DateTimeZone;
+import org.joda.time.Days;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 
 public class EventDataSource extends DataSource {
 
@@ -198,14 +197,22 @@ public class EventDataSource extends DataSource {
 
     private String getTimeSelection(List<String> args, long startTime, long endTime) {
         String selection = String.format(
-            "(%s BETWEEN ? AND ? OR %s BETWEEN ? AND ?)",
+            "((%s BETWEEN ? AND ? OR %s BETWEEN ? AND ?) OR (%s <= ? AND %s >= ? OR %s >= ? AND %s <= ?))",
             DatabaseValues.Event.START_TIME,
-            DatabaseValues.Event.END_TIME
+            DatabaseValues.Event.END_TIME,
+            DatabaseValues.Event.START_TIME,
+            DatabaseValues.Event.END_TIME,
+            DatabaseValues.Event.END_TIME,
+            DatabaseValues.Event.START_TIME
         );
 
         args.add(String.valueOf(startTime));
         args.add(String.valueOf(endTime));
         args.add(String.valueOf(startTime));
+        args.add(String.valueOf(endTime));
+        args.add(String.valueOf(startTime));
+        args.add(String.valueOf(startTime));
+        args.add(String.valueOf(endTime));
         args.add(String.valueOf(endTime));
 
         return selection;
@@ -292,16 +299,18 @@ public class EventDataSource extends DataSource {
     public List<Event> getEvents(int year, int month, int day, long... calendarIds) {
         List<Event> events = new ArrayList<>();
 
+        month++; // Joda-Time Compatible
+
+        DateTime dateTime = new DateTime(year, month, day, 0, 0);
+        long startTime = dateTime.minusHours(12).getMillis();
+        long endTime = dateTime.plusDays(1).plusHours(12).getMillis();
+
         List<String> args = new ArrayList<>();
 
         String selection = "";
         if (calendarIds != null && calendarIds.length > 0) {
             selection = getCalendarSelection(args, calendarIds) + " AND ";
         }
-
-        DateTime dateTime = new DateTime(year, month + 1, day, 0, 0);
-        long startTime = dateTime.minusHours(12).getMillis();
-        long endTime = dateTime.plusDays(1).plusHours(12).getMillis();
 
         selection += getTimeSelection(args, startTime, endTime);
 
@@ -315,22 +324,26 @@ public class EventDataSource extends DataSource {
             DatabaseValues.Event.START_TIME + " DESC"
         );
 
-        Calendar calendar;
-        Calendar local = Calendar.getInstance();
-        Calendar utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-
         while (cursor.moveToNext()) {
             Event event = cursorToEvent(cursor);
 
-            calendar = !event.allDay ? local : utc;
+            long startMillis = event.startTime;
+            long endMillis = event.endTime;
 
-            calendar.setTimeInMillis(event.startTime);
-            int startDay = calendar.get(Calendar.DAY_OF_MONTH);
+            if (!event.allDay) {
+                dateTime = dateTime.withZone(DateTimeZone.getDefault());
+            } else {
+                endMillis -= 1;
+                dateTime = dateTime.withZone(DateTimeZone.UTC);
+            }
 
-            calendar.setTimeInMillis(!event.allDay ? event.endTime : event.endTime - 1);
-            int endDay = calendar.get(Calendar.DAY_OF_MONTH);
+            DateTime current = new DateTime(year, month, day, 0, 0);
+            DateTime start = dateTime.withMillis(startMillis).withTimeAtStartOfDay();
 
-            if (!Common.between(day, startDay, endDay)) {
+            DateTime end = dateTime.withMillis(endMillis).withTimeAtStartOfDay();
+            end = end.plusDays(1).minusMillis(1);
+
+            if (current.isBefore(start) || current.isAfter(end)) {
                 continue;
             }
 
@@ -345,16 +358,18 @@ public class EventDataSource extends DataSource {
     public Map<Integer, List<Integer>> getEventColors(int year, int month, long... calendarIds) {
         Map<Integer, List<Integer>> result = new HashMap<>();
 
+        month++; // Joda-Time Compatible
+
+        DateTime dateTime = new DateTime(year, month, 1, 0, 0);
+        long startTime = dateTime.minusHours(12).getMillis();
+        long endTime = dateTime.plusMonths(1).plusHours(12).getMillis();
+
         List<String> args = new ArrayList<>();
 
         String selection = "";
         if (calendarIds != null && calendarIds.length > 0) {
             selection = getCalendarSelection(args, calendarIds) + " AND ";
         }
-
-        DateTime dateTime = new DateTime(year, month + 1, 1, 0, 0);
-        long startTime = dateTime.minusHours(12).getMillis();
-        long endTime = dateTime.plusMonths(1).plusHours(12).getMillis();
 
         selection += getTimeSelection(args, startTime, endTime);
 
@@ -373,10 +388,6 @@ public class EventDataSource extends DataSource {
             DatabaseValues.Event.START_TIME + " DESC"
         );
 
-        Calendar calendar;
-        Calendar local = Calendar.getInstance();
-        Calendar utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-
         while (cursor.moveToNext()) {
             int color = cursor.getInt(0);
             long startMillis = cursor.getLong(1);
@@ -384,20 +395,21 @@ public class EventDataSource extends DataSource {
             boolean allDay = cursor.getInt(3) > 0;
 
             if (!allDay) {
-                calendar = local;
+                dateTime = dateTime.withZone(DateTimeZone.getDefault());
             } else {
                 endMillis -= 1;
-                calendar = utc;
+                dateTime = dateTime.withZone(DateTimeZone.UTC);
             }
 
-            int numDays = (int) (DateTimeUtils.toJulianDayNumber(endMillis) -
-                DateTimeUtils.toJulianDayNumber(startMillis)) + 1;
+            DateTime start = dateTime.withMillis(startMillis).withTimeAtStartOfDay();
+            DateTime end = dateTime.withMillis(endMillis).withTimeAtStartOfDay();
+            int numDays = Days.daysBetween(start, end).getDays() + 1;
 
-            calendar.setTimeInMillis(startMillis);
+            dateTime = dateTime.withMillis(startMillis);
 
             for (int i = 0; i < numDays; i++) {
-                if (calendar.get(Calendar.MONTH) == month) {
-                    int currentDay = calendar.get(Calendar.DAY_OF_MONTH);
+                if (dateTime.getMonthOfYear() == month) {
+                    int currentDay = dateTime.getDayOfMonth();
 
                     if (!result.containsKey(currentDay)) {
                         result.put(currentDay, new ArrayList<Integer>());
@@ -409,7 +421,7 @@ public class EventDataSource extends DataSource {
                     }
                 }
 
-                calendar.add(Calendar.DAY_OF_MONTH, 1);
+                dateTime = dateTime.plusDays(1);
             }
         }
 
@@ -418,19 +430,19 @@ public class EventDataSource extends DataSource {
         return result;
     }
 
-    public Event getUserstayEventByStartTime (long startTime) {
+    public Event getUserstayEventByStartTime(long startTime) {
         Event event = null;
-        Cursor cursor = database.select(
-                DatabaseValues.Event.TABLE,
-                DatabaseValues.Event.PROJECTION,
-                DatabaseValues.Event.START_TIME + " == ? AND " +
-                        DatabaseValues.Event.TYPE + " == ?",
-                new String[]{
-                        String.valueOf(startTime),
-                        String.valueOf("userstay")
-                }
-        );
 
+        Cursor cursor = database.select(
+            DatabaseValues.Event.TABLE,
+            DatabaseValues.Event.PROJECTION,
+            DatabaseValues.Event.START_TIME + " = ?" +
+            " AND " + DatabaseValues.Event.TYPE + " = ?",
+            new String[]{
+                String.valueOf(startTime),
+                String.valueOf("userstay")
+            }
+        );
 
         if (cursor.moveToNext()) {
             event = cursorToEvent(cursor);
@@ -439,22 +451,21 @@ public class EventDataSource extends DataSource {
         cursor.close();
 
         return event;
-
     }
 
-    public Event getUserstayEventByEndTime (long endTime) {
+    public Event getUserstayEventByEndTime(long endTime) {
         Event event = null;
-        Cursor cursor = database.select(
-                DatabaseValues.Event.TABLE,
-                DatabaseValues.Event.PROJECTION,
-                DatabaseValues.Event.END_TIME + " == ? AND " +
-                        DatabaseValues.Event.TYPE + " == ?",
-                new String[]{
-                        String.valueOf(endTime),
-                        String.valueOf("userstay")
-                }
-        );
 
+        Cursor cursor = database.select(
+            DatabaseValues.Event.TABLE,
+            DatabaseValues.Event.PROJECTION,
+            DatabaseValues.Event.END_TIME + " = ?" +
+            " AND " + DatabaseValues.Event.TYPE + " = ?",
+            new String[]{
+                String.valueOf(endTime),
+                String.valueOf("userstay")
+            }
+        );
 
         if (cursor.moveToNext()) {
             event = cursorToEvent(cursor);
@@ -463,7 +474,6 @@ public class EventDataSource extends DataSource {
         cursor.close();
 
         return event;
-
     }
 
     /**
