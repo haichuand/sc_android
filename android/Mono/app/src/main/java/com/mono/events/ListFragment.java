@@ -85,8 +85,6 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         if (fragment != null && fragment instanceof ListListener) {
             listener = (ListListener) fragment;
         }
-
-        startTime = System.currentTimeMillis();
     }
 
     @Override
@@ -477,7 +475,8 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
 
         adapter.notifyDataSetChanged();
 
-        startTime = System.currentTimeMillis();
+        LocalDate date = new LocalDate().plusDays(1);
+        startTime = date.toDateTimeAtStartOfDay().minusMillis(1).getMillis();
         append();
     }
 
