@@ -481,10 +481,21 @@ public class EventManager {
     public void removeEvent(int actor, String id, EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
 
-        Event event = cache.remove(id);
+        Event event = getEvent(id, false);
 
-        EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-        if (dataSource.removeEvent(id) > 0) {
+        boolean result = false;
+
+        if (event.source == Event.SOURCE_DATABASE) {
+            EventDataSource dataSource =
+                DatabaseHelper.getDataSource(context, EventDataSource.class);
+            result = dataSource.removeEvent(id) > 0;
+        } else if (event.source == Event.SOURCE_PROVIDER) {
+            CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
+            result = provider.removeEvent(event.internalId) > 0;
+        }
+
+        if (result) {
+            cache.remove(id);
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_REMOVE, id);
         } else {
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_REMOVE_FAILED, id);
