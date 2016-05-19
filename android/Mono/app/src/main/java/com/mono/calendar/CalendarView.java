@@ -23,6 +23,8 @@ import com.mono.util.SimpleQuickAction;
 import com.mono.util.SimpleQuickAction.SimpleQuickActionListener;
 import com.mono.util.Views;
 
+import org.joda.time.LocalDate;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -49,9 +51,9 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
     private CalendarPageAdapter adapter;
     private List<CalendarPageItem> items = new ArrayList<>();
 
-    private Date currentDay;
-    private Date lastSelected;
-    private Date lastDropped;
+    private LocalDate currentDay;
+    private LocalDate lastSelected;
+    private LocalDate lastDropped;
 
     private int firstDayOfWeek;
     private boolean showWeekNumbers;
@@ -138,11 +140,14 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
     @Override
     public void onPageClick() {
         if (lastSelected != null) {
-            select(lastSelected.year, lastSelected.month, lastSelected.day, false);
+            int year = lastSelected.getYear();
+            int month = lastSelected.getMonthOfYear() - 1;
+            int day = lastSelected.getDayOfMonth();
+
+            select(year, month, day, false);
 
             if (listener != null) {
-                listener.onCellClick(lastSelected.year, lastSelected.month,
-                    lastSelected.day, false);
+                listener.onCellClick(year, month, day, false);
             }
 
             lastSelected = null;
@@ -152,12 +157,13 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
     @Override
     public void onCellClick(int year, int month, int day) {
         if (lastSelected != null) {
-            select(lastSelected.year, lastSelected.month, lastSelected.day, false);
+            select(lastSelected.getYear(), lastSelected.getMonthOfYear() - 1,
+                lastSelected.getDayOfMonth(), false);
         }
 
-        Date date = new Date(year, month, day);
+        LocalDate date = new LocalDate(year, month + 1, day);
 
-        if (lastSelected == null || !date.equals(lastSelected)) {
+        if (lastSelected == null || !date.isEqual(lastSelected)) {
             select(year, month, day, true);
             lastSelected = date;
 
@@ -179,8 +185,8 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
     @Override
     public void onCellDrop(View view, final String id, final int year, final int month,
             final int day) {
-        Date date = new Date(year, month, day);
-        if (lastDropped != null && date.equals(lastDropped)) {
+        LocalDate date = new LocalDate(year, month + 1, day);
+        if (lastDropped != null && date.isEqual(lastDropped)) {
             return;
         }
 
@@ -246,9 +252,9 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         item.startIndex = item.startIndex - (calendar.getFirstDayOfWeek() - 1);
         item.startIndex = (item.startIndex + 7) % 7;
 
-        if (lastSelected != null && item.year == lastSelected.year &&
-                item.month == lastSelected.month) {
-            item.selectedDay = lastSelected.day;
+        if (lastSelected != null && item.year == lastSelected.getYear() &&
+                item.month == lastSelected.getMonthOfYear() - 1) {
+            item.selectedDay = lastSelected.getDayOfMonth();
         } else {
             item.selectedDay = 0;
         }
@@ -386,11 +392,8 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
     }
 
     public void today() {
-        Calendar calendar = Calendar.getInstance();
-        int year = calendar.get(Calendar.YEAR);
-        int month = calendar.get(Calendar.MONTH);
-
-        scrollToMonth(year, month);
+        LocalDate date = new LocalDate();
+        scrollToMonth(date.getYear(), date.getMonthOfYear() - 1);
     }
 
     public void select(int year, int month, int day, boolean selected) {
@@ -420,13 +423,14 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         }
     }
 
-    public Date getCurrentSelected() {
+    public LocalDate getCurrentSelected() {
         return lastSelected;
     }
 
     public void removeCurrentSelected() {
         if (lastSelected != null) {
-            select(lastSelected.year, lastSelected.month, lastSelected.day, false);
+            select(lastSelected.getYear(), lastSelected.getMonthOfYear() - 1,
+                lastSelected.getDayOfMonth(), false);
             lastSelected = null;
         }
     }
@@ -447,26 +451,20 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
     }
 
     public void checkDayChange() {
-        Calendar calendar = Calendar.getInstance();
-
-        int year = calendar.get(Calendar.YEAR);
-        int month = calendar.get(Calendar.MONTH);
-        int day = calendar.get(Calendar.DAY_OF_MONTH);
-
-        Date date = new Date(year, month, day);
+        LocalDate date = new LocalDate();
 
         if (currentDay == null) {
             currentDay = date;
-        } else if (!currentDay.equals(date)) {
-            if (currentDay.month != month) {
-                refresh(currentDay.year, currentDay.month);
+        } else if (!currentDay.isEqual(date)) {
+            if (currentDay.getMonthOfYear() != date.getMonthOfYear()) {
+                refresh(currentDay.getYear(), currentDay.getMonthOfYear() - 1);
             }
 
-            refresh(year, month);
+            refresh(date.getYear(), date.getMonthOfYear() - 1);
             currentDay = date;
 
             if (listener != null) {
-                listener.onDayChange(day);
+                listener.onDayChange(date.getDayOfMonth());
             }
         }
     }
@@ -508,34 +506,6 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         calendar.setTimeZone(TimeZone.getDefault());
 
         return calendar;
-    }
-
-    public class Date {
-
-        public int year;
-        public int month;
-        public int day;
-
-        public Date(int year, int month, int day) {
-            this.year = year;
-            this.month = month;
-            this.day = day;
-        }
-
-        @Override
-        public boolean equals(Object object) {
-            if (!(object instanceof Date)) {
-                return false;
-            }
-
-            Date date = (Date) object;
-
-            if (year != date.year || month != date.month || day != date.day) {
-                return false;
-            }
-
-            return true;
-        }
     }
 
     public interface CalendarListener {

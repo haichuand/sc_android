@@ -32,18 +32,22 @@ import com.mono.MainInterface;
 import com.mono.R;
 import com.mono.calendar.CalendarEventsFragment.CalendarEventsListener;
 import com.mono.calendar.CalendarView.CalendarListener;
+import com.mono.model.Calendar;
 import com.mono.model.Event;
 import com.mono.provider.CalendarProvider;
 import com.mono.settings.Settings;
+import com.mono.util.Common;
 import com.mono.util.OnBackPressedListener;
 import com.mono.util.Pixels;
 import com.mono.util.SimpleTabLayout.Scrollable;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
 
-import java.util.Calendar;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.LocalDate;
+
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 
 public class CalendarFragment extends Fragment implements OnBackPressedListener, CalendarListener,
         CalendarEventsListener, EventBroadcastListener, TabPagerCallback, Scrollable {
@@ -132,24 +136,20 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
                 Event event = new Event();
                 event.type = Event.TYPE_CALENDAR;
 
-                List<com.mono.model.Calendar> calendars =
+                List<Calendar> calendars =
                     CalendarProvider.getInstance(getContext()).getCalendars();
-                for (com.mono.model.Calendar calendar : calendars) {
+                for (Calendar calendar : calendars) {
                     if (calendar.primary) {
                         event.calendarId = calendar.id;
                         break;
                     }
                 }
 
-                CalendarView.Date date = calendarView.getCurrentSelected();
+                LocalDate date = calendarView.getCurrentSelected();
                 if (date != null) {
-                    Calendar calendar = Calendar.getInstance();
-                    calendar.set(date.year, date.month, date.day);
-                    calendar.set(Calendar.MINUTE, 0);
-                    calendar.set(Calendar.SECOND, 0);
-                    calendar.set(Calendar.MILLISECOND, 0);
-
-                    event.startTime = calendar.getTimeInMillis();
+                    DateTime dateTime = new DateTime(date.getYear(), date.getMonthOfYear(),
+                        date.getDayOfMonth(), new DateTime().getHourOfDay(), 0, 0, 0);
+                    event.startTime = dateTime.getMillis();
                 }
 
                 mainInterface.showEventDetails(event);
@@ -198,20 +198,15 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
             return;
         }
 
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTimeInMillis(event.startTime);
-        calendar.setTimeZone(TimeZone.getTimeZone(event.timeZone));
+        DateTime dateTime = new DateTime(event.startTime, DateTimeZone.forID(event.timeZone));
+        LocalDate startDate = dateTime.toLocalDate();
+        dateTime = dateTime.withDate(year, month + 1, day);
 
-        int eventYear = calendar.get(Calendar.YEAR);
-        int eventMonth = calendar.get(Calendar.MONTH);
-        int eventDay = calendar.get(Calendar.DAY_OF_MONTH);
-
-        if (eventYear == year && eventMonth == month && eventDay == day) {
+        if (startDate.isEqual(dateTime.toLocalDate())) {
             return;
         }
 
-        calendar.set(year, month, day);
-        long startTime = calendar.getTimeInMillis();
+        long startTime = dateTime.getMillis();
         long endTime = startTime + event.getDuration();
 
         switch (action) {
@@ -393,18 +388,25 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
             public void run() {
                 Event event = data.getEvent();
 
-                Calendar calendar = Calendar.getInstance();
-                calendar.setTimeInMillis(event.startTime);
-                calendar.setTimeZone(TimeZone.getTimeZone(event.timeZone));
+                LocalDate startDate, endDate;
 
-                int year = calendar.get(Calendar.YEAR);
-                int month = calendar.get(Calendar.MONTH);
-                int day = calendar.get(Calendar.DAY_OF_MONTH);
+                if (!event.allDay) {
+                    startDate = new LocalDate(event.startTime);
+                    endDate = new LocalDate(event.endTime);
+                } else {
+                    startDate = new LocalDate(event.startTime, DateTimeZone.UTC);
+                    endDate = new LocalDate(event.endTime - 1, DateTimeZone.UTC);
+                }
 
-                calendarView.refresh(year, month);
+                LocalDate date = startDate;
+                while (date.isBefore(endDate) || date.isEqual(endDate)) {
+                    calendarView.refresh(date.getYear(), date.getMonthOfYear() - 1);
+                    date = date.plusDays(1);
+                }
 
-                CalendarView.Date date = calendarView.getCurrentSelected();
-                if (date != null && year == date.year && month == date.month && day == date.day) {
+                LocalDate selectedDate = calendarView.getCurrentSelected();
+
+                if (selectedDate != null && Common.between(selectedDate, startDate, endDate)) {
                     boolean scrollTo = data.getActor() == EventAction.ACTOR_SELF;
 
                     switch (data.getAction()) {
@@ -412,7 +414,8 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
                             if (eventsFragment.getState() != CalendarEventsFragment.STATE_NONE) {
                                 eventsFragment.insert(event, scrollTo, true);
                             } else {
-                                showEventsFragment(year, month, day);
+                                showEventsFragment(startDate.getYear(),
+                                    startDate.getMonthOfYear() - 1, startDate.getDayOfMonth());
                             }
                             break;
                         case EventAction.ACTION_UPDATE:
