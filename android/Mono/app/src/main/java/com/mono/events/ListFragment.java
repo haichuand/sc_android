@@ -17,6 +17,7 @@ import com.mono.R;
 import com.mono.events.ListAdapter.ListItem;
 import com.mono.model.Event;
 import com.mono.util.Colors;
+import com.mono.util.Common;
 import com.mono.util.SimpleDataSource;
 import com.mono.util.SimpleLinearLayoutManager;
 import com.mono.util.SimpleSlideView.SimpleSlideViewListener;
@@ -146,8 +147,7 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
 
             int colorId;
 
-            if (startDate.isEqual(currentDate) || endDate.isEqual(currentDate) ||
-                    currentDate.isAfter(startDate) && currentDate.isBefore(endDate)) {
+            if (Common.between(currentDate, startDate, endDate)) {
                 colorId = R.color.gray_dark;
             } else if (event.startTime > System.currentTimeMillis()) {
                 colorId = R.color.green;
