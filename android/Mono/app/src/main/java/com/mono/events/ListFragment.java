@@ -22,9 +22,11 @@ import com.mono.util.SimpleLinearLayoutManager;
 import com.mono.util.SimpleSlideView.SimpleSlideViewListener;
 import com.mono.util.SimpleTabLayout.Scrollable;
 
+import org.joda.time.LocalDate;
+import org.joda.time.LocalDateTime;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -41,7 +43,6 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
 
     public static final String EXTRA_POSITION = "position";
 
-    private static final SimpleDateFormat DATETIME_FORMAT;
     private static final SimpleDateFormat DATE_FORMAT;
     private static final SimpleDateFormat DATE_FORMAT_2;
     private static final SimpleDateFormat TIME_FORMAT;
@@ -65,7 +66,6 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
     private int pastOffsetProvider;
 
     static {
-        DATETIME_FORMAT = new SimpleDateFormat("MMM d, yyyy h:mm a", Locale.getDefault());
         DATE_FORMAT = new SimpleDateFormat("MMM d", Locale.getDefault());
         DATE_FORMAT_2 = new SimpleDateFormat("M/d/yy", Locale.getDefault());
         TIME_FORMAT = new SimpleDateFormat("h:mm a", Locale.getDefault());
@@ -140,30 +140,37 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
             TimeZone timeZone = event.allDay ? TimeZone.getTimeZone("UTC") : TimeZone.getDefault();
             item.dateTime = getDateString(event.startTime, timeZone);
 
-            if (event.startTime > System.currentTimeMillis()) {
-                item.dateTimeColor = Colors.getColor(getContext(), R.color.green);
+            LocalDate currentDate = new LocalDate();
+            LocalDate startDate = new LocalDate(event.startTime);
+            LocalDate endDate = new LocalDate(event.endTime);
+
+            int colorId;
+
+            if (startDate.isEqual(currentDate) || endDate.isEqual(currentDate) ||
+                    currentDate.isAfter(startDate) && currentDate.isBefore(endDate)) {
+                colorId = R.color.gray_dark;
+            } else if (event.startTime > System.currentTimeMillis()) {
+                colorId = R.color.green;
+            } else {
+                colorId = R.color.gray_light_3;
             }
+            item.dateTimeColor = Colors.getColor(getContext(), colorId);
         }
 
         return item;
     }
 
     private String getDateString(long time, TimeZone timeZone) {
-        Calendar calendar = Calendar.getInstance();
-        int currentYear = calendar.get(Calendar.YEAR);
-        int currentMonth = calendar.get(Calendar.MONTH);
-        int currentDay = calendar.get(Calendar.DAY_OF_MONTH);
+        LocalDate currentDate = new LocalDate();
 
-        calendar.setTimeInMillis(time);
-        int year = calendar.get(Calendar.YEAR);
-        int month = calendar.get(Calendar.MONTH);
-        int day = calendar.get(Calendar.DAY_OF_MONTH);
+        LocalDateTime dateTime = new LocalDateTime(time);
+        LocalDate date = dateTime.toLocalDate();
 
         SimpleDateFormat dateFormat;
 
-        if (year == currentYear && month == currentMonth && day == currentDay) {
+        if (date.isEqual(currentDate)) {
             dateFormat = TIME_FORMAT;
-        } else if (year == currentYear) {
+        } else if (date.getYear() == currentDate.getYear()) {
             dateFormat = DATE_FORMAT;
         } else {
             dateFormat = DATE_FORMAT_2;
@@ -171,7 +178,7 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
 
         dateFormat.setTimeZone(timeZone);
 
-        return dateFormat.format(calendar.getTime());
+        return dateFormat.format(dateTime.toDate());
     }
 
     @Override
@@ -238,19 +245,17 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
 
     @Override
     public void onEventBroadcast(EventAction data) {
+        boolean scrollTo = data.getActor() == EventAction.ACTOR_SELF;
+
         switch (data.getAction()) {
             case EventAction.ACTION_CREATE:
                 if (data.getStatus() == EventAction.STATUS_OK) {
-                    insert(0, data.getEvent());
-
-                    if (data.getActor() == EventAction.ACTOR_SELF) {
-                        scrollTo(data.getEvent());
-                    }
+                    insert(data.getEvent(), scrollTo);
                 }
                 break;
             case EventAction.ACTION_UPDATE:
                 if (data.getStatus() == EventAction.STATUS_OK) {
-                    update(data.getEvent());
+                    update(data.getEvent(), scrollTo);
                 }
                 break;
             case EventAction.ACTION_REMOVE:
@@ -261,11 +266,26 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         }
     }
 
-    public void insert(int index, Event event) {
-        List<Event> events = new ArrayList<>();
+    public void insert(Event event, boolean scrollTo) {
+        if (events.contains(event)) {
+            return;
+        }
+
         events.add(event);
 
-        insert(index, events);
+        Collections.sort(events, new Comparator<Event>() {
+            @Override
+            public int compare(Event e1, Event e2) {
+                return Long.compare(e2.startTime, e1.startTime);
+            }
+        });
+
+        int index = events.indexOf(event);
+        adapter.notifyItemInserted(index);
+
+        if (scrollTo) {
+            recyclerView.smoothScrollToPosition(index);
+        }
     }
 
     public void insert(int index, List<Event> items) {
@@ -284,21 +304,44 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
         adapter.notifyItemRangeInserted(index, size);
     }
 
-    public void update(Event event) {
+    public void update(Event event, boolean scrollTo) {
         int index = events.indexOf(event);
+        if (index < 0) {
+            return;
+        }
 
-        if (index >= 0) {
-            adapter.notifyItemChanged(index);
+        events.remove(index);
+        items.remove(event.id);
+
+        events.add(event);
+
+        Collections.sort(events, new Comparator<Event>() {
+            @Override
+            public int compare(Event e1, Event e2) {
+                return Long.compare(e2.startTime, e1.startTime);
+            }
+        });
+
+        adapter.notifyItemChanged(index);
+
+        int currentIndex = events.indexOf(event);
+        if (currentIndex != index) {
+            adapter.notifyItemMoved(index, currentIndex);
+        }
+
+        if (scrollTo) {
+            recyclerView.smoothScrollToPosition(currentIndex);
         }
     }
 
     public void remove(Event event) {
         int index = events.indexOf(event);
-
-        if (index >= 0) {
-            events.remove(index);
-            adapter.notifyItemRemoved(index);
+        if (index < 0) {
+            return;
         }
+
+        events.remove(index);
+        adapter.notifyItemRemoved(index);
 
         if (events.isEmpty()) {
             text.setVisibility(View.VISIBLE);

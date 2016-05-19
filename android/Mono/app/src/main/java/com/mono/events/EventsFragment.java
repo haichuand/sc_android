@@ -166,7 +166,7 @@ public class EventsFragment extends Fragment implements OnPageChangeListener, Li
 
         switch (position) {
             case TAB_ALL:
-                fragment.insert(0, eventManager.getEvent(id, false));
+                fragment.insert(eventManager.getEvent(id, false), false);
 
                 mainInterface.setTabLayoutBadge(TAB_FAVORITE, 0,
                     String.valueOf(fragment.getCount()));
