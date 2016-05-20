@@ -45,7 +45,7 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
     private static final SimpleDateFormat TIME_FORMAT;
 
     private int position;
-    private ListListener listener;
+    private ListFragment.ListListener listener;
 
     private RecyclerView recyclerView;
     private SimpleLinearLayoutManager layoutManager;
@@ -73,8 +73,8 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
         }
 
         Fragment fragment = getParentFragment();
-        if (fragment != null && fragment instanceof ListListener) {
-            listener = (ListListener) fragment;
+        if (fragment != null && fragment instanceof ListFragment.ListListener) {
+            listener = (ListFragment.ListListener) fragment;
         }
     }
 
@@ -93,9 +93,33 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
         text = (TextView) view.findViewById(R.id.text);
         text.setVisibility(events.isEmpty() ? View.VISIBLE : View.INVISIBLE);
 
-        append();
+        initialize();
 
         return view;
+    }
+
+    private void initialize() {
+        if (task != null) {
+            task.cancel(true);
+            task = null;
+        }
+
+        task = new AsyncTask<Void, Void, List<Event>>() {
+            @Override
+            protected List<Event> doInBackground(Void... params) {
+                EventManager manager = EventManager.getInstance(getContext());
+                return new ArrayList<>();
+            }
+
+            @Override
+            protected void onPostExecute(List<Event> result) {
+                if (!result.isEmpty()) {
+                    insert(events.size(), result);
+                }
+
+                task = null;
+            }
+        }.execute();
     }
 
     @Override
@@ -328,30 +352,6 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
         }
     }
 
-    private void append() {
-        if (task != null) {
-            task.cancel(true);
-            task = null;
-        }
-
-        task = new AsyncTask<Void, Void, List<Event>>() {
-            @Override
-            protected List<Event> doInBackground(Void... params) {
-                EventManager manager = EventManager.getInstance(getContext());
-                return new ArrayList<>();
-            }
-
-            @Override
-            protected void onPostExecute(List<Event> result) {
-                if (!result.isEmpty()) {
-                    insert(events.size(), result);
-                }
-
-                task = null;
-            }
-        }.execute();
-    }
-
     public void scrollTo(Event event) {
         int index = events.indexOf(event);
 
@@ -363,18 +363,5 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
     @Override
     public void scrollToTop() {
 
-    }
-
-    public interface ListListener {
-
-        void onClick(int position, String id, View view);
-
-        void onLongClick(int position, String id, View view);
-
-        void onChatClick(int position, String id);
-
-        void onFavoriteClick(int position, String id);
-
-        void onDeleteClick(int position, String id);
     }
 }
