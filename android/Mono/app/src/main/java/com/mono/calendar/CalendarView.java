@@ -138,6 +138,15 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
     }
 
     @Override
+    public Map<Integer, List<Integer>> getMonthColors(int year, int month) {
+        if (listener != null) {
+            return listener.getMonthColors(year, month);
+        }
+
+        return null;
+    }
+
+    @Override
     public void onPageClick() {
         if (lastSelected != null) {
             int year = lastSelected.getYear();
@@ -167,7 +176,7 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
             select(year, month, day, true);
             lastSelected = date;
 
-            int index = items.indexOf(new CalendarPageItem(year, month, 1));
+            int index = indexOf(year, month);
             int position = layoutManager.findFirstCompletelyVisibleItemPosition();
 
             if (index != position) {
@@ -285,42 +294,36 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         }
     }
 
-    private CalendarPageItem createItem(Calendar calendar) {
-        int year = calendar.get(Calendar.YEAR);
-        int month = calendar.get(Calendar.MONTH);
-        int day = calendar.get(Calendar.DAY_OF_MONTH);
+    private CalendarPageItem createItem(LocalDate date) {
+        int year = date.getYear();
+        int month = date.getMonthOfYear() - 1;
+        int day = date.getDayOfMonth();
 
         CalendarPageItem item = new CalendarPageItem(year, month, day);
-        item.numDays = calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
-
-        if (listener != null) {
-            item.eventColors = listener.getMonthColors(item.year, item.month);
-        }
+        item.numDays = date.dayOfMonth().getMaximumValue();
 
         return item;
     }
 
     private void prepend(int year, int month, int amount) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.set(year, month, 1);
+        LocalDate date = new LocalDate(year, month + 1, 1);
 
         for (int i = 0; i < amount; i++) {
-            calendar.add(Calendar.MONTH, -1);
-            items.add(0, createItem(calendar));
+            date = date.minusMonths(1);
+            items.add(0, createItem(date));
         }
 
         adapter.notifyItemRangeInserted(0, amount);
     }
 
     private void append(int year, int month, int amount) {
-        int startPosition = items.size() - 1;
+        int startPosition = items.size();
 
-        Calendar calendar = Calendar.getInstance();
-        calendar.set(year, month, 1);
+        LocalDate date = new LocalDate(year, month + 1, 1);
 
         for (int i = 0; i < amount; i++) {
-            calendar.add(Calendar.MONTH, 1);
-            items.add(createItem(calendar));
+            date = date.plusMonths(1);
+            items.add(createItem(date));
         }
 
         adapter.notifyItemRangeInserted(startPosition, amount);
@@ -371,21 +374,18 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
     public void scrollToMonth(int year, int month) {
         recyclerView.stopScroll();
 
-        int index = items.indexOf(new CalendarPageItem(year, month, 1));
+        int index = indexOf(year, month);
 
         if (index == -1) {
             items.clear();
+
+            items.add(createItem(new LocalDate(year, month + 1, 1)));
             adapter.notifyDataSetChanged();
 
-            Calendar calendar = Calendar.getInstance();
-            calendar.set(year, month, 1);
-
-            items.add(createItem(calendar));
-            adapter.notifyItemInserted(0);
             prepend(year, month, PRECACHE_AMOUNT);
             append(year, month, PRECACHE_AMOUNT);
 
-            index = PRECACHE_AMOUNT;
+            index = indexOf(year, month);
         }
 
         layoutManager.scrollToPositionWithOffset(index, 0);
@@ -397,30 +397,33 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
     }
 
     public void select(int year, int month, int day, boolean selected) {
-        int index = items.indexOf(new CalendarPageItem(year, month, 1));
+        int index = indexOf(year, month);
+        if (index < 0) {
+            return;
+        }
 
-        if (index >= 0) {
-            CalendarPageAdapter.Holder holder =
-                (CalendarPageAdapter.Holder) recyclerView.findViewHolderForAdapterPosition(index);
+        CalendarPageAdapter.Holder holder =
+            (CalendarPageAdapter.Holder) recyclerView.findViewHolderForAdapterPosition(index);
 
-            if (holder != null) {
-                holder.calendar.select(day, selected);
-            }
+        if (holder != null) {
+            holder.calendar.select(day, selected);
         }
     }
 
     public void refresh(int year, int month) {
-        int index = items.indexOf(new CalendarPageItem(year, month, 1));
-
-        if (index >= 0) {
-            CalendarPageItem item = items.get(index);
-
-            if (listener != null) {
-                item.eventColors = listener.getMonthColors(year, month);
-            }
-
-            adapter.notifyItemChanged(index);
+        int index = indexOf(year, month);
+        if (index < 0) {
+            return;
         }
+
+        CalendarPageItem item = items.get(index);
+        item.eventColors.clear();
+
+        adapter.notifyItemChanged(index);
+    }
+
+    private int indexOf(int year, int month) {
+        return items.indexOf(new CalendarPageItem(year, month, 1));
     }
 
     public LocalDate getCurrentSelected() {
@@ -436,15 +439,16 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
     }
 
     public int getPageHeight(int year, int month) {
-        int index = items.indexOf(new CalendarPageItem(year, month, 1));
+        int index = indexOf(year, month);
+        if (index < 0) {
+            return 0;
+        }
 
-        if (index >= 0) {
-            CalendarPageAdapter.Holder holder =
-                (CalendarPageAdapter.Holder) recyclerView.findViewHolderForAdapterPosition(index);
+        CalendarPageAdapter.Holder holder =
+            (CalendarPageAdapter.Holder) recyclerView.findViewHolderForAdapterPosition(index);
 
-            if (holder != null) {
-                return holder.itemView.getMeasuredHeight();
-            }
+        if (holder != null) {
+            return holder.itemView.getMeasuredHeight();
         }
 
         return 0;

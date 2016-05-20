@@ -1,6 +1,7 @@
 package com.mono.calendar;
 
 import android.animation.Animator;
+import android.os.AsyncTask;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -20,6 +21,8 @@ public class CalendarPageAdapter extends RecyclerView.Adapter<CalendarPageAdapte
 
     private SimpleDataSource<CalendarPageItem> dataSource;
     private CalendarPageListener listener;
+
+    private AsyncTask<CalendarPageItem, Void, Map<Integer, List<Integer>>> task;
 
     public CalendarPageAdapter(CalendarPageListener listener) {
         this.listener = listener;
@@ -78,6 +81,12 @@ public class CalendarPageAdapter extends RecyclerView.Adapter<CalendarPageAdapte
             calendar.setMonthLabel(holderItem.year, holderItem.month, holderItem.day);
             calendar.setMonthData(holderItem);
 
+            if (!holderItem.eventColors.isEmpty()) {
+                calendar.setMarkerData(holderItem.eventColors);
+            } else {
+                setMarkerDataAsync(holderItem);
+            }
+
             animator = Views.fade(calendar, calendar.getAlpha(), 1, FADE_DURATION, null);
         }
 
@@ -86,6 +95,28 @@ public class CalendarPageAdapter extends RecyclerView.Adapter<CalendarPageAdapte
                 animator.cancel();
                 animator = null;
             }
+        }
+
+        private void setMarkerDataAsync(CalendarPageItem item) {
+            task = new AsyncTask<CalendarPageItem, Void, Map<Integer, List<Integer>>>() {
+
+                private CalendarPageItem item;
+
+                @Override
+                protected Map<Integer, List<Integer>> doInBackground(CalendarPageItem... params) {
+                    item = params[0];
+                    return listener.getMonthColors(item.year, item.month);
+                }
+
+                @Override
+                protected void onPostExecute(Map<Integer, List<Integer>> result) {
+                    if (result != null) {
+                        calendar.setMarkerData(item.eventColors = result);
+                    }
+
+                    task = null;
+                }
+            }.execute(item);
         }
     }
 
@@ -129,6 +160,8 @@ public class CalendarPageAdapter extends RecyclerView.Adapter<CalendarPageAdapte
     }
 
     public interface CalendarPageListener {
+
+        Map<Integer, List<Integer>> getMonthColors(int year, int month);
 
         void onPageClick();
 

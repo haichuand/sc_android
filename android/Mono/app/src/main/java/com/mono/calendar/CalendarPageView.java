@@ -17,11 +17,13 @@ import android.widget.TextView;
 
 import com.mono.R;
 import com.mono.util.Colors;
+import com.mono.util.Common;
 
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class CalendarPageView extends LinearLayout implements OnClickListener {
 
@@ -224,31 +226,18 @@ public class CalendarPageView extends LinearLayout implements OnClickListener {
 
         int index = 0, day = 1;
         for (CalendarTableCell cell : cells) {
-            if (index < item.startIndex || index >= item.startIndex + item.numDays) {
-                cell.setVisibility(INVISIBLE);
-            } else {
+            if (Common.between(index, item.startIndex, item.startIndex + item.numDays - 1)) {
                 cell.setText(String.valueOf(day));
                 cell.setVisibility(VISIBLE);
 
                 cell.setToday(false);
                 cell.setSelected(false);
 
-                if (item.eventColors.containsKey(day)) {
-                    List<Integer> eventColors = item.eventColors.get(day);
-
-                    int size = Math.min(eventColors.size(), CalendarTableCell.MAX_MARKER_COLORS);
-                    int[] colors = new int[size];
-
-                    for (int i = 0; i < size; i++) {
-                        colors[i] = eventColors.get(i) | 0xFF000000;
-                    }
-
-                    cell.setMarkerColor(colors);
-                } else {
-                    cell.clearMarkerColor();
-                }
+                cell.clearMarkerColor();
 
                 day++;
+            } else {
+                cell.setVisibility(INVISIBLE);
             }
 
             index++;
@@ -265,6 +254,31 @@ public class CalendarPageView extends LinearLayout implements OnClickListener {
 
         if (item.selectedDay > 0) {
             select(item.selectedDay, true);
+        }
+    }
+
+    public void setMarkerData(Map<Integer, List<Integer>> data) {
+        int index = 0, day = 1;
+        for (CalendarTableCell cell : cells) {
+            if (Common.between(index, item.startIndex, item.startIndex + item.numDays - 1)) {
+                if (data.containsKey(day)) {
+                    List<Integer> eventColors = data.get(day);
+
+                    int size = Math.min(eventColors.size(), CalendarTableCell.MAX_MARKER_COLORS);
+                    int[] colors = new int[size];
+
+                    for (int i = 0; i < size; i++) {
+                        colors[i] = eventColors.get(i) | 0xFF000000;
+                    }
+
+                    cell.setMarkerColor(colors);
+                    cell.invalidate();
+                }
+
+                day++;
+            }
+
+            index++;
         }
     }
 
