@@ -7,6 +7,7 @@ import android.preference.PreferenceManager;
 
 import com.mono.util.Constants;
 
+import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -206,6 +207,10 @@ public class Settings {
     }
 
     public int getCalendarWeekStart() {
+        if (!preferences.contains(PREF_CALENDAR_WEEK_START)) {
+            setCalendarWeekStart(Calendar.getInstance().getFirstDayOfWeek());
+        }
+
         String value = preferences.getString(PREF_CALENDAR_WEEK_START,
             String.valueOf(DEFAULT_CALENDAR_WEEK_START));
 

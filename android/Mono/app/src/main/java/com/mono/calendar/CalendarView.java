@@ -474,10 +474,6 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
             adapter.notifyDataSetChanged();
         }
 
-        if (dayOfWeek == 0) {
-            dayOfWeek = Calendar.getInstance().getFirstDayOfWeek();
-        }
-
         firstDayOfWeek = dayOfWeek;
     }
 
