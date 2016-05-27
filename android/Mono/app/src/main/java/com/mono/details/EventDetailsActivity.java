@@ -10,6 +10,7 @@ import android.support.v7.app.AlertDialog;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.format.DateFormat;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -27,6 +28,7 @@ import android.widget.TimePicker;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.ui.PlaceAutocomplete;
 import com.google.android.gms.maps.model.LatLng;
+import com.mono.EventManager;
 import com.mono.R;
 import com.mono.model.Attendee;
 import com.mono.model.Calendar;
@@ -312,12 +314,26 @@ public class EventDetailsActivity extends GestureActivity {
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.event_details, menu);
+
+        if (event.id != null) {
+            menu.findItem(R.id.action_delete).setVisible(true);
+        }
+
+        return true;
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
 
         switch (id) {
             case android.R.id.home:
                 onBackPressed();
+                return true;
+            case R.id.action_delete:
+                onDelete();
                 return true;
         }
 
@@ -408,6 +424,42 @@ public class EventDetailsActivity extends GestureActivity {
     public void close() {
         event = null;
         onBackPressed();
+    }
+
+    public void onDelete() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AppTheme_Dialog_Alert);
+        builder.setMessage(R.string.confirm_event_delete);
+
+        DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                switch (which) {
+                    case DialogInterface.BUTTON_POSITIVE:
+                        EventManager manager = EventManager.getInstance(EventDetailsActivity.this);
+                        manager.removeEvent(EventManager.EventAction.ACTOR_SELF, event.id,
+                            new EventManager.EventActionCallback() {
+                                @Override
+                                public void onEventAction(EventManager.EventAction data) {
+                                    if (data.getStatus() == EventManager.EventAction.STATUS_OK) {
+                                        finish();
+                                    }
+                                }
+                            }
+                        );
+                        break;
+                    case DialogInterface.BUTTON_NEGATIVE:
+                        break;
+                }
+
+                dialog.dismiss();
+            }
+        };
+
+        builder.setPositiveButton(R.string.yes, listener);
+        builder.setNegativeButton(R.string.no, listener);
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     public void showCalendarPicker() {

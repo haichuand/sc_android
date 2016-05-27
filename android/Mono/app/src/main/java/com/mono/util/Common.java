@@ -4,6 +4,8 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 
+import org.joda.time.LocalDate;
+
 import java.security.MessageDigest;
 import java.util.List;
 
@@ -17,6 +19,11 @@ public class Common {
 
     public static boolean between(float value, float min, float max) {
         return value >= min && value <= max;
+    }
+
+    public static boolean between(LocalDate value, LocalDate min, LocalDate max) {
+        return value.isEqual(min) || value.isAfter(min) && value.isBefore(max) ||
+            value.isEqual(max);
     }
 
     public static int clamp(int value, int min, int max) {
@@ -101,7 +108,7 @@ public class Common {
     }
 
     public static boolean isConnectedToInternet(Context context) {
-        NetworkInfo activeNetwork = ((ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE)).getActiveNetworkInfo();
+        NetworkInfo activeNetwork = ((ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE)).getActiveNetworkInfo();
         return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
     }
 }

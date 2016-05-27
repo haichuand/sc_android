@@ -64,14 +64,14 @@ public class EventsFragment extends Fragment implements OnPageChangeListener, Li
         Bundle args = new Bundle();
         args.putInt(ListFragment.EXTRA_POSITION, TAB_ALL);
 
-        ListFragment fragment = new ListFragment();
+        Fragment fragment = new ListFragment();
         fragment.setArguments(args);
         tabPagerAdapter.add(0, getString(R.string.all), fragment);
 
         args = new Bundle();
         args.putInt(ListFragment.EXTRA_POSITION, TAB_FAVORITE);
 
-        fragment = new ListFragment();
+        fragment = new FavoritesFragment();
         fragment.setArguments(args);
         tabPagerAdapter.add(0, getString(R.string.favorite), fragment);
     }
@@ -162,11 +162,11 @@ public class EventsFragment extends Fragment implements OnPageChangeListener, Li
 
     @Override
     public void onFavoriteClick(int position, String id) {
-        ListFragment fragment = (ListFragment) tabPagerAdapter.getItem(TAB_FAVORITE);
+        FavoritesFragment fragment = (FavoritesFragment) tabPagerAdapter.getItem(TAB_FAVORITE);
 
         switch (position) {
             case TAB_ALL:
-                fragment.insert(0, eventManager.getEvent(id, false));
+                fragment.insert(eventManager.getEvent(id, false), false);
 
                 mainInterface.setTabLayoutBadge(TAB_FAVORITE, 0,
                     String.valueOf(fragment.getCount()));
@@ -235,9 +235,7 @@ public class EventsFragment extends Fragment implements OnPageChangeListener, Li
                 listener.onEventBroadcast(data);
 
                 listener = (EventBroadcastListener) tabPagerAdapter.getItem(TAB_FAVORITE);
-                if (data.getAction() != EventAction.ACTION_CREATE) {
-                    listener.onEventBroadcast(data);
-                }
+                listener.onEventBroadcast(data);
             }
         });
     }

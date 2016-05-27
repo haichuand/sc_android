@@ -608,13 +608,9 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         titleInput.setText(event.title, TextView.BufferType.EDITABLE);
         final LinearLayout checkBoxLayout = (LinearLayout) dialog.findViewById(R.id.create_chat_attendees);
 
-        //IMPORTANT: assuming event attendee list contains myself
-        final List<String> checkedChatAttendeeIds = event.getAttendeeIdList(); //attendees with checkbox checked
-        if (!checkedChatAttendeeIds.contains(myId)) {
-            checkedChatAttendeeIds.add(myId);
-        }
+        final List<String> checkedChatAttendeeIds = new ArrayList<>(); //attendees with checkbox checked
         final List<String> listChatAttendeeIds = new ArrayList<>(); //all attendees in the checkbox list
-        listChatAttendeeIds.addAll(checkedChatAttendeeIds);
+
         final CompoundButton.OnCheckedChangeListener checkedChangeListener = new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton checkBox, boolean isChecked) {
@@ -630,9 +626,10 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
         Attendee me = new Attendee(myId);
         me.firstName = "Me";
-        addCheckBoxFromAttendee(checkBoxLayout, me, checkedChangeListener).setEnabled(false);
+        me.isFriend = true;
+        addCheckBoxFromAttendee(checkBoxLayout, me, checkedChangeListener, listChatAttendeeIds, checkedChatAttendeeIds, myId);
         for (Attendee attendee : event.attendees) {
-            addCheckBoxFromAttendee(checkBoxLayout, attendee, checkedChangeListener);
+            addCheckBoxFromAttendee(checkBoxLayout, attendee, checkedChangeListener, listChatAttendeeIds, checkedChatAttendeeIds, myId);
         }
         dialog.show();
 
@@ -665,10 +662,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                     Toast.makeText(MainActivity.this, "User already in list", Toast.LENGTH_SHORT).show();
                     addAttendeeTextView.setText("");
                 } else {
-//                    selectedAttendee = attendee;
-                    addCheckBoxFromAttendee(checkBoxLayout, attendee, checkedChangeListener);
-                    checkedChatAttendeeIds.add(attendee.id);
-                    listChatAttendeeIds.add(attendee.id);
+                    addCheckBoxFromAttendee(checkBoxLayout, attendee, checkedChangeListener, listChatAttendeeIds, checkedChatAttendeeIds, myId);
                     addAttendeeTextView.setText("");
                 }
             }
@@ -714,6 +708,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                 } else { //set conversation sync_needed flag to true
                     conversationManager.setConversationSyncNeeded(conversation.id, true);
                     checkedChatAttendeeIds.remove(myId);
+                    Toast.makeText(MainActivity.this, "Error creating conversation on server.", Toast.LENGTH_LONG).show();
                 }
 
 //                ChatsFragment chatsFragment = (ChatsFragment) getSupportFragmentManager().findFragmentByTag(getString(R.string.fragment_chats));
@@ -735,16 +730,33 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         });
     }
 
-    private CheckBox addCheckBoxFromAttendee (LinearLayout checkBoxLayout, Attendee attendee, CompoundButton.OnCheckedChangeListener checkedChangeListener) {
+    private void addCheckBoxFromAttendee (LinearLayout checkBoxLayout, Attendee attendee, CompoundButton.OnCheckedChangeListener checkedChangeListener, List<String> attendeeIdList, List<String> checkedAttendeeIdList, String myId) {
+
         ViewGroup.LayoutParams params = new ViewGroup.LayoutParams (ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         CheckBox checkBox = new CheckBox(this);
         checkBox.setLayoutParams(params);
         checkBox.setId(Integer.valueOf(attendee.id));
         checkBox.setText(attendee.toString());
-        checkBox.setChecked(true);
+        if (attendee.id.equals(myId)) {
+            if (attendeeIdList.contains(myId)) { //do not add myId twice
+                return;
+            } else {
+                attendeeIdList.add(myId);
+                checkedAttendeeIdList.add(myId);
+                checkBox.setChecked(true);
+                checkBox.setEnabled(false);
+            }
+        } else if (attendee.isFriend) {
+            checkBox.setChecked(true);
+            checkBox.setEnabled(true);
+            checkedAttendeeIdList.add(attendee.id);
+        } else {
+            checkBox.setChecked(false);
+            checkBox.setEnabled(false);
+        }
+        attendeeIdList.add(attendee.id);
         checkBox.setOnCheckedChangeListener(checkedChangeListener);
         checkBoxLayout.addView(checkBox);
-        return checkBox;
     }
 
     public void startChatRoomActivity(String eventId, long startTime, long endTime, String conversationId, String accountId) {

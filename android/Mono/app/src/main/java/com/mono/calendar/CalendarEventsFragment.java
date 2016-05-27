@@ -15,7 +15,7 @@ import android.view.ViewGroup;
 import com.mono.R;
 import com.mono.calendar.CalendarEventsAdapter.CalendarEventsItem;
 import com.mono.model.Event;
-import com.mono.util.Common;
+import com.mono.util.Colors;
 import com.mono.util.OnBackPressedListener;
 import com.mono.util.Pixels;
 import com.mono.util.SimpleDataSource;
@@ -148,14 +148,19 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
             item.type = CalendarEventsItem.TYPE_EVENT;
             item.iconResId = R.drawable.circle;
             item.iconColor = event.color;
+            item.title = event.title;
+            item.description = event.description;
+
+            TimeZone timeZone = TimeZone.getDefault();
+            DATE_FORMAT.setTimeZone(timeZone);
+            TIME_FORMAT.setTimeZone(timeZone);
+
+            String currentDate = DATE_FORMAT.format(currentTime);
+            String startDate, endDate;
 
             if (!event.allDay) {
-                TimeZone timeZone = TimeZone.getDefault();
-                DATE_FORMAT.setTimeZone(timeZone);
-                TIME_FORMAT.setTimeZone(timeZone);
-
-                String currentDate = DATE_FORMAT.format(currentTime);
-                String startDate = DATE_FORMAT.format(event.startTime);
+                startDate = DATE_FORMAT.format(event.startTime);
+                endDate = DATE_FORMAT.format(event.endTime);
 
                 if (startDate.equals(currentDate)) {
                     item.startTime = TIME_FORMAT.format(event.startTime);
@@ -163,11 +168,7 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
                     item.startTime = startDate;
                 }
 
-                TIME_FORMAT.setTimeZone(timeZone);
-                DATE_FORMAT.setTimeZone(timeZone);
-                String endDate = DATE_FORMAT.format(event.endTime);
-
-                if (endDate.equals(startDate)) {
+                if (endDate.equals(currentDate)) {
                     item.endTime = TIME_FORMAT.format(event.endTime);
                 } else {
                     item.endTime = endDate;
@@ -175,12 +176,31 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
             } else {
                 DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
 
-                item.startTime = DATE_FORMAT.format(event.startTime);
-                item.endTime = DATE_FORMAT.format(event.endTime - 1);
+                startDate  = DATE_FORMAT.format(event.startTime);
+                endDate = DATE_FORMAT.format(event.endTime - 1);
+
+                item.startTime = startDate;
+
+                if (!startDate.equals(endDate)) {
+                    item.endTime = endDate;
+                }
             }
 
-            item.title = event.title;
-            item.description = event.description;
+            int colorId;
+
+            if (startDate.equals(currentDate)) {
+                colorId = R.color.gray_dark;
+            } else {
+                colorId = R.color.gray_light_3;
+            }
+            item.startTimeColor = Colors.getColor(getContext(), colorId);
+
+            if (endDate.equals(startDate) || !endDate.equals(currentDate)) {
+                colorId = R.color.gray_light_3;
+            } else {
+                colorId =  R.color.gray_dark;
+            }
+            item.endTimeColor = Colors.getColor(getContext(), colorId);
 
             items.put(id, item);
         }
@@ -276,44 +296,76 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
         adapter.notifyDataSetChanged();
     }
 
-    public void insert(int index, Event event, boolean notify) {
-        if (!events.contains(event)) {
-            index = Common.clamp(index, 0, events.size());
-            events.add(index, event);
+    public void insert(Event event, boolean scrollTo, boolean notify) {
+        if (events.contains(event)) {
+            return;
+        }
 
-            if (notify) {
-                adapter.notifyItemInserted(index);
+        events.add(event);
+
+        Collections.sort(events, new Comparator<Event>() {
+            @Override
+            public int compare(Event e1, Event e2) {
+                return Long.compare(e1.startTime, e2.startTime);
+            }
+        });
+
+        if (notify) {
+            int index = events.indexOf(event);
+            adapter.notifyItemInserted(index);
+
+            if (scrollTo) {
+                recyclerView.smoothScrollToPosition(index);
             }
         }
     }
 
-    public void refresh(Event event, boolean notify) {
+    public void refresh(Event event, boolean scrollTo, boolean notify) {
         int index = events.indexOf(event);
+        if (index < 0) {
+            return;
+        }
 
-        if (index >= 0) {
-            events.remove(index);
-            events.add(index, event);
-            items.remove(event.id);
+        events.remove(index);
+        items.remove(event.id);
 
-            if (notify) {
-                adapter.notifyItemChanged(index);
+        events.add(event);
+
+        Collections.sort(events, new Comparator<Event>() {
+            @Override
+            public int compare(Event e1, Event e2) {
+                return Long.compare(e1.startTime, e2.startTime);
+            }
+        });
+
+        if (notify) {
+            adapter.notifyItemChanged(index);
+
+            int currentIndex = events.indexOf(event);
+            if (currentIndex != index) {
+                adapter.notifyItemMoved(index, currentIndex);
+            }
+
+            if (scrollTo) {
+                recyclerView.smoothScrollToPosition(currentIndex);
             }
         }
     }
 
     public void remove(Event event, boolean notify) {
         int index = events.indexOf(event);
+        if (index < 0) {
+            return;
+        }
 
-        if (index >= 0) {
-            events.remove(index);
+        events.remove(index);
 
-            if (notify) {
-                adapter.notifyItemRemoved(index);
-            }
+        if (notify) {
+            adapter.notifyItemRemoved(index);
+        }
 
-            if (events.isEmpty()) {
-                hide(true);
-            }
+        if (events.isEmpty()) {
+            hide(true);
         }
     }
 

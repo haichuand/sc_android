@@ -26,6 +26,7 @@
     <string name="action_clear">Clear</string>
     <string name="action_login">Sign In</string>
     <string name="action_logout">Sign Out</string>
+    <string name="action_delete">Delete</string>
 
     <string name="fragment_main">MainFragment</string>
     <string name="fragment_login">LoginFragment</string>

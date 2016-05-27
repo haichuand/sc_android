@@ -99,7 +99,11 @@ public class CalendarEventsAdapter extends RecyclerView.Adapter<CalendarEventsAd
             icon.setColorFilter(holderItem.iconColor | 0xFF000000);
 
             startTime.setText(holderItem.startTime);
+            startTime.setTextColor(holderItem.startTimeColor);
+
             endTime.setText(holderItem.endTime);
+            endTime.setTextColor(holderItem.endTimeColor);
+
             title.setText(holderItem.title);
             description.setText(holderItem.description);
         }
@@ -118,7 +122,9 @@ public class CalendarEventsAdapter extends RecyclerView.Adapter<CalendarEventsAd
         public int iconResId;
         public int iconColor;
         public String startTime;
+        public int startTimeColor;
         public String endTime;
+        public int endTimeColor;
         public String title;
         public String description;
 

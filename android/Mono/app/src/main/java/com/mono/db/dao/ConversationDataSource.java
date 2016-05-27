@@ -134,7 +134,7 @@ public class ConversationDataSource extends DataSource{
     public boolean setConversationSyncNeeded(String conversationId, boolean isSyncNeeded) {
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.Conversation.C_SYNC_NEEDED, isSyncNeeded ? 1 : 0);
-        if (database.update(DatabaseValues.Conversation.TABLE, values, DatabaseValues.Conversation.C_ID + "=" + conversationId, null) == 1) {
+        if (database.update(DatabaseValues.Conversation.TABLE, values, DatabaseValues.Conversation.C_ID + "='" + conversationId + "'", null) == 1) {
             return true;
         }
         return false;
