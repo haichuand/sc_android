@@ -42,11 +42,11 @@ public class KmlDownloadingService extends IntentService {
         endOfMonthMap.put(11,31);
     }
 
-    public static final String KML_FILENAME_TODAY = "LocationHistoryToday.kml";
-    public static final String KML_FILENAME_YESTERDAY = "LocationHistoryYesterday.kml";
+    public static final String KML_FILENAME_TODAY = "TodayLocationHistory.kml";
+    public static final String KML_FILENAME_YESTERDAY = "YesterdayLocationHistory.kml";
     public static final String REGULAR = "regular";
     public static final String FIRST_TIME = "firstTime";
-    public static final String DOWNLOAD_TYPE = "downloadType";
+    public static final String TYPE = "Type";
 
     public static final String COOKIE_URL = "https://www.google.com/maps/timeline";
     public static final String KML_URL = "https://www.google.com/maps/timeline/kml?authuser=0";
@@ -62,12 +62,13 @@ public class KmlDownloadingService extends IntentService {
     }
 
     protected void onHandleIntent (Intent intent) {
-        String downloadType = intent.getExtras().getString(DOWNLOAD_TYPE);
+        String downloadType = intent.getExtras().getString(TYPE);
         Log.i(TAG, "downloadType: "+downloadType);
         if(isSignedIn()) {
-            if(downloadType.equals("regular")) {
+            if(downloadType.equals(REGULAR)) {
+                Log.i(TAG, "call downloading regular here!");
                 downloadKML(KML_URL + "&pb=" + getPbValue(0),KML_FILENAME_TODAY);
-                //downloadKML(KML_URL + "&pb=" + getPbValue(0),KML_FILENAME_YESTERDAY);
+                downloadKML(KML_URL + "&pb=" + getPbValue(1),KML_FILENAME_YESTERDAY);
             }
             else {
                 for(int i = 0; i <= 7; i++) {

@@ -35,6 +35,12 @@ public class KmlParser {
         factory = DocumentBuilderFactory.newInstance();
     }
 
+    public ArrayList<LatLngTime> parse(String fileName1, String fileName2) {
+        ArrayList<LatLngTime> result = parse(fileName1);
+        result.addAll(parse(fileName2));
+        return result;
+    }
+
     public ArrayList<LatLngTime> parse(String fileName) {
 
         String state = Environment.getExternalStorageState();
@@ -71,7 +77,6 @@ public class KmlParser {
                         long millis = date.getTime();
                         llt.setStartTime(millis);
                         llt.setEndTime(millis);
-                        //System.out.println(time + ": " + millis);
                     }
 
                     Node locNode = locationList.item(i);
@@ -82,7 +87,6 @@ public class KmlParser {
                         double lat = Double.valueOf(split[1]);
                         llt.setLat(lat);
                         llt.setLng(lng);
-                        //System.out.println(split[0] + " " + lng + " " + split[1] + " " + lat);
                     }
                     result.add(llt);
                 }

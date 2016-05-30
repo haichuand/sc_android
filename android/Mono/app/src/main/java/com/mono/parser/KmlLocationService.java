@@ -4,10 +4,13 @@ import android.app.IntentService;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.mono.EventManager;
+import com.mono.SuperCalyPreferences;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
 import com.mono.db.dao.EventDataSource;
@@ -58,20 +61,42 @@ public class KmlLocationService extends IntentService{
 
     public void onHandleIntent (Intent intent) {
         if(intent != null) {
-            fileName = intent.getStringExtra("fileName");
+            String type = intent.getStringExtra(KmlDownloadingService.TYPE);
             parser = new KmlParser();
-            getAndSaveNewUserStayEvents(fileName);
+            if(type.equals(KmlDownloadingService.FIRST_TIME)) {
+                fileName = intent.getStringExtra("fileName");
+                getNewUserstaysForOneDay(fileName);
+            }
+            if(type.equals(KmlDownloadingService.REGULAR)) {
+                getNewUserstaysForTwoDays(KmlDownloadingService.KML_FILENAME_YESTERDAY, KmlDownloadingService.KML_FILENAME_TODAY);
+            }
         }
     }
 
-    public void getAndSaveNewUserStayEvents(String fileName) {
+    public void getNewUserstaysForOneDay(String fileName) {
         userStays = parser.parse(fileName);
 
         if(userStays == null) {
             Log.d(TAG, "No userstay available!");
             return;
         }
-        Log.d(TAG, "The number of userstays parsed from " + fileName + " is " + userStays.size());
+        saveNewUserStayEvents();
+        Log.d(TAG, "Parsing for One Day from " + fileName + " is " + userStays.size());
+    }
+
+    public void getNewUserstaysForTwoDays(String fileName1, String fileName2) {
+        userStays = parser.parse(fileName1, fileName2);
+
+        if(userStays == null) {
+            Log.d(TAG, "No userstay available!");
+            return;
+        }
+        saveNewUserStayEvents();
+        Log.d(TAG, "Parsing for Two Days from " + fileName1 +" and " + fileName + " is " + userStays.size());
+
+    }
+
+    public void saveNewUserStayEvents() {
 
         for(LatLngTime llt : userStays) {
             if(eventManager == null) {

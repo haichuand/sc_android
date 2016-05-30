@@ -20,7 +20,7 @@ import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.mono.AccountManager;
 import com.mono.R;
 import com.mono.RequestCodes;
-import com.mono.SupercalyAlarmManager;
+import com.mono.parser.SupercalyAlarmManager;
 import com.mono.chat.GcmMessage;
 import com.mono.dummy.KML.DownloadListener;
 import com.mono.network.GCMHelper;

@@ -28,7 +28,7 @@ import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.mono.R;
 import com.mono.RequestCodes;
 import com.mono.SuperCalyPreferences;
-import com.mono.SupercalyAlarmManager;
+import com.mono.parser.SupercalyAlarmManager;
 import com.mono.parser.KmlDownloadingService;
 import com.mono.web.WebActivity;
 
@@ -65,6 +65,7 @@ public class LocationSettingActivity extends AppCompatActivity {
         webViewButton = (Button)findViewById(R.id.webview_button);
         turnOnlocationButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
+
                 locationSettingRequest();
             }
         });
@@ -154,8 +155,9 @@ public class LocationSettingActivity extends AppCompatActivity {
                 if (resultCode == Activity.RESULT_OK) {
                     Log.i(TAG, "User successfully login google account!");
                     sharedPreferences.edit().putBoolean(SuperCalyPreferences.GOOGLE_ACCOUNT_SIGN_IN, true).apply();
+                    sharedPreferences.edit().putInt(SuperCalyPreferences.KML_DOWNLOAD_COUNTER, 0).apply();
                     Intent i = new Intent(getApplicationContext(), KmlDownloadingService.class);
-                    i.putExtra(KmlDownloadingService.DOWNLOAD_TYPE, KmlDownloadingService.FIRST_TIME);
+                    i.putExtra(KmlDownloadingService.TYPE, KmlDownloadingService.FIRST_TIME);
                     getApplicationContext().startService(i);
                     alarmManager.scheduleAlarm(1); // schedule an alarm for every 1-hour
                 }

@@ -104,11 +104,11 @@
             android:exported="false"/>
 
         <receiver
-            android:name=".SuperCalyAlarmReceiver"
+            android:name=".parser.SuperCalyAlarmReceiver"
             android:process=":remote"/>
 
         <receiver
-            android:name=".SupercalyDownloadReceiver"
+            android:name=".parser.SupercalyDownloadReceiver"
             android:process=":remote"
             android:exported="true">
 
