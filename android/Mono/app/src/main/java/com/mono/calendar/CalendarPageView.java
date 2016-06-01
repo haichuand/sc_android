@@ -196,7 +196,7 @@ public class CalendarPageView extends LinearLayout implements OnClickListener {
     }
 
     private void createWeekdays(int firstDayOfWeek) {
-        firstDayOfWeek = firstDayOfWeek - 1;
+        firstDayOfWeek = Common.clamp(firstDayOfWeek - 1, 0, 6);
         for (TextView weekday : weekdays) {
             weekday.setText(DEFAULT_WEEKDAYS[firstDayOfWeek]);
             firstDayOfWeek = (firstDayOfWeek + 1) % 7;
