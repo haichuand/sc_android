@@ -28,7 +28,7 @@ public class Settings {
     public static final String PREF_CALENDAR_UPDATE_TIME = "pref_calendar_update_time";
 
     public static final String PREF_CALENDAR_WEEK_START = "pref_calendar_week_start";
-    public static final int DEFAULT_CALENDAR_WEEK_START = 0;
+    public static final int DEFAULT_CALENDAR_WEEK_START = 1;
 
     public static final String PREF_CALENDAR_WEEK_NUMBER = "pref_calendar_week_number";
     public static final boolean DEFAULT_CALENDAR_WEEK_NUMBER = false;
