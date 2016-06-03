@@ -54,8 +54,10 @@ public class SupercalyDownloadReceiver extends BroadcastReceiver {
                             int curCounter = sharedPreferences.getInt(SuperCalyPreferences.KML_DOWNLOAD_COUNTER, 0);
                             sharedPreferences.edit().putInt(SuperCalyPreferences.KML_DOWNLOAD_COUNTER, curCounter+1).apply();
                             curCounter = sharedPreferences.getInt(SuperCalyPreferences.KML_DOWNLOAD_COUNTER, 0);
+                            Log.d(TAG, "Total regular kml file downloaded: " + curCounter);
                             if(curCounter != 0 && curCounter%2 == 0) {
                                 sharedPreferences.edit().putInt(SuperCalyPreferences.KML_DOWNLOAD_COUNTER, 0).apply();
+                                Log.d(TAG, "Reset the kml file counter: " + sharedPreferences.getInt(SuperCalyPreferences.KML_DOWNLOAD_COUNTER, 0));
                                 iIntent.putExtra(KmlDownloadingService.TYPE, KmlDownloadingService.REGULAR);
                                 context.startService(iIntent);
                             }

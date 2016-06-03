@@ -66,7 +66,6 @@ public class KmlDownloadingService extends IntentService {
         Log.i(TAG, "downloadType: "+downloadType);
         if(isSignedIn()) {
             if(downloadType.equals(REGULAR)) {
-                Log.i(TAG, "call downloading regular here!");
                 downloadKML(KML_URL + "&pb=" + getPbValue(0),KML_FILENAME_TODAY);
                 downloadKML(KML_URL + "&pb=" + getPbValue(1),KML_FILENAME_YESTERDAY);
             }
@@ -111,12 +110,10 @@ public class KmlDownloadingService extends IntentService {
         int year = cal.get(Calendar.YEAR);
         int month = cal.get(Calendar.MONTH);
         int date = cal.get(Calendar.DATE);
-        Log.d(TAG, "date of 300 days before today " + year + " " + month +" "+ "date");
         return "!1m8!1m3!1i"+ year + "!2i" +month + "!3i" + date + "!2m3!1i" + year + "!2i" +month + "!3i" + date;
     }
 
     private Calendar getDate(int dayBeforeToday) {
-        long now = System.currentTimeMillis();
         long timestampLong = System.currentTimeMillis()- (long)dayBeforeToday*24*60*60*1000;
         Date d = new Date(timestampLong);
         Calendar c = Calendar.getInstance();

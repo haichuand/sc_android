@@ -89,7 +89,6 @@ public class DummyFragment extends Fragment {
 
         db_test.setOnClickListener(new OnClickListener() {
             public void onClick(View view) {
-                getDate(300);
             }
         });
 
@@ -228,18 +227,6 @@ public class DummyFragment extends Fragment {
         //sendUpdateConversation(gcm, gcmMessage);
         //sendAddConversationAttendees(gcm, gcmMessage);
         //sendDropConversationAttendees(gcm, gcmMessage);
-    }
-
-    private Calendar getDate(int dayBeforeToday) {
-        long now = System.currentTimeMillis();
-        Log.d(TAG, "timestamp of today " + now);
-        long timestampLong = now - (long)dayBeforeToday*24*60*60*1000;
-        Log.d(TAG, "300 days in millisecond " + (long)dayBeforeToday*24*60*60*1000);
-        Log.d(TAG, "timestamp of 300 days before today " + timestampLong);
-        Date d = new Date(timestampLong);
-        Calendar c = Calendar.getInstance();
-        c.setTime(d);
-        return c;
     }
 
 }

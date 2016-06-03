@@ -92,7 +92,7 @@ public class KmlLocationService extends IntentService{
             return;
         }
         saveNewUserStayEvents();
-        Log.d(TAG, "Parsing for Two Days from " + fileName1 +" and " + fileName + " is " + userStays.size());
+        Log.d(TAG, "Parsing for Two Days from " + fileName1 +" and " + fileName2 + " is " + userStays.size());
 
     }
 
