@@ -71,7 +71,7 @@ public class KmlDownloadingService extends IntentService {
                 downloadKML(KML_URL + "&pb=" + getPbValue(1),KML_FILENAME_YESTERDAY);
             }
             else {
-                for(int i = 0; i <= 7; i++) {
+                for(int i = 0; i <= 365; i++) {
                     String fileName = "FirstTimeLocationHistory"+i+".kml";
                     downloadKML(KML_URL + "&pb=" + getPbValue(i),fileName);
                 }
@@ -111,29 +111,13 @@ public class KmlDownloadingService extends IntentService {
         int year = cal.get(Calendar.YEAR);
         int month = cal.get(Calendar.MONTH);
         int date = cal.get(Calendar.DATE);
-
-        int oneYearBefore = year;
-        int oneMonthBefore = month;
-        int oneDayBefore = date;
-
-        if(oneDayBefore- 1 == 0) {
-            if(oneMonthBefore - 1 < 0) {
-                oneYearBefore--;
-                oneMonthBefore = 11;
-            }
-            else {
-                oneMonthBefore--;
-            }
-            oneDayBefore = endOfMonthMap.get(oneMonthBefore);
-        }
-        else
-            oneDayBefore--;
-
-            return "!1m8!1m3!1i"+ year + "!2i" +month + "!3i" + date + "!2m3!1i" + year + "!2i" +month + "!3i" + date;
+        Log.d(TAG, "date of 300 days before today " + year + " " + month +" "+ "date");
+        return "!1m8!1m3!1i"+ year + "!2i" +month + "!3i" + date + "!2m3!1i" + year + "!2i" +month + "!3i" + date;
     }
 
     private Calendar getDate(int dayBeforeToday) {
-        long timestampLong = System.currentTimeMillis()-dayBeforeToday*24*60*60*1000;
+        long now = System.currentTimeMillis();
+        long timestampLong = System.currentTimeMillis()- (long)dayBeforeToday*24*60*60*1000;
         Date d = new Date(timestampLong);
         Calendar c = Calendar.getInstance();
         c.setTime(d);

@@ -52,11 +52,10 @@ public class SupercalyDownloadReceiver extends BroadcastReceiver {
                         }
                         else if(fileName.startsWith("Today") || fileName.startsWith("Yesterday")) {
                             int curCounter = sharedPreferences.getInt(SuperCalyPreferences.KML_DOWNLOAD_COUNTER, 0);
-                            Log.d(TAG, "Total regular kml files been downloaded before: "+curCounter);
                             sharedPreferences.edit().putInt(SuperCalyPreferences.KML_DOWNLOAD_COUNTER, curCounter+1).apply();
                             curCounter = sharedPreferences.getInt(SuperCalyPreferences.KML_DOWNLOAD_COUNTER, 0);
                             if(curCounter != 0 && curCounter%2 == 0) {
-                                Log.d(TAG, "Total regular kml files been downloaded to trigger parsing: " + curCounter);
+                                sharedPreferences.edit().putInt(SuperCalyPreferences.KML_DOWNLOAD_COUNTER, 0).apply();
                                 iIntent.putExtra(KmlDownloadingService.TYPE, KmlDownloadingService.REGULAR);
                                 context.startService(iIntent);
                             }
