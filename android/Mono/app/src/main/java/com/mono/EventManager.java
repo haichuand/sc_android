@@ -187,6 +187,29 @@ public class EventManager {
         return result;
     }
 
+    public List<Event> getEvents(String query, int limit, long... calendarIds) {
+        List<Event> result = new ArrayList<>();
+
+        long startTime = 0;
+        long endTime = System.currentTimeMillis() + 10 * 365 * Constants.DAY_MS;
+
+        CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
+        result.addAll(provider.getEvents(startTime, endTime, query, limit, calendarIds));
+
+        EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+        List<Event> events = dataSource.getEvents(startTime, endTime, query, limit, calendarIds);
+
+        for (Event event : events) {
+            add(event);
+
+            if (!result.contains(event)) {
+                result.add(event);
+            }
+        }
+
+        return result;
+    }
+
     public Map<Integer, List<Integer>> getEventColorsByMonth(int year, int month,
             long... calendarIds) {
         Map<Integer, List<Integer>> result = new HashMap<>();

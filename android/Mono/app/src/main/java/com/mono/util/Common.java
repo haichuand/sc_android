@@ -3,6 +3,8 @@ package com.mono.util;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.text.Html;
+import android.text.Spanned;
 
 import org.joda.time.LocalDate;
 
@@ -85,6 +87,31 @@ public class Common {
         }
 
         return builder.toString();
+    }
+
+    public static Spanned highlight(String text, String[] terms, int color) {
+        String result = text != null ? text : "";
+
+        if (terms != null && terms.length > 0) {
+            for (String term : terms) {
+                int index = result.toLowerCase().indexOf(term.toLowerCase());
+                int length = term.length();
+
+                if (index != -1) {
+                    result = String.format(
+                        "%s<font color=\"#%x\">%s</font>%s",
+                        result.substring(0, index),
+                        color & 0x00FFFFFF,
+                        result.substring(index, index + length),
+                        result.substring(index + length)
+                    );
+                }
+            }
+        }
+
+        result = result.replace("\n", "<br />");
+
+        return Html.fromHtml(result);
     }
 
     public static String md5(String str) {

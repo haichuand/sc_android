@@ -10,14 +10,17 @@ public class Account implements Parcelable {
     public String firstName;
     public String lastName;
     public String email;
+    public String phone;
 
     public Account(long id) {
         this.id = id;
     }
 
-    public Account(long id, String email, String firstName, String lastName, String username) {
+    public Account(long id, String email, String phone, String firstName, String lastName,
+            String username) {
         this.id = id;
         this.email = email;
+        this.phone = phone;
         this.firstName = firstName;
         this.lastName = lastName;
         this.username = username;
@@ -29,6 +32,7 @@ public class Account implements Parcelable {
         firstName = in.readString();
         lastName = in.readString();
         email = in.readString();
+        phone = in.readString();
     }
 
     public static final Creator<Account> CREATOR = new Creator<Account>() {
@@ -55,5 +59,6 @@ public class Account implements Parcelable {
         dest.writeString(firstName);
         dest.writeString(lastName);
         dest.writeString(email);
+        dest.writeString(phone);
     }
 }

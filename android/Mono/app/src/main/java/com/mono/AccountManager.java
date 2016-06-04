@@ -19,6 +19,8 @@ public class AccountManager {
     private static final String ACCOUNT_USERNAME_KEY = "username";
     private static final String ACCOUNT_FIRST_NAME_KEY = "first_name";
     private static final String ACCOUNT_LAST_NAME_KEY = "last_name";
+    private static final String ACCOUNT_EMAIL_KEY = "email";
+    private static final String ACCOUNT_PHONE_KEY = "phone";
 
     private static AccountManager instance;
 
@@ -50,14 +52,16 @@ public class AccountManager {
             Map<String, String> values = new HashMap<>();
 
             for (String pair : Common.explode(",", value)) {
-                String[] temp = pair.split(":");
-                values.put(temp[0], temp[1]);
+                String[] temp = Common.explode(":", pair);
+                values.put(temp[0], temp.length > 1 ? temp[1] : null);
             }
 
             account = new Account(Long.parseLong(values.get(ACCOUNT_ID_KEY)));
             account.username = values.get(ACCOUNT_USERNAME_KEY);
             account.firstName = values.get(ACCOUNT_FIRST_NAME_KEY);
             account.lastName = values.get(ACCOUNT_LAST_NAME_KEY);
+            account.email = values.get(ACCOUNT_EMAIL_KEY);
+            account.phone = values.get(ACCOUNT_PHONE_KEY);
         }
 
         return account;
@@ -70,7 +74,9 @@ public class AccountManager {
             ACCOUNT_ID_KEY + ":" + account.id,
             ACCOUNT_USERNAME_KEY + ":" + account.username,
             ACCOUNT_FIRST_NAME_KEY + ":" + account.firstName,
-            ACCOUNT_LAST_NAME_KEY + ":" + account.lastName
+            ACCOUNT_LAST_NAME_KEY + ":" + account.lastName,
+            ACCOUNT_EMAIL_KEY + ":" + account.email,
+            ACCOUNT_PHONE_KEY + ":" + account.phone
         };
 
         SharedPreferences.Editor editor = preferences.edit();

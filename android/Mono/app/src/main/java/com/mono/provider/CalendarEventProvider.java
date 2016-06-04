@@ -373,6 +373,42 @@ public class CalendarEventProvider {
         return events;
     }
 
+    public List<Event> getEvents(long startTime, long endTime, String query, int limit,
+            long... calendarIds) {
+        List<Event> events = new ArrayList<>();
+
+        Uri.Builder builder = Instances.CONTENT_SEARCH_URI.buildUpon();
+        ContentUris.appendId(builder, startTime);
+        ContentUris.appendId(builder, endTime);
+        builder.appendPath(query);
+
+        List<String> args = new ArrayList<>();
+
+        String selection = "";
+        if (calendarIds != null && calendarIds.length > 0) {
+            selection = getCalendarSelection(args, calendarIds);
+        }
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
+
+        Cursor cursor = context.getContentResolver().query(
+            builder.build(),
+            CalendarValues.Instance.PROJECTION,
+            selection,
+            selectionArgs,
+            Instances.BEGIN + " DESC LIMIT " + limit
+        );
+
+        if (cursor != null) {
+            events.addAll(cursorInstancesToEvents(cursor));
+            cursor.close();
+
+            resolveEventsData(events);
+        }
+
+        return events;
+    }
+
     public Map<Integer, List<Integer>> getEventColors(int year, int month, long... calendarIds) {
         Map<Integer, List<Integer>> result = new HashMap<>();
 

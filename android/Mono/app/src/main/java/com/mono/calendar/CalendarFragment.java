@@ -15,8 +15,10 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.widget.SearchView;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -30,11 +32,13 @@ import com.mono.EventManager.EventBroadcastListener;
 import com.mono.MainFragment;
 import com.mono.MainInterface;
 import com.mono.R;
+import com.mono.search.SearchFragment;
 import com.mono.calendar.CalendarEventsFragment.CalendarEventsListener;
 import com.mono.calendar.CalendarView.CalendarListener;
 import com.mono.model.Calendar;
 import com.mono.model.Event;
 import com.mono.provider.CalendarProvider;
+import com.mono.search.SearchHandler;
 import com.mono.settings.Settings;
 import com.mono.util.Common;
 import com.mono.util.OnBackPressedListener;
@@ -63,6 +67,8 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
 
     private CalendarView calendarView;
     private CalendarEventsFragment eventsFragment;
+
+    private SearchView searchView;
 
     @Override
     public void onAttach(Context context) {
@@ -123,6 +129,15 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         menu.clear();
         inflater.inflate(R.menu.calendar, menu);
+
+        MenuItem item = menu.findItem(R.id.action_search);
+        searchView = (SearchView) MenuItemCompat.getActionView(item);
+
+        FragmentManager manager = getActivity().getSupportFragmentManager();
+        SearchFragment fragment = (SearchFragment) manager.findFragmentById(R.id.search_fragment);
+        if (fragment != null) {
+            fragment.setSearchView(searchView, new SearchHandler(fragment));
+        }
     }
 
     @Override
@@ -167,6 +182,18 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
 
     @Override
     public boolean onBackPressed() {
+        if (searchView != null && !searchView.isIconified()) {
+            searchView.setIconified(true);
+            searchView.onActionViewCollapsed();
+
+            FragmentManager manager = getActivity().getSupportFragmentManager();
+            SearchFragment fragment = (SearchFragment) manager.findFragmentById(R.id.search_fragment);
+            if (fragment != null) {
+                fragment.setVisible(false);
+            }
+            return true;
+        }
+
         return eventsFragment.onBackPressed();
     }
 

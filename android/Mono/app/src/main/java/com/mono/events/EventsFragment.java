@@ -4,9 +4,12 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v4.view.ViewPager.OnPageChangeListener;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.widget.SearchView;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -23,6 +26,9 @@ import com.mono.events.ListFragment.ListListener;
 import com.mono.model.Calendar;
 import com.mono.model.Event;
 import com.mono.provider.CalendarProvider;
+import com.mono.search.SearchFragment;
+import com.mono.search.SearchHandler;
+import com.mono.util.OnBackPressedListener;
 import com.mono.util.SimpleTabLayout.Scrollable;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
 import com.mono.util.SimpleTabPagerAdapter;
@@ -30,8 +36,8 @@ import com.mono.util.SimpleViewPager;
 
 import java.util.List;
 
-public class EventsFragment extends Fragment implements OnPageChangeListener, ListListener,
-        EventBroadcastListener, TabPagerCallback, Scrollable {
+public class EventsFragment extends Fragment implements OnBackPressedListener,
+        OnPageChangeListener, ListListener, EventBroadcastListener, TabPagerCallback, Scrollable {
 
     public static final int TAB_ALL = 0;
     public static final int TAB_FAVORITE = 1;
@@ -41,6 +47,8 @@ public class EventsFragment extends Fragment implements OnPageChangeListener, Li
 
     private SimpleTabPagerAdapter tabPagerAdapter;
     private SimpleViewPager viewPager;
+
+    private SearchView searchView;
 
     @Override
     public void onAttach(Context context) {
@@ -98,6 +106,15 @@ public class EventsFragment extends Fragment implements OnPageChangeListener, Li
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         menu.clear();
         inflater.inflate(R.menu.dashboard, menu);
+
+        MenuItem item = menu.findItem(R.id.action_search);
+        searchView = (SearchView) MenuItemCompat.getActionView(item);
+
+        FragmentManager manager = getActivity().getSupportFragmentManager();
+        SearchFragment fragment = (SearchFragment) manager.findFragmentById(R.id.search_fragment);
+        if (fragment != null) {
+            fragment.setSearchView(searchView, new SearchHandler(fragment));
+        }
     }
 
     @Override
@@ -127,6 +144,23 @@ public class EventsFragment extends Fragment implements OnPageChangeListener, Li
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onBackPressed() {
+        if (searchView != null && !searchView.isIconified()) {
+            searchView.setIconified(true);
+            searchView.onActionViewCollapsed();
+
+            FragmentManager manager = getActivity().getSupportFragmentManager();
+            SearchFragment fragment = (SearchFragment) manager.findFragmentById(R.id.search_fragment);
+            if (fragment != null) {
+                fragment.setVisible(false);
+            }
+            return true;
+        }
+
+        return false;
     }
 
     @Override

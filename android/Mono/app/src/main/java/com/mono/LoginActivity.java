@@ -157,6 +157,7 @@ public class LoginActivity extends AppCompatActivity {
             account.lastName = responseJson.getString(HttpServerManager.LAST_NAME);
             account.username = responseJson.getString(HttpServerManager.USER_NAME);
             account.email = responseJson.getString(HttpServerManager.EMAIL);
+            account.phone = responseJson.getString(HttpServerManager.PHONE_NUMBER);
             AccountManager accountManager = AccountManager.getInstance(this);
             accountManager.setAccount(account);
 

@@ -355,6 +355,62 @@ public class EventDataSource extends DataSource {
         return events;
     }
 
+    public List<Event> getEvents(long startTime, long endTime, String query, int limit,
+            long... calendarIds) {
+        List<Event> events = new ArrayList<>();
+
+        List<String> args = new ArrayList<>();
+
+        String selection = "";
+        if (calendarIds != null && calendarIds.length > 0) {
+            selection = getCalendarSelection(args, calendarIds) + " AND ";
+        }
+
+        selection += getTimeSelection(args, startTime, endTime) + " AND ";
+
+        String querySelection = "";
+        String[] terms = Common.explode(" ", query);
+        for (int i = 0; i < terms.length; i++) {
+            if (i > 0) querySelection += " AND ";
+
+            querySelection += "(";
+
+            querySelection += DatabaseValues.Event.TITLE + " LIKE '%' || ? || '%'";
+            args.add(terms[i]);
+
+            querySelection += " OR " + DatabaseValues.Event.DESC + " LIKE '%' || ? || '%'";
+            args.add(terms[i]);
+
+            querySelection += " OR " + DatabaseValues.Event.LOCATION + " LIKE '%' || ? || '%'";
+            args.add(terms[i]);
+
+            querySelection += ")";
+        }
+        selection += String.format("(%s)", querySelection);
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
+
+        Cursor cursor = database.select(
+            DatabaseValues.Event.TABLE,
+            DatabaseValues.Event.PROJECTION,
+            selection,
+            selectionArgs,
+            null,
+            DatabaseValues.Event.START_TIME + " DESC",
+            null,
+            limit
+        );
+
+        while (cursor.moveToNext()) {
+            Event event = cursorToEvent(cursor);
+            events.add(event);
+        }
+
+        cursor.close();
+
+        return events;
+    }
+
     public Map<Integer, List<Integer>> getEventColors(int year, int month, long... calendarIds) {
         Map<Integer, List<Integer>> result = new HashMap<>();
 

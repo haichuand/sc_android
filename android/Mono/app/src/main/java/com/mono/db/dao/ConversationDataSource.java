@@ -503,4 +503,50 @@ public class ConversationDataSource extends DataSource{
         return attendeeList;
     }
 
+    public List<Message> getMessages(String query, int limit) {
+        List<Message> messages = new ArrayList<>();
+
+        List<String> args = new ArrayList<>();
+
+        String selection = "";
+
+        String[] terms = Common.explode(" ", query);
+        for (int i = 0; i < terms.length; i++) {
+            if (i > 0) selection += " AND ";
+            selection += DatabaseValues.ConversationContent.TEXT + " LIKE '%' || ? || '%'";
+            args.add(terms[i]);
+        }
+        selection = String.format("(%s)", selection);
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
+
+        Cursor cursor = database.select(
+            DatabaseValues.ConversationContent.TABLE,
+            DatabaseValues.ConversationContent.PROJECTION,
+            selection,
+            selectionArgs,
+            null,
+            DatabaseValues.ConversationContent.TIMESTAMP + " DESC",
+            null,
+            limit
+        );
+
+        while (cursor.moveToNext()) {
+            Message msg = cursorToMessage(cursor);
+            messages.add(msg);
+        }
+
+        cursor.close();
+
+        return messages;
+    }
+
+    private Message cursorToMessage(Cursor cursor) {
+        String id = cursor.getString(DatabaseValues.ConversationContent.INDEX_C_ID);
+        String senderId = cursor.getString(DatabaseValues.ConversationContent.INDEX_SENDER_ID);
+        String text = cursor.getString(DatabaseValues.ConversationContent.INDEX_TEXT);
+        long timestamp = cursor.getLong(DatabaseValues.ConversationContent.INDEX_TIMESTAMP);
+
+        return new Message(senderId, id, text, timestamp);
+    }
 }
