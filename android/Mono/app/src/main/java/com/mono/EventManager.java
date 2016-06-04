@@ -15,6 +15,8 @@ import com.mono.util.Log;
 import com.mono.util.Strings;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -206,6 +208,13 @@ public class EventManager {
                 result.add(event);
             }
         }
+
+        Collections.sort(result, new Comparator<Event>() {
+            @Override
+            public int compare(Event e1, Event e2) {
+                return Long.compare(e2.startTime, e1.startTime);
+            }
+        });
 
         return result;
     }
