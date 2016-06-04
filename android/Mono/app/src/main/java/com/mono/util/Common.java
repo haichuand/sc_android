@@ -9,6 +9,8 @@ import android.text.Spanned;
 import org.joda.time.LocalDate;
 
 import java.security.MessageDigest;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 public class Common {
@@ -93,23 +95,33 @@ public class Common {
         String result = text != null ? text : "";
 
         if (terms != null && terms.length > 0) {
+            Arrays.sort(terms, new Comparator<String>() {
+                @Override
+                public int compare(String s1, String s2) {
+                    return Integer.compare(s2.length(), s1.length());
+                }
+            });
+
             for (String term : terms) {
                 int index = result.toLowerCase().indexOf(term.toLowerCase());
+                if (index == -1 || index > 0 && result.charAt(index - 1) == '!') {
+                    continue;
+                }
+
                 int length = term.length();
 
-                if (index != -1) {
-                    result = String.format(
-                        "%s<font color=\"#%x\">%s</font>%s",
-                        result.substring(0, index),
-                        color & 0x00FFFFFF,
-                        result.substring(index, index + length),
-                        result.substring(index + length)
-                    );
-                }
+                result = String.format(
+                    "%s!<%s!>%s",
+                    result.substring(0, index),
+                    result.substring(index, index + length),
+                    result.substring(index + length)
+                );
             }
         }
 
-        result = result.replace("\n", "<br />");
+        result = result.replace("!<", String.format("<font color=\"#%x\">", color & 0x00FFFFFF));
+        result = result.replace("!>", "</font>");
+        result = result.replace("\n", "<br>");
 
         return Html.fromHtml(result);
     }
