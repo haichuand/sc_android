@@ -146,6 +146,14 @@ public class Common {
         return result;
     }
 
+    public static int random(int... values) {
+        return values[(int) (Math.random() * values.length) % values.length];
+    }
+
+    public static String random(String... values) {
+        return values[(int) (Math.random() * values.length) % values.length];
+    }
+
     public static boolean isConnectedToInternet(Context context) {
         NetworkInfo activeNetwork = ((ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE)).getActiveNetworkInfo();
         return activeNetwork != null && activeNetwork.isConnectedOrConnecting();

@@ -134,8 +134,8 @@ public class SearchAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
             }
 
             description.setText(item.description);
-            date.setText(item.dateTime);
 
+            date.setText(item.dateTime);
             if (item.dateTimeColor != 0) {
                 date.setTextColor(item.dateTimeColor);
             } else {
@@ -155,10 +155,13 @@ public class SearchAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
 
     public static class ChatItem extends HolderItem {
 
+        public Spanned name;
         public Spanned title;
         public Spanned message;
         public String dateTime;
+        public int dateTimeColor;
         public int direction;
+        public int color;
 
         public ChatItem(String id) {
             this.id = id;
@@ -167,31 +170,41 @@ public class SearchAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
 
     public class ChatHolder extends SimpleViewHolder {
 
-        public TextView senderName;
-        public ImageView sendImage;
+        public TextView title;
+        public TextView date;
+        public TextView name;
+        public ImageView image;
         public ViewGroup bubble;
-        public TextView chatText;
-        public TextView timeStamp;
+        public TextView text;
 
         public ChatHolder(View itemView) {
             super(itemView);
 
-            senderName = (TextView) itemView.findViewById(R.id.senderName);
-            sendImage = (ImageView) itemView.findViewById(R.id.senderImage);
+            title = (TextView) itemView.findViewById(R.id.title);
+            date = (TextView) itemView.findViewById(R.id.date);
+            name = (TextView) itemView.findViewById(R.id.senderName);
+            image = (ImageView) itemView.findViewById(R.id.senderImage);
             bubble = (ViewGroup) itemView.findViewById(R.id.chat_bubble);
-            chatText = (TextView) itemView.findViewById(R.id.text);
-            timeStamp = (TextView) itemView.findViewById(R.id.messageTime);
+            text = (TextView) itemView.findViewById(R.id.text);
         }
 
         @Override
         public void onBind(HolderItem holderItem) {
             final ChatItem item = (ChatItem) holderItem;
 
-            int color;
+            title.setText(item.title);
 
-            senderName.setText(R.string.me);
-            color = Colors.getColor(itemView.getContext(), R.color.blue_1);
-            sendImage.getDrawable().setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
+            date.setText(item.dateTime);
+            if (item.dateTimeColor != 0) {
+                date.setTextColor(item.dateTimeColor);
+            } else {
+                date.setTextColor(Colors.getColor(itemView.getContext(), R.color.gray_light_3));
+            }
+
+            int color = item.color;
+
+            name.setText(item.name);
+            image.getDrawable().setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
 
             View arrow = bubble.findViewById(R.id.arrow);
             arrow.getBackground().setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
@@ -203,8 +216,8 @@ public class SearchAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
                 arrow.setRotation(90);
             }
 
-            chatText.getBackground().setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
-            chatText.setText(item.message);
+            text.getBackground().setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
+            text.setText(item.message);
 
             int textColor;
             if (Colors.getLuma(color) < 160) {
@@ -212,9 +225,7 @@ public class SearchAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
             } else {
                 textColor = Colors.getColor(itemView.getContext(), R.color.gray_dark);
             }
-            chatText.setTextColor(textColor);
-
-            timeStamp.setText(item.dateTime);
+            text.setTextColor(textColor);
 
             if (listener != null) {
                 itemView.setOnClickListener(new OnClickListener() {

@@ -96,6 +96,7 @@ public class DatabaseValues {
     }
 
     public static class User {
+
         public static final String TABLE = "`user`";
 
         public static final String U_ID = "`u_id`";
@@ -105,17 +106,17 @@ public class DatabaseValues {
         public static final String FIRST_NAME = "`first_name`";
         public static final String LAST_NAME = "`last_name`";
         public static final String USER_NAME = "`user_name`";
-        public static final String IS_FRIEND = "`is_friend`";
+        public static final String FRIEND = "`is_friend`";
 
         public static final String[] PROJECTION = {
-                User.U_ID,
-                User.MEDIA_ID,
-                User.PHONE_NUMBER,
-                User.EMAIL,
-                User.FIRST_NAME,
-                User.LAST_NAME,
-                User.USER_NAME,
-                User.IS_FRIEND
+            User.U_ID,
+            User.MEDIA_ID,
+            User.PHONE_NUMBER,
+            User.EMAIL,
+            User.FIRST_NAME,
+            User.LAST_NAME,
+            User.USER_NAME,
+            User.FRIEND
         };
 
         public static final int INDEX_U_ID = 0;
@@ -132,14 +133,14 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                    U_ID + " TEXT PRIMARY KEY",
-                    MEDIA_ID + " TEXT",
-                    PHONE_NUMBER + " TEXT",
-                    EMAIL + " TEXT",
-                    FIRST_NAME + " TEXT",
-                    LAST_NAME + " TEXT",
-                    USER_NAME + " TEXT",
-                    IS_FRIEND + " INTEGER"
+                U_ID + " TEXT PRIMARY KEY",
+                MEDIA_ID + " TEXT",
+                PHONE_NUMBER + " TEXT",
+                EMAIL + " TEXT",
+                FIRST_NAME + " TEXT",
+                LAST_NAME + " TEXT",
+                USER_NAME + " TEXT",
+                FRIEND + " INTEGER"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);

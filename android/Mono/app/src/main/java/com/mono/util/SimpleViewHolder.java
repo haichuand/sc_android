@@ -18,6 +18,7 @@ public abstract class SimpleViewHolder extends RecyclerView.ViewHolder {
     public static abstract class HolderItem {
 
         public String id;
+        public String sortValue;
 
         @Override
         public boolean equals(Object object) {

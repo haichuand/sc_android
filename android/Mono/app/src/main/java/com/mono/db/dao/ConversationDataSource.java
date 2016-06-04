@@ -461,7 +461,7 @@ public class ConversationDataSource extends DataSource{
                             DatabaseValues.User.FIRST_NAME,
                             DatabaseValues.User.LAST_NAME,
                             DatabaseValues.User.USER_NAME,
-                            DatabaseValues.User.IS_FRIEND
+                            DatabaseValues.User.FRIEND
                     },
                     DatabaseValues.User.U_ID + " = ?",
                     new String[]{
@@ -506,6 +506,28 @@ public class ConversationDataSource extends DataSource{
     public List<Message> getMessages(String query, int limit) {
         List<Message> messages = new ArrayList<>();
 
+        String table = String.format(
+            "%s cc LEFT JOIN %s c ON cc.%s = c.%s LEFT JOIN %s u ON cc.%s = u.%s",
+            DatabaseValues.ConversationContent.TABLE,
+            DatabaseValues.Conversation.TABLE,
+            DatabaseValues.ConversationContent.C_ID,
+            DatabaseValues.Conversation.C_ID,
+            DatabaseValues.User.TABLE,
+            DatabaseValues.ConversationContent.SENDER_ID,
+            DatabaseValues.User.U_ID
+        );
+
+        String[] projection = {
+            "cc." + DatabaseValues.ConversationContent.C_ID,
+            "cc." + DatabaseValues.ConversationContent.SENDER_ID,
+            "cc." + DatabaseValues.ConversationContent.TEXT,
+            "cc." + DatabaseValues.ConversationContent.TIMESTAMP,
+            "c." + DatabaseValues.Conversation.C_NAME,
+            "u." + DatabaseValues.User.FIRST_NAME,
+            "u." + DatabaseValues.User.LAST_NAME,
+            "u." + DatabaseValues.User.USER_NAME
+        };
+
         List<String> args = new ArrayList<>();
 
         String selection = "";
@@ -513,16 +535,32 @@ public class ConversationDataSource extends DataSource{
         String[] terms = Common.explode(" ", query);
         for (int i = 0; i < terms.length; i++) {
             if (i > 0) selection += " AND ";
-            selection += DatabaseValues.ConversationContent.TEXT + " LIKE '%' || ? || '%'";
-            args.add(terms[i]);
+
+            selection += "(";
+
+            String[] fields = {
+                "cc." + DatabaseValues.ConversationContent.TEXT,
+                "c." + DatabaseValues.Conversation.C_NAME,
+                "u." + DatabaseValues.User.FIRST_NAME,
+                "u." + DatabaseValues.User.LAST_NAME,
+                "u." + DatabaseValues.User.USER_NAME
+            };
+
+            for (int j = 0; j < fields.length; j++) {
+                if (j > 0) selection += " OR ";
+                selection += fields[j] + " LIKE '%' || ? || '%'";
+                args.add(terms[i]);
+            }
+
+            selection += ")";
         }
         selection = String.format("(%s)", selection);
 
         String[] selectionArgs = args.toArray(new String[args.size()]);
 
         Cursor cursor = database.select(
-            DatabaseValues.ConversationContent.TABLE,
-            DatabaseValues.ConversationContent.PROJECTION,
+            table,
+            projection,
             selection,
             selectionArgs,
             null,
@@ -532,7 +570,18 @@ public class ConversationDataSource extends DataSource{
         );
 
         while (cursor.moveToNext()) {
-            Message msg = cursorToMessage(cursor);
+            String id = cursor.getString(0);
+            String senderId = cursor.getString(1);
+            String text = cursor.getString(2);
+            long timestamp = cursor.getLong(3);
+
+            Message msg = new Message(senderId, id, text, timestamp);
+            msg.color = 0;
+            msg.title = cursor.getString(4);
+            msg.firstName = cursor.getString(5);
+            msg.lastName = cursor.getString(6);
+            msg.username = cursor.getString(7);
+
             messages.add(msg);
         }
 

@@ -375,14 +375,17 @@ public class EventDataSource extends DataSource {
 
             querySelection += "(";
 
-            querySelection += DatabaseValues.Event.TITLE + " LIKE '%' || ? || '%'";
-            args.add(terms[i]);
+            String[] fields = {
+                DatabaseValues.Event.TITLE,
+                DatabaseValues.Event.DESC,
+                DatabaseValues.Event.LOCATION
+            };
 
-            querySelection += " OR " + DatabaseValues.Event.DESC + " LIKE '%' || ? || '%'";
-            args.add(terms[i]);
-
-            querySelection += " OR " + DatabaseValues.Event.LOCATION + " LIKE '%' || ? || '%'";
-            args.add(terms[i]);
+            for (int j = 0; j < fields.length; j++) {
+                if (j > 0) querySelection += " OR ";
+                querySelection += fields[j] + " LIKE '%' || ? || '%'";
+                args.add(terms[i]);
+            }
 
             querySelection += ")";
         }

@@ -136,7 +136,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         FragmentManager manager = getActivity().getSupportFragmentManager();
         SearchFragment fragment = (SearchFragment) manager.findFragmentById(R.id.search_fragment);
         if (fragment != null) {
-            fragment.setSearchView(searchView, new SearchHandler(fragment));
+            fragment.setSearchView(searchView, new SearchHandler(fragment, true, true));
         }
     }
 

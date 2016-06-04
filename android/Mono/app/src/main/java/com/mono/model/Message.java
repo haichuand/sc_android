@@ -1,25 +1,25 @@
 package com.mono.model;
 
-import android.content.SharedPreferences;
-import android.os.Parcel;
-import android.os.Parcelable;
-import android.preference.PreferenceManager;
-
 /**
  * Created by xuejing on 3/10/16.
  */
 public class Message {
+
     private String senderId;
     private String conversationId;
     private String messageText;
     private long timestamp;
+    public int color;
+    public String title;
+    public String firstName;
+    public String lastName;
+    public String username;
 
     public Message(String senderId, String conversationId, String messageText, long timestamp) {
         this.senderId = senderId;
         this.conversationId = conversationId;
         this.messageText = messageText;
         this.timestamp = timestamp;
-
     }
 
     public String getUserId() {
@@ -30,9 +30,13 @@ public class Message {
         this.senderId = senderId;
     }
 
-    public String getConversationId() { return this.conversationId; }
+    public String getConversationId() {
+        return this.conversationId;
+    }
 
-    public void setConversationId(String conversationId) {this.conversationId = conversationId; }
+    public void setConversationId(String conversationId) {
+        this.conversationId = conversationId;
+    }
 
     public String getMessageText() {
         return messageText;
@@ -42,7 +46,11 @@ public class Message {
         this.messageText = messageText;
     }
 
-    public long getTimestamp() { return this.timestamp; }
+    public long getTimestamp() {
+        return this.timestamp;
+    }
 
-    public void setTimestamp (long timestamp) { this.timestamp = timestamp; }
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
 }
