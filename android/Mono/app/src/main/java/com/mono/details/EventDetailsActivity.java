@@ -76,6 +76,9 @@ public class EventDetailsActivity extends GestureActivity {
     private Event original;
     private Event event;
 
+    private Calendar currentCalendar;
+    private int color;
+
     static {
         DATE_FORMAT = new SimpleDateFormat("EEE, MMMM d, yyyy", Locale.getDefault());
         TIME_FORMAT = new SimpleDateFormat("h:mm a", Locale.getDefault());
@@ -358,6 +361,7 @@ public class EventDetailsActivity extends GestureActivity {
 
         this.original = original;
         event = new Event(original);
+        currentCalendar = calendar;
 
         this.calendar.setText(calendar.name);
 
@@ -365,8 +369,8 @@ public class EventDetailsActivity extends GestureActivity {
             title.setText(event.title);
         }
 
-        int color = (event.color != 0 ? event.color : calendar.color) | 0xFF000000;
-        colorPicker.setColorFilter(color);
+        color = event.color != 0 ? event.color : calendar.color;
+        setColorPicker(color);
 
         if (event.timeZone == null) {
             event.timeZone = TimeZone.getDefault().getID();
@@ -475,11 +479,11 @@ public class EventDetailsActivity extends GestureActivity {
         builder.setItems(items, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                if (which > 0) {
-                    Calendar cal = calendars.get(which);
-                    event.calendarId = cal.id;
-                } else {
-                    event.calendarId = -1;
+                currentCalendar = which > 0 ? calendars.get(which - 1) : new Calendar(-1);
+                event.calendarId = currentCalendar.id;
+
+                if (event.color == 0) {
+                    setColorPicker(currentCalendar.color);
                 }
 
                 calendar.setText(items[which]);
@@ -489,19 +493,35 @@ public class EventDetailsActivity extends GestureActivity {
     }
 
     public void showColorPicker() {
+        int[] colors;
+        if (event.color == 0) {
+            colors = new int[]{currentCalendar.color};
+        } else if (event.color != currentCalendar.color) {
+            colors = new int[]{currentCalendar.color, event.color};
+        } else {
+            colors = new int[]{event.color};
+        }
+
         ColorPickerDialog dialog = new ColorPickerDialog(
             this,
-            event.color,
+            colors,
+            color,
             new ColorPickerDialog.OnColorSetListener() {
                 @Override
                 public void onColorSet(int color) {
-                    colorPicker.setColorFilter(color);
+                    setColorPicker(color);
                     event.color = color;
                 }
             }
         );
 
         dialog.show();
+    }
+
+    public void setColorPicker(int color) {
+        this.color = color;
+        color |= 0xFF000000;
+        colorPicker.setColorFilter(color);
     }
 
     public void showPlacePicker() {

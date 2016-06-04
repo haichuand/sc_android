@@ -1,8 +1,6 @@
 package com.mono.details;
 
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.DialogInterface.OnClickListener;
 import android.graphics.PorterDuff;
 import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
@@ -18,10 +16,12 @@ import com.mono.R;
 import com.mono.util.Colors;
 import com.mono.util.Pixels;
 
-public class ColorPickerDialog extends AlertDialog implements OnClickListener,
-        OnItemClickListener {
+import java.util.ArrayList;
+import java.util.List;
 
-    private static final int[] colorIds = {
+public class ColorPickerDialog extends AlertDialog implements OnItemClickListener {
+
+    private static final int[] COLOR_IDS = {
         R.color.blue,
         R.color.blue_dark,
         R.color.brown,
@@ -33,78 +33,63 @@ public class ColorPickerDialog extends AlertDialog implements OnClickListener,
         R.color.yellow_1
     };
 
+    private List<Integer> colors = new ArrayList<>();
+
     private int color;
     private OnColorSetListener listener;
-    private View selected;
 
-    protected ColorPickerDialog(Context context, int color, OnColorSetListener listener) {
+    protected ColorPickerDialog(Context context, int[] colors, int defaultColor,
+            OnColorSetListener listener) {
         super(context, R.style.AppTheme_Dialog_Alert);
-        // Default Color Position
-        int position = -1;
-        for (int i = 0; i < colorIds.length; i++) {
-            if (Colors.getColor(context, colorIds[i]) == color) {
-                position = i;
-                break;
+
+        for (int colorId : COLOR_IDS) {
+            this.colors.add(Colors.getColor(getContext(), colorId) | 0xFF000000);
+        }
+
+        if (colors != null && colors.length > 0) {
+            int index = 0;
+
+            for (int color : colors) {
+                color |= 0xFF000000;
+
+                if (!this.colors.contains(color)) {
+                    this.colors.add(index++, color);
+                }
             }
         }
 
-        this.color = color;
+        defaultColor |= 0xFF000000;
+        int position = this.colors.indexOf(defaultColor);
+
+        this.color = defaultColor;
         this.listener = listener;
 
         LayoutInflater inflater = LayoutInflater.from(context);
         View view = inflater.inflate(R.layout.dialog_color_picker, null, false);
 
         GridView gridview = (GridView) view.findViewById(R.id.grid);
-        gridview.setAdapter(new ColorPickerAdapter(context, colorIds, position));
+        gridview.setAdapter(new ColorPickerAdapter(context, this.colors, position));
         gridview.setOnItemClickListener(this);
 
         setView(view);
-
-        setButton(BUTTON_POSITIVE, context.getString(R.string.okay), this);
-        setButton(BUTTON_NEGATIVE, context.getString(R.string.cancel), this);
-    }
-
-    @Override
-    public void show() {
-        super.show();
-    }
-
-    @Override
-    public void onClick(DialogInterface dialog, int which) {
-        switch (which) {
-            case BUTTON_POSITIVE:
-                if (listener != null) {
-                    listener.onColorSet(color);
-                }
-                break;
-            case BUTTON_NEGATIVE:
-                cancel();
-                break;
-        }
     }
 
     @Override
     public void onItemClick(AdapterView parent, View view, int position, long id) {
-        color = Colors.getColor(getContext(), colorIds[position]);
+        color = position == 0 ? 0 : colors.get(position);
         select(view);
+
+        if (listener != null) {
+            listener.onColorSet(color);
+        }
+
+        dismiss();
     }
 
     public void select(View view) {
-        if (selected != null) {
-            selected.setBackground(null);
-            selected = null;
-        }
-
         view.setBackgroundResource(R.drawable.ring);
         int color = Colors.getColor(getContext(), R.color.colorPrimary);
         view.getBackground().setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
-
-        selected = view;
-    }
-
-    public static int randomColor(Context context) {
-        int colorId = colorIds[(int) (Math.random() * colorIds.length) % colorIds.length];
-        return Colors.getColor(context, colorId);
     }
 
     public class ColorPickerAdapter extends BaseAdapter {
@@ -113,23 +98,23 @@ public class ColorPickerDialog extends AlertDialog implements OnClickListener,
         private static final int PADDING_DP = 6;
 
         private Context context;
-        private int[] colorIds;
+        private List<Integer> colors;
         private int position;
 
-        public ColorPickerAdapter(Context context, int[] colorIds, int position) {
+        public ColorPickerAdapter(Context context, List<Integer> colors, int position) {
             this.context = context;
-            this.colorIds = colorIds;
+            this.colors = colors;
             this.position = position;
         }
 
         @Override
         public int getCount() {
-            return colorIds.length;
+            return colors.size();
         }
 
         @Override
-        public Object getItem(int position) {
-            return null;
+        public Integer getItem(int position) {
+            return colors.get(position);
         }
 
         @Override
@@ -159,7 +144,7 @@ public class ColorPickerDialog extends AlertDialog implements OnClickListener,
 
             imageView.setImageResource(R.drawable.circle);
 
-            int color = Colors.getColor(context, colorIds[position]);
+            int color = getItem(position);
             imageView.setColorFilter(color);
 
             return imageView;
