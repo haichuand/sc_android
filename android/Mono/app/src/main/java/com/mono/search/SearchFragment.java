@@ -6,8 +6,10 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
+import android.support.v7.widget.SearchView.OnCloseListener;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
@@ -39,6 +41,8 @@ public class SearchFragment extends Fragment implements SimpleDataSource<HolderI
 
     private Animator animator;
     private SearchView searchView;
+
+    private boolean hasTabs;
 
     @Override
     public void onAttach(Context context) {
@@ -98,7 +102,24 @@ public class SearchFragment extends Fragment implements SimpleDataSource<HolderI
         View view = getView();
 
         if (view != null) {
-            view.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
+            View tabLayout = getActivity().findViewById(R.id.tab_layout);
+
+            if (visible) {
+                if (view.getVisibility() != View.VISIBLE) {
+                    if (hasTabs = tabLayout.getVisibility() == View.VISIBLE) {
+                        tabLayout.setVisibility(View.GONE);
+                    }
+                }
+
+                view.setVisibility(View.VISIBLE);
+            } else {
+                view.setVisibility(View.INVISIBLE);
+
+                if (hasTabs) {
+                    tabLayout.setVisibility(View.VISIBLE);
+                    hasTabs = false;
+                }
+            }
         }
     }
 
@@ -108,6 +129,8 @@ public class SearchFragment extends Fragment implements SimpleDataSource<HolderI
 
     public void setItems(List<HolderItem> items) {
         boolean isItemsEquals = this.items.equals(items);
+
+        setTextVisible(items.isEmpty());
 
         this.items = items;
         adapter.setDataSource(this);
@@ -124,8 +147,6 @@ public class SearchFragment extends Fragment implements SimpleDataSource<HolderI
         animator = Views.fade(recyclerView, 0, 1, FADE_DURATION, null);
 
         setVisible(true);
-
-        setTextVisible(items.isEmpty());
     }
 
     public void clear() {
@@ -138,25 +159,19 @@ public class SearchFragment extends Fragment implements SimpleDataSource<HolderI
 
         searchView.setOnQueryTextListener(handler);
 
-        searchView.setOnSearchClickListener(new View.OnClickListener() {
+        searchView.setOnSearchClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
                 setVisible(true);
             }
         });
 
-        searchView.setOnCloseListener(new SearchView.OnCloseListener() {
+        searchView.setOnCloseListener(new OnCloseListener() {
             @Override
             public boolean onClose() {
+                searchView.onActionViewCollapsed();
                 setVisible(false);
                 return true;
-            }
-        });
-
-        searchView.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View view, boolean hasFocus) {
-//                setVisible(hasFocus);
             }
         });
     }
