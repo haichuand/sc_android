@@ -109,8 +109,8 @@ public class Attendee implements Parcelable {
         dest.writeString(firstName);
         dest.writeString(lastName);
         dest.writeString(userName);
-        dest.writeValue(isFavorite);
-        dest.writeValue(isFriend);
+        dest.writeByte((byte) (isFavorite ? 1 : 0));
+        dest.writeByte((byte) (isFriend ? 1 : 0));
     }
 
     @Override
