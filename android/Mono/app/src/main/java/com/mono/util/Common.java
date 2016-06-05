@@ -103,19 +103,19 @@ public class Common {
             });
 
             for (String term : terms) {
-                int index = result.toLowerCase().indexOf(term.toLowerCase());
-                if (index == -1 || index > 0 && result.charAt(index - 1) == '!') {
-                    continue;
-                }
-
                 int length = term.length();
 
-                result = String.format(
-                    "%s!<%s!>%s",
-                    result.substring(0, index),
-                    result.substring(index, index + length),
-                    result.substring(index + length)
-                );
+                int index, offset = 0;
+                while ((index = result.toLowerCase().indexOf(term.toLowerCase(), offset)) != -1) {
+                    result = String.format(
+                        "%s!<%s!>%s",
+                        result.substring(0, index),
+                        result.substring(index, index + length),
+                        result.substring(index + length)
+                    );
+
+                    offset = index + 2 + length + 2;
+                }
             }
         }
 
