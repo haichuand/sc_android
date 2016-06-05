@@ -161,7 +161,7 @@ public class HttpServerManager {
                 JSONObject userInfo = getUserInfo(userId);
                 attendeeDataSource.createAttendeeWithAttendeeId(userInfo.getString(UID), userInfo.getString(MEDIA_ID),
                         userInfo.getString(EMAIL), userInfo.getString(PHONE_NUMBER), userInfo.getString(FIRST_NAME),
-                        userInfo.getString(LAST_NAME), userInfo.getString(USER_NAME), true);
+                        userInfo.getString(LAST_NAME), userInfo.getString(USER_NAME), false, true);
                 count ++;
             }
         } catch (Exception e) {

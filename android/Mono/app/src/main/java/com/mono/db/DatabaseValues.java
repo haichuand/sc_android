@@ -106,7 +106,8 @@ public class DatabaseValues {
         public static final String FIRST_NAME = "`first_name`";
         public static final String LAST_NAME = "`last_name`";
         public static final String USER_NAME = "`user_name`";
-        public static final String FRIEND = "`is_friend`";
+        public static final String FAVORITE = "`favorite`";
+        public static final String FRIEND = "`is_friend`";//"`friend`";
 
         public static final String[] PROJECTION = {
             User.U_ID,
@@ -116,6 +117,7 @@ public class DatabaseValues {
             User.FIRST_NAME,
             User.LAST_NAME,
             User.USER_NAME,
+//            User.FAVORITE,
             User.FRIEND
         };
 
@@ -126,7 +128,8 @@ public class DatabaseValues {
         public static final int INDEX_FIRST_NAME = 4;
         public static final int INDEX_LAST_NAME = 5;
         public static final int INDEX_USER_NAME = 6;
-        public static final int INDEX_IS_FRIEND = 7;
+        public static final int INDEX_FAVORITE = 7;
+        public static final int INDEX_FRIEND = 7;//8;
 
         public static final String CREATE_TABLE;
         public static final String DROP_TABLE;
@@ -140,6 +143,7 @@ public class DatabaseValues {
                 FIRST_NAME + " TEXT",
                 LAST_NAME + " TEXT",
                 USER_NAME + " TEXT",
+                FAVORITE + " INTEGER",
                 FRIEND + " INTEGER"
             };
 

@@ -5,7 +5,6 @@ import android.database.Cursor;
 import android.database.SQLException;
 
 import com.mono.db.Database;
-import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
 import com.mono.model.Attendee;
 
@@ -21,10 +20,9 @@ public class AttendeeDataSource extends DataSource {
         super(database);
     }
 
-    public String createAttendee (String mediaId, String email, String phoneNumber, String firstName, String lastName, String userName, boolean isFriend) {
-
+    public String createAttendee(String mediaId, String email, String phoneNumber,
+            String firstName, String lastName, String userName, boolean favorite, boolean friend) {
         String id = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
-        int isFriendInt = isFriend ? 1 : 0;
 
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.User.U_ID, id);
@@ -34,7 +32,8 @@ public class AttendeeDataSource extends DataSource {
         values.put(DatabaseValues.User.FIRST_NAME, firstName);
         values.put(DatabaseValues.User.LAST_NAME, lastName);
         values.put(DatabaseValues.User.USER_NAME, userName);
-        values.put(DatabaseValues.User.IS_FRIEND, isFriendInt);
+//        values.put(DatabaseValues.User.FAVORITE, favorite ? 1 : 0);
+        values.put(DatabaseValues.User.FRIEND, friend ? 1 : 0);
 
         try {
             database.insert(DatabaseValues.User.TABLE, values);
@@ -45,10 +44,9 @@ public class AttendeeDataSource extends DataSource {
         return id;
     }
 
-    public boolean createAttendeeWithAttendeeId (String attendeeId, String mediaId, String email, String phoneNumber, String firstName, String lastName, String userName, boolean isFriend) {
-
-        int isFriendInt = isFriend ? 1 : 0;
-
+    public boolean createAttendeeWithAttendeeId(String attendeeId, String mediaId, String email,
+            String phoneNumber, String firstName, String lastName, String userName,
+            boolean favorite, boolean friend) {
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.User.U_ID, attendeeId);
         values.put(DatabaseValues.User.MEDIA_ID, mediaId);
@@ -57,7 +55,8 @@ public class AttendeeDataSource extends DataSource {
         values.put(DatabaseValues.User.FIRST_NAME, firstName);
         values.put(DatabaseValues.User.LAST_NAME, lastName);
         values.put(DatabaseValues.User.USER_NAME, userName);
-        values.put(DatabaseValues.User.IS_FRIEND, isFriendInt);
+//        values.put(DatabaseValues.User.FAVORITE, favorite ? 1 : 0);
+        values.put(DatabaseValues.User.FRIEND, friend ? 1 : 0);
 
         try {
             database.insert(DatabaseValues.User.TABLE, values);
@@ -65,23 +64,38 @@ public class AttendeeDataSource extends DataSource {
             e.printStackTrace();
             return false;
         }
+
         return true;
+    }
+
+    public int setFriend(String id, boolean status) {
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.User.FRIEND, status ? 1 : 0);
+
+        return updateValues(id, values);
+    }
+
+    public int setFavorite(String id, boolean status) {
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.User.FAVORITE, status ? 1 : 0);
+
+        return updateValues(id, values);
     }
 
     public int clearAttendeeTable() {
         return database.delete(DatabaseValues.User.TABLE, null, null);
     }
 
-    public Attendee getAttendeeById (String id) {
-        Attendee user= null;
+    public Attendee getAttendeeById(String id) {
+        Attendee user = null;
 
         Cursor cursor = database.select(
-                DatabaseValues.User.TABLE,
-                DatabaseValues.User.PROJECTION,
-                DatabaseValues.User.U_ID + " = ?",
-                new String[]{
-                        String.valueOf(id)
-                }
+            DatabaseValues.User.TABLE,
+            DatabaseValues.User.PROJECTION,
+            DatabaseValues.User.U_ID + " = ?",
+            new String[]{
+                String.valueOf(id)
+            }
         );
 
         if (cursor.moveToNext()) {
@@ -123,36 +137,13 @@ public class AttendeeDataSource extends DataSource {
 
     public int updateValues(String id, ContentValues values) {
         return database.update(
-                DatabaseValues.User.TABLE,
-                values,
-                DatabaseValues.User.U_ID + " = ?",
-                new String[]{
-                        String.valueOf(id)
-                }
+            DatabaseValues.User.TABLE,
+            values,
+            DatabaseValues.User.U_ID + " = ?",
+            new String[]{
+                String.valueOf(id)
+            }
         );
-    }
-
-    public String getLocalUserId () {
-        String id = "";
-
-        Cursor cursor = database.select(
-                DatabaseValues.User.TABLE,
-                new String[]{
-                        DatabaseValues.User.U_ID
-                },
-                DatabaseValues.User.IS_FRIEND + " =?",
-                new String[]{
-                        String.valueOf(1)
-                }
-        );
-
-        if(cursor.moveToNext()) {
-            id = cursor.getString(0);
-        }
-
-        cursor.close();
-
-        return id;
     }
 
     /**
@@ -166,7 +157,8 @@ public class AttendeeDataSource extends DataSource {
         user.firstName = cursor.getString(DatabaseValues.User.INDEX_FIRST_NAME);
         user.lastName = cursor.getString(DatabaseValues.User.INDEX_LAST_NAME);
         user.userName = cursor.getString(DatabaseValues.User.INDEX_USER_NAME);
-        user.isFriend = cursor.getInt(DatabaseValues.User.INDEX_IS_FRIEND) > 0;
+//        user.isFavorite = cursor.getInt(DatabaseValues.User.INDEX_FAVORITE) > 0;
+        user.isFriend = cursor.getInt(DatabaseValues.User.INDEX_FRIEND) > 0;
 
         return user;
     }

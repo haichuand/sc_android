@@ -123,6 +123,7 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
                             attendee.firstName,
                             attendee.lastName,
                             attendee.userName,
+                            attendee.isFavorite,
                             attendee.isFriend
                         );
 

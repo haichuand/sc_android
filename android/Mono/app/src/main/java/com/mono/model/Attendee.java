@@ -14,11 +14,8 @@ public class Attendee implements Parcelable {
     public String firstName;
     public String lastName;
     public String userName;
+    public boolean isFavorite;
     public boolean isFriend;
-
-//    public Attendee() {
-//        id = null;
-//    }
 
     public Attendee(long id) {
         this.id = String.valueOf(id);
@@ -36,6 +33,7 @@ public class Attendee implements Parcelable {
         this.firstName = user.firstName;
         this.lastName = user.lastName;
         this.userName = user.userName;
+        this.isFavorite = user.isFavorite;
         this.isFriend = user.isFriend;
     }
 
@@ -45,7 +43,8 @@ public class Attendee implements Parcelable {
         this.email = email;
     }
 
-    public Attendee(String id, String mediaId, String email, String phoneNumber, String firstName, String lastName, String userName, boolean isFriend) {
+    public Attendee(String id, String mediaId, String email, String phoneNumber, String firstName,
+            String lastName, String userName, boolean isFavorite, boolean isFriend) {
         this.id = id;
         this.mediaId = mediaId;
         this.email = email;
@@ -53,6 +52,7 @@ public class Attendee implements Parcelable {
         this.firstName = firstName;
         this.lastName = lastName;
         this.userName = userName;
+        this.isFavorite = isFavorite;
         this.isFriend = isFriend;
     }
 
@@ -64,7 +64,8 @@ public class Attendee implements Parcelable {
         firstName = in.readString();
         lastName = in.readString();
         userName = in.readString();
-        isFriend = (boolean)in.readValue(null);
+        isFavorite = in.readByte() != 0;
+        isFriend = in.readByte() != 0;
     }
 
     public static final Creator<Attendee> CREATOR = new Creator<Attendee>() {
@@ -108,6 +109,7 @@ public class Attendee implements Parcelable {
         dest.writeString(firstName);
         dest.writeString(lastName);
         dest.writeString(userName);
+        dest.writeValue(isFavorite);
         dest.writeValue(isFriend);
     }
 
@@ -118,7 +120,7 @@ public class Attendee implements Parcelable {
                 return firstName + " " + lastName;
             }
             return firstName;
-        } else if (userName != null && !userName.isEmpty()){
+        } else if (userName != null && !userName.isEmpty()) {
             return userName;
         } else {
             return email;
