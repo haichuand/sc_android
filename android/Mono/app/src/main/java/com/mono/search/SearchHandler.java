@@ -76,6 +76,7 @@ public class SearchHandler implements OnQueryTextListener {
             task = null;
         }
 
+        query = query.trim();
         if (query.isEmpty()) {
             fragment.clear();
             return false;
