@@ -46,6 +46,20 @@ public class Common {
         return true;
     }
 
+    public static boolean contains(String str, String[] values) {
+        boolean result = false;
+
+        str = str.toLowerCase();
+        for (String value : values) {
+            if (str.contains(value.toLowerCase())) {
+                result = true;
+                break;
+            }
+        }
+
+        return result;
+    }
+
     public static boolean isEmpty(CharSequence str) {
         return str == null || str.length() == 0;
     }

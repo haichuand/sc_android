@@ -128,7 +128,20 @@ public class SearchHandler implements OnQueryTextListener {
             item.iconColor = event.color;
 
             item.title = Common.highlight(event.title, terms, color);
-            item.description = Common.highlight(event.description, terms, color);
+
+            String description = null;
+
+            if (event.description != null && Common.contains(event.description, terms)) {
+                description = event.description;
+            } else if (event.location != null && Common.contains(event.location.name, terms)) {
+                description = event.location.name;
+            } else if (event.description != null) {
+                description = event.description;
+            } else if (event.location != null) {
+                description = event.location.name;
+            }
+
+            item.description = Common.highlight(description, terms, color);
 
             TimeZone timeZone = event.allDay ? TimeZone.getTimeZone("UTC") : TimeZone.getDefault();
             item.dateTime = getDateString(event.startTime, timeZone);
