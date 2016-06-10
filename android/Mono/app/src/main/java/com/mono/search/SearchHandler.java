@@ -141,7 +141,9 @@ public class SearchHandler implements OnQueryTextListener {
                 description = event.location.name;
             }
 
-            item.description = Common.highlight(description, terms, color);
+            if (description != null) {
+                item.description = Common.highlight(description, terms, color);
+            }
 
             TimeZone timeZone = event.allDay ? TimeZone.getTimeZone("UTC") : TimeZone.getDefault();
             item.dateTime = getDateString(event.startTime, timeZone);

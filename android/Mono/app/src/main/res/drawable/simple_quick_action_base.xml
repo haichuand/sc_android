@@ -9,6 +9,6 @@
         android:color="#80FFFFFF"/>
 
     <stroke
-        android:width="2dp"
+        android:width="1.5dp"
         android:color="@android:color/white"/>
 </shape>

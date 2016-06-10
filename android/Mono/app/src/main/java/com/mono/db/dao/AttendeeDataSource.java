@@ -32,7 +32,7 @@ public class AttendeeDataSource extends DataSource {
         values.put(DatabaseValues.User.FIRST_NAME, firstName);
         values.put(DatabaseValues.User.LAST_NAME, lastName);
         values.put(DatabaseValues.User.USER_NAME, userName);
-//        values.put(DatabaseValues.User.FAVORITE, favorite ? 1 : 0);
+        values.put(DatabaseValues.User.FAVORITE, favorite ? 1 : 0);
         values.put(DatabaseValues.User.FRIEND, friend ? 1 : 0);
 
         try {
@@ -55,7 +55,7 @@ public class AttendeeDataSource extends DataSource {
         values.put(DatabaseValues.User.FIRST_NAME, firstName);
         values.put(DatabaseValues.User.LAST_NAME, lastName);
         values.put(DatabaseValues.User.USER_NAME, userName);
-//        values.put(DatabaseValues.User.FAVORITE, favorite ? 1 : 0);
+        values.put(DatabaseValues.User.FAVORITE, favorite ? 1 : 0);
         values.put(DatabaseValues.User.FRIEND, friend ? 1 : 0);
 
         try {
@@ -78,6 +78,13 @@ public class AttendeeDataSource extends DataSource {
     public int setFavorite(String id, boolean status) {
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.User.FAVORITE, status ? 1 : 0);
+
+        return updateValues(id, values);
+    }
+
+    public int setSuggested(String id, boolean status) {
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.User.SUGGESTED, status ? 1 : 0);
 
         return updateValues(id, values);
     }
@@ -157,8 +164,9 @@ public class AttendeeDataSource extends DataSource {
         user.firstName = cursor.getString(DatabaseValues.User.INDEX_FIRST_NAME);
         user.lastName = cursor.getString(DatabaseValues.User.INDEX_LAST_NAME);
         user.userName = cursor.getString(DatabaseValues.User.INDEX_USER_NAME);
-//        user.isFavorite = cursor.getInt(DatabaseValues.User.INDEX_FAVORITE) > 0;
+        user.isFavorite = cursor.getInt(DatabaseValues.User.INDEX_FAVORITE) > 0;
         user.isFriend = cursor.getInt(DatabaseValues.User.INDEX_FRIEND) > 0;
+        user.isSuggested = cursor.getInt(DatabaseValues.User.INDEX_SUGGESTED) > 0;
 
         return user;
     }

@@ -16,6 +16,7 @@ public class Attendee implements Parcelable {
     public String userName;
     public boolean isFavorite;
     public boolean isFriend;
+    public boolean isSuggested;
 
     public Attendee(long id) {
         this.id = String.valueOf(id);
@@ -35,6 +36,7 @@ public class Attendee implements Parcelable {
         this.userName = user.userName;
         this.isFavorite = user.isFavorite;
         this.isFriend = user.isFriend;
+        this.isSuggested = user.isSuggested;
     }
 
     public Attendee(String id, String name, String email) {
@@ -66,6 +68,7 @@ public class Attendee implements Parcelable {
         userName = in.readString();
         isFavorite = in.readByte() != 0;
         isFriend = in.readByte() != 0;
+        isSuggested = in.readByte() != 0;
     }
 
     public static final Creator<Attendee> CREATOR = new Creator<Attendee>() {
@@ -111,6 +114,7 @@ public class Attendee implements Parcelable {
         dest.writeString(userName);
         dest.writeByte((byte) (isFavorite ? 1 : 0));
         dest.writeByte((byte) (isFriend ? 1 : 0));
+        dest.writeByte((byte) (isSuggested ? 1 : 0));
     }
 
     @Override
