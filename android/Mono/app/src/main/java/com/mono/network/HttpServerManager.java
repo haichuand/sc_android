@@ -2,7 +2,6 @@ package com.mono.network;
 
 import android.content.Context;
 import android.os.AsyncTask;
-import android.widget.Toast;
 
 import com.mono.AccountManager;
 import com.mono.db.dao.AttendeeDataSource;
@@ -369,46 +368,108 @@ public class HttpServerManager {
         return jsonObject;
     }
 
-    private JSONObject queryServer(final JSONObject data, final String urlString, final String method) throws JSONException, IOException, ExecutionException, InterruptedException {
+    private Object[] queryServer(HttpURLConnection connection, JSONObject data) {
+        Object[] result = new Object[2];
 
-        AsyncTask<Void, Void, JSONObject> serverTask = new AsyncTask<Void, Void, JSONObject>() {
-            @Override
-            protected JSONObject doInBackground(Void... voids) {
-                try {
-                    URL url = new URL(urlString);
-                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                    connection.setRequestMethod(method);
-                    if ("POST".equals(method) && data != null) {
-                        connection.setRequestProperty("Content-Type", "application/json");
-                        connection.setDoOutput(true);
-                        OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream());
-                        String string = data.toString();
-                        writer.write(string);
-                        writer.close();
-                    }
+        try {
+            if (connection.getRequestMethod().equalsIgnoreCase("POST") && data != null) {
+                connection.setRequestProperty("Content-Type", "application/json");
+                connection.setDoOutput(true);
 
-                    StringBuilder builder = new StringBuilder();
-                    int responseCode = connection.getResponseCode();
-                    if (responseCode == HttpURLConnection.HTTP_OK) {
-                        BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                        String line;
-                        while ((line = reader.readLine()) != null) {
-                            builder.append(line).append("\n");
-                        }
-                        reader.close();
-                        return new JSONObject(builder.toString());
-                    } else {
-                        System.out.println(connection.getResponseMessage());
-                        Toast.makeText(context, "Server response code & message: " + responseCode + " " + connection.getResponseMessage(), Toast.LENGTH_LONG).show();
-                    }
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
-                return null;
+                OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream());
+                writer.write(data.toString());
+                writer.close();
             }
-        }.execute();
 
-        return serverTask.get();
+            int responseCode = connection.getResponseCode();
+            result[0] = responseCode;
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                BufferedReader reader =
+                    new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                StringBuilder builder = new StringBuilder();
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    builder.append(line).append("\n");
+                }
+                reader.close();
+
+                result[1] = new JSONObject(builder.toString());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return result;
     }
 
+    private JSONObject queryServer(JSONObject data, String urlString, String method) throws
+            ExecutionException, InterruptedException {
+        AsyncTask<Object, Void, JSONObject> task = new AsyncTask<Object, Void, JSONObject>() {
+
+            private HttpURLConnection connection;
+            private int responseCode;
+
+            @Override
+            protected JSONObject doInBackground(Object... params) {
+                JSONObject result = null;
+
+                JSONObject data = (JSONObject) params[0];
+                String urlString = (String) params[1];
+                String method = (String) params[2];
+
+                try {
+                    URL url = new URL(urlString);
+                    connection = (HttpURLConnection) url.openConnection();
+                    connection.setRequestMethod(method);
+
+                    Object[] values = queryServer(connection, data);
+                    responseCode = (Integer) values[0];
+
+                    if (values[1] != null) {
+                        result = (JSONObject) values[1];
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                return result;
+            }
+
+            @Override
+            protected void onPostExecute(JSONObject result) {
+                try {
+                    System.out.format(
+                        "Server response code & message: %d %s\n",
+                        responseCode,
+                        connection.getResponseMessage()
+                    );
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }.execute(data, urlString, method);
+
+        return task.get();
+    }
+
+    public JSONObject send(JSONObject data, String urlString, String method) {
+        JSONObject result = null;
+
+        try {
+            URL url = new URL(urlString);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod(method);
+
+            Object[] values = queryServer(connection, data);
+            if (values[1] != null) {
+                result = (JSONObject) values[1];
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return result;
+    }
 }
