@@ -64,7 +64,7 @@ public class KmlDownloadingService extends IntentService {
     protected void onHandleIntent (Intent intent) {
         String downloadType = intent.getExtras().getString(TYPE);
         Log.i(TAG, "downloadType: "+downloadType);
-        if(isSignedIn()) {
+        if(KML.isSignedIn()) {
             if(downloadType.equals(REGULAR)) {
                 downloadKML(KML_URL + "&pb=" + getPbValue(0),KML_FILENAME_TODAY);
                 downloadKML(KML_URL + "&pb=" + getPbValue(1),KML_FILENAME_YESTERDAY);
@@ -98,12 +98,12 @@ public class KmlDownloadingService extends IntentService {
         downloadId = manager.enqueue(request);
     }
 
-    public boolean isSignedIn() {
-        CookieManager cookieManager = CookieManager.getInstance();
-        String cookie = cookieManager.getCookie(COOKIE_URL);
-
-        return cookie != null && cookie.contains("SID=");
-    }
+//    public boolean isSignedIn() {
+//        CookieManager cookieManager = CookieManager.getInstance();
+//        String cookie = cookieManager.getCookie(COOKIE_URL);
+//
+//        return cookie != null && cookie.contains("SID=");
+//    }
 
     private String getPbValue(int dayBeforeToday) {
         Calendar cal = getDate(dayBeforeToday);

@@ -3,10 +3,8 @@ package com.mono.dummy;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -21,9 +19,9 @@ import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.mono.AccountManager;
 import com.mono.R;
 import com.mono.RequestCodes;
+import com.mono.parser.KML;
 import com.mono.parser.SupercalyAlarmManager;
 import com.mono.chat.GcmMessage;
-import com.mono.dummy.KML.DownloadListener;
 import com.mono.network.GCMHelper;
 
 import java.io.BufferedReader;
@@ -31,13 +29,10 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
 
 public class DummyFragment extends Fragment {
 
     private DummyActivity activity;
-    private KML kml;
     private static final String TAG = "DummyFragmentDBTesting";
     private TextView text;
     private Button send_button;
@@ -60,7 +55,6 @@ public class DummyFragment extends Fragment {
 
         if (context instanceof DummyActivity) {
             activity = (DummyActivity) context;
-            kml = new KML(context, activity);
             alarmManager = SupercalyAlarmManager.getInstance(context);
         }
     }
@@ -95,17 +89,7 @@ public class DummyFragment extends Fragment {
         view.findViewById(R.id.download).setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                //alarmManager.scheduleAlarm(3); // schedule an alarm for every 3-hour
-                kml.getKML(getParentFragment(), RequestCodes.Activity.DUMMY_WEB,
-                        new DownloadListener() {
-                            @Override
-                            public void onFinish(int status, Uri uri) {
-                                if (uri != null) {
-                                    //outputFile(uri.getPath());
-                                }
-                            }
-                        }
-                );
+                //alarmManager.scheduleAlarm(3); // schedule an alarm for every 3-hou
             }
         });
 
@@ -115,13 +99,11 @@ public class DummyFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        kml.onResume();
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        kml.onPause();
     }
 
     @Override

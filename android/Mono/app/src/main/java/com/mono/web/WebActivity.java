@@ -7,7 +7,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 import com.mono.R;
-import com.mono.dummy.KML;
+import com.mono.parser.KML;
 import com.mono.util.GestureActivity;
 
 public class WebActivity extends GestureActivity {
