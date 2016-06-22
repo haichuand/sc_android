@@ -6,13 +6,23 @@ import android.net.NetworkInfo;
 import android.text.Html;
 import android.text.Spanned;
 
+import com.google.i18n.phonenumbers.NumberParseException;
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
+
 import org.joda.time.LocalDate;
 
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
+/**
+ * This class is used to provide common helper functions such as determining if values are between
+ * a range, applying bounds to a specific value, and many more.
+ *
+ * @author Gary Ng
+ */
 public class Common {
 
     private Common() {}
@@ -46,12 +56,37 @@ public class Common {
         return true;
     }
 
+    public static boolean isEmpty(CharSequence str) {
+        return str == null || str.length() == 0;
+    }
+
+    public static int diff(String str1, String str2) {
+        int index = -1;
+
+        int strLen1 = str1.length(), strLen2 = str2.length();
+        int size = Math.max(strLen1, strLen2);
+
+        for (int i = 0; i < size; i++) {
+            if (i >= strLen1 || i >= strLen2 || str1.charAt(i) != str2.charAt(i)) {
+                index = i;
+                break;
+            }
+        }
+
+        return index;
+    }
+
     public static boolean contains(String str, String[] values) {
         boolean result = false;
 
         str = str.toLowerCase();
         for (String value : values) {
-            if (str.contains(value.toLowerCase())) {
+            value = value.trim().toLowerCase();
+            if (value.isEmpty()) {
+                continue;
+            }
+
+            if (str.contains(value)) {
                 result = true;
                 break;
             }
@@ -60,8 +95,37 @@ public class Common {
         return result;
     }
 
-    public static boolean isEmpty(CharSequence str) {
-        return str == null || str.length() == 0;
+    public static boolean containsAll(String str, String[] values) {
+        boolean result = true;
+
+        str = str.toLowerCase();
+        for (String value : values) {
+            value = value.trim().toLowerCase();
+            if (value.isEmpty()) {
+                continue;
+            }
+
+            if (!str.contains(value)) {
+                result = false;
+                break;
+            }
+        }
+
+        return result;
+    }
+
+    public static String formatPhone(String phone) {
+        PhoneNumberUtil instance = PhoneNumberUtil.getInstance();
+        String region = Locale.getDefault().getCountry();
+
+        try {
+            phone = instance.format(instance.parse(phone, region),
+                PhoneNumberUtil.PhoneNumberFormat.NATIONAL);
+        } catch (NumberParseException e) {
+            e.printStackTrace();
+        }
+
+        return phone;
     }
 
     public static String[] explode(String delimiter, String value) {

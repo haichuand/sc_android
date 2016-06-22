@@ -42,6 +42,7 @@
     <string name="fragment_dummy">DummyFragment</string>
     <string name="fragment_settings">SettingsFragment</string>
     <string name="fragment_location_setting">LocationSettingFragment</string>
+    <string name="fragment_contacts">ContactsFragment</string>
 
     <string name="settings_cat_general_key">category_general</string>
     <string name="settings_cat_general_title">General</string>
@@ -109,9 +110,22 @@
     <string name="or">Or</string>
     <string name="location_setting">Location Setting</string>
     <string name="untitled">Untitled</string>
+    <string name="favorites">Favorites</string>
+    <string name="suggestions">Suggestions</string>
     <string name="users">Users</string>
     <string name="local_calendar">Local Calendar</string>
+    <string name="local_contacts">Local Contacts</string>
+    <string name="other_contacts">Other Contacts</string>
     <string name="no_results">No Search Results</string>
+    <string name="no_contacts_found">No Contacts Found</string>
+
+    <string name="contacts_search">Enter Name or Email</string>
+    <string name="favorites_add">Add to Favorites</string>
+    <string name="favorites_remove">Remove from Favorites</string>
+    <string name="friends_add">Add to Friends</string>
+    <string name="friends_remove">Remove from Friends</string>
+    <string name="skip">Skip</string>
+    <string name="invite">Invite</string>
 
     <string name="me">Me</string>
     <string name="chat_input_hint">Your Message Here</string>

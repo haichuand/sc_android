@@ -58,6 +58,12 @@
             android:theme="@style/AppTheme"/>
 
         <activity
+            android:name=".contacts.ContactsActivity"
+            android:label="@string/contacts"
+            android:theme="@style/AppTheme"
+            android:screenOrientation="portrait"/>
+
+        <activity
             android:name=".settings.SettingsActivity"
             android:label="@string/settings"
             android:theme="@style/AppTheme"/>

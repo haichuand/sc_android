@@ -40,6 +40,8 @@ import android.widget.Toast;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.mono.chat.ChatRoomActivity;
 import com.mono.chat.ConversationManager;
+import com.mono.contacts.ContactsActivity;
+import com.mono.contacts.ContactsManager;
 import com.mono.details.EventDetailsActivity;
 import com.mono.dummy.DummyActivity;
 import com.mono.intro.IntroActivity;
@@ -68,6 +70,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * The Main Activity is used to hold and display the various screens (specifically Fragments) in
+ * a single Activity while providing a single set of components, which includes the action bar,
+ * navigation tabs, navigation dock, etc. for the screens to use. Initializations that are
+ * required on startup is handled here as well.
+ *
+ * @author Gary Ng
+ */
 public class MainActivity extends AppCompatActivity implements OnNavigationItemSelectedListener,
         MainInterface {
 
@@ -77,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     public static final int INTRO = R.id.nav_intro;
     public static final int LOGIN = R.id.nav_login;
     public static final int LOGOUT = R.id.nav_logout;
+    public static final int CONTACTS = R.id.nav_contacts;
     public static final int SETTINGS = R.id.nav_settings;
     public static final int LOCATION_SETTING = R.id.nav_location_setting;
     public static final int DUMMY = R.id.nav_dummy;
@@ -129,9 +140,13 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     }
 
     protected void start() {
+        // Simple Trick for Faster Google Maps Loading
         triggerGooglePlayServices(this);
+        // Preload Contacts for Faster Access
+        ContactsManager.getInstance(this).getContactsAsync(null, false);
+        // Load Initial Fragment
         showHome();
-
+        // Display Splash Screen for New Install
         if (Settings.getInstance(this).getDayOne() <= 0) {
             showIntro();
         }
@@ -175,14 +190,18 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             (OnBackPressedListener) getSupportFragmentManager().findFragmentByTag(tag);
 
         if (drawer.isDrawerOpen(GravityCompat.START)) {
+            // Close Hidden Side Menu
             drawer.closeDrawer(GravityCompat.START);
         } else if (fragment.onBackPressed()) {
-
+            // Enable Back Button Handling (if any) within Fragments
         } else if (tabLayout.isVisible() && tabLayout.getSelectedTabPosition() > 0) {
+            // Reset Tab to First Before Exiting App
             tabLayout.selectTab(0);
         } else if (dockLayout.isVisible() && dockLayout.getSelectedTabPosition() > 0) {
+            // Reset Dock Tab to First Before Exiting App
             dockLayout.selectTab(0);
         } else {
+            // Exit App
             super.onBackPressed();
         }
     }
@@ -264,6 +283,9 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             case LOGOUT:
                 AccountManager.getInstance(this).logout();
                 break;
+            case CONTACTS:
+                showContacts();
+                break;
             case SETTINGS:
                 showSettings();
                 break;
@@ -280,6 +302,11 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         return true;
     }
 
+    /**
+     * Set the action bar title using a string resource.
+     *
+     * @param resId The string resource containing the title.
+     */
     @Override
     public void setToolbarTitle(int resId) {
         ActionBar actionBar = getSupportActionBar();
@@ -291,6 +318,13 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         toolbarSpinner.setVisibility(View.GONE);
     }
 
+    /**
+     * Replace the action bar title with a drop down menu.
+     *
+     * @param items The array of drop down values.
+     * @param position The default position to be selected.
+     * @param listener The listener used to respond to drop down actions.
+     */
     @Override
     public void setToolbarSpinner(CharSequence[] items, int position,
             OnItemSelectedListener listener) {
@@ -309,6 +343,11 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         toolbarSpinner.setVisibility(View.VISIBLE);
     }
 
+    /**
+     * Display the navigation tabs directly below the action bar.
+     *
+     * @param viewPager The view pager used to handle the tabs.
+     */
     @Override
     public void setTabLayoutViewPager(ViewPager viewPager) {
         if (viewPager != null) {
@@ -319,11 +358,23 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         }
     }
 
+    /**
+     * Display a badge within the specified tab at the given position.
+     *
+     * @param position The position of the tab.
+     * @param color The color of the badge background.
+     * @param value The value to be displayed.
+     */
     @Override
     public void setTabLayoutBadge(int position, int color, String value) {
         tabLayout.setBadge(position, color, value);
     }
 
+    /**
+     * Display the navigation dock at the bottom of the screen.
+     *
+     * @param viewPager The view pager used to handle the tabs.
+     */
     @Override
     public void setDockLayoutViewPager(ViewPager viewPager) {
         if (viewPager != null) {
@@ -334,17 +385,31 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         }
     }
 
+    /**
+     * Replace the icon within the specified tab at the given position.
+     *
+     * @param position The position of the tab.
+     * @param drawable The drawable icon.
+     */
     @Override
     public void setDockLayoutDrawable(int position, Drawable drawable) {
         dockLayout.setDrawable(position, drawable);
     }
 
+    /**
+     * Display the floating action button at the bottom of the screen.
+     *
+     * @param resId The image resource.
+     * @param color The color of the button background.
+     * @param listener The listener used to respond to click actions.
+     */
     @Override
     public void setActionButton(int resId, int color, OnClickListener listener) {
+        // Default Image Resource
         if (resId == 0) {
             resId = R.drawable.ic_add_white;
         }
-
+        // Default Background Color
         if (color == 0) {
             color = Colors.getColor(this, R.color.colorAccent);
         }
@@ -352,7 +417,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         actionButton.setImageResource(resId);
         actionButton.setBackgroundTintList(ColorStateList.valueOf(color));
         actionButton.setOnClickListener(listener);
-
+        // Reveal if Listener is Present
         if (listener != null) {
             actionButton.show();
         } else {
@@ -360,6 +425,14 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         }
     }
 
+    /**
+     * Display the notification popup (Snackbar) at the bottom of the screen.
+     *
+     * @param resId The string resource containing the message.
+     * @param actionResId The string resource to be used as the clickable text.
+     * @param actionColor The color of the clickable text.
+     * @param listener The listener used to respond to the clickable text.
+     */
     @Override
     public void showSnackBar(int resId, int actionResId, int actionColor,
             OnClickListener listener) {
@@ -367,7 +440,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
         snackBar = Snackbar.make(view, resId, Snackbar.LENGTH_LONG);
         snackBar.setAction(actionResId, listener);
-
+        // Default Action Text Color
         if (actionColor == 0) {
             actionColor = Colors.getColor(this, android.R.color.white);
         }
@@ -379,11 +452,20 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         snackBar.show();
     }
 
+    /**
+     * Trigger the syncing action primarily used for calendar events.
+     *
+     * @param force The value used to bypass the sync delay.
+     */
     @Override
     public void requestSync(boolean force) {
         scheduler.requestSync(this, force);
     }
 
+    /**
+     * Initializes the Main Fragment used to hold the multiple screens such as the Calendar,
+     * Dashboard, Chat, etc.
+     */
     @Override
     public void showHome() {
         Account account = AccountManager.getInstance(this).getAccount();
@@ -400,12 +482,22 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         setFragment(this, mainFragment, getString(R.string.fragment_main), false);
     }
 
+    /**
+     * Display the splash screen activity that also handles any permissions required by this app.
+     */
     @Override
     public void showIntro() {
         Intent intent = new Intent(this, IntroActivity.class);
         startActivityForResult(intent, RequestCodes.Activity.INTRO);
     }
 
+    /**
+     * Handles the result from the splash screen. Performs any additional steps for new users
+     * such as pulling all calendars from the device.
+     *
+     * @param resultCode The result code returned from the activity.
+     * @param data The data returned from the activity.
+     */
     public void handleIntro(int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
             Settings settings = Settings.getInstance(this);
@@ -420,7 +512,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                         calendars.add(calendar.id);
                     }
                     settings.setCalendars(calendars);
-
+                    // Mark Now as Day One
                     settings.setDayOne(System.currentTimeMillis());
                 } catch (SecurityException e) {
                     e.printStackTrace();
@@ -429,12 +521,22 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         }
     }
 
+    /**
+     * Display the login screen activity.
+     */
     @Override
     public void showLogin() {
         Intent intent = new Intent(this, LoginActivity.class);
         startActivityForResult(intent, RequestCodes.Activity.LOGIN);
     }
 
+    /**
+     * Handles the result from the login screen. The account accessed will be stored for future
+     * references.
+     *
+     * @param resultCode The result code returned from the activity.
+     * @param data The data returned from the activity.
+     */
     public void handleLogin(int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
             Account account = data.getParcelableExtra(LoginActivity.EXTRA_ACCOUNT);
@@ -442,6 +544,13 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         }
     }
 
+    /**
+     * Handles the result from the login screen when attempting to chat when user wasn't
+     * initially logged in. Brings the user back to the chat upon successful login.
+     *
+     * @param resultCode The result code returned from the activity.
+     * @param data The data returned from the activity.
+     */
     public void handleLoginChat(int resultCode, Intent data) {
         handleLogin(resultCode, data);
 
@@ -451,18 +560,42 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         }
     }
 
+    /**
+     * Display the contacts screen activity.
+     */
+    @Override
+    public void showContacts() {
+        Intent intent = new Intent(this, ContactsActivity.class);
+        startActivityForResult(intent, RequestCodes.Activity.CONTACTS);
+    }
+
+    /**
+     * Display the settings screen activity.
+     */
     @Override
     public void showSettings() {
         Intent intent = new Intent(this, SettingsActivity.class);
         startActivityForResult(intent, RequestCodes.Activity.SETTINGS);
     }
 
+    /**
+     * Handles the result from the settings screen.
+     *
+     * @param resultCode The result code returned from the activity.
+     * @param data The data returned from the activity.
+     */
     public void handleSettings(int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
 
         }
     }
 
+    /**
+     * Display the Google login activity primarily used for location tracking.
+     *
+     * @param fragment The fragment used to handle the result from the activity.
+     * @param requestCode The request code used to distinguish the result.
+     */
     @Override
     public void showWebActivity(Fragment fragment, int requestCode) {
         Intent intent = new Intent(this, WebActivity.class);
@@ -474,6 +607,11 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         }
     }
 
+    /**
+     * Display the event details screen activity.
+     *
+     * @param event The event to be displayed or edited.
+     */
     @Override
     public void showEventDetails(Event event) {
         Calendar calendar;
@@ -481,6 +619,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         if (event.calendarId > 0) {
             calendar = CalendarProvider.getInstance(this).getCalendar(event.calendarId);
         } else {
+            // Local Calendar (Specific for this App)
             calendar = new Calendar(event.calendarId);
             calendar.name = getString(R.string.local_calendar);
         }
@@ -492,11 +631,19 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         startActivityForResult(intent, RequestCodes.Activity.EVENT_DETAILS);
     }
 
+    /**
+     * Handles the result from the event details screen. Either create a new event or update an
+     * existing event depending on the event returned.
+     *
+     * @param resultCode The result code returned from the activity.
+     * @param data The data returned from the activity.
+     */
     public void handleEventDetails(int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
             Event event = data.getParcelableExtra(EventDetailsActivity.EXTRA_EVENT);
 
             if (event.id != null) {
+                // Update Existing Event
                 EventManager.getInstance(this).updateEvent(
                     EventManager.EventAction.ACTOR_SELF,
                     event.id,
@@ -505,6 +652,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                 );
             } else {
                 if (event.calendarId > 0) {
+                    // Create Event into the Provider
                     EventManager.getInstance(this).createSyncEvent(
                         EventManager.EventAction.ACTOR_SELF,
                         event.calendarId,
@@ -521,7 +669,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                     );
                 } else {
                     event.internalId = System.currentTimeMillis();
-
+                    // Create Event into the Database
                     EventManager.getInstance(this).createEvent(
                         EventManager.EventAction.ACTOR_SELF,
                         event.calendarId,
@@ -782,19 +930,33 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         startActivityForResult(intent, RequestCodes.Activity.DUMMY);
     }
 
+    /**
+     * Temporary solution to improve the initial load times of Google Maps by essentially
+     * loading it before actual use.
+     *
+     * @param activity The activity used to retrieve fragment manager.
+     */
     public static void triggerGooglePlayServices(AppCompatActivity activity) {
         FragmentManager manager = activity.getSupportFragmentManager();
         SupportMapFragment fragment = SupportMapFragment.newInstance();
-
+        // Temporarily Load Google Maps Fragment
         FragmentTransaction transaction = manager.beginTransaction();
         transaction.add(fragment, null);
         transaction.commit();
-
+        // Immediately Remove Fragment
         transaction = manager.beginTransaction();
         transaction.remove(fragment);
         transaction.commit();
     }
 
+    /**
+     * Encapsulates the steps required to load any fragment into this activity.
+     *
+     * @param activity The activity used to retrieve fragment manager.
+     * @param fragment The fragment to be added.
+     * @param tag The tag value to later retrieve the fragment.
+     * @param addToBackStack The value used to enable back stack usage.
+     */
     public static void setFragment(AppCompatActivity activity, Fragment fragment, String tag,
             boolean addToBackStack) {
         FragmentManager manager = activity.getSupportFragmentManager();

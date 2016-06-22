@@ -11,6 +11,12 @@ import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * This class is used to centralize all actions related to the shared preferences by providing
+ * access and modifications to the numerous settings values being used by the app.
+ *
+ * @author Gary Ng
+ */
 public class Settings {
 
     public static final String PREF_CALENDARS = "pref_calendars";
@@ -32,6 +38,9 @@ public class Settings {
 
     public static final String PREF_CALENDAR_WEEK_NUMBER = "pref_calendar_week_number";
     public static final boolean DEFAULT_CALENDAR_WEEK_NUMBER = false;
+
+    public static final String PREF_CONTACTS_SCAN = "pref_contacts_scan";
+    public static final long DEFAULT_CONTACTS_SCAN = 0;
 
     public static final String PREF_DAY_ONE = "pref_day_one";
     public static final long DEFAULT_DAY_ONE = 0;
@@ -230,6 +239,16 @@ public class Settings {
     public void setCalendarWeekNumber(boolean value) {
         Editor editor = getEditor();
         editor.putBoolean(PREF_CALENDAR_WEEK_NUMBER, value);
+        editor.apply();
+    }
+
+    public long getContactsScan() {
+        return preferences.getLong(PREF_CONTACTS_SCAN, DEFAULT_CONTACTS_SCAN);
+    }
+
+    public void setContactsScan(long milliseconds) {
+        Editor editor = getEditor();
+        editor.putLong(PREF_CONTACTS_SCAN, milliseconds);
         editor.apply();
     }
 

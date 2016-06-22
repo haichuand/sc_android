@@ -82,9 +82,9 @@ public class AttendeeDataSource extends DataSource {
         return updateValues(id, values);
     }
 
-    public int setSuggested(String id, boolean status) {
+    public int setSuggested(String id, int value) {
         ContentValues values = new ContentValues();
-        values.put(DatabaseValues.User.SUGGESTED, status ? 1 : 0);
+        values.put(DatabaseValues.User.SUGGESTED, value);
 
         return updateValues(id, values);
     }
@@ -166,7 +166,7 @@ public class AttendeeDataSource extends DataSource {
         user.userName = cursor.getString(DatabaseValues.User.INDEX_USER_NAME);
         user.isFavorite = cursor.getInt(DatabaseValues.User.INDEX_FAVORITE) > 0;
         user.isFriend = cursor.getInt(DatabaseValues.User.INDEX_FRIEND) > 0;
-        user.isSuggested = cursor.getInt(DatabaseValues.User.INDEX_SUGGESTED) > 0;
+        user.isSuggested = cursor.getInt(DatabaseValues.User.INDEX_SUGGESTED);
 
         return user;
     }

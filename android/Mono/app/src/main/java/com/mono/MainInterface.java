@@ -8,6 +8,12 @@ import android.widget.AdapterView.OnItemSelectedListener;
 
 import com.mono.model.Event;
 
+/**
+ * An interface used primarily by the Main Activity to centralize common actions to be used by
+ * other classes.
+ *
+ * @author Gary Ng
+ */
 public interface MainInterface {
 
     void setToolbarTitle(int resId);
@@ -33,6 +39,8 @@ public interface MainInterface {
     void showIntro();
 
     void showLogin();
+
+    void showContacts();
 
     void showSettings();
 
