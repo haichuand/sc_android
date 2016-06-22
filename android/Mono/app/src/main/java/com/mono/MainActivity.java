@@ -468,12 +468,12 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
      */
     @Override
     public void showHome() {
-        Account account = AccountManager.getInstance(this).getAccount();
-        if (account == null) {
-            Intent intent = new Intent(this, LoginActivity.class);
-            startActivityForResult(intent, RequestCodes.Activity.LOGIN_CHAT);
-            return;
-        }
+//        Account account = AccountManager.getInstance(this).getAccount();
+//        if (account == null) {
+//            Intent intent = new Intent(this, LoginActivity.class);
+//            startActivityForResult(intent, RequestCodes.Activity.LOGIN_CHAT);
+//            return;
+//        }
 
         FragmentManager manager = getSupportFragmentManager();
         manager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
@@ -699,15 +699,15 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             return;
         }
 
-//        Account account = AccountManager.getInstance(this).getAccount();
-//        if (account == null) {
-//            Intent intent = new Intent(this, LoginActivity.class);
-//            intent.putExtra(EXTRA_EVENT_ID, eventId);
-//
-//            startActivityForResult(intent, RequestCodes.Activity.LOGIN_CHAT);
-//            return;
-//        }
         Account account = AccountManager.getInstance(this).getAccount();
+        if (account == null) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.putExtra(EXTRA_EVENT_ID, eventId);
+
+            startActivityForResult(intent, RequestCodes.Activity.LOGIN_CHAT);
+            return;
+        }
+
         ConversationManager conversationManager = ConversationManager.getInstance(this);
         List<Conversation> conversations = conversationManager.getConversations(eventId);
         String conversationId;
