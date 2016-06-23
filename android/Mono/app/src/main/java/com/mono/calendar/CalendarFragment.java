@@ -151,15 +151,6 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
                 Event event = new Event();
                 event.type = Event.TYPE_CALENDAR;
 
-                List<Calendar> calendars =
-                    CalendarProvider.getInstance(getContext()).getCalendars();
-                for (Calendar calendar : calendars) {
-                    if (calendar.primary) {
-                        event.calendarId = calendar.id;
-                        break;
-                    }
-                }
-
                 LocalDate date = calendarView.getCurrentSelected();
                 if (date != null) {
                     DateTime dateTime = new DateTime(date.getYear(), date.getMonthOfYear(),
