@@ -4,16 +4,19 @@ import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.format.DateFormat;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
@@ -22,6 +25,7 @@ import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
@@ -30,12 +34,19 @@ import com.google.android.gms.location.places.ui.PlaceAutocomplete;
 import com.google.android.gms.maps.model.LatLng;
 import com.mono.EventManager;
 import com.mono.R;
+import com.mono.contacts.ContactsActivity;
+import com.mono.contacts.ContactsManager;
 import com.mono.model.Attendee;
 import com.mono.model.Calendar;
+import com.mono.model.Contact;
 import com.mono.model.Event;
 import com.mono.model.Location;
 import com.mono.provider.CalendarProvider;
+import com.mono.util.BitmapHelper;
+import com.mono.util.Colors;
+import com.mono.util.Common;
 import com.mono.util.GestureActivity;
+import com.mono.util.Pixels;
 import com.mono.util.TimeZoneHelper;
 
 import org.joda.time.DateTime;
@@ -48,12 +59,22 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
+/**
+ * This activity displays information of an event as well as allowing the user to create and
+ * modify an existing event.
+ *
+ * @author Gary Ng
+ */
 public class EventDetailsActivity extends GestureActivity {
 
     public static final String EXTRA_CALENDAR = "calendar";
     public static final String EXTRA_EVENT = "event";
 
     private static final int REQUEST_PLACE_PICKER = 1;
+    private static final int REQUEST_CONTACT_PICKER = 2;
+
+    private static final int ICON_DIMENSION_DP = 24;
+    private static final int RADIUS_DP = 2;
 
     private static final SimpleDateFormat DATE_FORMAT;
     private static final SimpleDateFormat TIME_FORMAT;
@@ -71,7 +92,8 @@ public class EventDetailsActivity extends GestureActivity {
     private EditText location;
     private ImageView locationPicker;
     private EditText notes;
-    private EditText guests;
+    private ViewGroup guests;
+    private ImageView contactPicker;
 
     private Event original;
     private Event event;
@@ -256,21 +278,13 @@ public class EventDetailsActivity extends GestureActivity {
             }
         });
 
-        guests = (EditText) findViewById(R.id.guests);
-        guests.addTextChangedListener(new TextWatcher() {
+        guests = (ViewGroup) findViewById(R.id.guests);
+
+        contactPicker = (ImageView) findViewById(R.id.contact_picker);
+        contactPicker.setOnClickListener(new OnClickListener() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-
+            public void onClick(View view) {
+                showContactPicker();
             }
         });
 
@@ -351,6 +365,9 @@ public class EventDetailsActivity extends GestureActivity {
             case REQUEST_PLACE_PICKER:
                 handlePlacePicker(resultCode, data);
                 break;
+            case REQUEST_CONTACT_PICKER:
+                handleContactPicker(resultCode, data);
+                break;
         }
     }
 
@@ -414,14 +431,18 @@ public class EventDetailsActivity extends GestureActivity {
             notes.setText(event.description);
         }
 
+        guests.removeAllViews();
         if (!event.attendees.isEmpty()) {
-            String str = "";
-            for (int i = 0; i < event.attendees.size(); i++) {
-                Attendee attendee = event.attendees.get(i);
-                if (i > 0) str += '\n';
-                str += attendee.userName;
+            ContactsManager manager = ContactsManager.getInstance(this);
+
+            for (Attendee user : event.attendees) {
+                Contact contact = manager.getContact(user.email, user.phoneNumber);
+                if (contact == null) {
+                    contact = ContactsManager.userToContact(user);
+                }
+
+                addGuest(contact);
             }
-            guests.setText(str);
         }
     }
 
@@ -558,6 +579,111 @@ public class EventDetailsActivity extends GestureActivity {
     public void setLocation(Location location) {
         this.location.setText(location.name);
         event.location = location;
+    }
+
+    public void addGuest(Contact contact) {
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View view = inflater.inflate(R.layout.contacts_tag, null, false);
+        // Handle Profile Photo
+        ImageView icon = (ImageView) view.findViewById(R.id.icon);
+
+        if (contact.photo != null) {
+            int dimension = Pixels.pxFromDp(this, ICON_DIMENSION_DP);
+            Bitmap bitmap = BitmapHelper.createBitmap(contact.photo, dimension, dimension);
+
+            int color = Colors.getColor(this, R.color.colorPrimary);
+            int radius = Pixels.pxFromDp(this, RADIUS_DP);
+
+            bitmap = BitmapHelper.createCircleBitmap(bitmap, color, radius);
+
+            icon.setImageBitmap(bitmap);
+        } else {
+            icon.setImageResource(R.drawable.ic_account_circle_48dp);
+
+            int color = Colors.getColor(this, R.color.colorPrimary);
+            icon.setColorFilter(color);
+        }
+        // Handle Contact Information
+        String name;
+        if (!Common.isEmpty(contact.firstName)) {
+            name = String.format("%s %s", contact.firstName, contact.lastName);
+        } else {
+            name = contact.displayName;
+        }
+        // Contact Name
+        TextView nameView = (TextView) view.findViewById(R.id.name);
+        nameView.setText(name);
+
+        int margin = Pixels.pxFromDp(this, 2);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        params.setMargins(0, margin, 0, margin);
+        // Show Dialog to Remove
+        view.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                onGuestClick(guests.indexOfChild(view));
+            }
+        });
+
+        guests.addView(view, params);
+    }
+
+    public void onGuestClick(final int position) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AppTheme_Dialog_Alert);
+        builder.setItems(
+            new CharSequence[]{
+                getString(R.string.remove)
+            },
+            new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    if (which == 0) {
+                        event.attendees.remove(position);
+                        guests.removeViewAt(position);
+                    }
+                }
+            }
+        );
+        builder.create().show();
+    }
+
+    public void showContactPicker() {
+        Intent intent = new Intent(this, ContactsActivity.class);
+        intent.putExtra(ContactsActivity.EXTRA_MODE, ContactsActivity.MODE_PICKER);
+        startActivityForResult(intent, REQUEST_CONTACT_PICKER);
+    }
+
+    public void handleContactPicker(int resultCode, Intent data) {
+        if (resultCode == RESULT_OK) {
+            List<Contact> contacts =
+                data.getParcelableArrayListExtra(ContactsActivity.EXTRA_CONTACTS);
+
+            for (Contact contact : contacts) {
+                Attendee user = new Attendee(contact.id);
+
+                String[] emails = contact.getEmails();
+                if (emails != null && emails.length > 0) {
+                    user.email = emails[0];
+                }
+
+                String[] phones = contact.getPhones();
+                if (phones != null && phones.length > 0) {
+                    user.phoneNumber = phones[0];
+                }
+
+                user.firstName = contact.firstName;
+                user.lastName = contact.lastName;
+                user.userName = contact.displayName;
+
+                if (!event.attendees.contains(user)) {
+                    event.attendees.add(user);
+                    addGuest(contact);
+                }
+            }
+        }
     }
 
     public void onDateClick(long milliseconds, String timeZone,

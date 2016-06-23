@@ -102,6 +102,30 @@ public class ContactsManager {
         int index = cache.indexOf(contact);
         if (index >= 0) {
             contact = cache.get(index);
+        } else {
+            contact = null;
+        }
+
+        return contact;
+    }
+
+    /**
+     * Retrieve a contact by email or phone.
+     *
+     * @param email The email belonging to the contact.
+     * @param phone The phone number belonging to the contact.
+     * @return an instance of a contact.
+     */
+    public Contact getContact(String email, String phone) {
+        Contact contact = new Contact(-1);
+        contact.setEmail(email);
+        contact.setPhone(phone);
+
+        int index = cache.indexOf(contact);
+        if (index >= 0) {
+            contact = cache.get(index);
+        } else {
+            contact = null;
         }
 
         return contact;
@@ -332,7 +356,7 @@ public class ContactsManager {
         }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, refresh);
     }
 
-    private Contact userToContact(Attendee user) {
+    public static Contact userToContact(Attendee user) {
         Contact contact = new Contact(Long.parseLong(user.id), Contact.TYPE_USER);
 
         if (!Common.isEmpty(user.email)) {

@@ -8,6 +8,11 @@ import com.mono.util.Common;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * This data structure is used to store information about a specific event.
+ *
+ * @author Gary Ng
+ */
 public class Event implements Parcelable {
 
     public static final String TYPE_CALENDAR = "calendar";
@@ -191,9 +196,9 @@ public class Event implements Parcelable {
             return false;
         }
 
-//        if (!attendees.equals(event.attendees)) {
-//            return false;
-//        }
+        if (!attendees.equals(event.attendees)) {
+            return false;
+        }
 
 //        if (!reminders.equals(event.reminders)) {
 //            return false;

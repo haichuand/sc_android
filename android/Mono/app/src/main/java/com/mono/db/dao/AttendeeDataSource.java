@@ -22,7 +22,7 @@ public class AttendeeDataSource extends DataSource {
 
     public String createAttendee(String mediaId, String email, String phoneNumber,
             String firstName, String lastName, String userName, boolean favorite, boolean friend) {
-        String id = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
+        String id = String.valueOf((long) (Math.random() * -10000));
 
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.User.U_ID, id);

@@ -665,6 +665,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                         event.timeZone,
                         event.endTimeZone,
                         event.allDay,
+                        event.attendees,
                         null
                     );
                 } else {
@@ -685,6 +686,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                         event.timeZone,
                         event.endTimeZone,
                         event.allDay,
+                        event.attendees,
                         null
                     );
                 }

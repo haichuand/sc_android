@@ -278,17 +278,30 @@
                 app:labelColor="?attr/colorPrimary"
                 app:labelSize="14sp">
 
-                <EditText
-                    android:id="@+id/guests"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:background="@drawable/input"
-                    android:gravity="top"
-                    android:hint="@string/guests"
-                    android:lines="5"
-                    android:padding="6dp"
-                    android:textSize="16sp"/>
+                    android:orientation="horizontal"
+                    android:layout_marginTop="4dp">
+
+                    <LinearLayout
+                        android:id="@+id/guests"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:background="@drawable/input"
+                        android:layout_weight="1"
+                        android:minHeight="40dp"
+                        android:padding="6dp"/>
+
+                    <ImageView
+                        android:id="@+id/contact_picker"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginStart="10dp"
+                        android:src="@drawable/ic_contacts"
+                        android:tint="?attr/colorPrimary"/>
+                </LinearLayout>
             </com.mono.util.SimpleLabelLayout>
         </LinearLayout>
     </ScrollView>
