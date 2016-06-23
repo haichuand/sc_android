@@ -676,7 +676,10 @@ public class EventDetailsActivity extends GestureActivity {
 
                 user.firstName = contact.firstName;
                 user.lastName = contact.lastName;
-                user.userName = contact.displayName;
+
+                if (user.firstName == null && user.lastName == null) {
+                    user.firstName = contact.displayName;
+                }
 
                 if (!event.attendees.contains(user)) {
                     event.attendees.add(user);

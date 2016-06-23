@@ -211,7 +211,12 @@ public class ContactsManager {
                 List<Contact> result = new ArrayList<>();
                 // Retrieve Users from Database
                 for (Attendee user : dataSource.getAttendees()) {
+                    if (user.userName == null) {
+                        continue;
+                    }
+
                     Contact contact = userToContact(user);
+
                     if (isSelf(contact)) {
                         continue;
                     }
@@ -305,6 +310,10 @@ public class ContactsManager {
                     AttendeeDataSource dataSource =
                         DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
                     for (Attendee user : dataSource.getAttendees()) {
+                        if (user.userName == null) {
+                            continue;
+                        }
+
                         Contact contact = userToContact(user);
 
                         if (isSelf(contact)) {
