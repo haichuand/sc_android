@@ -2,12 +2,9 @@ package com.mono.details;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
-import android.content.ClipData;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.PorterDuff;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
@@ -29,7 +26,6 @@ import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
@@ -40,24 +36,18 @@ import com.mono.EventManager;
 import com.mono.R;
 import com.mono.contacts.ContactsActivity;
 import com.mono.contacts.ContactsManager;
-import com.mono.db.DatabaseHelper;
-import com.mono.db.dao.MediaDataSource;
 import com.mono.model.Attendee;
 import com.mono.model.Calendar;
 import com.mono.model.Contact;
 import com.mono.model.Event;
 import com.mono.model.Location;
-import com.mono.model.Media;
 import com.mono.provider.CalendarProvider;
 import com.mono.util.BitmapHelper;
 import com.mono.util.Colors;
 import com.mono.util.Common;
 import com.mono.util.GestureActivity;
 import com.mono.util.Pixels;
-import com.mono.util.SimpleQuickAction;
-import com.mono.util.SimpleQuickAction.SimpleQuickActionListener;
 import com.mono.util.TimeZoneHelper;
-import com.mono.util.UriHelper;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -80,20 +70,12 @@ public class EventDetailsActivity extends GestureActivity {
     public static final String EXTRA_CALENDAR = "calendar";
     public static final String EXTRA_EVENT = "event";
 
-    private static final int REQUEST_PLACE_PICKER = 1;
-    private static final int REQUEST_CONTACT_PICKER = 2;
-    private static final int REQUEST_PHOTO_PICKER = 3;
+    public static final int REQUEST_PLACE_PICKER = 1;
+    public static final int REQUEST_CONTACT_PICKER = 2;
+    public static final int REQUEST_PHOTO_PICKER = 3;
 
     private static final int ICON_DIMENSION_DP = 24;
     private static final int RADIUS_DP = 2;
-    private static final int PHOTO_WIDTH_DP = 80;
-    private static final int PHOTO_HEIGHT_DP = 60;
-
-    private static final int THUMBNAIL_DIMENSION_PX = 128;
-
-    private static final String[] PHOTO_ACTIONS = {"View", "Remove"};
-    private static final int PHOTO_ACTION_VIEW = 0;
-    private static final int PHOTO_ACTION_REMOVE = 1;
 
     private static final SimpleDateFormat DATE_FORMAT;
     private static final SimpleDateFormat TIME_FORMAT;
@@ -113,7 +95,7 @@ public class EventDetailsActivity extends GestureActivity {
     private EditText notes;
     private ViewGroup guests;
     private ImageView contactPicker;
-    private ViewGroup photos;
+    private PhotoPanel photos;
 
     private Event original;
     private Event event;
@@ -308,7 +290,8 @@ public class EventDetailsActivity extends GestureActivity {
             }
         });
 
-        photos = (ViewGroup) findViewById(R.id.photos);
+        photos = new PhotoPanel(this);
+        photos.onCreate(savedInstanceState);
 
         Intent intent = getIntent();
         Event event = intent.getParcelableExtra(EXTRA_EVENT);
@@ -391,7 +374,7 @@ public class EventDetailsActivity extends GestureActivity {
                 handleContactPicker(resultCode, data);
                 break;
             case REQUEST_PHOTO_PICKER:
-                handlePhotoPicker(resultCode, data);
+                photos.handlePhotoPicker(resultCode, data);
                 break;
         }
     }
@@ -470,14 +453,7 @@ public class EventDetailsActivity extends GestureActivity {
             }
         }
 
-        photos.removeAllViews();
-        createPhotoButton();
-
-        if (!event.photos.isEmpty()) {
-            for (Media photo : event.photos) {
-                createPhoto(photo.uri, photo.thumbnail);
-            }
-        }
+        photos.setEvent(event);
     }
 
     public void close() {
@@ -721,217 +697,6 @@ public class EventDetailsActivity extends GestureActivity {
                 }
             }
         }
-    }
-
-    /**
-     * Create a thumbnail from a byte array otherwise attempt to load it using the path given.
-     * The resulting thumbnail will be appended to the photo section.
-     *
-     * @param uri The image path.
-     * @param data The image data.
-     */
-    public void createPhoto(Uri uri, byte[] data) {
-        LayoutInflater inflater = LayoutInflater.from(this);
-        View view = inflater.inflate(R.layout.photos_item, null, false);
-
-        ImageView image = (ImageView) view.findViewById(R.id.image);
-
-        int width = Pixels.pxFromDp(this, PHOTO_WIDTH_DP);
-        int height = Pixels.pxFromDp(this, PHOTO_HEIGHT_DP);
-
-        Bitmap bitmap = null;
-        if (data != null) {
-            bitmap = BitmapHelper.createBitmap(data, width, height);
-        } else if (Common.fileExists(uri.toString())) {
-            bitmap = BitmapHelper.createBitmap(uri.toString(), width, height);
-        }
-        image.setImageBitmap(bitmap);
-
-        int margin = Pixels.pxFromDp(this, 2);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-            Pixels.pxFromDp(this, PHOTO_WIDTH_DP),
-            Pixels.pxFromDp(this, PHOTO_HEIGHT_DP)
-        );
-        params.setMargins(margin, margin, margin, margin);
-
-        view.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                onPhotoClick(photos.indexOfChild(view));
-            }
-        });
-
-        photos.addView(view, Math.max(photos.getChildCount() - 1, 0), params);
-    }
-
-    /**
-     * Create a button to show photo picker to add images to event.
-     */
-    public void createPhotoButton() {
-        LayoutInflater inflater = LayoutInflater.from(this);
-        View view = inflater.inflate(R.layout.photos_item, null, false);
-
-        ImageView image = (ImageView) view.findViewById(R.id.image);
-        image.setImageResource(R.drawable.ic_photo_add);
-
-        int dimension = Pixels.pxFromDp(this, PHOTO_HEIGHT_DP * 0.5f);
-        RelativeLayout.LayoutParams imageParams =
-            new RelativeLayout.LayoutParams(dimension, dimension);
-        imageParams.addRule(RelativeLayout.CENTER_IN_PARENT);
-
-        image.setLayoutParams(imageParams);
-
-        int color = Colors.getColor(this, R.color.gray);
-        image.getDrawable().setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
-
-        int margin = Pixels.pxFromDp(this, 2);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-            Pixels.pxFromDp(this, PHOTO_WIDTH_DP),
-            Pixels.pxFromDp(this, PHOTO_HEIGHT_DP)
-        );
-        params.setMargins(margin, margin, margin, margin);
-
-        view.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                showPhotoPicker();
-            }
-        });
-
-        photos.addView(view, params);
-    }
-
-    /**
-     * Handle the action of clicking on the photo button. A popup of additional options will be
-     * shown upon click.
-     *
-     * @param position The position of the photo.
-     */
-    public void onPhotoClick(int position) {
-        final int photoPosition = position;
-
-        View view = photos.getChildAt(position);
-
-        SimpleQuickAction actionView = SimpleQuickAction.newInstance(this);
-        actionView.setColor(Colors.getColor(this, R.color.colorPrimary));
-        actionView.setActions(PHOTO_ACTIONS);
-
-        int[] location = new int[2];
-        view.getLocationInWindow(location);
-        location[1] -= Pixels.Display.getStatusBarHeight(this);
-        location[1] -= Pixels.Display.getActionBarHeight(this);
-
-        int offsetX = location[0] + view.getWidth() / 2;
-        int offsetY = view.getHeight();
-
-        actionView.setPosition(location[0], location[1], offsetX, offsetY);
-        actionView.setListener(new SimpleQuickActionListener() {
-            @Override
-            public void onActionClick(int position) {
-                switch (position) {
-                    case PHOTO_ACTION_VIEW:
-                        Media photo = event.photos.get(photoPosition);
-                        showPhotoViewer(photo);
-                        break;
-                    case PHOTO_ACTION_REMOVE:
-                        event.photos.remove(photoPosition);
-                        photos.removeViewAt(photoPosition);
-                        break;
-                }
-            }
-
-            @Override
-            public void onDismiss() {
-
-            }
-        });
-
-        ViewGroup content = (ViewGroup) findViewById(android.R.id.content);
-        if (content != null) {
-            content.addView(actionView);
-        }
-    }
-
-    /**
-     * Display the original photo in the photo viewer.
-     *
-     * @param photo The photo to be shown.
-     */
-    public void showPhotoViewer(Media photo) {
-        Intent intent = new Intent();
-        intent.setAction(Intent.ACTION_VIEW);
-        intent.setDataAndType(Uri.parse("file://" + photo.uri), photo.type);
-
-        startActivity(intent);
-    }
-
-    /**
-     * Display the photo picker to add photos to the event.
-     */
-    public void showPhotoPicker() {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("image/*");
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
-        intent.setAction(Intent.ACTION_GET_CONTENT);
-
-        startActivityForResult(Intent.createChooser(intent, "Select Photos"), REQUEST_PHOTO_PICKER);
-    }
-
-    /**
-     * Handle the result from the photo picker. The result can either be a single or a set of
-     * photos returned from the photo picker.
-     *
-     * @param resultCode The result code returned from the activity.
-     * @param data The data returned from the activity.
-     */
-    public void handlePhotoPicker(int resultCode, Intent data) {
-        if (resultCode == RESULT_OK) {
-            if (data.getClipData() == null) {
-                // Handle Single Image
-                addPhoto(data.getData());
-            } else {
-                // Handle Multiple Images
-                ClipData clipData = data.getClipData();
-                for (int i = 0; i < clipData.getItemCount(); i++) {
-                    addPhoto(clipData.getItemAt(i).getUri());
-                }
-            }
-        }
-    }
-
-    /**
-     * Photos retrieved from the photo picker will be added to the event.
-     *
-     * @param contentUri The content URI of the photo.
-     */
-    private void addPhoto(Uri contentUri) {
-        Uri uri = UriHelper.resolve(this, contentUri);
-        // Check File Exists
-        String path = uri.toString();
-        if (!Common.fileExists(path)) {
-            return;
-        }
-        // Check File Size
-        long size = Common.fileSize(path);
-        Media photo = new Media(uri, Media.IMAGE, size);
-        // Prevent Duplicate Photo
-        if (event.photos.contains(photo)) {
-            return;
-        }
-        // Check for Existing Photo
-        MediaDataSource dataSource = DatabaseHelper.getDataSource(this, MediaDataSource.class);
-        Media media = dataSource.getMedia(path, Media.IMAGE, size);
-
-        if (media != null) {
-            photo = media;
-        } else {
-            photo.thumbnail = BitmapHelper.getBytes(path, THUMBNAIL_DIMENSION_PX,
-                THUMBNAIL_DIMENSION_PX, BitmapHelper.FORMAT_JPEG, 100);
-        }
-        // Add Photo to Event
-        event.photos.add(photo);
-        createPhoto(uri, photo.thumbnail);
     }
 
     public void onDateClick(long milliseconds, String timeZone,
