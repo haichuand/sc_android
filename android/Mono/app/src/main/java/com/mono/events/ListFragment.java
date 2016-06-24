@@ -389,7 +389,7 @@ public class ListFragment extends Fragment implements SimpleDataSource<ListItem>
      * Handle the refresh of an event if it was updated.
      *
      * @param event The instance of the event.
-     * @param scrollTo The value of whether to scroll to the event after insertion.
+     * @param scrollTo The value of whether to scroll to the event after refresh.
      */
     public void update(Event event, boolean scrollTo) {
         int index = events.indexOf(event);

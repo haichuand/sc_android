@@ -1,9 +1,12 @@
 package com.mono.calendar;
 
+import android.content.Context;
+import android.graphics.PorterDuff;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.mono.R;
@@ -12,8 +15,15 @@ import com.mono.util.Pixels;
 import com.mono.util.SimpleDataSource;
 import com.mono.util.SimpleSlideView;
 import com.mono.util.SimpleSlideView.SimpleSlideViewListener;
+import com.mono.util.SimpleViewHolder;
+import com.mono.util.SimpleViewHolder.HolderItem;
 
-public class CalendarEventsAdapter extends RecyclerView.Adapter<CalendarEventsAdapter.Holder> {
+/**
+ * A adapter used to display events in the recycler view.
+ *
+ * @author Gary Ng
+ */
+public class CalendarEventsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
 
     private static final int ITEM_HEIGHT_DP = 60;
 
@@ -39,7 +49,7 @@ public class CalendarEventsAdapter extends RecyclerView.Adapter<CalendarEventsAd
     }
 
     @Override
-    public void onBindViewHolder(Holder holder, int position) {
+    public void onBindViewHolder(SimpleViewHolder holder, int position) {
         CalendarEventsItem item = dataSource.getItem(position);
         holder.onBind(item);
     }
@@ -56,23 +66,31 @@ public class CalendarEventsAdapter extends RecyclerView.Adapter<CalendarEventsAd
     }
 
     @Override
-    public void onViewRecycled(Holder holder) {
+    public void onViewRecycled(SimpleViewHolder holder) {
         holder.onViewRecycled();
     }
 
+    /**
+     * Set the source to retrieve items for this adapter to use.
+     *
+     * @param dataSource The item source.
+     */
     public void setDataSource(SimpleDataSource<CalendarEventsItem> dataSource) {
         this.dataSource = dataSource;
         notifyDataSetChanged();
     }
 
-    public class Holder extends RecyclerView.ViewHolder {
+    public class Holder extends SimpleViewHolder {
 
-        public ImageView icon;
-        public TextView startTime;
-        public TextView endTime;
-        public TextView title;
-        public TextView description;
-        public ImageView person;
+        private static final int OPTION_DIMENSION_DP = 24;
+        private static final int OPTION_MARGIN_DP = 2;
+
+        private ImageView icon;
+        private TextView startTime;
+        private TextView endTime;
+        private TextView title;
+        private TextView description;
+        private ViewGroup options;
 
         public Holder(View itemView) {
             super(itemView);
@@ -82,10 +100,13 @@ public class CalendarEventsAdapter extends RecyclerView.Adapter<CalendarEventsAd
             endTime = (TextView) itemView.findViewById(R.id.end_time);
             title = (TextView) itemView.findViewById(R.id.title);
             description = (TextView) itemView.findViewById(R.id.description);
-            person = (ImageView) itemView.findViewById(R.id.person);
+            options = (ViewGroup) itemView.findViewById(R.id.options);
         }
 
-        public void onBind(CalendarEventsItem holderItem) {
+        @Override
+        public void onBind(HolderItem holderItem) {
+            CalendarEventsItem item = (CalendarEventsItem) holderItem;
+
             SimpleSlideView tempView = (SimpleSlideView) itemView;
             tempView.clear();
             tempView.addLeftButton(Colors.getColor(tempView.getContext(), R.color.lavender),
@@ -95,29 +116,52 @@ public class CalendarEventsAdapter extends RecyclerView.Adapter<CalendarEventsAd
             tempView.addRightButton(Colors.getColor(tempView.getContext(), R.color.red),
                 R.drawable.ic_trash_white);
 
-            icon.setImageResource(holderItem.iconResId);
-            icon.setColorFilter(holderItem.iconColor | 0xFF000000);
+            icon.setImageResource(item.iconResId);
+            icon.setColorFilter(item.iconColor | 0xFF000000);
 
-            startTime.setText(holderItem.startTime);
-            startTime.setTextColor(holderItem.startTimeColor);
+            startTime.setText(item.startTime);
+            startTime.setTextColor(item.startTimeColor);
 
-            endTime.setText(holderItem.endTime);
-            endTime.setTextColor(holderItem.endTimeColor);
+            endTime.setText(item.endTime);
+            endTime.setTextColor(item.endTimeColor);
 
-            title.setText(holderItem.title);
-            description.setText(holderItem.description);
+            title.setText(item.title);
+            description.setText(item.description);
+
+            options.removeAllViews();
+
+            if (item.hasPhotos) {
+                createOption(R.drawable.ic_camera);
+            }
+
+            if (item.hasChat) {
+                createOption(R.drawable.ic_chat_white);
+            }
         }
 
-        public void onViewRecycled() {
+        private void createOption(int resId) {
+            Context context = itemView.getContext();
 
+            ImageView image = new ImageView(context);
+            image.setImageResource(resId);
+
+            int color = Colors.getColor(context, R.color.lavender);
+            image.getDrawable().setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
+
+            int dimension = Pixels.pxFromDp(context, OPTION_DIMENSION_DP);
+            int margin = Pixels.pxFromDp(context, OPTION_MARGIN_DP);
+
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dimension, dimension);
+            params.setMargins(margin, 0, margin, 0);
+
+            options.addView(image, params);
         }
     }
 
-    public static class CalendarEventsItem {
+    public static class CalendarEventsItem extends HolderItem {
 
         public static final int TYPE_EVENT = 0;
 
-        public String id;
         public int type;
         public int iconResId;
         public int iconColor;
@@ -127,6 +171,8 @@ public class CalendarEventsAdapter extends RecyclerView.Adapter<CalendarEventsAd
         public int endTimeColor;
         public String title;
         public String description;
+        public boolean hasPhotos;
+        public boolean hasChat;
 
         public CalendarEventsItem(String id) {
             this.id = id;
