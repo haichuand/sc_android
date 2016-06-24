@@ -279,29 +279,11 @@
                 app:labelSize="14sp">
 
                 <LinearLayout
+                    android:id="@+id/guests"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="4dp">
-
-                    <LinearLayout
-                        android:id="@+id/guests"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:background="@drawable/input"
-                        android:layout_weight="1"
-                        android:minHeight="40dp"
-                        android:padding="6dp"/>
-
-                    <ImageView
-                        android:id="@+id/contact_picker"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_marginStart="10dp"
-                        android:src="@drawable/ic_contacts"
-                        android:tint="?attr/colorPrimary"/>
-                </LinearLayout>
+                    android:orientation="vertical"
+                    android:layout_marginTop="4dp"/>
             </com.mono.util.SimpleLabelLayout>
 
             <com.mono.util.SimpleLabelLayout

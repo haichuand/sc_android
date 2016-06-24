@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="30dp"
+    android:orientation="horizontal"
+    android:background="@drawable/input">
+
+    <ImageView
+        android:id="@+id/contact_picker"
+        android:layout_width="30dp"
+        android:layout_height="match_parent"
+        android:background="@drawable/square_round_left"
+        android:backgroundTint="?attr/colorPrimary"
+        android:padding="4dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_add_white"/>
+
+    <EditText
+        android:id="@+id/input"
+        android:layout_width="100dp"
+        android:layout_height="match_parent"
+        android:background="@null"
+        android:hint="@string/name"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:singleLine="true"
+        android:textColor="@color/gray_dark"
+        android:textSize="16sp"/>
+
+    <ImageView
+        android:id="@+id/submit"
+        android:layout_width="30dp"
+        android:layout_height="match_parent"
+        android:background="@drawable/square_round_right"
+        android:backgroundTint="?attr/colorPrimary"
+        android:padding="4dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_check"/>
+</LinearLayout>

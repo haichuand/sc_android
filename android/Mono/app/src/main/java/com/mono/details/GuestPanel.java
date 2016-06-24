@@ -1,14 +1,14 @@
 package com.mono.details;
 
 import android.app.Activity;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -23,6 +23,7 @@ import com.mono.util.BitmapHelper;
 import com.mono.util.Colors;
 import com.mono.util.Common;
 import com.mono.util.Pixels;
+import com.mono.util.SimpleQuickAction;
 
 import java.util.List;
 
@@ -34,12 +35,14 @@ import java.util.List;
 public class GuestPanel {
 
     private static final int ICON_DIMENSION_DP = 24;
+    private static final int MARGIN_DP = 2;
     private static final int RADIUS_DP = 2;
 
-    private EventDetailsActivity activity;
+    private static final String[] ACTIONS = {"Remove"};
+    private static final int ACTION_REMOVE = 0;
 
+    private EventDetailsActivity activity;
     private ViewGroup guests;
-    private ImageView contactPicker;
 
     private Event event;
 
@@ -49,14 +52,6 @@ public class GuestPanel {
 
     public void onCreate(Bundle savedInstanceState) {
         guests = (ViewGroup) activity.findViewById(R.id.guests);
-
-        contactPicker = (ImageView) activity.findViewById(R.id.contact_picker);
-        contactPicker.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                showContactPicker();
-            }
-        });
     }
 
     /**
@@ -68,6 +63,8 @@ public class GuestPanel {
         this.event = event;
 
         guests.removeAllViews();
+        createGuestInput();
+
         if (!event.attendees.isEmpty()) {
             ContactsManager manager = ContactsManager.getInstance(activity);
 
@@ -120,21 +117,21 @@ public class GuestPanel {
         TextView nameView = (TextView) view.findViewById(R.id.name);
         nameView.setText(name);
 
-        int margin = Pixels.pxFromDp(activity, 2);
+        int margin = Pixels.pxFromDp(activity, MARGIN_DP);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         );
         params.setMargins(0, margin, 0, margin);
-        // Show Dialog to Remove
-        view.setOnClickListener(new View.OnClickListener() {
+        // Show Option to Remove
+        view.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
                 onGuestClick(guests.indexOfChild(view));
             }
         });
 
-        guests.addView(view, params);
+        guests.addView(view, Math.max(guests.getChildCount() - 1, 0), params);
     }
 
     /**
@@ -144,23 +141,80 @@ public class GuestPanel {
      * @param position The position of the guest.
      */
     public void onGuestClick(final int position) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(activity,
-            R.style.AppTheme_Dialog_Alert);
-        builder.setItems(
-            new CharSequence[]{
-                activity.getString(R.string.remove)
-            },
-            new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    if (which == 0) {
-                        event.attendees.remove(position);
-                        guests.removeViewAt(position);
-                    }
+        final int guestPosition = position;
+
+        View view = guests.getChildAt(position);
+
+        SimpleQuickAction actionView = SimpleQuickAction.newInstance(activity);
+        actionView.setColor(Colors.getColor(activity, R.color.colorPrimary));
+        actionView.setActions(ACTIONS);
+
+        int[] location = new int[2];
+        view.getLocationInWindow(location);
+        location[1] -= Pixels.Display.getStatusBarHeight(activity);
+        location[1] -= Pixels.Display.getActionBarHeight(activity);
+
+        int offsetX = location[0] + view.getWidth() / 2;
+        int offsetY = view.getHeight();
+
+        actionView.setPosition(location[0], location[1], offsetX, offsetY);
+        actionView.setListener(new SimpleQuickAction.SimpleQuickActionListener() {
+            @Override
+            public void onActionClick(int position) {
+                switch (position) {
+                    case ACTION_REMOVE:
+                        event.attendees.remove(guestPosition);
+                        guests.removeViewAt(guestPosition);
+                        break;
                 }
             }
+
+            @Override
+            public void onDismiss() {
+
+            }
+        });
+
+        ViewGroup content = (ViewGroup) activity.findViewById(android.R.id.content);
+        if (content != null) {
+            content.addView(actionView);
+        }
+    }
+
+    /**
+     * Create an input to enable user to create a user-defined contact with only a name.
+     * Alternatively, user can use the contact picker for existing contacts.
+     */
+    public void createGuestInput() {
+        LayoutInflater inflater = LayoutInflater.from(activity);
+        View view = inflater.inflate(R.layout.contacts_tag_input, null, false);
+
+        View contactPicker = view.findViewById(R.id.contact_picker);
+        contactPicker.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showContactPicker();
+            }
+        });
+
+        final EditText input = (EditText) view.findViewById(R.id.input);
+
+        View submit = view.findViewById(R.id.submit);
+        submit.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                onContactSubmit(input);
+            }
+        });
+
+        int margin = Pixels.pxFromDp(activity, MARGIN_DP);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
         );
-        builder.create().show();
+        params.setMargins(0, margin, 0, margin);
+
+        guests.addView(view, params);
     }
 
     /**
@@ -209,6 +263,33 @@ public class GuestPanel {
                     createGuest(contact);
                 }
             }
+        }
+    }
+
+    /**
+     * Handle the action of submitting the input of a user-defined contact.
+     *
+     * @param editText The input view.
+     */
+    public void onContactSubmit(EditText editText) {
+        String text = editText.getText().toString().trim();
+        if (text.isEmpty()) {
+            return;
+        }
+
+        editText.setText("");
+
+        Attendee user = new Attendee((long) (-10000 + Math.random() * -10000));
+        user.firstName = text;
+        user.lastName = "";
+
+        if (!event.attendees.contains(user)) {
+            event.attendees.add(user);
+
+            Contact contact = new Contact(Long.parseLong(user.id));
+            contact.displayName = user.firstName;
+
+            createGuest(contact);
         }
     }
 }
