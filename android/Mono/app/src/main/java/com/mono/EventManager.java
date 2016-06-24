@@ -8,8 +8,11 @@ import com.mono.db.DatabaseValues;
 import com.mono.db.dao.AttendeeDataSource;
 import com.mono.db.dao.EventAttendeeDataSource;
 import com.mono.db.dao.EventDataSource;
+import com.mono.db.dao.EventMediaDataSource;
+import com.mono.db.dao.MediaDataSource;
 import com.mono.model.Attendee;
 import com.mono.model.Event;
+import com.mono.model.Media;
 import com.mono.provider.CalendarEventProvider;
 import com.mono.util.Common;
 import com.mono.util.Constants;
@@ -94,7 +97,7 @@ public class EventManager {
     }
 
     /**
-     * Insert an event into the cache.
+     * Insert an event into the cache and retrieve any additional event information.
      *
      * @param event The instance of an event.
      */
@@ -103,6 +106,10 @@ public class EventManager {
             EventAttendeeDataSource dataSource =
                 DatabaseHelper.getDataSource(context, EventAttendeeDataSource.class);
             event.attendees = dataSource.getAttendees(event.id);
+
+            EventMediaDataSource mediaDataSource =
+                DatabaseHelper.getDataSource(context, EventMediaDataSource.class);
+            event.photos = mediaDataSource.getMedia(event.id, Media.IMAGE);
         }
 
         cache.put(event.id, event);
@@ -377,12 +384,13 @@ public class EventManager {
      * @param endTimeZone The time zone used for the end time.
      * @param allDay The value of whether this is an all day event.
      * @param attendees The list of participants.
+     * @param photos The list of photos.
      * @param callback The callback used once completed.
      */
     public void createEvent(int actor, long calendarId, long internalId, String externalId,
             String type, String title, String description, String location, int color,
             long startTime, long endTime, String timeZone, String endTimeZone, boolean allDay,
-            List<Attendee> attendees, EventActionCallback callback) {
+            List<Attendee> attendees, List<Media> photos, EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
 
         Event event = null;
@@ -416,19 +424,39 @@ public class EventManager {
 
         if (id != null) {
             // Create Participants
-            AttendeeDataSource userDataSource =
-                DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
-            EventAttendeeDataSource eventUserDataSource =
-                DatabaseHelper.getDataSource(context, EventAttendeeDataSource.class);
+            if (attendees != null) {
+                AttendeeDataSource userDataSource =
+                    DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
+                EventAttendeeDataSource eventUserDataSource =
+                    DatabaseHelper.getDataSource(context, EventAttendeeDataSource.class);
 
-            for (Attendee user : attendees) {
-                String userId = user.id;
-                if (userDataSource.getAttendeeById(userId) == null) {
-                    userId = userDataSource.createAttendee(null, user.email, user.phoneNumber,
-                        user.firstName, user.lastName, user.userName, false, false);
+                for (Attendee user : attendees) {
+                    String userId = user.id;
+                    if (userDataSource.getAttendeeById(userId) == null) {
+                        userId = userDataSource.createAttendee(null, user.email, user.phoneNumber,
+                            user.firstName, user.lastName, user.userName, false, false);
+                    }
+
+                    eventUserDataSource.setAttendee(id, userId);
                 }
+            }
+            // Create Photos
+            if (photos != null) {
+                MediaDataSource mediaDataSource =
+                    DatabaseHelper.getDataSource(context, MediaDataSource.class);
+                EventMediaDataSource eventMediaDataSource =
+                    DatabaseHelper.getDataSource(context, EventMediaDataSource.class);
 
-                eventUserDataSource.setAttendee(id, userId);
+                for (Media photo : photos) {
+                    long mediaId = photo.id;
+
+                    if (mediaId == 0) {
+                        mediaId = mediaDataSource.createMedia(photo.uri.toString(), photo.type,
+                            photo.size, photo.thumbnail);
+                    }
+
+                    eventMediaDataSource.setMedia(id, mediaId);
+                }
             }
 
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE, id);
@@ -462,11 +490,12 @@ public class EventManager {
      * @param endTimeZone The time zone used for the end time.
      * @param allDay The value of whether this is an all day event.
      * @param attendees The list of participants.
+     * @param photos The list of photos.
      * @param callback The callback used once completed.
      */
     public void createSyncEvent(int actor, long calendarId, String title, String description,
             String location, int color, long startTime, long endTime, String timeZone,
-            String endTimeZone, boolean allDay, List<Attendee> attendees,
+            String endTimeZone, boolean allDay, List<Attendee> attendees, List<Media> photos,
             EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
 
@@ -661,6 +690,28 @@ public class EventManager {
 
         if (!event.reminders.equals(original.reminders)) {
 
+        }
+
+        if (!event.photos.equals(original.photos)) {
+            MediaDataSource mediaDataSource =
+                DatabaseHelper.getDataSource(context, MediaDataSource.class);
+            EventMediaDataSource eventMediaDataSource =
+                DatabaseHelper.getDataSource(context, EventMediaDataSource.class);
+
+            eventMediaDataSource.clearAll(id);
+            for (Media photo : event.photos) {
+                long mediaId = photo.id;
+
+                if (mediaId == 0) {
+                    mediaId = mediaDataSource.createMedia(photo.uri.toString(), photo.type,
+                        photo.size, photo.thumbnail);
+                }
+
+                eventMediaDataSource.setMedia(id, mediaId);
+            }
+
+            original.photos.clear();
+            original.photos.addAll(event.photos);
         }
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);

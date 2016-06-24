@@ -11,6 +11,7 @@ import com.google.i18n.phonenumbers.PhoneNumberUtil;
 
 import org.joda.time.LocalDate;
 
+import java.io.File;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -60,22 +61,6 @@ public class Common {
         return str == null || str.length() == 0;
     }
 
-    public static int diff(String str1, String str2) {
-        int index = -1;
-
-        int strLen1 = str1.length(), strLen2 = str2.length();
-        int size = Math.max(strLen1, strLen2);
-
-        for (int i = 0; i < size; i++) {
-            if (i >= strLen1 || i >= strLen2 || str1.charAt(i) != str2.charAt(i)) {
-                index = i;
-                break;
-            }
-        }
-
-        return index;
-    }
-
     public static boolean contains(String str, String[] values) {
         boolean result = false;
 
@@ -112,6 +97,30 @@ public class Common {
         }
 
         return result;
+    }
+
+    public static int diff(String str1, String str2) {
+        int index = -1;
+
+        int strLen1 = str1.length(), strLen2 = str2.length();
+        int size = Math.max(strLen1, strLen2);
+
+        for (int i = 0; i < size; i++) {
+            if (i >= strLen1 || i >= strLen2 || str1.charAt(i) != str2.charAt(i)) {
+                index = i;
+                break;
+            }
+        }
+
+        return index;
+    }
+
+    public static boolean fileExists(String path) {
+        return new File(path).exists() && fileSize(path) > 0;
+    }
+
+    public static long fileSize(String path) {
+        return new File(path).length();
     }
 
     public static String formatPhone(String phone) {

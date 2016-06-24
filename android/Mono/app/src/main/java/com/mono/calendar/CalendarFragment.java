@@ -329,6 +329,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
                         event.endTimeZone,
                         event.allDay,
                         event.attendees,
+                        event.photos,
                         callback
                     );
                 } else if (event.source == Event.SOURCE_PROVIDER) {
@@ -346,6 +347,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
                         event.endTimeZone,
                         event.allDay,
                         event.attendees,
+                        event.photos,
                         callback
                     );
                 }
