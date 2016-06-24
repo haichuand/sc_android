@@ -14,6 +14,7 @@ import com.mono.EventManager.EventAction;
 import com.mono.EventManager.EventBroadcastListener;
 import com.mono.R;
 import com.mono.events.ListAdapter.ListItem;
+import com.mono.events.ListAdapter.PhotoItem;
 import com.mono.model.Event;
 import com.mono.util.Colors;
 import com.mono.util.Common;
@@ -35,6 +36,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 
+/**
+ * A fragment that displays a list of favorite events. Events selected can be viewed or edited.
+ * Using a sliding gesture of left or right on the event will reveal additional options to trigger
+ * a chat conversation or no longer want an event to be a favorite.
+ *
+ * @author Gary Ng
+ */
 public class FavoritesFragment extends Fragment implements SimpleDataSource<ListItem>,
         SimpleSlideViewListener, EventBroadcastListener, Scrollable {
 
@@ -98,6 +106,9 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
         return view;
     }
 
+    /**
+     * Retrieve a list of favorite events to be displayed.
+     */
     private void initialize() {
         if (task != null) {
             task.cancel(true);
@@ -122,6 +133,13 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
         }.execute();
     }
 
+    /**
+     * Retrieve events as items to be displayed by the adapter. Special case events such as one
+     * with photos will return as a different type of item to be displayed differently.
+     *
+     * @param position The position of the event.
+     * @return an item to display event information.
+     */
     @Override
     public ListItem getItem(int position) {
         ListItem item;
@@ -132,7 +150,14 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
         if (items.containsKey(id)) {
             item = items.get(id);
         } else {
-            item = new ListItem(id);
+            if (event.photos != null && !event.photos.isEmpty()) {
+                PhotoItem photoItem = new PhotoItem(id);
+                photoItem.photos = event.photos;
+
+                item = photoItem;
+            } else {
+                item = new ListItem(id);
+            }
 
             item.type = ListItem.TYPE_EVENT;
             item.iconResId = R.drawable.circle;
@@ -143,7 +168,7 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
 
             items.put(id, item);
         }
-
+        // Date Display
         if (item != null) {
             TimeZone timeZone = event.allDay ? TimeZone.getTimeZone("UTC") : TimeZone.getDefault();
             item.dateTime = getDateString(event.startTime, timeZone);
@@ -167,6 +192,14 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
         return item;
     }
 
+    /**
+     * Helper function to convert milliseconds into a readable date string that takes time zone
+     * into account.
+     *
+     * @param time The time in milliseconds.
+     * @param timeZone The time zone to be used.
+     * @return a date string.
+     */
     private String getDateString(long time, TimeZone timeZone) {
         LocalDate currentDate = new LocalDate();
 
@@ -188,11 +221,21 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
         return dateFormat.format(dateTime.toDate());
     }
 
+    /**
+     * Retrieve the number of events to be used by the adapter.
+     *
+     * @return the number of events.
+     */
     @Override
     public int getCount() {
         return events.size();
     }
 
+    /**
+     * Handle the action of clicking an event and notify any listeners.
+     *
+     * @param view The view of the event.
+     */
     @Override
     public void onClick(View view) {
         int position = recyclerView.getChildAdapterPosition(view);
@@ -205,11 +248,23 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
         }
     }
 
+    /**
+     * Handle the action of long clicking an event.
+     *
+     * @param view The view of the event.
+     * @return the value of whether the action has been consumed.
+     */
     @Override
     public boolean onLongClick(View view) {
         return false;
     }
 
+    /**
+     * Handle the action of clicking on a hidden option on the left side of the event.
+     *
+     * @param view The view of the event.
+     * @param index The index of the action.
+     */
     @Override
     public void onLeftButtonClick(View view, int index) {
         int position = recyclerView.getChildAdapterPosition(view);
@@ -229,6 +284,12 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
         }
     }
 
+    /**
+     * Handle the action of clicking on a hidden option on the right side of the event.
+     *
+     * @param view The view of the event.
+     * @param index The index of the action.
+     */
     @Override
     public void onRightButtonClick(View view, int index) {
         int position = recyclerView.getChildAdapterPosition(view);
@@ -245,11 +306,22 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
         }
     }
 
+    /**
+     * Used to disable any vertical scrolling if event sliding gestures are active.
+     *
+     * @param view The view of the event.
+     * @param state The value of the state.
+     */
     @Override
     public void onGesture(View view, boolean state) {
         layoutManager.setScrollEnabled(state);
     }
 
+    /**
+     * Handle all event changes being reported by the Event Manager.
+     *
+     * @param data The event action data.
+     */
     @Override
     public void onEventBroadcast(EventAction data) {
         boolean scrollTo = data.getActor() == EventAction.ACTOR_SELF;
@@ -268,6 +340,12 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
         }
     }
 
+    /**
+     * Handle the insertion of an event to be displayed.
+     *
+     * @param event The instance of the event.
+     * @param scrollTo The value of whether to scroll to the event after insertion.
+     */
     public void insert(Event event, boolean scrollTo) {
         if (events.contains(event)) {
             return;
@@ -292,6 +370,12 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
         text.setVisibility(View.INVISIBLE);
     }
 
+    /**
+     * Handle the insertion of multiple events at a starting index.
+     *
+     * @param index The index to insert.
+     * @param items The events to be inserted.
+     */
     public void insert(int index, List<Event> items) {
         int size = 0;
 
@@ -308,6 +392,12 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
         adapter.notifyItemRangeInserted(index, size);
     }
 
+    /**
+     * Handle the refresh of an event if it was updated.
+     *
+     * @param event The instance of the event.
+     * @param scrollTo The value of whether to scroll to the event after insertion.
+     */
     public void update(Event event, boolean scrollTo) {
         int index = events.indexOf(event);
         if (index < 0) {
@@ -338,6 +428,11 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
         }
     }
 
+    /**
+     * Handle the removal of an event.
+     *
+     * @param event The instance of the event.
+     */
     public void remove(Event event) {
         int index = events.indexOf(event);
         if (index < 0) {
@@ -352,6 +447,11 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
         }
     }
 
+    /**
+     * Scroll to a specific event.
+     *
+     * @param event The instance of the event.
+     */
     public void scrollTo(Event event) {
         int index = events.indexOf(event);
 
