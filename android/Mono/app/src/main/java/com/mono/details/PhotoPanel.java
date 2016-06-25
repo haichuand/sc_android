@@ -14,9 +14,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
+import com.mono.MediaManager;
 import com.mono.R;
-import com.mono.db.DatabaseHelper;
-import com.mono.db.dao.MediaDataSource;
 import com.mono.model.Event;
 import com.mono.model.Media;
 import com.mono.util.BitmapHelper;
@@ -35,8 +34,6 @@ public class PhotoPanel {
 
     private static final int PHOTO_WIDTH_DP = 80;
     private static final int PHOTO_HEIGHT_DP = 60;
-
-    private static final int THUMBNAIL_DIMENSION_PX = 128;
 
     private static final String[] PHOTO_ACTIONS = {"View", "Remove"};
     private static final int PHOTO_ACTION_VIEW = 0;
@@ -265,20 +262,11 @@ public class PhotoPanel {
         }
         // Check File Size
         long size = Common.fileSize(path);
-        Media photo = new Media(uri, Media.IMAGE, size);
+        // Get Photo
+        Media photo = MediaManager.getInstance(activity).getImage(path, size);
         // Prevent Duplicate Photo
         if (event.photos.contains(photo)) {
             return;
-        }
-        // Check for Existing Photo
-        MediaDataSource dataSource = DatabaseHelper.getDataSource(activity, MediaDataSource.class);
-        Media media = dataSource.getMedia(path, Media.IMAGE, size);
-
-        if (media != null) {
-            photo = media;
-        } else {
-            photo.thumbnail = BitmapHelper.getBytes(path, THUMBNAIL_DIMENSION_PX,
-                THUMBNAIL_DIMENSION_PX, BitmapHelper.FORMAT_JPEG, 100);
         }
         // Add Photo to Event
         event.photos.add(photo);

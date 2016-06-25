@@ -130,6 +130,27 @@ public class MediaDataSource extends DataSource {
     }
 
     /**
+     * Update the thumbnail of an existing media.
+     *
+     * @param id The value of the media ID.
+     * @param thumbnail The image data of the thumbnail.
+     * @return the number of affected rows.
+     */
+    public int updateThumbnail(long id, byte[] thumbnail) {
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.Media.THUMBNAIL, thumbnail);
+
+        return database.update(
+            DatabaseValues.Media.TABLE,
+            values,
+            DatabaseValues.Media.ID + " = ?",
+            new String[]{
+                String.valueOf(id)
+            }
+        );
+    }
+
+    /**
      * For PROJECTION only.
      */
     private Media cursorToMedia(Cursor cursor) {

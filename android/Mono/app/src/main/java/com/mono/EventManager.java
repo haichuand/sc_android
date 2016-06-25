@@ -106,10 +106,15 @@ public class EventManager {
             EventAttendeeDataSource dataSource =
                 DatabaseHelper.getDataSource(context, EventAttendeeDataSource.class);
             event.attendees = dataSource.getAttendees(event.id);
+        }
 
-            EventMediaDataSource mediaDataSource =
-                DatabaseHelper.getDataSource(context, EventMediaDataSource.class);
-            event.photos = mediaDataSource.getMedia(event.id, Media.IMAGE);
+        EventMediaDataSource mediaDataSource =
+            DatabaseHelper.getDataSource(context, EventMediaDataSource.class);
+        event.photos = mediaDataSource.getMedia(event.id, Media.IMAGE);
+
+        if (event.photos.isEmpty()) {
+            MediaManager manager = MediaManager.getInstance(context);
+            event.photos = manager.getImages(event.startTime, event.endTime);
         }
 
         cache.put(event.id, event);
@@ -425,38 +430,11 @@ public class EventManager {
         if (id != null) {
             // Create Participants
             if (attendees != null) {
-                AttendeeDataSource userDataSource =
-                    DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
-                EventAttendeeDataSource eventUserDataSource =
-                    DatabaseHelper.getDataSource(context, EventAttendeeDataSource.class);
-
-                for (Attendee user : attendees) {
-                    String userId = user.id;
-                    if (userDataSource.getAttendeeById(userId) == null) {
-                        userId = userDataSource.createAttendee(null, user.email, user.phoneNumber,
-                            user.firstName, user.lastName, user.userName, false, false);
-                    }
-
-                    eventUserDataSource.setAttendee(id, userId);
-                }
+                updateEventAttendees(id, attendees);
             }
             // Create Photos
             if (photos != null) {
-                MediaDataSource mediaDataSource =
-                    DatabaseHelper.getDataSource(context, MediaDataSource.class);
-                EventMediaDataSource eventMediaDataSource =
-                    DatabaseHelper.getDataSource(context, EventMediaDataSource.class);
-
-                for (Media photo : photos) {
-                    long mediaId = photo.id;
-
-                    if (mediaId == 0) {
-                        mediaId = mediaDataSource.createMedia(photo.uri.toString(), photo.type,
-                            photo.size, photo.thumbnail);
-                    }
-
-                    eventMediaDataSource.setMedia(id, mediaId);
-                }
+                updateEventPhotos(id, photos);
             }
 
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE, id);
@@ -668,21 +646,11 @@ public class EventManager {
         }
 
         if (!event.attendees.equals(original.attendees)) {
-            AttendeeDataSource userDataSource =
-                DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
             EventAttendeeDataSource eventUserDataSource =
                 DatabaseHelper.getDataSource(context, EventAttendeeDataSource.class);
-
             eventUserDataSource.clearAll(id);
-            for (Attendee user : event.attendees) {
-                String userId = user.id;
-                if (userDataSource.getAttendeeById(userId) == null) {
-                    userId = userDataSource.createAttendee(null, user.email, user.phoneNumber,
-                        user.firstName, user.lastName, user.userName, false, false);
-                }
 
-                eventUserDataSource.setAttendee(event.id, userId);
-            }
+            updateEventAttendees(id, event.attendees);
 
             original.attendees.clear();
             original.attendees.addAll(event.attendees);
@@ -693,22 +661,11 @@ public class EventManager {
         }
 
         if (!event.photos.equals(original.photos)) {
-            MediaDataSource mediaDataSource =
-                DatabaseHelper.getDataSource(context, MediaDataSource.class);
             EventMediaDataSource eventMediaDataSource =
                 DatabaseHelper.getDataSource(context, EventMediaDataSource.class);
-
             eventMediaDataSource.clearAll(id);
-            for (Media photo : event.photos) {
-                long mediaId = photo.id;
 
-                if (mediaId == 0) {
-                    mediaId = mediaDataSource.createMedia(photo.uri.toString(), photo.type,
-                        photo.size, photo.thumbnail);
-                }
-
-                eventMediaDataSource.setMedia(id, mediaId);
-            }
+            updateEventPhotos(id, event.photos);
 
             original.photos.clear();
             original.photos.addAll(event.photos);
@@ -768,6 +725,62 @@ public class EventManager {
         }
         if (callback != null) {
             callback.onEventAction(data);
+        }
+    }
+
+    /**
+     * Update event with the following attendees.
+     *
+     * @param id The value of the event ID.
+     * @param attendees The list of attendees.
+     */
+    private void updateEventAttendees(String id, List<Attendee> attendees) {
+        AttendeeDataSource userDataSource =
+            DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
+        EventAttendeeDataSource eventUserDataSource =
+            DatabaseHelper.getDataSource(context, EventAttendeeDataSource.class);
+
+        for (Attendee user : attendees) {
+            String userId = user.id;
+            if (userDataSource.getAttendeeById(userId) == null) {
+                userId = userDataSource.createAttendee(null, user.email, user.phoneNumber,
+                    user.firstName, user.lastName, user.userName, false, false);
+            }
+
+            eventUserDataSource.setAttendee(id, userId);
+        }
+    }
+
+    /**
+     * Update event with the following photos.
+     *
+     * @param id The value of the event ID.
+     * @param photos The list of photos.
+     */
+    private void updateEventPhotos(String id, List<Media> photos) {
+        MediaDataSource mediaDataSource =
+            DatabaseHelper.getDataSource(context, MediaDataSource.class);
+        EventMediaDataSource eventMediaDataSource =
+            DatabaseHelper.getDataSource(context, EventMediaDataSource.class);
+
+        for (Media photo : photos) {
+            long mediaId = photo.id;
+            String path = photo.uri.toString();
+
+            byte[] thumbnail;
+            if (photo.thumbnail != null) {
+                thumbnail = photo.thumbnail;
+            } else {
+                thumbnail = MediaManager.createThumbnail(path);
+            }
+
+            if (mediaId == 0) {
+                mediaId = mediaDataSource.createMedia(path, photo.type, photo.size, thumbnail);
+            } else if (photo.thumbnail == null) {
+                mediaDataSource.updateThumbnail(mediaId, thumbnail);
+            }
+
+            eventMediaDataSource.setMedia(id, mediaId);
         }
     }
 
