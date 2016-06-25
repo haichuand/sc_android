@@ -57,7 +57,7 @@ public class ContactsProvider {
             ContactsValues.Contact.PROJECTION,
             selection,
             null,
-            ContactsContract.CommonDataKinds.StructuredName.DISPLAY_NAME_PRIMARY
+            ContactsContract.Data.CONTACT_ID
         );
 
         if (cursor != null) {
@@ -140,6 +140,7 @@ public class ContactsProvider {
      *
      * @param cursor The cursor to be accessed.
      * @param contact The contact to be updated.
+     * @param normalized The value to return phone numbers as normalized format.
      */
     private void cursorToPhone(Cursor cursor, Contact contact, boolean normalized) {
         int type = cursor.getInt(ContactsValues.Contact.INDEX_PHONE_TYPE);

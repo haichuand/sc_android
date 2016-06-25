@@ -407,7 +407,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     public void setActionButton(int resId, int color, OnClickListener listener) {
         // Default Image Resource
         if (resId == 0) {
-            resId = R.drawable.ic_add_white;
+            resId = R.drawable.ic_add;
         }
         // Default Background Color
         if (color == 0) {
