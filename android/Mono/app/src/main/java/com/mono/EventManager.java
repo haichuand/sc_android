@@ -784,6 +784,13 @@ public class EventManager {
         }
     }
 
+    /**
+     * Handle changes occurred in the Calendar Provider.
+     */
+    public void onProviderChange() {
+        System.out.format("Calendar Provider has %d changes.\n", -1);
+    }
+
     public static class EventAction {
 
         public static final int ACTION_CREATE = 0;

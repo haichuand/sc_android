@@ -38,6 +38,56 @@ public class ContactsProvider {
     }
 
     /**
+     * Retrieve a contact by ID.
+     *
+     * @param id The value of the contact ID.
+     * @param normalized The value to return phone numbers as normalized format.
+     * @return an instance of a contact.
+     */
+    public Contact getContact(long id, boolean normalized) {
+        Contact contact = null;
+
+        Cursor cursor = context.getContentResolver().query(
+            ContactsContract.Data.CONTENT_URI,
+            ContactsValues.Contact.PROJECTION,
+            ContactsContract.Data.CONTACT_ID + " = ?",
+            new String[]{
+                String.valueOf(id)
+            },
+            null
+        );
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                if (contact == null) {
+                    contact = new Contact(id);
+                }
+
+                String mimeType = cursor.getString(ContactsValues.Contact.INDEX_MIME_TYPE);
+
+                switch (mimeType) {
+                    case ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE:
+                        cursorToName(cursor, contact);
+                        break;
+                    case ContactsContract.CommonDataKinds.Photo.CONTENT_ITEM_TYPE:
+                        cursorToPhoto(cursor, contact);
+                        break;
+                    case ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE:
+                        cursorToEmail(cursor, contact);
+                        break;
+                    case ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE:
+                        cursorToPhone(cursor, contact, normalized);
+                        break;
+                }
+            }
+
+            cursor.close();
+        }
+
+        return contact;
+    }
+
+    /**
      * Retrieve a list of contacts stored on the device.
      *
      * @param visibleOnly The value to return only visible contacts.
@@ -161,7 +211,7 @@ public class ContactsProvider {
      * @param contactId The value of the contact ID.
      * @return a byte array of the photo.
      */
-    private byte[] getPhoto(long contactId) {
+    public byte[] getPhoto(long contactId) {
         byte[] result = null;
 
         Uri uri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, contactId);
@@ -194,7 +244,7 @@ public class ContactsProvider {
      * @param contactId The value of the contact ID.
      * @return a map of emails.
      */
-    private Map<Integer, String> getEmails(long contactId) {
+    public Map<Integer, String> getEmails(long contactId) {
         Map<Integer, String> result = new HashMap<>();
 
         Cursor cursor = context.getContentResolver().query(
@@ -228,7 +278,7 @@ public class ContactsProvider {
      * @param normalized The value to return phone numbers as normalized format.
      * @return a map of phone numbers.
      */
-    private Map<Integer, String> getPhones(long contactId, boolean normalized) {
+    public Map<Integer, String> getPhones(long contactId, boolean normalized) {
         Map<Integer, String> result = new HashMap<>();
 
         Cursor cursor = context.getContentResolver().query(
@@ -253,6 +303,73 @@ public class ContactsProvider {
                 }
 
                 result.put(type, number);
+            }
+
+            cursor.close();
+        }
+
+        return result;
+    }
+
+    /**
+     * Retrieve a list of contact IDs from the provider.
+     *
+     * @return a list of contact IDs.
+     */
+    public List<Long> getContactIds() {
+        List<Long> result = new ArrayList<>();
+
+        Cursor cursor = context.getContentResolver().query(
+            ContactsContract.Data.CONTENT_URI,
+            new String[]{
+                ContactsContract.Data.CONTACT_ID
+            },
+            null,
+            null,
+            null
+        );
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                long id = cursor.getLong(0);
+                if (!result.contains(id)) {
+                    result.add(id);
+                }
+            }
+
+            cursor.close();
+        }
+
+        return result;
+    }
+
+    /**
+     * Retrieve a list of IDs of contacts that were last updated since the given time.
+     *
+     * @param milliseconds The start time since last updated.
+     * @return a list of contact IDs.
+     */
+    public List<Long> getLastUpdatedContactIds(long milliseconds) {
+        List<Long> result = new ArrayList<>();
+
+        Cursor cursor = context.getContentResolver().query(
+            ContactsContract.Data.CONTENT_URI,
+            new String[]{
+                ContactsContract.Data.CONTACT_ID
+            },
+            ContactsContract.Data.CONTACT_LAST_UPDATED_TIMESTAMP + " >= ?",
+            new String[]{
+                String.valueOf(milliseconds)
+            },
+            null
+        );
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                long id = cursor.getLong(0);
+                if (!result.contains(id)) {
+                    result.add(id);
+                }
             }
 
             cursor.close();

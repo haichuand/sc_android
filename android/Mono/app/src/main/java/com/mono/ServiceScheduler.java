@@ -16,11 +16,19 @@ import android.provider.CalendarContract;
 
 import com.mono.model.Calendar;
 import com.mono.provider.CalendarProvider;
+import com.mono.provider.MainContentObserver;
 import com.mono.settings.Settings;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * This service is used to handle any background scheduling even when the app is not opened. It
+ * is also responsible to observe any changes that occurred in the content providers through the
+ * use of a content observer.
+ *
+ * @author Gary Ng
+ */
 public class ServiceScheduler extends BroadcastReceiver {
 
     public static final int REQUEST_CODE = 1;
@@ -36,12 +44,16 @@ public class ServiceScheduler extends BroadcastReceiver {
 
         switch (action) {
             case Intent.ACTION_BOOT_COMPLETED:
-            case Intent.ACTION_PROVIDER_CHANGED:
                 run(context);
                 break;
         }
     }
 
+    /**
+     * Set up an alarm to trigger the service to run.
+     *
+     * @param context The value of the context.
+     */
     public void run(Context context) {
         if (manager == null) {
             manager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
@@ -62,9 +74,15 @@ public class ServiceScheduler extends BroadcastReceiver {
             interval, interval, alarmIntent);
     }
 
+    /**
+     * Trigger the calendar provider to sync for latest calendar events.
+     *
+     * @param context The value of the context.
+     * @param force The value used to bypass the sync delay.
+     */
     public void requestSync(Context context, boolean force) {
         long currentTime = System.currentTimeMillis();
-
+        // Prevent Repeating Syncing
         if (!force && currentTime - lastSyncRequest < SYNC_DELAY) {
             return;
         }
@@ -75,7 +93,7 @@ public class ServiceScheduler extends BroadcastReceiver {
         if (calendars.isEmpty()) {
             return;
         }
-
+        // Sync
         List<Account> accounts = new ArrayList<>();
 
         Bundle bundle = new Bundle();
@@ -96,15 +114,31 @@ public class ServiceScheduler extends BroadcastReceiver {
 
         private IBinder binder = new LocalBinder();
         private CalendarTask calendarTask;
+        private MainContentObserver contentObserver;
 
         @Override
         public int onStartCommand(Intent intent, int flags, int startId) {
+            // Register Content Observer
+            if (contentObserver == null) {
+                contentObserver = new MainContentObserver(getApplicationContext(), null);
+                contentObserver.register();
+            }
+            // Calendar Task
             if (calendarTask == null || calendarTask.getStatus() != AsyncTask.Status.RUNNING) {
                 calendarTask = new CalendarTask(this);
                 calendarTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
             }
 
             return START_NOT_STICKY;
+        }
+
+        @Override
+        public void onDestroy() {
+            // Remove Content Observer
+            if (contentObserver != null) {
+                contentObserver.unregister();
+                contentObserver = null;
+            }
         }
 
         @Override

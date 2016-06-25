@@ -53,6 +53,8 @@ public class ContactsManager {
     private AsyncTask<Boolean, Contact, List<Contact>> suggestionsTask;
     private final List<ContactsTaskCallback> suggestionsTaskCallbacks = new ArrayList<>();
 
+    private long lastProviderChange;
+
     private ContactsManager(Context context) {
         this.context = context;
     }
@@ -433,50 +435,22 @@ public class ContactsManager {
                 if (suggestions == null) {
                     suggestions = new ArrayList<>();
 
-                    List<Contact> exclude = new ArrayList<>();
                     // Exclude Friends and Suggested Users
-                    AttendeeDataSource dataSource =
-                        DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
-                    for (Attendee user : dataSource.getAttendees()) {
-                        if (user.isFriend || user.isSuggested != 0) {
-                            Contact contact = userToContact(user);
-                            exclude.add(contact);
-
-                            if (user.isSuggested != 0) {
-                                result.add(contact);
-                            }
+                    List<Contact> exclude = getSuggestionsIgnoreList();
+                    for (Contact contact : exclude) {
+                        if (contact.isSuggested != 0) {
+                            result.add(contact);
                         }
                     }
                     // Retrieve Suggestions from Server
-                    HttpServerManager manager = new HttpServerManager(context);
-
                     List<Contact> contacts =
                         ContactsProvider.getInstance(context).getContacts(false, true);
                     for (Contact contact : contacts) {
-                        JSONObject json;
-                        // Cross-reference by Emails
-                        if (contact.emails != null) {
-                            for (String email : contact.emails.values()) {
-                                json = manager.send(null, HttpServerManager.GET_USER_BY_EMAIL_URL +
-                                    email, HttpServerManager.GET);
-                                if (json == null) {
-                                    continue;
-                                }
+                        List<Contact> suggestions = checkSuggestions(contact, exclude);
 
-                                parse(result, contact, json, exclude);
-                            }
-                        }
-                        // Cross-reference by Phone Numbers
-                        if (contact.phones != null) {
-                            for (String phone : contact.phones.values()) {
-                                json = manager.send(null, HttpServerManager.GET_USER_BY_PHONE_URL +
-                                    phone, HttpServerManager.GET);
-                                if (json == null) {
-                                    continue;
-                                }
-
-                                parse(result, contact, json, exclude);
-                            }
+                        for (Contact suggestion : suggestions) {
+                            result.add(suggestion);
+                            publishProgress(suggestion);
                         }
                     }
                 }
@@ -484,47 +458,6 @@ public class ContactsManager {
                 return result;
             }
 
-            private Contact parse(List<Contact> contacts, Contact contact, JSONObject json,
-                    List<Contact> exclude) {
-                Contact result = null;
-
-                try {
-                    String id = json.getString(HttpServerManager.UID);
-                    String mediaId = json.getString(HttpServerManager.MEDIA_ID);
-                    String email = json.getString(HttpServerManager.EMAIL);
-                    String phone = json.getString(HttpServerManager.PHONE_NUMBER);
-                    String firstName = json.getString(HttpServerManager.FIRST_NAME);
-                    String lastName = json.getString(HttpServerManager.LAST_NAME);
-                    String userName = json.getString(HttpServerManager.USER_NAME);
-
-                    result = new Contact(Long.parseLong(id), Contact.TYPE_USER);
-                    if (!Common.isEmpty(email)) {
-                        result.setEmail(email);
-                    }
-                    if (!Common.isEmpty(phone)) {
-                        result.setPhone(phone);
-                    }
-
-                    if (isSelf(contact) || exclude.contains(result)) {
-                        return null;
-                    }
-
-                    result.displayName = contact.displayName;
-                    result.firstName = firstName;
-                    result.lastName = lastName;
-
-                    result.photo = !Common.isEmpty(mediaId) ? null : contact.photo;
-
-                    contact.isSuggested = Contact.SUGGESTION_PENDING;
-
-                    contacts.add(result);
-                    publishProgress(result);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
-                return result;
-            }
 
             @Override
             protected void onProgressUpdate(Contact... values) {
@@ -554,6 +487,141 @@ public class ContactsManager {
                 suggestionsTask = null;
             }
         }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, refresh);
+    }
+
+    /**
+     * Retrieve a suggestions ignore list of contacts that is either a friend or have been
+     * suggested before.
+     *
+     * @return a list of contacts.
+     */
+    private List<Contact> getSuggestionsIgnoreList() {
+        List<Contact> result = new ArrayList<>();
+        // Ignore Self
+        Account account = AccountManager.getInstance(context).getAccount();
+
+        if (account != null) {
+            Contact contact = new Contact(account.id);
+
+            if (account.email != null) {
+                contact.setEmail(account.email);
+            }
+
+            if (account.phone != null) {
+                contact.setPhone(account.phone);
+            }
+
+            result.add(contact);
+        }
+        // Ignore Friends and Suggested Contacts
+        AttendeeDataSource dataSource =
+            DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
+
+        for (Attendee user : dataSource.getAttendees()) {
+            if (user.isFriend || user.isSuggested != 0) {
+                Contact contact = userToContact(user);
+                result.add(contact);
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Check if contact meets the criteria of a suggestion.
+     *
+     * @param contact The instance of the contact.
+     * @param exclude The list of contacts to be excluded.
+     * @return a list of suggestions.
+     */
+    public List<Contact> checkSuggestions(Contact contact, List<Contact> exclude) {
+        List<Contact> result = new ArrayList<>();
+
+        HttpServerManager manager = new HttpServerManager(context);
+
+        // Cross-reference by Emails
+        if (contact.emails != null) {
+            for (String email : contact.emails.values()) {
+                JSONObject json = manager.send(null, HttpServerManager.GET_USER_BY_EMAIL_URL +
+                    email, HttpServerManager.GET);
+
+                if (json == null) {
+                    continue;
+                }
+
+                Contact suggestion = parse(json, contact);
+
+                if (suggestion != null) {
+                    if (exclude != null && exclude.contains(suggestion)) {
+                        continue;
+                    }
+
+                    result.add(suggestion);
+                }
+            }
+        }
+        // Cross-reference by Phone Numbers
+        if (contact.phones != null) {
+            for (String phone : contact.phones.values()) {
+                JSONObject json = manager.send(null, HttpServerManager.GET_USER_BY_PHONE_URL +
+                    phone, HttpServerManager.GET);
+
+                if (json == null) {
+                    continue;
+                }
+
+                Contact suggestion = parse(json, contact);
+
+                if (suggestion != null) {
+                    if (exclude != null && exclude.contains(suggestion)) {
+                        continue;
+                    }
+
+                    result.add(suggestion);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Parse user information from the JSON object.
+     *
+     * @param json The user information.
+     * @param contact The contact to be used to fill in missing information.
+     * @return an instance of a user contact.
+     */
+    private Contact parse(JSONObject json, Contact contact) {
+        Contact result = null;
+
+        try {
+            String id = json.getString(HttpServerManager.UID);
+            String mediaId = json.getString(HttpServerManager.MEDIA_ID);
+            String email = json.getString(HttpServerManager.EMAIL);
+            String phone = json.getString(HttpServerManager.PHONE_NUMBER);
+            String firstName = json.getString(HttpServerManager.FIRST_NAME);
+            String lastName = json.getString(HttpServerManager.LAST_NAME);
+            String userName = json.getString(HttpServerManager.USER_NAME);
+
+            result = new Contact(Long.parseLong(id), Contact.TYPE_USER);
+            if (!Common.isEmpty(email)) {
+                result.setEmail(email);
+            }
+            if (!Common.isEmpty(phone)) {
+                result.setPhone(phone);
+            }
+
+            result.displayName = contact.displayName;
+            result.firstName = firstName;
+            result.lastName = lastName;
+
+            result.photo = !Common.isEmpty(mediaId) ? null : contact.photo;
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return result;
     }
 
     /**
@@ -625,9 +693,96 @@ public class ContactsManager {
         }
     }
 
+    /**
+     * Handle changes occurred in the Contacts Provider.
+     */
+    public void onProviderChange() {
+        long currentTime = System.currentTimeMillis();
+        if (lastProviderChange == 0) {
+            lastProviderChange = currentTime - Constants.DAY_MS;
+        }
+
+        ContactsProvider provider = ContactsProvider.getInstance(context);
+        List<Long> result = provider.getLastUpdatedContactIds(lastProviderChange);
+
+        if (!result.isEmpty()) {
+            // Handle New and Updated Contacts
+            System.out.format("Contacts Provider has %d changes.\n", result.size());
+
+            for (long id : result) {
+                Contact contact = getContact(id, Contact.TYPE_CONTACT);
+                boolean isNew = contact == null;
+
+                if (isNew) {
+                    contact = provider.getContact(id, true);
+                }
+                // Handle Contact
+                setContact(contact);
+
+                if (isNew) {
+                    for (ContactsBroadcastListener listener : listeners) {
+                        listener.onContactAdd(contact);
+                    }
+                } else {
+                    for (ContactsBroadcastListener listener : listeners) {
+                        listener.onContactRefresh(contact);
+                    }
+                }
+                // Handle Suggestions
+                List<Contact> exclude = getSuggestionsIgnoreList();
+                List<Contact> suggestions = checkSuggestions(contact, exclude);
+
+                for (Contact suggestion : suggestions) {
+                    setSuggested(suggestion.id, Contact.SUGGESTION_PENDING);
+
+                    for (ContactsBroadcastListener listener : listeners) {
+                        listener.onSuggestionAdd(suggestion);
+                    }
+                }
+            }
+        } else {
+            // Handle Deleted Contacts
+            System.out.println("Contacts Provider has at least 1 deletion.");
+
+            List<Long> removeIds = new ArrayList<>();
+            // Check for Contacts to Remove
+            result = provider.getContactIds();
+            for (Contact contact : cache) {
+                if (contact.type != Contact.TYPE_CONTACT) {
+                    continue;
+                }
+
+                if (!result.contains(contact.id)) {
+                    removeIds.add(contact.id);
+                }
+            }
+            // Remove Contacts
+            for (long id : removeIds) {
+                int index = cache.indexOf(new Contact(id, Contact.TYPE_CONTACT));
+
+                if (index >= 0) {
+                    Contact contact = cache.get(index);
+                    cache.remove(index);
+
+                    for (ContactsBroadcastListener listener : listeners) {
+                        listener.onContactRemove(contact);
+                    }
+                }
+            }
+        }
+
+        lastProviderChange = currentTime;
+    }
+
     public interface ContactsBroadcastListener {
 
-        void onContact();
+        void onContactAdd(Contact contact);
+
+        void onContactRefresh(Contact contact);
+
+        void onContactRemove(Contact contact);
+
+        void onSuggestionAdd(Contact contact);
     }
 
     public static abstract class ContactsTaskCallback {
