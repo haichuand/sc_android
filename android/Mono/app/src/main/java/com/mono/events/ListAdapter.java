@@ -140,11 +140,11 @@ public class ListAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
             Context context = tempView.getContext();
 
             tempView.addLeftButton(Colors.getColor(context, R.color.lavender),
-                R.drawable.ic_chat_white);
+                R.drawable.ic_chat);
             tempView.addLeftButton(Colors.getColor(context, R.color.brown_light),
-                R.drawable.ic_star_border_white);
+                R.drawable.ic_star_border);
             tempView.addRightButton(Colors.getColor(context, R.color.red),
-                R.drawable.ic_trash_white);
+                R.drawable.ic_trash);
 
             icon.setImageResource(item.iconResId);
             icon.setColorFilter(item.iconColor | 0xFF000000);

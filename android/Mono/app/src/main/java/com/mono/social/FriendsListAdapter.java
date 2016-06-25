@@ -74,9 +74,9 @@ public class FriendsListAdapter extends RecyclerView.Adapter<FriendsListAdapter.
             SimpleSlideView tempView = (SimpleSlideView) itemView;
             tempView.clear();
             tempView.addLeftButton(Colors.getColor(tempView.getContext(), R.color.lavender),
-                R.drawable.ic_star_border_white);
+                R.drawable.ic_star_border);
             tempView.addRightButton(Colors.getColor(tempView.getContext(), R.color.red),
-                R.drawable.ic_trash_white);
+                R.drawable.ic_trash);
 
             icon.setImageResource(holderItem.iconResId);
             icon.setColorFilter(holderItem.iconColor | 0xFF000000);

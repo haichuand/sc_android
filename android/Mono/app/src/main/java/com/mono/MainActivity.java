@@ -84,7 +84,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     public static final String APP_DIR = "MonoFiles/";
 
     public static final int HOME = R.id.nav_home;
-    public static final int INTRO = R.id.nav_intro;
     public static final int LOGIN = R.id.nav_login;
     public static final int LOGOUT = R.id.nav_logout;
     public static final int CONTACTS = R.id.nav_contacts;
@@ -273,9 +272,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         switch (id) {
             case HOME:
                 showHome();
-                break;
-            case INTRO:
-                showIntro();
                 break;
             case LOGIN:
                 showLogin();

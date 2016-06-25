@@ -110,11 +110,11 @@ public class CalendarEventsAdapter extends RecyclerView.Adapter<SimpleViewHolder
             SimpleSlideView tempView = (SimpleSlideView) itemView;
             tempView.clear();
             tempView.addLeftButton(Colors.getColor(tempView.getContext(), R.color.lavender),
-                R.drawable.ic_chat_white);
+                R.drawable.ic_chat);
             tempView.addLeftButton(Colors.getColor(tempView.getContext(), R.color.brown_light),
-                R.drawable.ic_star_border_white);
+                R.drawable.ic_star_border);
             tempView.addRightButton(Colors.getColor(tempView.getContext(), R.color.red),
-                R.drawable.ic_trash_white);
+                R.drawable.ic_trash);
 
             icon.setImageResource(item.iconResId);
             icon.setColorFilter(item.iconColor | 0xFF000000);
@@ -135,7 +135,7 @@ public class CalendarEventsAdapter extends RecyclerView.Adapter<SimpleViewHolder
             }
 
             if (item.hasChat) {
-                createOption(R.drawable.ic_chat_white);
+                createOption(R.drawable.ic_chat);
             }
         }
 

@@ -598,7 +598,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
      * @return a drawable of the calendar icon.
      */
     public static Drawable createCalendarIcon(Context context, String value) {
-        Drawable background = context.getDrawable(R.drawable.ic_calendar_white);
+        Drawable background = context.getDrawable(R.drawable.ic_calendar);
         if (background == null) {
             return null;
         }

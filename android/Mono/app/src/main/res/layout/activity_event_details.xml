@@ -242,7 +242,7 @@
                         android:layout_height="24dp"
                         android:layout_gravity="center_vertical"
                         android:layout_marginStart="10dp"
-                        android:src="@drawable/ic_map_white"
+                        android:src="@drawable/ic_map"
                         android:tint="?attr/colorPrimary"/>
                 </LinearLayout>
             </com.mono.util.SimpleLabelLayout>
