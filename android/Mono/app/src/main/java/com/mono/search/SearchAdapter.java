@@ -1,6 +1,9 @@
 package com.mono.search;
 
+import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.PorterDuff;
+import android.os.AsyncTask;
 import android.support.v7.widget.RecyclerView;
 import android.text.Spanned;
 import android.view.LayoutInflater;
@@ -8,19 +11,34 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.mono.R;
+import com.mono.model.Media;
+import com.mono.util.BitmapHelper;
 import com.mono.util.Colors;
+import com.mono.util.Common;
+import com.mono.util.Pixels;
 import com.mono.util.SimpleClickableView;
 import com.mono.util.SimpleDataSource;
 import com.mono.util.SimpleViewHolder;
 import com.mono.util.SimpleViewHolder.HolderItem;
+import com.mono.util.Views;
 
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * A adapter used to display events and chat messages in the recycler view.
+ *
+ * @author Gary Ng
+ */
 public class SearchAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
 
     public static final int TYPE_EVENT = 0;
-    public static final int TYPE_CHAT = 1;
+    public static final int TYPE_PHOTO_EVENT = 1;
+    public static final int TYPE_CHAT = 2;
 
     private SimpleDataSource<HolderItem> dataSource;
     private SearchListener listener;
@@ -41,6 +59,11 @@ public class SearchAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
             container.addView(view);
 
             holder = new EventHolder(container);
+        } else if (viewType == TYPE_PHOTO_EVENT) {
+            View view = inflater.inflate(R.layout.search_event_item, container, false);
+            container.addView(view);
+
+            holder = new PhotoEventHolder(container);
         } else if (viewType == TYPE_CHAT) {
             View view = inflater.inflate(R.layout.search_chat_item, container, false);
             container.addView(view);
@@ -63,7 +86,9 @@ public class SearchAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
 
         HolderItem item = dataSource.getItem(position);
 
-        if (item instanceof EventItem) {
+        if (item instanceof PhotoEventItem) {
+            viewType = TYPE_PHOTO_EVENT;
+        } else if (item instanceof EventItem) {
             viewType = TYPE_EVENT;
         } else if (item instanceof ChatItem) {
             viewType = TYPE_CHAT;
@@ -82,6 +107,11 @@ public class SearchAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
         holder.onViewRecycled();
     }
 
+    /**
+     * Set the source to retrieve items for this adapter to use.
+     *
+     * @param dataSource The item source.
+     */
     public void setDataSource(SimpleDataSource<HolderItem> dataSource) {
         this.dataSource = dataSource;
         notifyDataSetChanged();
@@ -150,6 +180,116 @@ public class SearchAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
                     }
                 });
             }
+        }
+    }
+
+    public static class PhotoEventItem extends EventItem {
+
+        public List<Media> photos;
+        public List<Bitmap> bitmaps = new ArrayList<>();
+
+        public PhotoEventItem(String id) {
+            super(id);
+        }
+    }
+
+    public class PhotoEventHolder extends EventHolder {
+
+        private static final int PHOTO_WIDTH_DP = 80;
+        private static final int PHOTO_HEIGHT_DP = 60;
+        private static final int FADE_DURATION = 500;
+
+        private ViewGroup photos;
+
+        private AsyncTask<Object, Object, Void> task;
+
+        public PhotoEventHolder(View itemView) {
+            super(itemView);
+
+            photos = (ViewGroup) itemView.findViewById(R.id.photos);
+            photos.setVisibility(View.VISIBLE);
+        }
+
+        @Override
+        public void onBind(HolderItem holderItem) {
+            super.onBind(holderItem);
+
+            PhotoEventItem item = (PhotoEventItem) holderItem;
+
+            photos.removeAllViews();
+
+            if (task != null) {
+                task.cancel(true);
+                task = null;
+            }
+
+            task = new AsyncTask<Object, Object, Void>() {
+
+                private Context context;
+
+                @Override
+                protected Void doInBackground(Object... params) {
+                    context = (Context) params[0];
+                    PhotoEventItem item = (PhotoEventItem) params[1];
+
+                    int width = Pixels.pxFromDp(context, PHOTO_WIDTH_DP);
+                    int height = Pixels.pxFromDp(context, PHOTO_HEIGHT_DP);
+
+                    for (int i = 0; i < item.photos.size(); i++) {
+                        Bitmap bitmap = null;
+                        boolean fade = false;
+
+                        if (item.bitmaps != null && i < item.bitmaps.size()) {
+                            // Cached Bitmap
+                            bitmap = item.bitmaps.get(i);
+                        } else {
+                            // New Bitmap
+                            Media photo = item.photos.get(i);
+                            String path = photo.uri.toString();
+                            byte[] data = photo.thumbnail;
+
+                            if (data != null) {
+                                bitmap = BitmapHelper.createBitmap(data, width, height);
+                            } else if (Common.fileExists(path)) {
+                                bitmap = BitmapHelper.createBitmap(path, width, height);
+                            }
+
+                            item.bitmaps.add(bitmap);
+                            fade = true;
+                        }
+
+                        publishProgress(bitmap, fade);
+                    }
+
+                    return null;
+                }
+
+                @Override
+                protected void onProgressUpdate(Object... values) {
+                    Bitmap bitmap = (Bitmap) values[0];
+                    boolean fade = (boolean) values[1];
+
+                    ImageView image = new ImageView(context);
+                    image.setImageBitmap(bitmap);
+                    image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
+                    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                        Pixels.pxFromDp(context, PHOTO_WIDTH_DP),
+                        Pixels.pxFromDp(context, PHOTO_HEIGHT_DP)
+                    );
+
+                    photos.addView(image, params);
+
+                    if (fade) {
+                        Views.fade(image, 0, 1, FADE_DURATION, null);
+                    }
+                }
+
+                @Override
+                protected void onPostExecute(Void result) {
+                    task = null;
+                }
+            }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, itemView.getContext(), item);
         }
     }
 

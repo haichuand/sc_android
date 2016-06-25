@@ -26,6 +26,13 @@ import com.mono.util.Views;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A fragment that displays a list of events and chat messages that are filtered based on the
+ * search query. Events selected can be viewed or edited. Chat messages will switch to the
+ * chat conversation screen.
+ *
+ * @author Gary Ng
+ */
 public class SearchFragment extends Fragment implements SimpleDataSource<HolderItem>,
         SearchListener {
 
@@ -79,6 +86,12 @@ public class SearchFragment extends Fragment implements SimpleDataSource<HolderI
         return items.size();
     }
 
+    /**
+     * Handle the action of clicking on a search result item.
+     *
+     * @param id The value of the item ID.
+     * @param type The type of item.
+     */
     @Override
     public void onClick(String id, int type) {
         if (mainInterface == null) {
@@ -87,6 +100,7 @@ public class SearchFragment extends Fragment implements SimpleDataSource<HolderI
 
         switch (type) {
             case SearchAdapter.TYPE_EVENT:
+            case SearchAdapter.TYPE_PHOTO_EVENT:
                 Event event = EventManager.getInstance(getContext()).getEvent(id, false);
                 if (event != null) {
                     mainInterface.showEventDetails(event);
@@ -98,6 +112,11 @@ public class SearchFragment extends Fragment implements SimpleDataSource<HolderI
         }
     }
 
+    /**
+     * Set the visibility of this fragment.
+     *
+     * @param visible The visibility status.
+     */
     public void setVisible(boolean visible) {
         View view = getView();
 
@@ -123,10 +142,20 @@ public class SearchFragment extends Fragment implements SimpleDataSource<HolderI
         }
     }
 
+    /**
+     * Set the visibility of the search results message.
+     *
+     * @param visible The visibility status.
+     */
     private void setTextVisible(boolean visible) {
         text.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
     }
 
+    /**
+     * Set the events and chat message items to be displayed.
+     *
+     * @param items The list of items to be displayed.
+     */
     public void setItems(List<HolderItem> items) {
         boolean isItemsEquals = this.items.equals(items);
 
@@ -149,11 +178,21 @@ public class SearchFragment extends Fragment implements SimpleDataSource<HolderI
         setVisible(true);
     }
 
+    /**
+     * Clear the search results.
+     */
     public void clear() {
         adapter.setDataSource(null);
         setTextVisible(true);
     }
 
+    /**
+     * Set the appropriate action bar search view to be used as well as the handler to handle
+     * the search results.
+     *
+     * @param view The search view.
+     * @param handler The search result handler.
+     */
     public void setSearchView(SearchView view, SearchHandler handler) {
         this.searchView = view;
 
