@@ -7,8 +7,10 @@ import android.net.Uri;
 import android.provider.ContactsContract;
 
 import com.mono.model.Contact;
+import com.mono.util.Common;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,13 +49,19 @@ public class ContactsProvider {
     public Contact getContact(long id, boolean normalized) {
         Contact contact = null;
 
+        List<String> args = new ArrayList<>();
+
+        String selection = getMimeTypeSelection(args);
+        selection += " AND " + ContactsContract.Data.CONTACT_ID + " = ?";
+        args.add(String.valueOf(id));
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
+
         Cursor cursor = context.getContentResolver().query(
             ContactsContract.Data.CONTENT_URI,
             ContactsValues.Contact.PROJECTION,
-            ContactsContract.Data.CONTACT_ID + " = ?",
-            new String[]{
-                String.valueOf(id)
-            },
+            selection,
+            selectionArgs,
             null
         );
 
@@ -63,22 +71,7 @@ public class ContactsProvider {
                     contact = new Contact(id);
                 }
 
-                String mimeType = cursor.getString(ContactsValues.Contact.INDEX_MIME_TYPE);
-
-                switch (mimeType) {
-                    case ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE:
-                        cursorToName(cursor, contact);
-                        break;
-                    case ContactsContract.CommonDataKinds.Photo.CONTENT_ITEM_TYPE:
-                        cursorToPhoto(cursor, contact);
-                        break;
-                    case ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE:
-                        cursorToEmail(cursor, contact);
-                        break;
-                    case ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE:
-                        cursorToPhone(cursor, contact, normalized);
-                        break;
-                }
+                cursorToData(cursor, contact, normalized);
             }
 
             cursor.close();
@@ -97,17 +90,23 @@ public class ContactsProvider {
     public List<Contact> getContacts(boolean visibleOnly, boolean normalized) {
         List<Contact> contacts = new ArrayList<>();
 
-        String selection = null;
+        List<String> args = new ArrayList<>();
+
+        String selection = getMimeTypeSelection(args);
         if (visibleOnly) {
-            selection = ContactsContract.Data.IN_VISIBLE_GROUP + " > 0";
+            selection += " AND ";
+            selection += ContactsContract.Data.IN_VISIBLE_GROUP + " > 0";
         }
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
+        String order = ContactsContract.Data.CONTACT_ID;
 
         Cursor cursor = context.getContentResolver().query(
             ContactsContract.Data.CONTENT_URI,
             ContactsValues.Contact.PROJECTION,
             selection,
-            null,
-            ContactsContract.Data.CONTACT_ID
+            selectionArgs,
+            order
         );
 
         if (cursor != null) {
@@ -122,22 +121,7 @@ public class ContactsProvider {
                     contact.visible = cursor.getInt(ContactsValues.Contact.INDEX_VISIBLE) > 0;
                 }
 
-                String mimeType = cursor.getString(ContactsValues.Contact.INDEX_MIME_TYPE);
-
-                switch (mimeType) {
-                    case ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE:
-                        cursorToName(cursor, contact);
-                        break;
-                    case ContactsContract.CommonDataKinds.Photo.CONTENT_ITEM_TYPE:
-                        cursorToPhoto(cursor, contact);
-                        break;
-                    case ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE:
-                        cursorToEmail(cursor, contact);
-                        break;
-                    case ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE:
-                        cursorToPhone(cursor, contact, normalized);
-                        break;
-                }
+                cursorToData(cursor, contact, normalized);
             }
 
             contacts.addAll(contactsMap.values());
@@ -146,6 +130,57 @@ public class ContactsProvider {
         }
 
         return contacts;
+    }
+
+    /**
+     * Helper function to get MIME type selection and arguments.
+     *
+     * @param args The list to insert arguments.
+     * @return a selection string.
+     */
+    private String getMimeTypeSelection(List<String> args) {
+        String[] mimeTypes = {
+            ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE,
+            ContactsContract.CommonDataKinds.Photo.CONTENT_ITEM_TYPE,
+            ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE,
+            ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE
+        };
+
+        String selection = String.format(
+            "%s IN (%s)",
+            ContactsContract.Data.MIMETYPE,
+            Common.repeat("?", mimeTypes.length, ", ")
+        );
+
+        Collections.addAll(args, mimeTypes);
+
+        return selection;
+    }
+
+    /**
+     * Read contact information depending on MIME type from the cursor.
+     *
+     * @param cursor The cursor to be accessed.
+     * @param contact The contact to be updated.
+     * @param normalized The value to return phone numbers as normalized format.
+     */
+    private void cursorToData(Cursor cursor, Contact contact, boolean normalized) {
+        String mimeType = cursor.getString(ContactsValues.Contact.INDEX_MIME_TYPE);
+
+        switch (mimeType) {
+            case ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE:
+                cursorToName(cursor, contact);
+                break;
+            case ContactsContract.CommonDataKinds.Photo.CONTENT_ITEM_TYPE:
+                cursorToPhoto(cursor, contact);
+                break;
+            case ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE:
+                cursorToEmail(cursor, contact);
+                break;
+            case ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE:
+                cursorToPhone(cursor, contact, normalized);
+                break;
+        }
     }
 
     /**
@@ -332,9 +367,7 @@ public class ContactsProvider {
         if (cursor != null) {
             while (cursor.moveToNext()) {
                 long id = cursor.getLong(0);
-                if (!result.contains(id)) {
-                    result.add(id);
-                }
+                result.add(id);
             }
 
             cursor.close();
