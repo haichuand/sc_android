@@ -448,8 +448,13 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
         public void onHighlight(HolderItem holderItem, String[] terms, int color) {
             ContactItem item = (ContactItem) holderItem;
 
-            name.setText(Common.highlight(item.name.toString(), terms, color));
-            msg.setText(Common.highlight(item.msg.toString(), terms, color));
+            if (item.name != null) {
+                name.setText(Common.highlight(item.name.toString(), terms, color));
+            }
+
+            if (item.msg != null) {
+                msg.setText(Common.highlight(item.msg.toString(), terms, color));
+            }
         }
 
         private void createImageTask(ContactItem item) {
