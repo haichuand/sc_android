@@ -298,7 +298,7 @@ public class ContactsManager {
                     cache = new ArrayList<>();
                     // Retrieve Local Contacts from Device
                     List<Contact> contacts =
-                        ContactsProvider.getInstance(context).getContacts(false);
+                        ContactsProvider.getInstance(context).getContacts(false, true);
                     for (Contact contact : contacts) {
                         if (isSelf(contact)) {
                             continue;
@@ -451,28 +451,32 @@ public class ContactsManager {
                     HttpServerManager manager = new HttpServerManager(context);
 
                     List<Contact> contacts =
-                        ContactsProvider.getInstance(context).getContacts(false);
+                        ContactsProvider.getInstance(context).getContacts(false, true);
                     for (Contact contact : contacts) {
                         JSONObject json;
                         // Cross-reference by Emails
-                        for (String email : contact.emails.values()) {
-                            json = manager.send(null, HttpServerManager.GET_USER_BY_EMAIL_URL +
-                                email, HttpServerManager.GET);
-                            if (json == null) {
-                                continue;
-                            }
+                        if (contact.emails != null) {
+                            for (String email : contact.emails.values()) {
+                                json = manager.send(null, HttpServerManager.GET_USER_BY_EMAIL_URL +
+                                    email, HttpServerManager.GET);
+                                if (json == null) {
+                                    continue;
+                                }
 
-                            parse(result, contact, json, exclude);
+                                parse(result, contact, json, exclude);
+                            }
                         }
                         // Cross-reference by Phone Numbers
-                        for (String phone : contact.phones.values()) {
-                            json = manager.send(null, HttpServerManager.GET_USER_BY_PHONE_URL +
-                                phone, HttpServerManager.GET);
-                            if (json == null) {
-                                continue;
-                            }
+                        if (contact.phones != null) {
+                            for (String phone : contact.phones.values()) {
+                                json = manager.send(null, HttpServerManager.GET_USER_BY_PHONE_URL +
+                                    phone, HttpServerManager.GET);
+                                if (json == null) {
+                                    continue;
+                                }
 
-                            parse(result, contact, json, exclude);
+                                parse(result, contact, json, exclude);
+                            }
                         }
                     }
                 }

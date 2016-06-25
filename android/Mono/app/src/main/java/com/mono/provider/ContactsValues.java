@@ -1,5 +1,6 @@
 package com.mono.provider;
 
+import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds;
 
 /**
@@ -8,6 +9,47 @@ import android.provider.ContactsContract.CommonDataKinds;
  * @author Gary Ng
  */
 public class ContactsValues {
+
+    public static class Contact {
+
+        public static final String[] PROJECTION = {
+            ContactsContract.Data.CONTACT_ID,
+            ContactsContract.Data.MIMETYPE,
+            ContactsContract.Data.IN_VISIBLE_GROUP,
+            ContactsContract.Data.DISPLAY_NAME_PRIMARY,
+            ContactsContract.Data.DATA1,
+            ContactsContract.Data.DATA2,
+            ContactsContract.Data.DATA3,
+            ContactsContract.Data.DATA4,
+            ContactsContract.Data.DATA5,
+            ContactsContract.Data.DATA15,
+        };
+
+        public static final int INDEX_ID = 0;
+        public static final int INDEX_MIME_TYPE = 1;
+        public static final int INDEX_VISIBLE = 2;
+        public static final int INDEX_DISPLAY_NAME = 3;
+        public static final int INDEX_DATA1 = 4;
+        public static final int INDEX_DATA2 = 5;
+        public static final int INDEX_DATA3 = 6;
+        public static final int INDEX_DATA4 = 7;
+        public static final int INDEX_DATA5 = 8;
+        public static final int INDEX_DATA15 = 9;
+
+        public static final int INDEX_FULL_NAME = INDEX_DATA1;
+        public static final int INDEX_FIRST_NAME = INDEX_DATA2;
+        public static final int INDEX_MIDDLE_NAME = INDEX_DATA5;
+        public static final int INDEX_LAST_NAME = INDEX_DATA3;
+
+        public static final int INDEX_PHOTO = INDEX_DATA15;
+
+        public static final int INDEX_EMAIL_TYPE = INDEX_DATA2;
+        public static final int INDEX_EMAIL_ADDRESS = INDEX_DATA1;
+
+        public static final int INDEX_PHONE_TYPE = INDEX_DATA2;
+        public static final int INDEX_PHONE_NUMBER = INDEX_DATA1;
+        public static final int INDEX_PHONE_NORMALIZED_NUMBER = INDEX_DATA4;
+    }
 
     public static class Name {
 

@@ -164,6 +164,14 @@ public class Contact implements Parcelable {
         }
     }
 
+    public void setEmail(int type, String email) {
+        if (emails == null) {
+            emails = new HashMap<>();
+        }
+
+        emails.put(type, email);
+    }
+
     public boolean hasEmails() {
         return emails != null && !emails.isEmpty();
     }
@@ -215,6 +223,14 @@ public class Contact implements Parcelable {
         } else {
             phones = null;
         }
+    }
+
+    public void setPhone(int type, String phone) {
+        if (phones == null) {
+            phones = new HashMap<>();
+        }
+
+        phones.put(type, phone);
     }
 
     public boolean hasPhones() {
