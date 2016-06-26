@@ -172,7 +172,7 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
-
+    //temporary during development: add all users on server database to client database
     private void resetUserTable(HttpServerManager httpServerManager) {
         AttendeeDataSource attendeeDataSource = DatabaseHelper.getDataSource(this, AttendeeDataSource.class);
         attendeeDataSource.clearAttendeeTable();
