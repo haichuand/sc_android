@@ -23,6 +23,12 @@ import com.mono.network.HttpServerManager;
 
 import org.json.JSONObject;
 
+/**
+ * This activity is used to handle the login process that includes displaying the fragment to
+ * accept user input and communicating with the server to log in.
+ *
+ * @author Gary Ng, Haichuan Duan
+ */
 public class LoginActivity extends AppCompatActivity {
 
     public static final String EXTRA_ACCOUNT = "account";
@@ -99,6 +105,13 @@ public class LoginActivity extends AppCompatActivity {
 //        LocalBroadcastManager.getInstance(this).unregisterReceiver(gcmReceiver);
     }
 
+    /**
+     * Encapsulates the steps required to load any fragment into this activity.
+     *
+     * @param fragment The fragment to be shown.
+     * @param tag The tag value to later retrieve the fragment.
+     * @param addToBackStack The value used to enable back stack usage.
+     */
     public void showFragment(Fragment fragment, String tag, boolean addToBackStack) {
         FragmentManager manager = getSupportFragmentManager();
 
@@ -112,11 +125,20 @@ public class LoginActivity extends AppCompatActivity {
         transaction.commit();
     }
 
+    /**
+     * Display the fragment holding the login view.
+     */
     public void showLogin() {
         String tag = getString(R.string.fragment_login);
         showFragment(new LoginFragment(), tag, false);
     }
 
+    /**
+     * Handle the action of submitting user credentials to log in.
+     *
+     * @param emailOrPhone The email or phone to be used to log in.
+     * @param password The value of the password.
+     */
     public void submitLogin(String emailOrPhone, String password) {
         if (!hasToken) {
             return;
@@ -159,7 +181,7 @@ public class LoginActivity extends AppCompatActivity {
             account.email = responseJson.getString(HttpServerManager.EMAIL);
             account.phone = responseJson.getString(HttpServerManager.PHONE_NUMBER);
             AccountManager accountManager = AccountManager.getInstance(this);
-            accountManager.setAccount(account);
+            accountManager.login(account);
 
             //refresh GCM tokens on http and chat servers
             String token = accountManager.getGCMToken();
@@ -199,11 +221,24 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Display the fragment holding the registration view.
+     */
     public void showRegister() {
         String tag = getString(R.string.fragment_register);
         showFragment(new RegisterFragment(), tag, true);
     }
 
+    /**
+     * Handle the action of submitting user credentials to register.
+     *
+     * @param email The email to be used.
+     * @param phone The phone to be used.
+     * @param firstName The first name of the user.
+     * @param lastName The last name of the user.
+     * @param userName The username to be used.
+     * @param password The password to be used.
+     */
     public void submitRegister(String email, String phone, String firstName, String lastName,
             String userName, String password) {
         if (!hasToken) {

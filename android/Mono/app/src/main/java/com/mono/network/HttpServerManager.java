@@ -95,7 +95,7 @@ public class HttpServerManager {
                 account.username = userName;
                 account.email = email;
                 account.phone = phoneNum;
-                AccountManager.getInstance(context).setAccount(account);
+                AccountManager.getInstance(context).login(account);
                 return uId;
             } else if (responseJson.getInt(STATUS) == STATUS_ERROR) {
                 return 0;

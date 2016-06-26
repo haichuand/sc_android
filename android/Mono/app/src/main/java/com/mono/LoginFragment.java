@@ -18,6 +18,11 @@ import com.mono.model.Account;
 import com.mono.util.Colors;
 import com.mono.util.Common;
 
+/**
+ * A fragment that displays the login screen to input user credentials.
+ *
+ * @author Gary Ng
+ */
 public class LoginFragment extends Fragment {
 
     private static final int INDEX_USERNAME = 0;
@@ -99,11 +104,16 @@ public class LoginFragment extends Fragment {
         return view;
     }
 
+    /**
+     * Initialize the username with a default value such as email or phone. If no account is
+     * present, it will try to retrieve the phone number used by the device as the default.
+     */
     public void initialize() {
         Account account = AccountManager.getInstance(getContext()).getAccount();
 
         if (account != null) {
-            fields[INDEX_USERNAME].setText(account.email);
+            String value = account.email != null ? account.email : account.phone;
+            fields[INDEX_USERNAME].setText(value);
         } else {
             TelephonyManager manager =
                 (TelephonyManager) getActivity().getSystemService(Context.TELEPHONY_SERVICE);
@@ -115,6 +125,11 @@ public class LoginFragment extends Fragment {
         }
     }
 
+    /**
+     * Check if the input fields are not empty.
+     *
+     * @return the status of the check.
+     */
     public boolean verify() {
         boolean result = true;
 
@@ -128,6 +143,10 @@ public class LoginFragment extends Fragment {
         return result;
     }
 
+    /**
+     * Handle the action of clicking on the submit button. Passwords will be hashed before being
+     * sent to the server.
+     */
     public void onSubmit() {
         if (!verify()) {
             return;
@@ -140,6 +159,10 @@ public class LoginFragment extends Fragment {
         activity.submitLogin(username, password);
     }
 
+    /**
+     * Handle the action of clicking on the register button. Upon doing so, it will switch to the
+     * register screen.
+     */
     public void onRegister() {
         activity.showRegister();
     }

@@ -3,7 +3,15 @@ package com.mono.model;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+/**
+ * This data structure is used to store information about the user account.
+ *
+ * @author Gary Ng
+ */
 public class Account implements Parcelable {
+
+    public static final int STATUS_NONE = 0;
+    public static final int STATUS_ONLINE = 1;
 
     public final long id;
     public String username;
@@ -11,6 +19,7 @@ public class Account implements Parcelable {
     public String lastName;
     public String email;
     public String phone;
+    public int status;
 
     public Account(long id) {
         this.id = id;
@@ -33,6 +42,7 @@ public class Account implements Parcelable {
         lastName = in.readString();
         email = in.readString();
         phone = in.readString();
+        status = in.readInt();
     }
 
     public static final Creator<Account> CREATOR = new Creator<Account>() {
@@ -60,5 +70,6 @@ public class Account implements Parcelable {
         dest.writeString(lastName);
         dest.writeString(email);
         dest.writeString(phone);
+        dest.writeInt(status);
     }
 }

@@ -139,16 +139,17 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     }
 
     protected void start() {
+        // Display Splash Screen for New Install
+        if (Settings.getInstance(this).getDayOne() <= 0) {
+            showIntro();
+            return;
+        }
         // Simple Trick for Faster Google Maps Loading
         triggerGooglePlayServices(this);
         // Preload Contacts for Faster Access
         ContactsManager.getInstance(this).getContactsAsync(null, false);
         // Load Initial Fragment
         showHome();
-        // Display Splash Screen for New Install
-        if (Settings.getInstance(this).getDayOne() <= 0) {
-            showIntro();
-        }
     }
 
     @Override
@@ -514,6 +515,8 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                     e.printStackTrace();
                 }
             }
+
+            start();
         }
     }
 
@@ -536,7 +539,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     public void handleLogin(int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
             Account account = data.getParcelableExtra(LoginActivity.EXTRA_ACCOUNT);
-            AccountManager.getInstance(this).setAccount(account);
+            AccountManager.getInstance(this).login(account);
         }
     }
 
