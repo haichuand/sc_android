@@ -2,47 +2,61 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:padding="10dp">
-
-    <ImageView
-        android:id="@+id/icon"
-        android:layout_width="30dp"
-        android:layout_height="30dp"
-        android:layout_gravity="center_vertical"
-        android:src="@drawable/circle"/>
+    android:orientation="vertical">
 
     <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_marginStart="10dp"
-        android:layout_weight="1">
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:orientation="horizontal"
+        android:padding="10dp">
+
+        <ImageView
+            android:id="@+id/icon"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="center_vertical"
+            android:src="@drawable/circle"/>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1">
+
+            <TextView
+                android:id="@+id/title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:textColor="@color/gray_dark"
+                android:textSize="16sp"/>
+
+            <TextView
+                android:id="@+id/description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:textColor="@color/gray_light_3"
+                android:textSize="14sp"/>
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/title"
-            android:layout_width="match_parent"
+            android:id="@+id/date"
+            android:layout_width="70dp"
             android:layout_height="wrap_content"
-            android:singleLine="true"
-            android:textColor="@color/gray_dark"
-            android:textSize="16sp"/>
-
-        <TextView
-            android:id="@+id/description"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="2"
+            android:gravity="end"
+            android:layout_marginStart="10dp"
             android:textColor="@color/gray_light_3"
             android:textSize="14sp"/>
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/date"
-        android:layout_width="70dp"
-        android:layout_height="wrap_content"
-        android:gravity="end"
-        android:layout_marginStart="10dp"
-        android:textColor="@color/gray_light_3"
-        android:textSize="14sp"/>
+    <LinearLayout
+        android:id="@+id/photos"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:orientation="horizontal"
+        android:background="@color/gray_light"
+        android:visibility="gone"/>
 </LinearLayout>

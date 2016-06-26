@@ -14,7 +14,6 @@
     <string name="map">Map</string>
     <string name="settings">Settings</string>
     <string name="event_details">Event Details</string>
-    <string name="intro">Intro</string>
     <string name="contacts">Contacts</string>
     <string name="dummy">Dummy</string>
 
@@ -89,6 +88,7 @@
     <string name="location">Location</string>
     <string name="notes">Notes</string>
     <string name="guests">Guests</string>
+    <string name="photos">Photos</string>
     <string name="chats">Chats</string>
     <string name="friends">Friends</string>
     <string name="phone">Phone</string>
@@ -126,6 +126,7 @@
     <string name="friends_remove">Remove from Friends</string>
     <string name="skip">Skip</string>
     <string name="invite">Invite</string>
+    <string name="remove">Remove</string>
 
     <string name="me">Me</string>
     <string name="chat_input_hint">Your Message Here</string>

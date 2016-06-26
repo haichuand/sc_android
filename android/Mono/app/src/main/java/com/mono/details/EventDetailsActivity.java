@@ -30,7 +30,6 @@ import com.google.android.gms.location.places.ui.PlaceAutocomplete;
 import com.google.android.gms.maps.model.LatLng;
 import com.mono.EventManager;
 import com.mono.R;
-import com.mono.model.Attendee;
 import com.mono.model.Calendar;
 import com.mono.model.Event;
 import com.mono.model.Location;
@@ -48,12 +47,20 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
+/**
+ * This activity displays information of an event as well as allowing the user to create and
+ * modify an existing event.
+ *
+ * @author Gary Ng
+ */
 public class EventDetailsActivity extends GestureActivity {
 
     public static final String EXTRA_CALENDAR = "calendar";
     public static final String EXTRA_EVENT = "event";
 
-    private static final int REQUEST_PLACE_PICKER = 1;
+    public static final int REQUEST_PLACE_PICKER = 1;
+    public static final int REQUEST_CONTACT_PICKER = 2;
+    public static final int REQUEST_PHOTO_PICKER = 3;
 
     private static final SimpleDateFormat DATE_FORMAT;
     private static final SimpleDateFormat TIME_FORMAT;
@@ -71,7 +78,8 @@ public class EventDetailsActivity extends GestureActivity {
     private EditText location;
     private ImageView locationPicker;
     private EditText notes;
-    private EditText guests;
+    private GuestPanel guestPanel;
+    private PhotoPanel photoPanel;
 
     private Event original;
     private Event event;
@@ -256,23 +264,11 @@ public class EventDetailsActivity extends GestureActivity {
             }
         });
 
-        guests = (EditText) findViewById(R.id.guests);
-        guests.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+        guestPanel = new GuestPanel(this);
+        guestPanel.onCreate(savedInstanceState);
 
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-
-            }
-        });
+        photoPanel = new PhotoPanel(this);
+        photoPanel.onCreate(savedInstanceState);
 
         Intent intent = getIntent();
         Event event = intent.getParcelableExtra(EXTRA_EVENT);
@@ -351,6 +347,12 @@ public class EventDetailsActivity extends GestureActivity {
             case REQUEST_PLACE_PICKER:
                 handlePlacePicker(resultCode, data);
                 break;
+            case REQUEST_CONTACT_PICKER:
+                guestPanel.handleContactPicker(resultCode, data);
+                break;
+            case REQUEST_PHOTO_PICKER:
+                photoPanel.handlePhotoPicker(resultCode, data);
+                break;
         }
     }
 
@@ -414,15 +416,8 @@ public class EventDetailsActivity extends GestureActivity {
             notes.setText(event.description);
         }
 
-        if (!event.attendees.isEmpty()) {
-            String str = "";
-            for (int i = 0; i < event.attendees.size(); i++) {
-                Attendee attendee = event.attendees.get(i);
-                if (i > 0) str += '\n';
-                str += attendee.userName;
-            }
-            guests.setText(str);
-        }
+        guestPanel.setEvent(event);
+        photoPanel.setEvent(event);
     }
 
     public void close() {

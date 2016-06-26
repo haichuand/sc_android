@@ -35,9 +35,7 @@ import com.mono.R;
 import com.mono.search.SearchFragment;
 import com.mono.calendar.CalendarEventsFragment.CalendarEventsListener;
 import com.mono.calendar.CalendarView.CalendarListener;
-import com.mono.model.Calendar;
 import com.mono.model.Event;
-import com.mono.provider.CalendarProvider;
 import com.mono.search.SearchHandler;
 import com.mono.settings.Settings;
 import com.mono.util.Common;
@@ -53,6 +51,13 @@ import org.joda.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * A fragment that displays the scrollable calendar and the view that lists all events from the
+ * selected day. Communication between the calendar and events listing is being handled here as
+ * well.
+ *
+ * @author Gary Ng
+ */
 public class CalendarFragment extends Fragment implements OnBackPressedListener, CalendarListener,
         CalendarEventsListener, EventBroadcastListener, TabPagerCallback, Scrollable {
 
@@ -150,16 +155,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
             case R.id.action_add:
                 Event event = new Event();
                 event.type = Event.TYPE_CALENDAR;
-
-                List<Calendar> calendars =
-                    CalendarProvider.getInstance(getContext()).getCalendars();
-                for (Calendar calendar : calendars) {
-                    if (calendar.primary) {
-                        event.calendarId = calendar.id;
-                        break;
-                    }
-                }
-
+                // Create Event Using the Selected Date
                 LocalDate date = calendarView.getCurrentSelected();
                 if (date != null) {
                     DateTime dateTime = new DateTime(date.getYear(), date.getMonthOfYear(),
@@ -182,6 +178,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
 
     @Override
     public boolean onBackPressed() {
+        // Handle Search View
         if (searchView != null && !searchView.isIconified()) {
             searchView.setIconified(true);
             searchView.onActionViewCollapsed();
@@ -197,18 +194,39 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         return eventsFragment.onBackPressed();
     }
 
+    /**
+     * Retrieve all color markers for the specific month to be displayed in the calendar.
+     *
+     * @param year The value of the year.
+     * @param month The value of the month.
+     * @return a map of colors for each day of the month.
+     */
     @Override
     public Map<Integer, List<Integer>> getMonthColors(int year, int month) {
         long[] calendarIds = Settings.getInstance(getContext()).getCalendarsArray();
         return EventManager.getInstance(getContext()).getEventColorsByMonth(year, month, calendarIds);
     }
 
+    /**
+     * Primarily used to update the current day value of the calendar icon located at the dock
+     * whenever a day change occurs.
+     *
+     * @param day The current day.
+     */
     @Override
     public void onDayChange(int day) {
         Drawable drawable = createCalendarIcon(getContext(), String.valueOf(day));
         mainInterface.setDockLayoutDrawable(MainFragment.TAB_CALENDAR, drawable);
     }
 
+    /**
+     * Handle the action of selecting a day of the month in the calendar.
+     *
+     * @param year The selected year.
+     * @param month The selected month.
+     * @param day The selected day.
+     * @param selected The value of whether it was selected or unselected.
+     */
     @Override
     public void onCellClick(int year, int month, int day, boolean selected) {
         if (selected) {
@@ -218,6 +236,15 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         }
     }
 
+    /**
+     * Handle the action of dropping an event into a day of the month in the calendar.
+     *
+     * @param id The value of the event ID.
+     * @param year The targeted year.
+     * @param month The targeted month.
+     * @param day The targeted day.
+     * @param action The type of action to perform.
+     */
     @Override
     public void onCellDrop(String id, final int year, final int month, final int day, int action) {
         Event event = eventManager.getEvent(id, false);
@@ -232,16 +259,17 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         if (startDate.isEqual(dateTime.toLocalDate())) {
             return;
         }
-
+        // Determine New Event Time
         long startTime = dateTime.getMillis();
         long endTime = startTime + event.getDuration();
-
+        // Perform Drop Action
         switch (action) {
             case ACTION_MOVE:
                 event.startTime = startTime;
                 event.endTime = endTime;
 
                 if (event.source == Event.SOURCE_DATABASE) {
+                    // Update Existing Event
                     eventManager.updateEvent(EventAction.ACTOR_SELF, id, event,
                         new EventManager.EventActionCallback() {
                             @Override
@@ -284,7 +312,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
 
                 if (event.source == Event.SOURCE_DATABASE) {
                     long internalId = System.currentTimeMillis();
-
+                    // Create Event into the Database
                     eventManager.createEvent(
                         EventAction.ACTOR_SELF,
                         event.calendarId,
@@ -300,9 +328,12 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
                         event.timeZone,
                         event.endTimeZone,
                         event.allDay,
+                        event.attendees,
+                        event.photos,
                         callback
                     );
                 } else if (event.source == Event.SOURCE_PROVIDER) {
+                    // Create Event into the Provider
                     eventManager.createSyncEvent(
                         EventAction.ACTOR_SELF,
                         event.calendarId,
@@ -315,6 +346,8 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
                         event.timeZone,
                         event.endTimeZone,
                         event.allDay,
+                        event.attendees,
+                        event.photos,
                         callback
                     );
                 }
@@ -322,6 +355,11 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         }
     }
 
+    /**
+     * Handle view state changes of the events listing.
+     *
+     * @param state The current view state.
+     */
     @Override
     public void onStateChange(int state) {
         switch (state) {
@@ -331,6 +369,12 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         }
     }
 
+    /**
+     * Handle the action of performing a click on an event from the events listing.
+     *
+     * @param id The value of the event ID.
+     * @param view The value of the view.
+     */
     @Override
     public void onClick(String id, View view) {
         Event event = eventManager.getEvent(id, false);
@@ -339,6 +383,13 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         }
     }
 
+    /**
+     * Handle the action of performing a long click on an event from the events listing to
+     * trigger drag and drop action.
+     *
+     * @param id The value of the event ID.
+     * @param view The value of the view.
+     */
     @Override
     public void onLongClick(String id, View view) {
         ClipData.Item item = new ClipData.Item(String.valueOf(id));
@@ -350,16 +401,31 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         view.startDrag(data, builder, null, 0);
     }
 
+    /**
+     * Handle the action of clicking on the chat option.
+     *
+     * @param id The value of the event ID.
+     */
     @Override
     public void onChatClick(String id) {
         mainInterface.showChat(id);
     }
 
+    /**
+     * Handle the action of clicking on the favorite option.
+     *
+     * @param id The value of the event ID.
+     */
     @Override
     public void onFavoriteClick(String id) {
 
     }
 
+    /**
+     * Handle the action of clicking on the deleting an event option.
+     *
+     * @param id
+     */
     @Override
     public void onDeleteClick(final String id) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext(),
@@ -404,6 +470,11 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         dialog.show();
     }
 
+    /**
+     * Handle all event changes being reported by the Event Manager.
+     *
+     * @param data The event action data.
+     */
     @Override
     public void onEventBroadcast(final EventAction data) {
         if (data.getStatus() != EventAction.STATUS_OK) {
@@ -416,7 +487,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
                 Event event = data.getEvent();
 
                 LocalDate startDate, endDate;
-
+                // Special Handling of All Day Events
                 if (!event.allDay) {
                     startDate = new LocalDate(event.startTime);
                     endDate = new LocalDate(event.endTime);
@@ -424,7 +495,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
                     startDate = new LocalDate(event.startTime, DateTimeZone.UTC);
                     endDate = new LocalDate(event.endTime - 1, DateTimeZone.UTC);
                 }
-
+                // Handle Multi-Day Events
                 LocalDate date = startDate;
                 while (date.isBefore(endDate) || date.isEqual(endDate)) {
                     calendarView.refresh(date.getYear(), date.getMonthOfYear() - 1);
@@ -482,6 +553,13 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         calendarView.today();
     }
 
+    /**
+     * Display events that occur on the selected day.
+     *
+     * @param year The value of the year.
+     * @param month The value of the month.
+     * @param day The value of the day.
+     */
     public void showEventsFragment(int year, int month, int day) {
         View view = getView();
         if (view == null) {
@@ -502,14 +580,25 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         }
     }
 
+    /**
+     * Check calendar related settings such as the first day of the week and whether to display
+     * week numbers in the calendar.
+     */
     public void checkSettings() {
         Settings settings = Settings.getInstance(getContext());
         calendarView.setFirstDayOfWeek(settings.getCalendarWeekStart());
         calendarView.showWeekNumbers(settings.getCalendarWeekNumber());
     }
 
+    /**
+     * Construct a dynamic calendar icon displaying the day number.
+     *
+     * @param context The value of the context.
+     * @param value The value to be displayed within the icon.
+     * @return a drawable of the calendar icon.
+     */
     public static Drawable createCalendarIcon(Context context, String value) {
-        Drawable background = context.getDrawable(R.drawable.ic_calendar_white);
+        Drawable background = context.getDrawable(R.drawable.ic_calendar);
         if (background == null) {
             return null;
         }

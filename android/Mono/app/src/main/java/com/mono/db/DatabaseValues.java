@@ -2,6 +2,11 @@ package com.mono.db;
 
 import com.mono.util.Common;
 
+/**
+ * This class is used to store all constants related to database tables, fields, projections, etc.
+ *
+ * @author Gary Ng, Xuejing Dong
+ */
 public class DatabaseValues {
 
     private DatabaseValues() {}
@@ -373,29 +378,39 @@ public class DatabaseValues {
     }
 
     public static class Media {
+
         public static final String TABLE = "`media`";
 
-        public static final String MEDIA_ID = "`media_id`";
-        public static final String CONTENT = "`content`";
-
-
+        public static final String ID = "`media_id`";
+        public static final String PATH = "`path`";
+        public static final String TYPE = "`type`";
+        public static final String SIZE = "`size`";
+        public static final String THUMBNAIL = "`thumbnail`";
 
         public static final String[] PROJECTION = {
-                Media.MEDIA_ID,
-                Media.CONTENT
+            Media.ID,
+            Media.PATH,
+            Media.TYPE,
+            Media.SIZE,
+            Media.THUMBNAIL
         };
 
-        public static final int INDEX_MEDIA_ID = 0;
-        public static final int INDEX_CONTENT = 1;
-
+        public static final int INDEX_ID = 0;
+        public static final int INDEX_PATH = 1;
+        public static final int INDEX_TYPE = 2;
+        public static final int INDEX_SIZE = 3;
+        public static final int INDEX_THUMBNAIL = 4;
 
         public static final String CREATE_TABLE;
         public static final String DROP_TABLE;
 
         static {
             String[] parameters = {
-                    MEDIA_ID + " TEXT PRIMARY KEY",
-                    CONTENT + " BLOB"
+                ID + " INTEGER PRIMARY KEY AUTOINCREMENT",
+                PATH + " TEXT",
+                TYPE + " TEXT",
+                SIZE + " INTEGER",
+                THUMBNAIL + " BLOB"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);
@@ -404,29 +419,27 @@ public class DatabaseValues {
     }
 
     public static class EventMedia {
+
         public static final String TABLE = "`event_media`";
 
-        public static final String E_ID = "`e_id`";
-        public static final String M_ID = "`m_id`";
-
-
+        public static final String EVENT_ID = "`event_id`";
+        public static final String MEDIA_ID = "`media_id`";
 
         public static final String[] PROJECTION = {
-                EventMedia.E_ID,
-                EventMedia.M_ID
+            EventMedia.EVENT_ID,
+            EventMedia.MEDIA_ID
         };
 
-        public static final int INDEX_E_ID = 0;
-        public static final int INDEX_M_ID = 1;
-
+        public static final int INDEX_EVENT_ID = 0;
+        public static final int INDEX_MEDIA_ID = 1;
 
         public static final String CREATE_TABLE;
         public static final String DROP_TABLE;
 
         static {
             String[] parameters = {
-                    E_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
-                    M_ID + " TEXT REFERENCES " + Media.TABLE + " ( "+ Media.MEDIA_ID +" )"
+                EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( " + Event.ID + " )",
+                MEDIA_ID + " INTEGER REFERENCES " + Media.TABLE + " ( " + Media.ID + " )"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);

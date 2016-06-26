@@ -14,6 +14,8 @@ import com.mono.model.Attendee;
 import com.mono.model.Conversation;
 import com.mono.model.Event;
 import com.mono.model.Message;
+import com.mono.search.SearchAdapter.EventItem;
+import com.mono.search.SearchAdapter.PhotoEventItem;
 import com.mono.util.Colors;
 import com.mono.util.Common;
 import com.mono.util.SimpleViewHolder.HolderItem;
@@ -31,6 +33,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 
+/**
+ * This handler class is used to handle how search is processed as well as dealing with how the
+ * events and chat messages are being retrieved and displayed.
+ *
+ * @author Gary Ng
+ */
 public class SearchHandler implements OnQueryTextListener {
 
     private static final int LIMIT = 10;
@@ -70,6 +78,12 @@ public class SearchHandler implements OnQueryTextListener {
         return onQuery(newText);
     }
 
+    /**
+     * Handle the search query and return the search results back to the fragment to be displayed.
+     *
+     * @param query The value of the search query.
+     * @return The status of the query search.
+     */
     private boolean onQuery(String query) {
         if (task != null) {
             task.cancel(true);
@@ -115,13 +129,28 @@ public class SearchHandler implements OnQueryTextListener {
         return false;
     }
 
+    /**
+     * Retrieve events using the search query and return the results with the items list provided.
+     *
+     * @param query The value of the search query.
+     * @param items The items to be returned.
+     */
     private void getEvents(String query, List<HolderItem> items) {
         String[] terms = Common.explode(" ", query);
         int color = Colors.getColor(fragment.getContext(), R.color.red);
 
         List<Event> events = manager.getEvents(query, LIMIT);
         for (Event event : events) {
-            SearchAdapter.EventItem item = new SearchAdapter.EventItem(event.id);
+            EventItem item;
+
+            if (event.photos != null && !event.photos.isEmpty()) {
+                PhotoEventItem photoItem = new PhotoEventItem(event.id);
+                photoItem.photos = event.photos;
+
+                item = photoItem;
+            } else {
+                item = new EventItem(event.id);
+            }
 
             item.type = 0;
             item.iconResId = R.drawable.circle;
@@ -155,6 +184,13 @@ public class SearchHandler implements OnQueryTextListener {
         }
     }
 
+    /**
+     * Retrieve chat messages using the search query and return the results with the items list
+     * provided.
+     *
+     * @param query The value of the search query.
+     * @param items The items to be returned.
+     */
     private void getConversations(String query, List<HolderItem> items) {
         String[] terms = Common.explode(" ", query);
         int color = Colors.getColor(fragment.getContext(), R.color.red);
@@ -223,6 +259,14 @@ public class SearchHandler implements OnQueryTextListener {
         }
     }
 
+    /**
+     * Helper function to convert milliseconds into a readable date string that takes time zone
+     * into account.
+     *
+     * @param time The time in milliseconds.
+     * @param timeZone The time zone to be used.
+     * @return a date string.
+     */
     private String getDateString(long time, TimeZone timeZone) {
         LocalDate currentDate = new LocalDate();
 
@@ -244,6 +288,13 @@ public class SearchHandler implements OnQueryTextListener {
         return dateFormat.format(dateTime.toDate());
     }
 
+    /**
+     * Helper function to determine the color usage depending on the time given.
+     *
+     * @param startTime The start time in milliseconds.
+     * @param endTime The end time in milliseconds.
+     * @return the color to be used.
+     */
     private int getDateColor(long startTime, long endTime) {
         LocalDate currentDate = new LocalDate();
         LocalDate startDate = new LocalDate(startTime);

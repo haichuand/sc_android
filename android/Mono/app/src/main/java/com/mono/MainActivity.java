@@ -85,7 +85,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     public static final String APP_DIR = "MonoFiles/";
 
     public static final int HOME = R.id.nav_home;
-    public static final int INTRO = R.id.nav_intro;
     public static final int LOGIN = R.id.nav_login;
     public static final int LOGOUT = R.id.nav_logout;
     public static final int CONTACTS = R.id.nav_contacts;
@@ -141,16 +140,17 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     }
 
     protected void start() {
+        // Display Splash Screen for New Install
+        if (Settings.getInstance(this).getDayOne() <= 0) {
+            showIntro();
+            return;
+        }
         // Simple Trick for Faster Google Maps Loading
         triggerGooglePlayServices(this);
         // Preload Contacts for Faster Access
         ContactsManager.getInstance(this).getContactsAsync(null, false);
         // Load Initial Fragment
         showHome();
-        // Display Splash Screen for New Install
-        if (Settings.getInstance(this).getDayOne() <= 0) {
-            showIntro();
-        }
     }
 
     @Override
@@ -274,9 +274,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         switch (id) {
             case HOME:
                 showHome();
-                break;
-            case INTRO:
-                showIntro();
                 break;
             case LOGIN:
                 showLogin();
@@ -408,7 +405,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     public void setActionButton(int resId, int color, OnClickListener listener) {
         // Default Image Resource
         if (resId == 0) {
-            resId = R.drawable.ic_add_white;
+            resId = R.drawable.ic_add;
         }
         // Default Background Color
         if (color == 0) {
@@ -519,6 +516,8 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                     e.printStackTrace();
                 }
             }
+
+            start();
         }
     }
 
@@ -541,7 +540,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     public void handleLogin(int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
             Account account = data.getParcelableExtra(LoginActivity.EXTRA_ACCOUNT);
-            AccountManager.getInstance(this).setAccount(account);
+            AccountManager.getInstance(this).login(account);
         }
     }
 
@@ -666,6 +665,8 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                         event.timeZone,
                         event.endTimeZone,
                         event.allDay,
+                        event.attendees,
+                        event.photos,
                         null
                     );
                 } else {
@@ -686,6 +687,8 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                         event.timeZone,
                         event.endTimeZone,
                         event.allDay,
+                        event.attendees,
+                        event.photos,
                         null
                     );
                 }

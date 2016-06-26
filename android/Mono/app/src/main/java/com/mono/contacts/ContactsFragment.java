@@ -16,10 +16,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.mono.R;
 import com.mono.contacts.ContactsAdapter.ContactItem;
 import com.mono.contacts.ContactsAdapter.ContactsAdapterListener;
+import com.mono.contacts.ContactsManager.ContactsBroadcastListener;
 import com.mono.contacts.ContactsManager.ContactsTaskCallback;
 import com.mono.model.Contact;
 import com.mono.util.Colors;
@@ -41,7 +43,8 @@ import java.util.Map;
  *
  * @author Gary Ng
  */
-public class ContactsFragment extends Fragment implements ContactsAdapterListener {
+public class ContactsFragment extends Fragment implements ContactsAdapterListener,
+        ContactsBroadcastListener {
 
     public static final int GROUP_FAVORITES = 0;
     public static final int GROUP_FRIENDS = 1;
@@ -73,6 +76,7 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
         setHasOptionsMenu(true);
 
         contactsManager = ContactsManager.getInstance(getContext());
+        contactsManager.addListener(this);
 
         Intent intent = getActivity().getIntent();
         if (intent != null) {
@@ -167,6 +171,8 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
         removeUsersCallback();
         removeContactsCallback();
         removeSuggestionsCallback();
+
+        contactsManager.removeListener(this);
     }
 
     @Override
@@ -462,6 +468,53 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
     }
 
     /**
+     * Handle contact addition being reported by the Contacts Manager.
+     *
+     * @param contact The instance of the contact.
+     */
+    @Override
+    public void onContactAdd(Contact contact) {
+        add(GROUP_CONTACTS, contact, true, true);
+    }
+
+    /**
+     * Handle contact updates being reported by the Contacts Manager.
+     *
+     * @param contact The instance of the contact.
+     */
+    @Override
+    public void onContactRefresh(Contact contact) {
+
+    }
+
+    /**
+     * Handle contact removal being reported by the Contacts Manager.
+     *
+     * @param contact The instance of the contact.
+     */
+    @Override
+    public void onContactRemove(Contact contact) {
+        remove(contact, true, true);
+    }
+
+    /**
+     * Handle suggestions being reported by the Contacts Manager.
+     *
+     * @param contact The instance of the contact.
+     */
+    @Override
+    public void onSuggestionAdd(Contact contact) {
+        add(GROUP_SUGGESTIONS, contact, true, true);
+
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getContext(), "New Suggestion", Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    /**
      * Add contact to the specified group and notify the adapter to reflect the new addition.
      *
      * @param group The group category.
@@ -491,6 +544,38 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
                     } else {
                         adapter.notifyInserted(position);
                     }
+                }
+            });
+        }
+    }
+
+    /**
+     * Remove contact and notify the adapter to reflect the change.
+     *
+     * @param contact The contact to be removed.
+     * @param sort The value to sort contacts.
+     * @param notify The value to notify adapter to refresh.
+     */
+    public void remove(Contact contact, boolean sort, boolean notify) {
+        int index = contactsMap.indexOf(contact);
+        if (index < 0) {
+            return;
+        }
+
+        index = adapter.getAdapterPosition(index);
+        contactsMap.remove(contact);
+
+        if (sort) {
+            contactsMap.sortAll();
+        }
+
+        if (notify) {
+            final int position = index;
+
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    adapter.notifyRemoved(position);
                 }
             });
         }

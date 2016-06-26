@@ -14,6 +14,7 @@ import android.view.ViewGroup;
 
 import com.mono.R;
 import com.mono.calendar.CalendarEventsAdapter.CalendarEventsItem;
+import com.mono.chat.ConversationManager;
 import com.mono.model.Event;
 import com.mono.util.Colors;
 import com.mono.util.OnBackPressedListener;
@@ -35,6 +36,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 
+/**
+ * A fragment that displays a list of events. Events selected can be viewed or edited. Using a
+ * sliding gesture of left or right on the event will reveal additional options to trigger a
+ * chat conversation or perform a quick deletion of unwanted events.
+ *
+ * @author Gary Ng
+ */
 public class CalendarEventsFragment extends Fragment implements OnBackPressedListener,
         OnItemTouchListener, SimpleDataSource<CalendarEventsItem>, SimpleSlideViewListener {
 
@@ -101,6 +109,12 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
         return view;
     }
 
+    /**
+     * Handle the action of when the back button is pushed. This list will go through multiple
+     * stages of visibility before fully collapsed.
+     *
+     * @return the value of whether the action has been consumed.
+     */
     @Override
     public boolean onBackPressed() {
         if (state == STATE_FULL) {
@@ -133,6 +147,13 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
 
     }
 
+    /**
+     * Retrieve events as items to be displayed by the adapter. Special case events such as one
+     * with photos or if the event was used to start a chat will show an icon.
+     *
+     * @param position The position of the event.
+     * @return an item to display event information.
+     */
     @Override
     public CalendarEventsItem getItem(int position) {
         CalendarEventsItem item;
@@ -150,7 +171,12 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
             item.iconColor = event.color;
             item.title = event.title;
             item.description = event.description;
-
+            // Check Event Photos
+            item.hasPhotos = event.photos != null && !event.photos.isEmpty();
+            // Check Event Chat
+            ConversationManager manager = ConversationManager.getInstance(getContext());
+            item.hasChat = !manager.getConversations(id).isEmpty();
+            // Date Display
             TimeZone timeZone = TimeZone.getDefault();
             DATE_FORMAT.setTimeZone(timeZone);
             TIME_FORMAT.setTimeZone(timeZone);
@@ -185,7 +211,7 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
                     item.endTime = endDate;
                 }
             }
-
+            // Date Display Color
             int colorId;
 
             if (startDate.equals(currentDate)) {
@@ -208,11 +234,21 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
         return item;
     }
 
+    /**
+     * Retrieve the number of events to be used by the adapter.
+     *
+     * @return the number of events.
+     */
     @Override
     public int getCount() {
         return events.size();
     }
 
+    /**
+     * Handle the action of clicking an event and notify any listeners.
+     *
+     * @param view The view of the event.
+     */
     @Override
     public void onClick(View view) {
         int position = recyclerView.getChildAdapterPosition(view);
@@ -225,6 +261,12 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
         }
     }
 
+    /**
+     * Handle the action of long clicking an event and notify any listeners.
+     *
+     * @param view The view of the event.
+     * @return the value of whether the action has been consumed.
+     */
     @Override
     public boolean onLongClick(View view) {
         int position = recyclerView.getChildAdapterPosition(view);
@@ -239,6 +281,12 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
         return true;
     }
 
+    /**
+     * Handle the action of clicking on a hidden option on the left side of the event.
+     *
+     * @param view The view of the event.
+     * @param index The index of the action.
+     */
     @Override
     public void onLeftButtonClick(View view, int index) {
         int position = recyclerView.getChildAdapterPosition(view);
@@ -258,6 +306,12 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
         }
     }
 
+    /**
+     * Handle the action of clicking on a hidden option on the right side of the event.
+     *
+     * @param view The view of the event.
+     * @param index The index of the action.
+     */
     @Override
     public void onRightButtonClick(View view, int index) {
         int position = recyclerView.getChildAdapterPosition(view);
@@ -274,11 +328,25 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
         }
     }
 
+    /**
+     * Used to disable any vertical scrolling if event sliding gestures are active.
+     *
+     * @param view The view of the event.
+     * @param state The value of the state.
+     */
     @Override
     public void onGesture(View view, boolean state) {
         layoutManager.setScrollEnabled(state);
     }
 
+    /**
+     * Initialize the list with events of the specific day.
+     *
+     * @param year The value of the year.
+     * @param month The value of the month;
+     * @param day The value of the day;
+     * @param events The list of events.
+     */
     public void setEvents(int year, int month, int day, List<Event> events) {
         currentTime = new DateTime(year, month + 1, day, 0, 0).getMillis();
 
@@ -296,6 +364,13 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
         adapter.notifyDataSetChanged();
     }
 
+    /**
+     * Handle the insertion of an event to be displayed.
+     *
+     * @param event The instance of the event.
+     * @param scrollTo The value of whether to scroll to the event after insertion.
+     * @param notify The value of whether to notify the adapter.
+     */
     public void insert(Event event, boolean scrollTo, boolean notify) {
         if (events.contains(event)) {
             return;
@@ -320,6 +395,13 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
         }
     }
 
+    /**
+     * Handle the refresh of an event if it was updated.
+     *
+     * @param event The instance of the event.
+     * @param scrollTo The value of whether to scroll to the event after refresh.
+     * @param notify The value of whether to notify the adapter.
+     */
     public void refresh(Event event, boolean scrollTo, boolean notify) {
         int index = events.indexOf(event);
         if (index < 0) {
@@ -352,6 +434,12 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
         }
     }
 
+    /**
+     * Handle the removal of an event.
+     *
+     * @param event The instance of the event.
+     * @param notify The value of whether to notify the adapter.
+     */
     public void remove(Event event, boolean notify) {
         int index = events.indexOf(event);
         if (index < 0) {
@@ -369,10 +457,22 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
         }
     }
 
+    /**
+     * Set the height of this list when it's not fully expanded.
+     *
+     * @param height The value of the height.
+     */
     public void setHalfHeight(int height) {
         halfHeight = height;
     }
 
+    /**
+     * Set the list to be visible.
+     *
+     * @param state The state of how expanded the list to be displayed.
+     * @param scrollToTop The value of whether to reset the scroll to the top.
+     * @param animate The value of whether to animate the expansion.
+     */
     public void show(int state, boolean scrollToTop, boolean animate) {
         View view = getView();
         if (view == null) {
@@ -419,10 +519,20 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
         this.state = state;
     }
 
+    /**
+     * Set the list to be hidden.
+     *
+     * @param animate The value of whether to animate the collapse.
+     */
     public void hide(boolean animate) {
         show(STATE_NONE, true, animate);
     }
 
+    /**
+     * Determine the visibility state using the current height of the list.
+     *
+     * @return the state of the visibility.
+     */
     public int getState() {
         int state = STATE_NONE;
 

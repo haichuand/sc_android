@@ -7,8 +7,10 @@ import android.net.Uri;
 import android.provider.ContactsContract;
 
 import com.mono.model.Contact;
+import com.mono.util.Common;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,35 +40,91 @@ public class ContactsProvider {
     }
 
     /**
+     * Retrieve a contact by ID.
+     *
+     * @param id The value of the contact ID.
+     * @param normalized The value to return phone numbers as normalized format.
+     * @return an instance of a contact.
+     */
+    public Contact getContact(long id, boolean normalized) {
+        Contact contact = null;
+
+        List<String> args = new ArrayList<>();
+
+        String selection = getMimeTypeSelection(args);
+        selection += " AND " + ContactsContract.Data.CONTACT_ID + " = ?";
+        args.add(String.valueOf(id));
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
+
+        Cursor cursor = context.getContentResolver().query(
+            ContactsContract.Data.CONTENT_URI,
+            ContactsValues.Contact.PROJECTION,
+            selection,
+            selectionArgs,
+            null
+        );
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                if (contact == null) {
+                    contact = new Contact(id);
+                }
+
+                cursorToData(cursor, contact, normalized);
+            }
+
+            cursor.close();
+        }
+
+        return contact;
+    }
+
+    /**
      * Retrieve a list of contacts stored on the device.
      *
      * @param visibleOnly The value to return only visible contacts.
+     * @param normalized The value to return phone numbers as normalized format.
      * @return a list of contacts.
      */
-    public List<Contact> getContacts(boolean visibleOnly) {
+    public List<Contact> getContacts(boolean visibleOnly, boolean normalized) {
         List<Contact> contacts = new ArrayList<>();
 
-        String selection = ContactsContract.Data.MIMETYPE + " = ?";
+        List<String> args = new ArrayList<>();
+
+        String selection = getMimeTypeSelection(args);
         if (visibleOnly) {
             selection += " AND ";
             selection += ContactsContract.Data.IN_VISIBLE_GROUP + " > 0";
         }
 
+        String[] selectionArgs = args.toArray(new String[args.size()]);
+        String order = ContactsContract.Data.CONTACT_ID;
+
         Cursor cursor = context.getContentResolver().query(
             ContactsContract.Data.CONTENT_URI,
-            ContactsValues.Name.PROJECTION,
+            ContactsValues.Contact.PROJECTION,
             selection,
-            new String[]{
-                ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE
-            },
-            ContactsContract.CommonDataKinds.StructuredName.DISPLAY_NAME_PRIMARY
+            selectionArgs,
+            order
         );
 
         if (cursor != null) {
+            Map<Long, Contact> contactsMap = new HashMap<>();
+
             while (cursor.moveToNext()) {
-                Contact contact = cursorToContact(cursor);
-                contacts.add(contact);
+                long id = cursor.getLong(ContactsValues.Contact.INDEX_ID);
+
+                Contact contact = contactsMap.get(id);
+                if (contact == null) {
+                    contactsMap.put(id, contact = new Contact(id));
+                    contact.visible = cursor.getInt(ContactsValues.Contact.INDEX_VISIBLE) > 0;
+                }
+
+                cursorToData(cursor, contact, normalized);
             }
+
+            contacts.addAll(contactsMap.values());
 
             cursor.close();
         }
@@ -75,25 +133,111 @@ public class ContactsProvider {
     }
 
     /**
-     * Return a contacts instance with contact information retrieved from the cursor.
+     * Helper function to get MIME type selection and arguments.
+     *
+     * @param args The list to insert arguments.
+     * @return a selection string.
+     */
+    private String getMimeTypeSelection(List<String> args) {
+        String[] mimeTypes = {
+            ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE,
+            ContactsContract.CommonDataKinds.Photo.CONTENT_ITEM_TYPE,
+            ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE,
+            ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE
+        };
+
+        String selection = String.format(
+            "%s IN (%s)",
+            ContactsContract.Data.MIMETYPE,
+            Common.repeat("?", mimeTypes.length, ", ")
+        );
+
+        Collections.addAll(args, mimeTypes);
+
+        return selection;
+    }
+
+    /**
+     * Read contact information depending on MIME type from the cursor.
      *
      * @param cursor The cursor to be accessed.
-     * @return an instance of a contact.
+     * @param contact The contact to be updated.
+     * @param normalized The value to return phone numbers as normalized format.
      */
-    private Contact cursorToContact(Cursor cursor) {
-        Contact contact = new Contact(cursor.getLong(ContactsValues.Name.INDEX_ID));
-        contact.visible = cursor.getInt(ContactsValues.Name.INDEX_VISIBLE) > 0;
-        contact.displayName = cursor.getString(ContactsValues.Name.INDEX_DISPLAY_NAME);
-        contact.fullName = cursor.getString(ContactsValues.Name.INDEX_FULL_NAME);
-        contact.firstName = cursor.getString(ContactsValues.Name.INDEX_FIRST_NAME);
-        contact.middleName = cursor.getString(ContactsValues.Name.INDEX_MIDDLE_NAME);
-        contact.lastName = cursor.getString(ContactsValues.Name.INDEX_LAST_NAME);
+    private void cursorToData(Cursor cursor, Contact contact, boolean normalized) {
+        String mimeType = cursor.getString(ContactsValues.Contact.INDEX_MIME_TYPE);
 
-        contact.photo = getPhoto(contact.id);
-        contact.emails = getEmails(contact.id);
-        contact.phones = getPhones(contact.id, true);
+        switch (mimeType) {
+            case ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE:
+                cursorToName(cursor, contact);
+                break;
+            case ContactsContract.CommonDataKinds.Photo.CONTENT_ITEM_TYPE:
+                cursorToPhoto(cursor, contact);
+                break;
+            case ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE:
+                cursorToEmail(cursor, contact);
+                break;
+            case ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE:
+                cursorToPhone(cursor, contact, normalized);
+                break;
+        }
+    }
 
-        return contact;
+    /**
+     * Read contact name information from the cursor.
+     *
+     * @param cursor The cursor to be accessed.
+     * @param contact The contact to be updated.
+     */
+    private void cursorToName(Cursor cursor, Contact contact) {
+        contact.displayName = cursor.getString(ContactsValues.Contact.INDEX_DISPLAY_NAME);
+        contact.fullName = cursor.getString(ContactsValues.Contact.INDEX_FULL_NAME);
+        contact.firstName = cursor.getString(ContactsValues.Contact.INDEX_FIRST_NAME);
+        contact.middleName = cursor.getString(ContactsValues.Contact.INDEX_MIDDLE_NAME);
+        contact.lastName = cursor.getString(ContactsValues.Contact.INDEX_LAST_NAME);
+    }
+
+    /**
+     * Read contact photo information from the cursor.
+     *
+     * @param cursor The cursor to be accessed.
+     * @param contact The contact to be updated.
+     */
+    private void cursorToPhoto(Cursor cursor, Contact contact) {
+        contact.photo = cursor.getBlob(ContactsValues.Contact.INDEX_PHOTO);
+    }
+
+    /**
+     * Read contact email information from the cursor.
+     *
+     * @param cursor The cursor to be accessed.
+     * @param contact The contact to be updated.
+     */
+    private void cursorToEmail(Cursor cursor, Contact contact) {
+        int type = cursor.getInt(ContactsValues.Contact.INDEX_EMAIL_TYPE);
+        String email = cursor.getString(ContactsValues.Contact.INDEX_EMAIL_ADDRESS);
+
+        contact.setEmail(type, email);
+    }
+
+    /**
+     * Read contact phone information from the cursor.
+     *
+     * @param cursor The cursor to be accessed.
+     * @param contact The contact to be updated.
+     * @param normalized The value to return phone numbers as normalized format.
+     */
+    private void cursorToPhone(Cursor cursor, Contact contact, boolean normalized) {
+        int type = cursor.getInt(ContactsValues.Contact.INDEX_PHONE_TYPE);
+
+        String phone;
+        if (!normalized) {
+            phone = cursor.getString(ContactsValues.Contact.INDEX_PHONE_NUMBER);
+        } else {
+            phone = cursor.getString(ContactsValues.Contact.INDEX_PHONE_NORMALIZED_NUMBER);
+        }
+
+        contact.setPhone(type, phone);
     }
 
     /**
@@ -102,7 +246,7 @@ public class ContactsProvider {
      * @param contactId The value of the contact ID.
      * @return a byte array of the photo.
      */
-    private byte[] getPhoto(long contactId) {
+    public byte[] getPhoto(long contactId) {
         byte[] result = null;
 
         Uri uri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, contactId);
@@ -135,7 +279,7 @@ public class ContactsProvider {
      * @param contactId The value of the contact ID.
      * @return a map of emails.
      */
-    private Map<Integer, String> getEmails(long contactId) {
+    public Map<Integer, String> getEmails(long contactId) {
         Map<Integer, String> result = new HashMap<>();
 
         Cursor cursor = context.getContentResolver().query(
@@ -169,7 +313,7 @@ public class ContactsProvider {
      * @param normalized The value to return phone numbers as normalized format.
      * @return a map of phone numbers.
      */
-    private Map<Integer, String> getPhones(long contactId, boolean normalized) {
+    public Map<Integer, String> getPhones(long contactId, boolean normalized) {
         Map<Integer, String> result = new HashMap<>();
 
         Cursor cursor = context.getContentResolver().query(
@@ -194,6 +338,71 @@ public class ContactsProvider {
                 }
 
                 result.put(type, number);
+            }
+
+            cursor.close();
+        }
+
+        return result;
+    }
+
+    /**
+     * Retrieve a list of contact IDs from the provider.
+     *
+     * @return a list of contact IDs.
+     */
+    public List<Long> getContactIds() {
+        List<Long> result = new ArrayList<>();
+
+        Cursor cursor = context.getContentResolver().query(
+            ContactsContract.Data.CONTENT_URI,
+            new String[]{
+                ContactsContract.Data.CONTACT_ID
+            },
+            null,
+            null,
+            null
+        );
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                long id = cursor.getLong(0);
+                result.add(id);
+            }
+
+            cursor.close();
+        }
+
+        return result;
+    }
+
+    /**
+     * Retrieve a list of IDs of contacts that were last updated since the given time.
+     *
+     * @param milliseconds The start time since last updated.
+     * @return a list of contact IDs.
+     */
+    public List<Long> getLastUpdatedContactIds(long milliseconds) {
+        List<Long> result = new ArrayList<>();
+
+        Cursor cursor = context.getContentResolver().query(
+            ContactsContract.Data.CONTENT_URI,
+            new String[]{
+                ContactsContract.Data.CONTACT_ID
+            },
+            ContactsContract.Data.CONTACT_LAST_UPDATED_TIMESTAMP + " >= ?",
+            new String[]{
+                String.valueOf(milliseconds)
+            },
+            null
+        );
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                long id = cursor.getLong(0);
+                if (!result.contains(id)) {
+                    result.add(id);
+                }
             }
 
             cursor.close();

@@ -242,7 +242,7 @@
                         android:layout_height="24dp"
                         android:layout_gravity="center_vertical"
                         android:layout_marginStart="10dp"
-                        android:src="@drawable/ic_map_white"
+                        android:src="@drawable/ic_map"
                         android:tint="?attr/colorPrimary"/>
                 </LinearLayout>
             </com.mono.util.SimpleLabelLayout>
@@ -278,17 +278,35 @@
                 app:labelColor="?attr/colorPrimary"
                 app:labelSize="14sp">
 
-                <EditText
+                <LinearLayout
                     android:id="@+id/guests"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="4dp"/>
+            </com.mono.util.SimpleLabelLayout>
+
+            <com.mono.util.SimpleLabelLayout
+                android:id="@+id/photos_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                app:label="@string/photos"
+                app:labelColor="?attr/colorPrimary"
+                app:labelSize="14sp">
+
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:background="@drawable/input"
-                    android:gravity="top"
-                    android:hint="@string/guests"
-                    android:lines="5"
-                    android:padding="6dp"
-                    android:textSize="16sp"/>
+                    android:scrollbars="none">
+
+                    <LinearLayout
+                        android:id="@+id/photos"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"/>
+                </HorizontalScrollView>
             </com.mono.util.SimpleLabelLayout>
         </LinearLayout>
     </ScrollView>

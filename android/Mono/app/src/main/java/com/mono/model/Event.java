@@ -8,6 +8,11 @@ import com.mono.util.Common;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * This data structure is used to store information about a specific event.
+ *
+ * @author Gary Ng
+ */
 public class Event implements Parcelable {
 
     public static final String TYPE_CALENDAR = "calendar";
@@ -37,6 +42,7 @@ public class Event implements Parcelable {
     public long updateTime;
     public List<Attendee> attendees = new ArrayList<>();
     public List<Reminder> reminders = new ArrayList<>();
+    public List<Media> photos = new ArrayList<>();
 
     public Event() {
         id = null;
@@ -77,6 +83,10 @@ public class Event implements Parcelable {
         for (Reminder reminder : event.reminders) {
             reminders.add(new Reminder(reminder));
         }
+
+        for (Media photo : event.photos) {
+            photos.add(photo);
+        }
     }
 
     protected Event(Parcel in) {
@@ -100,6 +110,7 @@ public class Event implements Parcelable {
         updateTime = in.readLong();
         in.readTypedList(attendees, Attendee.CREATOR);
         in.readTypedList(reminders, Reminder.CREATOR);
+        in.readTypedList(photos, Media.CREATOR);
     }
 
     public static final Creator<Event> CREATOR = new Creator<Event>() {
@@ -191,13 +202,17 @@ public class Event implements Parcelable {
             return false;
         }
 
-//        if (!attendees.equals(event.attendees)) {
-//            return false;
-//        }
+        if (!attendees.equals(event.attendees)) {
+            return false;
+        }
 
 //        if (!reminders.equals(event.reminders)) {
 //            return false;
 //        }
+
+        if (!photos.equals(event.photos)) {
+            return false;
+        }
 
         return true;
     }
@@ -229,6 +244,7 @@ public class Event implements Parcelable {
         dest.writeLong(updateTime);
         dest.writeTypedList(attendees);
         dest.writeTypedList(reminders);
+        dest.writeTypedList(photos);
     }
 
     public long getDuration() {
@@ -241,16 +257,5 @@ public class Event implements Parcelable {
 
     public String getEndTimeZone() {
         return endTimeZone == null ? timeZone : endTimeZone;
-    }
-
-    public List<String> getAttendeeIdList() {
-        List<String> attendeeIdList = new ArrayList<>();
-        if (attendees == null || attendees.isEmpty()) {
-            return attendeeIdList;
-        }
-        for (Attendee attendee : attendees) {
-            attendeeIdList.add(attendee.id);
-        }
-        return attendeeIdList;
     }
 }

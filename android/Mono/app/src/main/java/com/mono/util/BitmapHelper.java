@@ -11,6 +11,7 @@ import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.media.ExifInterface;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 /**
@@ -21,6 +22,9 @@ import java.io.IOException;
  * @author Gary Ng
  */
 public class BitmapHelper {
+
+    public static final int FORMAT_JPEG = 0;
+    public static final int FORMAT_PNG = 1;
 
     private BitmapHelper() {}
 
@@ -176,5 +180,31 @@ public class BitmapHelper {
         canvas.drawBitmap(bitmap, src, dst, paint);
 
         return result;
+    }
+
+    /**
+     * Retrieve the image data in bytes of an image found on the device.
+     *
+     * @param path The path of the image file.
+     * @param width The width used as a bound.
+     * @param height The height used as a bound.
+     * @param format The compression format.
+     * @param quality The quality of the compression.
+     * @return a byte array containing the image data.
+     */
+    public static byte[] getBytes(String path, int width, int height, int format, int quality) {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        Bitmap.CompressFormat compressFormat;
+        if (format == FORMAT_PNG) {
+            compressFormat = Bitmap.CompressFormat.PNG;
+        } else {
+            compressFormat = Bitmap.CompressFormat.JPEG;
+        }
+
+        Bitmap bitmap = createBitmap(path, width, height);
+        bitmap.compress(compressFormat, quality, output);
+
+        return output.toByteArray();
     }
 }

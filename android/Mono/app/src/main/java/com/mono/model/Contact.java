@@ -61,6 +61,13 @@ public class Contact implements Parcelable {
         middleName = in.readString();
         lastName = in.readString();
         photo = in.createByteArray();
+
+        emails = new HashMap<>();
+        in.readMap(emails, null);
+
+        phones = new HashMap<>();
+        in.readMap(phones, null);
+
         isFavorite = in.readByte() != 0;
         isFriend = in.readByte() != 0;
         isSuggested = in.readInt();
@@ -125,6 +132,8 @@ public class Contact implements Parcelable {
         dest.writeString(middleName);
         dest.writeString(lastName);
         dest.writeByteArray(photo);
+        dest.writeMap(emails);
+        dest.writeMap(phones);
         dest.writeByte((byte) (isFavorite ? 1 : 0));
         dest.writeByte((byte) (isFriend ? 1 : 0));
         dest.writeInt(isSuggested);
@@ -153,6 +162,14 @@ public class Contact implements Parcelable {
         } else {
             emails = null;
         }
+    }
+
+    public void setEmail(int type, String email) {
+        if (emails == null) {
+            emails = new HashMap<>();
+        }
+
+        emails.put(type, email);
     }
 
     public boolean hasEmails() {
@@ -206,6 +223,14 @@ public class Contact implements Parcelable {
         } else {
             phones = null;
         }
+    }
+
+    public void setPhone(int type, String phone) {
+        if (phones == null) {
+            phones = new HashMap<>();
+        }
+
+        phones.put(type, phone);
     }
 
     public boolean hasPhones() {
