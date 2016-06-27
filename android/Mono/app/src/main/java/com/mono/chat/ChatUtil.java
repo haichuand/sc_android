@@ -61,14 +61,12 @@ public class ChatUtil {
             }
         };
 
-        Attendee me = new Attendee(myId);
-        me.firstName = "Me";
-        me.isFriend = true;
-//        addCheckBoxFromAttendee(checkBoxLayout, me, checkedChangeListener, listChatAttendeeIds, checkedChatAttendeeIds, myId, context);
+        //add user self to list but does not show
+        Attendee me = new Attendee(String.valueOf(account.id), null, account.email, account.phone, account.firstName, account.lastName, account.username, false, false);
+        addCheckBoxFromAttendee(checkBoxLayout, me, checkedChangeListener, listChatAttendeeIds, checkedChatAttendeeIds, myId, context);
         for (Attendee attendee : event.attendees) {
             addCheckBoxFromAttendee(checkBoxLayout, attendee, checkedChangeListener, listChatAttendeeIds, checkedChatAttendeeIds, myId, context);
         }
-        dialog.show();
 
         //set AutoCompleteTextView to show all users
         final AutoCompleteTextView addAttendeeTextView = (AutoCompleteTextView) dialog.findViewById(R.id.create_chat_add_attendees);
@@ -105,27 +103,12 @@ public class ChatUtil {
             }
         });
 
-//        //set listener for add button
-//        ImageView addAttendeeButton = (ImageView) dialog.findViewById(R.id.create_chat_add_button);
-//        addAttendeeButton.setOnClickListener(new OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                if (selectedAttendee != null) {
-//                    addCheckBoxFromAttendee(checkBoxLayout, selectedAttendee, checkedChangeListener);
-//                    checkedChatAttendeeIds.add(selectedAttendee.id);
-//                    listChatAttendeeIds.add(selectedAttendee.id);
-//                    addAttendeeTextView.setText("");
-//                    selectedAttendee = null;
-//                }
-//            }
-//        });
-
         //set listeners for Create and Cancel buttons
         Button createButton = (Button) dialog.findViewById(R.id.create_chat_create_button);
         createButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (checkedChatAttendeeIds.size() <= 1) { //including myId
+                if (checkedChatAttendeeIds.size() <= 1) { //myID should always be in the list
                     Toast.makeText(context, "Chat must have at least two participants", Toast.LENGTH_LONG).show();
                     return;
                 }
@@ -148,10 +131,6 @@ public class ChatUtil {
                     Toast.makeText(context, "Error creating conversation on server.", Toast.LENGTH_LONG).show();
                 }
 
-//                ChatsFragment chatsFragment = (ChatsFragment) getSupportFragmentManager().findFragmentByTag(getString(R.string.fragment_chats));
-//                if (chatsFragment != null) {
-//                    chatsFragment.insert(Integer.MAX_VALUE, conversation, true);
-//                }
                 conversationManager.notifyListenersNewConversation(conversation, 0);
 
                 startChatRoomActivity(event.id, event.startTime, event.endTime, conversation.id, myId, context);
@@ -169,22 +148,23 @@ public class ChatUtil {
     }
 
     private static void addCheckBoxFromAttendee (LinearLayout checkBoxLayout, Attendee attendee, CompoundButton.OnCheckedChangeListener checkedChangeListener, List<String> attendeeIdList, List<String> checkedAttendeeIdList, String myId, Context context) {
+        if (attendeeIdList.contains(attendee.id)) { //do not add duplicate attendees
+            return;
+        }
+
+        if (attendee.id.equals(myId)) { //add user self to list but do not show
+            attendeeIdList.add(myId);
+            checkedAttendeeIdList.add(myId);
+            return;
+        }
 
         ViewGroup.LayoutParams params = new ViewGroup.LayoutParams (ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         CheckBox checkBox = new CheckBox(context);
         checkBox.setLayoutParams(params);
         checkBox.setId(Integer.valueOf(attendee.id));
         checkBox.setText(attendee.toString());
-        if (attendee.id.equals(myId)) {
-            if (attendeeIdList.contains(myId)) { //do not add myId twice
-                return;
-            } else {
-                attendeeIdList.add(myId);
-                checkedAttendeeIdList.add(myId);
-                checkBox.setChecked(true);
-                checkBox.setEnabled(false);
-            }
-        } else if (attendee.isFriend) {
+
+        if (attendee.isFriend) {
             checkBox.setChecked(true);
             checkBox.setEnabled(true);
             checkedAttendeeIdList.add(attendee.id);
