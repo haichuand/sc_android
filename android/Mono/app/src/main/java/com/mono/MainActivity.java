@@ -1,6 +1,5 @@
 package com.mono;
 
-import android.app.Dialog;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.drawable.Drawable;
@@ -23,38 +22,23 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
-import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
-import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.SupportMapFragment;
-import com.mono.chat.ChatRoomActivity;
 import com.mono.chat.ChatUtil;
 import com.mono.chat.ConversationManager;
 import com.mono.contacts.ContactsActivity;
-import com.mono.contacts.ContactsManager;
 import com.mono.details.EventDetailsActivity;
 import com.mono.dummy.DummyActivity;
 import com.mono.intro.IntroActivity;
 import com.mono.locationSetting.LocationSettingActivity;
 import com.mono.model.Account;
-import com.mono.model.Attendee;
-import com.mono.model.AttendeeUsernameComparator;
 import com.mono.model.Calendar;
 import com.mono.model.Conversation;
 import com.mono.model.Event;
-import com.mono.network.ChatServerManager;
-import com.mono.network.HttpServerManager;
 import com.mono.provider.CalendarProvider;
 import com.mono.settings.Settings;
 import com.mono.settings.SettingsActivity;
@@ -65,8 +49,6 @@ import com.mono.util.OnBackPressedListener;
 import com.mono.util.SimpleTabLayout;
 import com.mono.web.WebActivity;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -147,8 +129,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         }
         // Simple Trick for Faster Google Maps Loading
         triggerGooglePlayServices(this);
-        // Preload Contacts for Faster Access
-        ContactsManager.getInstance(this).getContactsAsync(null, false);
         // Load Initial Fragment
         showHome();
     }

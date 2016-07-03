@@ -15,8 +15,8 @@ public class ContactsValues {
         public static final String[] PROJECTION = {
             ContactsContract.Data.CONTACT_ID,
             ContactsContract.Data.MIMETYPE,
+            ContactsContract.Data.DISPLAY_NAME,
             ContactsContract.Data.IN_VISIBLE_GROUP,
-            ContactsContract.Data.DISPLAY_NAME_PRIMARY,
             ContactsContract.Data.DATA1,
             ContactsContract.Data.DATA2,
             ContactsContract.Data.DATA3,
@@ -27,8 +27,8 @@ public class ContactsValues {
 
         public static final int INDEX_ID = 0;
         public static final int INDEX_MIME_TYPE = 1;
-        public static final int INDEX_VISIBLE = 2;
-        public static final int INDEX_DISPLAY_NAME = 3;
+        public static final int INDEX_DISPLAY_NAME = 2;
+        public static final int INDEX_VISIBLE = 3;
         public static final int INDEX_DATA1 = 4;
         public static final int INDEX_DATA2 = 5;
         public static final int INDEX_DATA3 = 6;

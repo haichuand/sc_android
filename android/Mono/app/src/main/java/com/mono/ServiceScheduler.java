@@ -1,5 +1,6 @@
 package com.mono;
 
+import android.Manifest;
 import android.accounts.Account;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
@@ -14,10 +15,12 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.CalendarContract;
 
+import com.mono.contacts.SuggestionsTask;
 import com.mono.model.Calendar;
 import com.mono.provider.CalendarProvider;
 import com.mono.provider.MainContentObserver;
 import com.mono.settings.Settings;
+import com.mono.util.Constants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +37,7 @@ public class ServiceScheduler extends BroadcastReceiver {
     public static final int REQUEST_CODE = 1;
 
     private static final int SYNC_DELAY = 10000;
+    private static final long SUGGESTIONS_DELAY = Constants.DAY_MS;
 
     private AlarmManager manager;
     private long lastSyncRequest;
@@ -114,6 +118,7 @@ public class ServiceScheduler extends BroadcastReceiver {
 
         private IBinder binder = new LocalBinder();
         private CalendarTask calendarTask;
+        private SuggestionsTask suggestionsTask;
         private MainContentObserver contentObserver;
 
         @Override
@@ -128,6 +133,8 @@ public class ServiceScheduler extends BroadcastReceiver {
                 calendarTask = new CalendarTask(this);
                 calendarTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
             }
+            // Suggestions Task
+            requestSuggestions(false);
 
             return START_NOT_STICKY;
         }
@@ -150,6 +157,28 @@ public class ServiceScheduler extends BroadcastReceiver {
 
             public MainService getService() {
                 return MainService.this;
+            }
+        }
+
+        public void requestSuggestions(boolean force) {
+            if (!PermissionManager.checkPermission(this, Manifest.permission.READ_CONTACTS)) {
+                return;
+            }
+
+            Settings settings = Settings.getInstance(this);
+
+            long currentTime = System.currentTimeMillis();
+            long milliseconds = settings.getContactsScan();
+
+            if (!force && currentTime - milliseconds < SUGGESTIONS_DELAY) {
+                return;
+            }
+
+            if (suggestionsTask == null || suggestionsTask.getStatus() != AsyncTask.Status.RUNNING) {
+                long startId = settings.getContactsScanId();
+
+                suggestionsTask = new SuggestionsTask(this, startId);
+                suggestionsTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
             }
         }
     }

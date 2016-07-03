@@ -11,18 +11,14 @@ import com.mono.model.Attendee;
 import com.mono.model.Contact;
 import com.mono.network.HttpServerManager;
 import com.mono.provider.ContactsProvider;
-import com.mono.settings.Settings;
 import com.mono.util.Common;
 import com.mono.util.Constants;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 /**
  * This manager class is used to centralize all contacts related actions such as retrieving
@@ -33,26 +29,19 @@ import java.util.List;
  */
 public class ContactsManager {
 
-    private static final long DELAY = Constants.DAY_MS;
+    public static final int TYPE_USERS = 0;
+    public static final int TYPE_CONTACTS = 1;
+    public static final int TYPE_OTHERS = 2;
 
     private static ContactsManager instance;
 
     private Context context;
 
-    private List<Contact> cache;
+    private final Map<Long, Contact> usersMap = new HashMap<>();
+    private final Map<Long, Contact> contactsMap = new HashMap<>();
     private final List<ContactsBroadcastListener> listeners = new ArrayList<>();
 
-    private List<Contact> suggestions;
-
-    private AsyncTask<Boolean, Contact, List<Contact>> usersTask;
-    private final List<ContactsTaskCallback> usersTaskCallbacks = new ArrayList<>();
-
-    private AsyncTask<Boolean, Contact, List<Contact>> contactsTask;
-    private final List<ContactsTaskCallback> contactsTaskCallbacks = new ArrayList<>();
-
-    private AsyncTask<Boolean, Contact, List<Contact>> suggestionsTask;
-    private final List<ContactsTaskCallback> suggestionsTaskCallbacks = new ArrayList<>();
-
+    private List<Long> contactIds;
     private long lastProviderChange;
 
     private ContactsManager(Context context) {
@@ -62,6 +51,8 @@ public class ContactsManager {
     public static ContactsManager getInstance(Context context) {
         if (instance == null) {
             instance = new ContactsManager(context.getApplicationContext());
+            // Keep Track of Contact IDs
+            instance.contactIds = ContactsProvider.getInstance(context).getContactIds();
         }
 
         return instance;
@@ -99,13 +90,32 @@ public class ContactsManager {
      * @return an instance of a contact.
      */
     public Contact getContact(long id, int type) {
-        Contact contact = new Contact(id, type);
+        Contact contact = null;
 
-        int index = cache.indexOf(contact);
-        if (index >= 0) {
-            contact = cache.get(index);
-        } else {
-            contact = null;
+        if (type == Contact.TYPE_CONTACT) {
+            contact = contactsMap.get(id);
+
+            if (contact == null) {
+                ContactsProvider provider = ContactsProvider.getInstance(context);
+                contact = provider.getContact(id, true);
+
+                if (contact != null) {
+                    contactsMap.put(id, contact);
+                }
+            }
+        } else if (type == Contact.TYPE_USER) {
+            contact = usersMap.get(id);
+
+            if (contact == null) {
+                AttendeeDataSource dataSource =
+                    DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
+                Attendee user = dataSource.getAttendeeById(String.valueOf(id));
+
+                if (user != null) {
+                    contact = userToContact(user);
+                    usersMap.put(id, contact);
+                }
+            }
         }
 
         return contact;
@@ -119,15 +129,21 @@ public class ContactsManager {
      * @return an instance of a contact.
      */
     public Contact getContact(String email, String phone) {
-        Contact contact = new Contact(-1);
-        contact.setEmail(email);
-        contact.setPhone(phone);
+        Contact contact = null;
 
-        int index = cache.indexOf(contact);
-        if (index >= 0) {
-            contact = cache.get(index);
+        AttendeeDataSource dataSource =
+            DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
+        Attendee user = dataSource.getUser(email, phone);
+
+        if (user != null) {
+            contact = userToContact(user);
         } else {
-            contact = null;
+            ContactsProvider provider = ContactsProvider.getInstance(context);
+            long id = provider.getContactId(email, phone);
+
+            if (id > 0) {
+                contact = getContact(id, Contact.TYPE_CONTACT);
+            }
         }
 
         return contact;
@@ -139,11 +155,32 @@ public class ContactsManager {
      * @param contact The instance of a contact.
      */
     public void setContact(Contact contact) {
-        if (cache.contains(contact)) {
-            cache.remove(contact);
+        long id = contact.id;
+
+        if (contact.type == Contact.TYPE_USER) {
+            usersMap.put(id, contact);
+        } else {
+            contactsMap.put(id, contact);
+        }
+    }
+
+    /**
+     * Remove a contact from the cache.
+     *
+     * @param id The value of the contact ID.
+     * @param type The type of contact.
+     * @return an instance of the removed contact.
+     */
+    public Contact removeContact(long id, int type) {
+        Contact contact = null;
+
+        if (type == Contact.TYPE_CONTACT) {
+            contact = contactsMap.remove(id);
+        } else if (type == Contact.TYPE_USER) {
+            contact = usersMap.remove(id);
         }
 
-        cache.add(contact);
+        return contact;
     }
 
     /**
@@ -154,219 +191,167 @@ public class ContactsManager {
             DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
         dataSource.clearAttendeeTable();
 
-        if (cache != null) {
-            cache.clear();
-            cache = null;
-        }
-
-        if (suggestions != null) {
-            suggestions.clear();
-            suggestions = null;
-        }
+        usersMap.clear();
+        contactsMap.clear();
     }
 
-    public void addUsersCallback(ContactsTaskCallback callback) {
-        if (callback == null) {
-            return;
+    /**
+     * Retrieve a list of users.
+     *
+     * @param terms The terms used to filter users.
+     * @param limit The max number of results to return.
+     * @return a list of contacts.
+     */
+    public List<Contact> getUsers(String[] terms, int limit) {
+        List<Contact> result = new ArrayList<>();
+
+//        Account account = AccountManager.getInstance(context).getAccount();
+//        if (account == null || account.status == Account.STATUS_NONE) {
+//            return result;
+//        }
+
+        AttendeeDataSource dataSource =
+            DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
+
+        if (!dataSource.hasUsers()) {
+            HttpServerManager manager = new HttpServerManager(context);
+            manager.addAllRegisteredUsersToUserTable(dataSource);
+
+            for (Attendee user : dataSource.getUsers(null, 0)) {
+                dataSource.setFriend(user.id, false);
+            }
         }
 
-        removeUsersCallback(callback);
-        usersTaskCallbacks.add(callback);
+        List<Attendee> users = dataSource.getUsers(terms, limit);
+
+        if (!users.isEmpty()) {
+            for (Attendee user : users) {
+                Contact contact = userToContact(user);
+                result.add(contact);
+            }
+
+            Contact self = getAccountContact();
+            if (self != null) {
+                result.remove(self);
+            }
+        }
+
+        return result;
     }
 
-    public void removeUsersCallback(ContactsTaskCallback callback) {
-        usersTaskCallbacks.remove(callback);
+    /**
+     * Retrieve a list of either local or other contacts.
+     *
+     * @param visible The value to return only visible or not contacts.
+     * @param terms The terms used to filter users.
+     * @param limit The max number of results to return.
+     * @return a list of contacts.
+     */
+    public List<Contact> getContacts(boolean visible, String[] terms, int limit) {
+        List<Contact> result = ContactsProvider.getInstance(context).getContacts(visible, terms, 0,
+            limit, true);
+
+        if (!result.isEmpty()) {
+            Contact self = getAccountContact();
+            if (self != null) {
+                result.remove(self);
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Retrieve users or contacts in the background. Results are passed through callbacks.
+     *
+     * @param types The types of contacts to retrieve.
+     * @param terms The terms used to filter users.
+     * @param limit The max number of results to return.
+     * @param callback The callback to invoke.
+     * @return a list of contacts.
+     */
+    public AsyncTask<Object, Contact, List<Contact>> getContactsAsync(int[] types, String[] terms,
+            int limit, ContactsTaskCallback callback) {
+        return new AsyncTask<Object, Contact, List<Contact>>() {
+            private ContactsTaskCallback callback;
+
+            @Override
+            protected List<Contact> doInBackground(Object... params) {
+                int[] types = (int[]) params[0];
+                String[] terms = (String[]) params[1];
+                int limit = (int) params[2];
+                callback = (ContactsTaskCallback) params[3];
+
+                List<Contact> result = new ArrayList<>();
+
+                for (int type : types) {
+                    switch (type) {
+                        case TYPE_USERS:
+                            result.addAll(getUsers(terms, limit));
+                            break;
+                        case TYPE_CONTACTS:
+                            result.addAll(getContacts(true, terms, limit));
+                            break;
+                        case TYPE_OTHERS:
+                            result.addAll(getContacts(false, terms, limit));
+                            break;
+                    }
+                }
+
+                return result;
+            }
+
+            @Override
+            protected void onPostExecute(List<Contact> result) {
+                if (callback != null) {
+                    callback.onFinish(result);
+                }
+            }
+        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, types, terms, limit, callback);
     }
 
     /**
      * Retrieve users in the background. Results are passed through callbacks.
      *
+     * @param terms The terms used to filter users.
+     * @param limit The max number of results to return.
      * @param callback The callback to invoke.
-     * @param refresh The value to trigger a wipe beforehand.
      */
-    public void getUsersAsync(ContactsTaskCallback callback, boolean refresh) {
-        addUsersCallback(callback);
-
-        if (usersTask != null && usersTask.getStatus() == AsyncTask.Status.RUNNING) {
-            System.out.println("Users Not Ready!");
-            return;
-        }
-
-        usersTask = new AsyncTask<Boolean, Contact, List<Contact>>() {
-            @Override
-            protected List<Contact> doInBackground(Boolean... params) {
-                boolean refresh = params[0];
-
-                if (refresh) {
-                    reset();
-                }
-
-                AttendeeDataSource dataSource =
-                    DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
-
-                if (dataSource.getAttendees().isEmpty() || refresh) {
-                    // Retrieve Users from Server
-                    HttpServerManager manager = new HttpServerManager(context);
-                    manager.addAllRegisteredUsersToUserTable(dataSource);
-                }
-
-                List<Contact> result = new ArrayList<>();
-                // Retrieve Users from Database
-                for (Attendee user : dataSource.getAttendees()) {
-                    if (user.userName == null) {
-                        continue;
-                    }
-
-                    Contact contact = userToContact(user);
-
-                    if (isSelf(contact)) {
-                        continue;
-                    }
-
-                    result.add(contact);
-                }
-
-                return result;
-            }
-
-            @Override
-            protected void onPostExecute(List<Contact> result) {
-                for (ContactsTaskCallback callback : usersTaskCallbacks) {
-                    callback.onFinish(result);
-                }
-                usersTaskCallbacks.clear();
-
-                usersTask = null;
-            }
-        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, refresh);
-    }
-
-    public void addContactsCallback(ContactsTaskCallback callback) {
-        if (callback == null) {
-            return;
-        }
-
-        removeContactsCallback(callback);
-        contactsTaskCallbacks.add(callback);
-    }
-
-    public void removeContactsCallback(ContactsTaskCallback callback) {
-        contactsTaskCallbacks.remove(callback);
+    public AsyncTask<Object, Contact, List<Contact>> getUsersAsync(String[] terms, int limit,
+            ContactsTaskCallback callback) {
+        return getContactsAsync(new int[]{TYPE_USERS}, terms, limit, callback);
     }
 
     /**
-     * Retrieve contacts without a callback for suggestions.
+     * Retrieve local contacts in the background. Results are passed through callbacks.
      *
+     * @param terms The terms used to filter users.
+     * @param limit The max number of results to return.
      * @param callback The callback to invoke.
-     * @param refresh The value to trigger a wipe beforehand.
      */
-    public void getContactsAsync(ContactsTaskCallback callback, boolean refresh) {
-        getContactsAsync(callback, null, refresh);
+    public AsyncTask<Object, Contact, List<Contact>> getLocalContactsAsync(String[] terms,
+            int limit, ContactsTaskCallback callback) {
+        return getContactsAsync(new int[]{TYPE_CONTACTS}, terms, limit, callback);
     }
 
     /**
-     * Retrieve contacts in the background. Results are passed through callbacks.
+     * Retrieve other contacts in the background. Results are passed through callbacks.
      *
+     * @param terms The terms used to filter users.
+     * @param limit The max number of results to return.
      * @param callback The callback to invoke.
-     * @param suggestionsCallback The callback for suggestions to invoke.
-     * @param refresh The value to trigger a wipe beforehand.
      */
-    public void getContactsAsync(ContactsTaskCallback callback,
-            final ContactsTaskCallback suggestionsCallback, boolean refresh) {
-        addContactsCallback(callback);
-        addSuggestionsCallback(suggestionsCallback);
-
-        if (contactsTask != null && contactsTask.getStatus() == AsyncTask.Status.RUNNING) {
-            System.out.println("Contacts Not Ready!");
-            return;
-        }
-
-        contactsTask = new AsyncTask<Boolean, Contact, List<Contact>>() {
-
-            private boolean refresh;
-
-            @Override
-            protected List<Contact> doInBackground(Boolean... params) {
-                refresh = params[0];
-
-                List<Contact> result = new ArrayList<>();
-
-                if (refresh && cache != null && !cache.isEmpty()) {
-                    cache.clear();
-                    cache = null;
-                }
-
-                if (cache == null) {
-                    cache = new ArrayList<>();
-                    // Retrieve Local Contacts from Device
-                    List<Contact> contacts =
-                        ContactsProvider.getInstance(context).getContacts(false, true);
-                    for (Contact contact : contacts) {
-                        if (isSelf(contact)) {
-                            continue;
-                        }
-
-                        setContact(contact);
-                    }
-                    // Retrieve Users
-                    AttendeeDataSource dataSource =
-                        DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
-                    for (Attendee user : dataSource.getAttendees()) {
-                        if (user.userName == null) {
-                            continue;
-                        }
-
-                        Contact contact = userToContact(user);
-
-                        if (isSelf(contact)) {
-                            continue;
-                        }
-
-                        Contact localContact = null;
-                        if (contacts.contains(contact)) {
-                            localContact = contacts.get(contacts.indexOf(contact));
-                        }
-
-                        if (localContact != null && localContact.photo != null) {
-                            contact.photo = localContact.photo;
-                        }
-
-                        setContact(contact);
-                    }
-                }
-
-                if (!cache.isEmpty()) {
-                    result.addAll(cache);
-                    Collections.sort(result, new Comparator<Contact>() {
-                        @Override
-                        public int compare(Contact c1, Contact c2) {
-                            return c1.displayName.compareToIgnoreCase(c2.displayName);
-                        }
-                    });
-                }
-
-                return result;
-            }
-
-            @Override
-            protected void onPostExecute(List<Contact> result) {
-                for (ContactsTaskCallback callback : contactsTaskCallbacks) {
-                    callback.onFinish(result);
-                }
-                contactsTaskCallbacks.clear();
-
-                contactsTask = null;
-                // Retrieve User Suggestions
-                long milliseconds = Settings.getInstance(context).getContactsScan();
-                if (System.currentTimeMillis() - milliseconds > DELAY || refresh) {
-                    getSuggestionsAsync(null, false);
-                } else if (suggestionsCallback != null) {
-                    suggestionsCallback.onFinish(null);
-                }
-            }
-        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, refresh);
+    public AsyncTask<Object, Contact, List<Contact>> getOtherContactsAsync(String[] terms,
+            int limit, ContactsTaskCallback callback) {
+        return getContactsAsync(new int[]{TYPE_OTHERS}, terms, limit, callback);
     }
 
+    /**
+     * Helper function to convert a user to a contact.
+     *
+     * @param user The instance of the user.
+     * @return an instance of the contact.
+     */
     public static Contact userToContact(Attendee user) {
         Contact contact = new Contact(Long.parseLong(user.id), Contact.TYPE_USER);
 
@@ -384,6 +369,17 @@ public class ContactsManager {
 
         if (!Common.isEmpty(user.mediaId)) {
             contact.photo = null;
+        } else {
+            // Use Existing Photo from Contact
+            ContactsProvider provider = ContactsProvider.getInstance(instance.context);
+            long id = provider.getContactId(contact.getEmail(), contact.getPhone());
+
+            if (id > 0) {
+                Contact temp = instance.getContact(id, Contact.TYPE_CONTACT);
+                if (temp != null && temp.photo != null) {
+                    contact.photo = temp.photo;
+                }
+            }
         }
 
         contact.isFavorite = user.isFavorite;
@@ -393,115 +389,18 @@ public class ContactsManager {
         return contact;
     }
 
-    public void addSuggestionsCallback(ContactsTaskCallback callback) {
-        if (callback == null) {
-            return;
-        }
-
-        removeSuggestionsCallback(callback);
-        suggestionsTaskCallbacks.add(callback);
-    }
-
-    public void removeSuggestionsCallback(ContactsTaskCallback callback) {
-        suggestionsTaskCallbacks.remove(callback);
-    }
-
     /**
-     * Retrieve user suggestions in the background. Results are passed through callbacks.
+     * Helper function to convert an account to a contact.
      *
-     * @param callback The callback to invoke.
-     * @param refresh The value to trigger a wipe beforehand.
+     * @return an instance of the contact.
      */
-    public void getSuggestionsAsync(ContactsTaskCallback callback, boolean refresh) {
-        addSuggestionsCallback(callback);
+    public Contact getAccountContact() {
+        Contact contact = null;
 
-        if (suggestionsTask != null && suggestionsTask.getStatus() == AsyncTask.Status.RUNNING) {
-            System.out.println("Suggestions Not Ready!");
-            return;
-        }
-
-        suggestionsTask = new AsyncTask<Boolean, Contact, List<Contact>>() {
-            @Override
-            protected List<Contact> doInBackground(Boolean... params) {
-                boolean refresh = params[0];
-
-                List<Contact> result = new ArrayList<>();
-
-                if (refresh && suggestions != null && !suggestions.isEmpty()) {
-                    suggestions.clear();
-                    suggestions = null;
-                }
-
-                if (suggestions == null) {
-                    suggestions = new ArrayList<>();
-
-                    // Exclude Friends and Suggested Users
-                    List<Contact> exclude = getSuggestionsIgnoreList();
-                    for (Contact contact : exclude) {
-                        if (contact.isSuggested != 0) {
-                            result.add(contact);
-                        }
-                    }
-                    // Retrieve Suggestions from Server
-                    List<Contact> contacts =
-                        ContactsProvider.getInstance(context).getContacts(false, true);
-                    for (Contact contact : contacts) {
-                        List<Contact> suggestions = checkSuggestions(contact, exclude);
-
-                        for (Contact suggestion : suggestions) {
-                            result.add(suggestion);
-                            publishProgress(suggestion);
-                        }
-                    }
-                }
-
-                return result;
-            }
-
-
-            @Override
-            protected void onProgressUpdate(Contact... values) {
-                if (values.length > 0) {
-                    Contact contact = values[0];
-                    // Remember Suggestion
-                    setSuggested(contact.id, Contact.SUGGESTION_PENDING);
-
-                    for (ContactsTaskCallback callback : suggestionsTaskCallbacks) {
-                        callback.onProgress(contact);
-                    }
-                }
-            }
-
-            @Override
-            protected void onPostExecute(List<Contact> result) {
-                suggestions = result;
-                // Reset Contacts Scan Time
-                Settings settings = Settings.getInstance(context);
-                settings.setContactsScan(System.currentTimeMillis());
-
-                for (ContactsTaskCallback callback : suggestionsTaskCallbacks) {
-                    callback.onFinish(result);
-                }
-                suggestionsTaskCallbacks.clear();
-
-                suggestionsTask = null;
-            }
-        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, refresh);
-    }
-
-    /**
-     * Retrieve a suggestions ignore list of contacts that is either a friend or have been
-     * suggested before.
-     *
-     * @return a list of contacts.
-     */
-    private List<Contact> getSuggestionsIgnoreList() {
-        List<Contact> result = new ArrayList<>();
-        // Ignore Self
         Account account = AccountManager.getInstance(context).getAccount();
 
         if (account != null) {
-            Contact contact = new Contact(account.id);
+            contact = new Contact(account.id);
 
             if (account.email != null) {
                 contact.setEmail(account.email);
@@ -510,136 +409,9 @@ public class ContactsManager {
             if (account.phone != null) {
                 contact.setPhone(account.phone);
             }
-
-            result.add(contact);
-        }
-        // Ignore Friends and Suggested Contacts
-        AttendeeDataSource dataSource =
-            DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
-
-        for (Attendee user : dataSource.getAttendees()) {
-            if (user.isFriend || user.isSuggested != 0) {
-                Contact contact = userToContact(user);
-                result.add(contact);
-            }
         }
 
-        return result;
-    }
-
-    /**
-     * Check if contact meets the criteria of a suggestion.
-     *
-     * @param contact The instance of the contact.
-     * @param exclude The list of contacts to be excluded.
-     * @return a list of suggestions.
-     */
-    public List<Contact> checkSuggestions(Contact contact, List<Contact> exclude) {
-        List<Contact> result = new ArrayList<>();
-
-        HttpServerManager manager = new HttpServerManager(context);
-
-        // Cross-reference by Emails
-        if (contact.emails != null) {
-            for (String email : contact.emails.values()) {
-                JSONObject json = manager.send(null, HttpServerManager.GET_USER_BY_EMAIL_URL +
-                    email, HttpServerManager.GET);
-
-                if (json == null) {
-                    continue;
-                }
-
-                Contact suggestion = parse(json, contact);
-
-                if (suggestion != null) {
-                    if (exclude != null && exclude.contains(suggestion)) {
-                        continue;
-                    }
-
-                    result.add(suggestion);
-                }
-            }
-        }
-        // Cross-reference by Phone Numbers
-        if (contact.phones != null) {
-            for (String phone : contact.phones.values()) {
-                JSONObject json = manager.send(null, HttpServerManager.GET_USER_BY_PHONE_URL +
-                    phone, HttpServerManager.GET);
-
-                if (json == null) {
-                    continue;
-                }
-
-                Contact suggestion = parse(json, contact);
-
-                if (suggestion != null) {
-                    if (exclude != null && exclude.contains(suggestion)) {
-                        continue;
-                    }
-
-                    result.add(suggestion);
-                }
-            }
-        }
-
-        return result;
-    }
-
-    /**
-     * Parse user information from the JSON object.
-     *
-     * @param json The user information.
-     * @param contact The contact to be used to fill in missing information.
-     * @return an instance of a user contact.
-     */
-    private Contact parse(JSONObject json, Contact contact) {
-        Contact result = null;
-
-        try {
-            String id = json.getString(HttpServerManager.UID);
-            String mediaId = json.getString(HttpServerManager.MEDIA_ID);
-            String email = json.getString(HttpServerManager.EMAIL);
-            String phone = json.getString(HttpServerManager.PHONE_NUMBER);
-            String firstName = json.getString(HttpServerManager.FIRST_NAME);
-            String lastName = json.getString(HttpServerManager.LAST_NAME);
-            String userName = json.getString(HttpServerManager.USER_NAME);
-
-            result = new Contact(Long.parseLong(id), Contact.TYPE_USER);
-            if (!Common.isEmpty(email)) {
-                result.setEmail(email);
-            }
-            if (!Common.isEmpty(phone)) {
-                result.setPhone(phone);
-            }
-
-            result.displayName = contact.displayName;
-            result.firstName = firstName;
-            result.lastName = lastName;
-
-            result.photo = !Common.isEmpty(mediaId) ? null : contact.photo;
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        return result;
-    }
-
-    /**
-     * Check if contact matches current user from the account.
-     *
-     * @param contact The contact to be checked.
-     * @return a boolean of the status.
-     */
-    public boolean isSelf(Contact contact) {
-        Account account = AccountManager.getInstance(context).getAccount();
-
-        if (account != null) {
-            if (contact.containsEmail(account.email) || contact.containsPhone(account.phone)) {
-                return true;
-            }
-        }
-
-        return false;
+        return contact;
     }
 
     /**
@@ -691,6 +463,10 @@ public class ContactsManager {
         if (contact != null) {
             contact.isSuggested = value;
         }
+
+        for (ContactsBroadcastListener listener : listeners) {
+            listener.onSuggestionAdd(contact);
+        }
     }
 
     /**
@@ -711,15 +487,10 @@ public class ContactsManager {
 
             for (long id : result) {
                 Contact contact = getContact(id, Contact.TYPE_CONTACT);
-                boolean isNew = contact == null;
 
-                if (isNew) {
-                    contact = provider.getContact(id, true);
-                }
-                // Handle Contact
-                setContact(contact);
+                if (!contactIds.contains(id)) {
+                    contactIds.add(id);
 
-                if (isNew) {
                     for (ContactsBroadcastListener listener : listeners) {
                         listener.onContactAdd(contact);
                     }
@@ -729,46 +500,31 @@ public class ContactsManager {
                     }
                 }
                 // Handle Suggestions
-                List<Contact> exclude = getSuggestionsIgnoreList();
-                List<Contact> suggestions = checkSuggestions(contact, exclude);
+                SuggestionsTask task = new SuggestionsTask(context, 0);
+                List<Contact> suggestions = task.checkSuggestions(contact);
 
                 for (Contact suggestion : suggestions) {
                     setSuggested(suggestion.id, Contact.SUGGESTION_PENDING);
-
-                    for (ContactsBroadcastListener listener : listeners) {
-                        listener.onSuggestionAdd(suggestion);
-                    }
                 }
             }
         } else {
             // Handle Deleted Contacts
             System.out.println("Contacts Provider has at least 1 deletion.");
-
-            List<Long> removeIds = new ArrayList<>();
             // Check for Contacts to Remove
-            result = provider.getContactIds();
-            for (Contact contact : cache) {
-                if (contact.type != Contact.TYPE_CONTACT) {
-                    continue;
-                }
-
-                if (!result.contains(contact.id)) {
-                    removeIds.add(contact.id);
-                }
-            }
+            List<Long> removeIds = new ArrayList<>(contactIds);
+            removeIds.removeAll(provider.getContactIds());
             // Remove Contacts
             for (long id : removeIds) {
-                int index = cache.indexOf(new Contact(id, Contact.TYPE_CONTACT));
+                Contact contact = removeContact(id, Contact.TYPE_CONTACT);
 
-                if (index >= 0) {
-                    Contact contact = cache.get(index);
-                    cache.remove(index);
-
+                if (contact != null) {
                     for (ContactsBroadcastListener listener : listeners) {
                         listener.onContactRemove(contact);
                     }
                 }
             }
+
+            contactIds.removeAll(removeIds);
         }
 
         lastProviderChange = currentTime;

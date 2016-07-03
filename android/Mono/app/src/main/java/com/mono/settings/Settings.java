@@ -42,6 +42,9 @@ public class Settings {
     public static final String PREF_CONTACTS_SCAN = "pref_contacts_scan";
     public static final long DEFAULT_CONTACTS_SCAN = 0;
 
+    public static final String PREF_CONTACTS_SCAN_ID = "pref_contacts_scan_id";
+    public static final long DEFAULT_CONTACTS_SCAN_ID = 0;
+
     public static final String PREF_DAY_ONE = "pref_day_one";
     public static final long DEFAULT_DAY_ONE = 0;
 
@@ -249,6 +252,16 @@ public class Settings {
     public void setContactsScan(long milliseconds) {
         Editor editor = getEditor();
         editor.putLong(PREF_CONTACTS_SCAN, milliseconds);
+        editor.apply();
+    }
+
+    public long getContactsScanId() {
+        return preferences.getLong(PREF_CONTACTS_SCAN_ID, DEFAULT_CONTACTS_SCAN_ID);
+    }
+
+    public void setContactsScanId(long id) {
+        Editor editor = getEditor();
+        editor.putLong(PREF_CONTACTS_SCAN_ID, id);
         editor.apply();
     }
 

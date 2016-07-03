@@ -240,7 +240,7 @@ public class ContactsDialog extends AlertDialog.Builder {
      * @param group The group category that this contact belongs.
      */
     private void add(int group) {
-        fragment.add(group, contact, true, true);
+        fragment.add(group, contact, true);
     }
 
     /**

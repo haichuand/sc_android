@@ -7,12 +7,15 @@ import android.database.SQLException;
 import com.mono.db.Database;
 import com.mono.db.DatabaseValues;
 import com.mono.model.Attendee;
+import com.mono.util.Common;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by xuejing on 3/28/16.
+ * This class is used to perform database actions related to users.
+ *
+ * @author Xuejing Dong, Gary Ng
  */
 public class AttendeeDataSource extends DataSource {
 
@@ -68,6 +71,13 @@ public class AttendeeDataSource extends DataSource {
         return true;
     }
 
+    /**
+     * Set user as friend.
+     *
+     * @param id The value of the user ID.
+     * @param status The status of friend.
+     * @return the number of affected rows.
+     */
     public int setFriend(String id, boolean status) {
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.User.FRIEND, status ? 1 : 0);
@@ -75,6 +85,13 @@ public class AttendeeDataSource extends DataSource {
         return updateValues(id, values);
     }
 
+    /**
+     * Set user as favorite.
+     *
+     * @param id The value of the user ID.
+     * @param status The status of favorite.
+     * @return the number of affected rows.
+     */
     public int setFavorite(String id, boolean status) {
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.User.FAVORITE, status ? 1 : 0);
@@ -82,6 +99,13 @@ public class AttendeeDataSource extends DataSource {
         return updateValues(id, values);
     }
 
+    /**
+     * Set user as suggested.
+     *
+     * @param id The value of the user ID.
+     * @param value The status of the suggestion.
+     * @return the number of affected rows.
+     */
     public int setSuggested(String id, int value) {
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.User.SUGGESTED, value);
@@ -151,6 +175,169 @@ public class AttendeeDataSource extends DataSource {
                 String.valueOf(id)
             }
         );
+    }
+
+    /**
+     * Retrieve the user that contains either the email or phone number.
+     *
+     * @param email The value of the email.
+     * @param phone The value of the phone number.
+     * @return an instance of the user.
+     */
+    public Attendee getUser(String email, String phone) {
+        Attendee user = null;
+
+        List<String> args = new ArrayList<>();
+
+        String selection = DatabaseValues.User.USER_NAME + " IS NOT NULL";
+
+        selection += " AND ";
+
+        selection += "(";
+
+        if (!Common.isEmpty(email)) {
+            selection += DatabaseValues.User.EMAIL + " = ?";
+            args.add(email);
+        }
+
+        if (!Common.isEmpty(phone)) {
+            if (!Common.isEmpty(email)) {
+                selection += " OR ";
+            }
+
+            selection += DatabaseValues.User.PHONE_NUMBER + " = ?";
+            args.add(phone);
+        }
+
+        selection += ")";
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
+
+        Cursor cursor = database.select(
+            DatabaseValues.User.TABLE,
+            DatabaseValues.User.PROJECTION,
+            selection,
+            selectionArgs,
+            null
+        );
+
+        if (cursor.moveToNext()) {
+            user = cursorToAttendee(cursor);
+        }
+
+        cursor.close();
+
+        return user;
+    }
+
+    /**
+     * Check whether there are registered users.
+     *
+     * @return the status of registered users.
+     */
+    public boolean hasUsers() {
+        boolean result = false;
+
+        Cursor cursor = database.select(
+            DatabaseValues.User.TABLE,
+            new String[]{
+                "COUNT(*)"
+            },
+            DatabaseValues.User.USER_NAME + " IS NOT NULL",
+            null,
+            null
+        );
+
+        if (cursor.moveToNext()) {
+            result = cursor.getInt(0) > 0;
+        }
+
+        cursor.close();
+
+        return result;
+    }
+
+    /**
+     * Retrieve registered users.
+     *
+     * @param terms The search terms to be used.
+     * @param limit The max number of results to return.
+     * @return a list of users.
+     */
+    public List<Attendee> getUsers(String[] terms, int limit) {
+        List<Attendee> users = new ArrayList<>();
+
+        List<String> args = new ArrayList<>();
+
+        String selection = DatabaseValues.User.USER_NAME + " IS NOT NULL";
+
+        if (terms != null) {
+            String[] fields = {
+                DatabaseValues.User.FIRST_NAME,
+                DatabaseValues.User.LAST_NAME,
+                DatabaseValues.User.USER_NAME
+            };
+
+            selection += " AND ";
+            selection += getLikeSelection(args, terms, fields);
+        }
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
+        String order = String.format(
+            "LOWER(%s)",
+            DatabaseValues.User.FIRST_NAME
+        );
+
+        if (limit > 0) {
+            order += String.format(" LIMIT %d", limit);
+        }
+
+        Cursor cursor = database.select(
+            DatabaseValues.User.TABLE,
+            DatabaseValues.User.PROJECTION,
+            selection,
+            selectionArgs,
+            order
+        );
+
+        while (cursor.moveToNext()) {
+            Attendee user = cursorToAttendee(cursor);
+            users.add(user);
+        }
+
+        cursor.close();
+
+        return users;
+    }
+
+    /**
+     * Helper function to retrieve the selection to perform a LIKE query.
+     *
+     * @param args The list to insert arguments.
+     * @param terms The search terms to be used.
+     * @param fields The table columns to be searched.
+     * @return a string of the selection query.
+     */
+    private String getLikeSelection(List<String> args, String[] terms, String[] fields) {
+        String selection = "(";
+
+        for (int i = 0; i < terms.length; i++) {
+            if (i > 0) selection += " AND ";
+
+            selection += "(";
+
+            for (int j = 0; j < fields.length; j++) {
+                if (j > 0) selection += " OR ";
+                selection += fields[j] + " LIKE '%' || ? || '%'";
+                args.add(terms[i]);
+            }
+
+            selection += ")";
+        }
+
+        selection += ")";
+
+        return selection;
     }
 
     /**

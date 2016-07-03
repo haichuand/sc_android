@@ -52,7 +52,9 @@ public class ContactsProvider {
         List<String> args = new ArrayList<>();
 
         String selection = getMimeTypeSelection(args);
-        selection += " AND " + ContactsContract.Data.CONTACT_ID + " = ?";
+
+        selection += " AND ";
+        selection += ContactsContract.Data.CONTACT_ID + " = ?";
         args.add(String.valueOf(id));
 
         String[] selectionArgs = args.toArray(new String[args.size()]);
@@ -81,22 +83,24 @@ public class ContactsProvider {
     }
 
     /**
-     * Retrieve a list of contacts stored on the device.
+     * Retrieve a list of contacts starting at the given contact ID.
      *
-     * @param visibleOnly The value to return only visible contacts.
+     * @param startId The starting contact ID.
      * @param normalized The value to return phone numbers as normalized format.
      * @return a list of contacts.
      */
-    public List<Contact> getContacts(boolean visibleOnly, boolean normalized) {
+    public List<Contact> getContacts(long startId, boolean normalized) {
         List<Contact> contacts = new ArrayList<>();
 
         List<String> args = new ArrayList<>();
-
         String selection = getMimeTypeSelection(args);
-        if (visibleOnly) {
-            selection += " AND ";
-            selection += ContactsContract.Data.IN_VISIBLE_GROUP + " > 0";
-        }
+
+        selection += " AND ";
+        selection += ContactsContract.Data.IN_VISIBLE_GROUP + " >= 0";
+
+        selection += " AND ";
+        selection += ContactsContract.Data.CONTACT_ID + " >= ?";
+        args.add(String.valueOf(startId));
 
         String[] selectionArgs = args.toArray(new String[args.size()]);
         String order = ContactsContract.Data.CONTACT_ID;
@@ -133,6 +137,188 @@ public class ContactsProvider {
     }
 
     /**
+     * Retrieve a list of contacts stored on the device.
+     *
+     * @param visible The value to return only visible or not contacts.
+     * @param terms The search terms to be used.
+     * @param offset The offset to start with.
+     * @param limit The max number of results to return.
+     * @param normalized The value to return phone numbers as normalized format.
+     * @return a list of contacts.
+     */
+    public List<Contact> getContacts(boolean visible, String[] terms, int offset, int limit,
+            boolean normalized) {
+        List<Contact> contacts = new ArrayList<>();
+
+        List<String> args = new ArrayList<>();
+        String selection = getMimeTypeSelection(args);
+
+        selection += " AND ";
+        selection += ContactsContract.Data.IN_VISIBLE_GROUP + (visible ? " > " : " = ") + "0";
+
+        if (terms != null) {
+            selection += " AND ";
+            selection += getIdSelection(args, terms, offset, limit);
+        }
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
+
+        String order = String.format(
+            "LOWER(%s), %s",
+            ContactsContract.Data.DISPLAY_NAME,
+            ContactsContract.Data.CONTACT_ID
+        );
+
+        Cursor cursor = context.getContentResolver().query(
+            ContactsContract.Data.CONTENT_URI,
+            ContactsValues.Contact.PROJECTION,
+            selection,
+            selectionArgs,
+            order
+        );
+
+        if (cursor != null) {
+            Map<Long, Contact> contactsMap = new HashMap<>();
+
+            while (cursor.moveToNext()) {
+                long id = cursor.getLong(ContactsValues.Contact.INDEX_ID);
+
+                Contact contact = contactsMap.get(id);
+                if (contact == null) {
+                    contactsMap.put(id, contact = new Contact(id));
+                    contact.visible = cursor.getInt(ContactsValues.Contact.INDEX_VISIBLE) > 0;
+                }
+
+                cursorToData(cursor, contact, normalized);
+            }
+
+            contacts.addAll(contactsMap.values());
+
+            cursor.close();
+        }
+
+        return contacts;
+    }
+
+    /**
+     * Retrieve the contact ID that contains either the email or phone number.
+     *
+     * @param email The value of the email.
+     * @param phone The value of the phone number.
+     * @return the contact ID.
+     */
+    public long getContactId(String email, String phone) {
+        long contactId = -1;
+
+        List<String> args = new ArrayList<>();
+
+        String selection = getMimeTypeSelection(args);
+
+        selection += " AND ";
+
+        selection += "(";
+
+        if (!Common.isEmpty(email)) {
+            selection += ContactsContract.CommonDataKinds.Email.ADDRESS + " = ?";
+            args.add(email);
+        }
+
+        if (!Common.isEmpty(phone)) {
+            if (!Common.isEmpty(email)) {
+                selection += " OR ";
+            }
+
+            selection += String.format(
+                "%s = ? OR %s = ?",
+                ContactsContract.CommonDataKinds.Phone.NUMBER,
+                ContactsContract.CommonDataKinds.Phone.NORMALIZED_NUMBER
+            );
+            args.add(phone);
+            args.add(phone);
+        }
+
+        selection += ")";
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
+
+        Cursor cursor = context.getContentResolver().query(
+            ContactsContract.Data.CONTENT_URI,
+            new String[]{
+                ContactsContract.Data.CONTACT_ID,
+            },
+            selection,
+            selectionArgs,
+            null
+        );
+
+        if (cursor != null) {
+            if (cursor.moveToNext()) {
+                contactId = cursor.getLong(0);
+            }
+
+            cursor.close();
+        }
+
+        return contactId;
+    }
+
+    /**
+     * Retrieve a list of contact IDs that contains either the name, email, phone number, etc.
+     *
+     * @param terms The search terms to be used.
+     * @param offset The offset to start with.
+     * @param limit The max number of results to return.
+     * @return a list of contact IDs.
+     */
+    private List<Long> getContactIds(String[] terms, int offset, int limit) {
+        List<Long> result = new ArrayList<>();
+
+        List<String> args = new ArrayList<>();
+
+        String selection = getMimeTypeSelection(args);
+
+        selection += " AND ";
+        selection += getLikeSelection(args, terms);
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
+
+        String order = String.format(
+            "LOWER(%s), %s",
+            ContactsContract.Data.DISPLAY_NAME,
+            ContactsContract.Data.CONTACT_ID
+        );
+
+        if (limit > 0) {
+            order += String.format(
+                " LIMIT %d OFFSET %d",
+                limit,
+                offset
+            );
+        }
+
+        Cursor cursor = context.getContentResolver().query(
+            ContactsContract.Data.CONTENT_URI,
+            new String[]{
+                ContactsContract.Data.CONTACT_ID,
+            },
+            selection,
+            selectionArgs,
+            order
+        );
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                long id = cursor.getLong(0);
+                result.add(id);
+            }
+
+            cursor.close();
+        }
+
+        return result;
+    }
+
+    /**
      * Helper function to get MIME type selection and arguments.
      *
      * @param args The list to insert arguments.
@@ -153,6 +339,65 @@ public class ContactsProvider {
         );
 
         Collections.addAll(args, mimeTypes);
+
+        return selection;
+    }
+
+    /**
+     * Helper function to retrieve the selection to perform a LIKE query.
+     *
+     * @param args The list to insert arguments.
+     * @param terms The search terms to be used.
+     * @return a selection string.
+     */
+    private String getLikeSelection(List<String> args, String[] terms) {
+        String selection = "(";
+
+        for (int i = 0; i < terms.length; i++) {
+            if (i > 0) selection += " AND ";
+
+            selection += "(";
+
+            String[] fields = {
+                ContactsContract.Data.DISPLAY_NAME,
+                ContactsContract.Data.DATA1
+            };
+
+            for (int j = 0; j < fields.length; j++) {
+                if (j > 0) selection += " OR ";
+                selection += fields[j] + " LIKE '%' || ? || '%'";
+                args.add(terms[i]);
+            }
+
+            selection += ")";
+        }
+
+        selection += ")";
+
+        return selection;
+    }
+
+    /**
+     * Helper function to retrieve the selection for contact IDs.
+     *
+     * @param args The list to insert arguments.
+     * @param terms The search terms to be used.
+     * @param offset The offset to start with.
+     * @param limit The max number of results to return.
+     * @return a selection string.
+     */
+    private String getIdSelection(List<String> args, String[] terms, int offset, int limit) {
+        List<Long> contactIds = getContactIds(terms, offset, limit);
+
+        String selection = String.format(
+            "%s IN (%s)",
+            ContactsContract.Data.CONTACT_ID,
+            Common.repeat("?", contactIds.size(), ", ")
+        );
+
+        for (long id : contactIds) {
+            args.add(String.valueOf(id));
+        }
 
         return selection;
     }

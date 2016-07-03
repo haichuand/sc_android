@@ -2,6 +2,7 @@ package com.mono.contacts;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
@@ -53,6 +54,11 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
     public static final int GROUP_CONTACTS = 4;
     public static final int GROUP_OTHER = 5;
 
+    public static final int TASK_USERS = 0;
+    public static final int TASK_CONTACTS = 1;
+
+    private static final int SEARCH_LIMIT = 30;
+
     private EditText search;
     private RecyclerView recyclerView;
     private ContactsAdapter adapter;
@@ -66,9 +72,8 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
 
     private ContactsManager contactsManager;
 
-    private ContactsTaskCallback contactsCallback;
-    private ContactsTaskCallback usersCallback;
-    private ContactsTaskCallback suggestionsCallback;
+    private final Map<Integer, AsyncTask> tasks = new HashMap<>();
+    private String[] terms;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -103,22 +108,8 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
 
             @Override
             public void afterTextChanged(Editable s) {
-                final String str = s.toString();
-                if (!str.isEmpty()) {
-                    removeContactsCallback();
-
-                    contactsManager.getContactsAsync(
-                        contactsCallback = new ContactsTaskCallback() {
-                            @Override
-                            protected void onFinish(List<Contact> contacts) {
-                                onContactsFinish(contacts, str.trim());
-                            }
-                        },
-                        false
-                    );
-                } else {
-                    getContacts(false);
-                }
+                String str = s.toString().trim();
+                getContacts(!str.isEmpty() ? str : null);
             }
         });
 
@@ -161,17 +152,14 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
-        getContacts(false);
+        getContacts(null);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
 
-        removeUsersCallback();
-        removeContactsCallback();
-        removeSuggestionsCallback();
-
+        clearTasks();
         contactsManager.removeListener(this);
     }
 
@@ -198,19 +186,9 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
      * @return a boolean of the status.
      */
     public boolean onRefresh() {
-        items.clear();
-        contactsMap.clear();
-
-        adapter.notifyDataSetChanged();
-
-        removeUsersCallback();
         // Retrieve Users and Contacts
-        contactsManager.getUsersAsync(usersCallback = new ContactsTaskCallback() {
-            @Override
-            protected void onFinish(List<Contact> contacts) {
-                getContacts(true);
-            }
-        }, true);
+        ContactsManager.getInstance(getContext()).reset();
+        getContacts(null);
 
         return true;
     }
@@ -218,90 +196,55 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
     /**
      * Retrieve contacts from the Contacts Manager using callbacks.
      *
-     * @param refresh The value to force a refresh.
+     * @param query The value of the search query.
      */
-    public void getContacts(boolean refresh) {
-        removeContactsCallback();
-        removeSuggestionsCallback();
-
-        contactsManager.getContactsAsync(
-            contactsCallback = new ContactsTaskCallback() {
-                @Override
-                protected void onFinish(List<Contact> contacts) {
-                    onContactsFinish(contacts, null);
-                    adapter.setGroupProgress(GROUP_SUGGESTIONS, true);
-                }
-            },
-            suggestionsCallback = new ContactsTaskCallback() {
-                @Override
-                protected void onProgress(Contact contact) {
-                    add(GROUP_SUGGESTIONS, contact, true, true);
-                }
-
-                @Override
-                protected void onFinish(List<Contact> contacts) {
-                    adapter.setGroupProgress(GROUP_SUGGESTIONS, false);
-                }
-            },
-            refresh
-        );
-    }
-
-    /**
-     * Handle contacts retrieved from the Contacts Manager.
-     *
-     * @param contacts The list of contacts.
-     * @param filter The query used to filter contacts.
-     */
-    public void onContactsFinish(List<Contact> contacts, String filter) {
+    public void getContacts(String query) {
+        // Cancel Existing Tasks
+        clearTasks();
+        // Clear Cache
+        items.clear();
         contactsMap.clear();
+        // Reset Scroll Position to Top
         recyclerView.scrollToPosition(0);
+        // Show or Hide Labels
+        adapter.setHideEmptyLabels(query != null, true);
         // Convert Query into Terms
-        String[] terms = null;
-        if (filter != null && !filter.isEmpty()) {
-            terms = Common.explode(" ", filter);
-        }
+        terms = !Common.isEmpty(query) ? Common.explode(" ", query) : null;
         adapter.setHighlightTerms(terms);
-        // Add Contact to Corresponding Group Category
-        for (Contact contact : contacts) {
-            // Filter by Terms
-            if (terms != null) {
-                String target = contact.displayName;
-                if (contact.emails != null) {
-                    for (String email : contact.emails.values()) {
-                        target += " " + email;
-                    }
+        // Retrieve Important Contacts First
+        int[] types = {
+            ContactsManager.TYPE_USERS,
+            ContactsManager.TYPE_CONTACTS
+        };
+        // Search Limit
+        final int limit = !Common.isEmpty(query) ? SEARCH_LIMIT : 0;
+        // Start Retrieval
+        setTask(TASK_USERS, contactsManager.getContactsAsync(types, terms, limit,
+            new ContactsTaskCallback() {
+                @Override
+                protected void onFinish(List<Contact> contacts) {
+                    addAll(contacts, true);
+                    // Retrieve Other Contacts Second
+                    adapter.setGroupProgress(GROUP_OTHER, true);
+                    setTask(TASK_CONTACTS, contactsManager.getOtherContactsAsync(terms, limit,
+                        new ContactsTaskCallback() {
+                            @Override
+                            protected void onFinish(List<Contact> contacts) {
+                                adapter.setGroupProgress(GROUP_OTHER, false);
+
+                                if (!contacts.isEmpty()) {
+                                    addAll(contacts, true);
+                                }
+
+                                removeTask(TASK_CONTACTS);
+                            }
+                        }
+                    ));
+
+                    removeTask(TASK_USERS);
                 }
-
-                if (!Common.containsAll(target, terms)) {
-                    continue;
-                }
             }
-            // Determine Contact Group
-            int group = -1;
-
-            if (contact.isFavorite) {
-                group = GROUP_FAVORITES;
-            } else if (contact.isFriend) {
-                group = GROUP_FRIENDS;
-            } else if (contact.isSuggested == Contact.SUGGESTION_PENDING) {
-                group = GROUP_SUGGESTIONS;
-            } else if (contact.type == Contact.TYPE_USER) {
-                group = GROUP_USERS;
-            } else if (contact.type == Contact.TYPE_CONTACT) {
-                group = contact.visible ? GROUP_CONTACTS : GROUP_OTHER;
-            }
-            // Add Contact to Group
-            if (group != -1) {
-                add(group, contact, false, false);
-            }
-        }
-
-        contactsMap.sortAll();
-
-        resultsText.setVisibility(!contactsMap.isEmpty() ? View.GONE : View.VISIBLE);
-
-        adapter.setShowEmptyLabels(filter == null, true);
+        ));
     }
 
     /**
@@ -474,7 +417,7 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
      */
     @Override
     public void onContactAdd(Contact contact) {
-        add(GROUP_CONTACTS, contact, true, true);
+        add(GROUP_CONTACTS, contact, true);
     }
 
     /**
@@ -504,7 +447,7 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
      */
     @Override
     public void onSuggestionAdd(Contact contact) {
-        add(GROUP_SUGGESTIONS, contact, true, true);
+        add(GROUP_SUGGESTIONS, contact, true);
 
         getActivity().runOnUiThread(new Runnable() {
             @Override
@@ -519,33 +462,82 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
      *
      * @param group The group category.
      * @param contact The contact to be added.
-     * @param sort The value to sort contacts.
      * @param notify The value to notify adapter to refresh.
      */
-    public void add(int group, Contact contact, boolean sort, boolean notify) {
+    public void add(int group, Contact contact, boolean notify) {
         int index = contactsMap.indexOf(contact);
-        final int fromPosition = index >= 0 ? adapter.getAdapterPosition(index) : -1;
 
-        contactsMap.remove(contact);
-        contactsMap.add(group, contact);
+        if (index >= 0) {
+            Contact current = contactsMap.get(index);
+            index = adapter.getAdapterPosition(index);
 
-        if (sort) {
-            contactsMap.sort(group);
+            if (current.type == Contact.TYPE_USER && contact.type == Contact.TYPE_CONTACT) {
+                return;
+            }
+
+            contactsMap.remove(contact);
         }
 
+        contactsMap.add(group, contact);
+
         if (notify) {
-            final int position = adapter.getAdapterPosition(contactsMap.indexOf(contact));
+            // Sort Contact Group
+            sort(group);
+            // Handle Empty Message
+            handleEmptyMessage();
+
+            final int fromPosition = index;
+            final int toPosition = adapter.getAdapterPosition(contactsMap.indexOf(contact));
 
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     if (fromPosition >= 0) {
-                        adapter.notifyMoved(fromPosition, position);
+                        adapter.notifyMoved(fromPosition, toPosition);
                     } else {
-                        adapter.notifyInserted(position);
+                        adapter.notifyInserted(toPosition);
                     }
                 }
             });
+        }
+    }
+
+    /**
+     * Add multiple contacts to the specified group and notify the adapter to reflect the new
+     * additions.
+     *
+     * @param contacts The contacts to be added.
+     * @param notify The value to notify adapter to refresh.
+     */
+    public void addAll(List<Contact> contacts, boolean notify) {
+        for (Contact contact : contacts) {
+            int group = -1;
+            // Determine Contact Group
+            if (contact.isFavorite) {
+                group = GROUP_FAVORITES;
+            } else if (contact.isFriend) {
+                group = GROUP_FRIENDS;
+            } else if (contact.isSuggested == Contact.SUGGESTION_PENDING) {
+                group = GROUP_SUGGESTIONS;
+            } else if (contact.type == Contact.TYPE_USER) {
+                group = GROUP_USERS;
+            } else if (contact.type == Contact.TYPE_CONTACT) {
+                group = contact.visible ? GROUP_CONTACTS : GROUP_OTHER;
+            }
+
+            if (group != -1) {
+                // Add Contact to Group
+                add(group, contact, false);
+            }
+        }
+
+        if (notify) {
+            // Sort Contacts
+            sortAll();
+            // Handle Empty Message
+            handleEmptyMessage();
+            // Update UI
+            adapter.notifyDataSetChanged();
         }
     }
 
@@ -566,10 +558,13 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
         contactsMap.remove(contact);
 
         if (sort) {
-            contactsMap.sortAll();
+            sortAll();
         }
 
         if (notify) {
+            // Handle Empty Message
+            handleEmptyMessage();
+
             final int position = index;
 
             getActivity().runOnUiThread(new Runnable() {
@@ -581,24 +576,33 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
         }
     }
 
-    private void removeUsersCallback() {
-        if (usersCallback != null) {
-            contactsManager.removeUsersCallback(usersCallback);
-            usersCallback = null;
+    public void handleEmptyMessage() {
+        resultsText.setVisibility(!contactsMap.isEmpty() ? View.GONE : View.VISIBLE);
+    }
+
+    public void sort(int group) {
+        contactsMap.sort(group, terms != null && terms.length > 0 ? terms[0] : null);
+    }
+
+    public void sortAll() {
+        contactsMap.sortAll(terms != null && terms.length > 0 ? terms[0] : null);
+    }
+
+    private void setTask(int type, AsyncTask task) {
+        removeTask(type);
+        tasks.put(type, task);
+    }
+
+    private void removeTask(int type) {
+        if (tasks.containsKey(type)) {
+            tasks.remove(type).cancel(true);
         }
     }
 
-    private void removeContactsCallback() {
-        if (contactsCallback != null) {
-            contactsManager.removeContactsCallback(contactsCallback);
-            contactsCallback = null;
+    private void clearTasks() {
+        for (AsyncTask task : tasks.values()) {
+            task.cancel(true);
         }
-    }
-
-    private void removeSuggestionsCallback() {
-        if (suggestionsCallback != null) {
-            contactsManager.removeSuggestionsCallback(suggestionsCallback);
-            suggestionsCallback = null;
-        }
+        tasks.clear();
     }
 }

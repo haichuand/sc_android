@@ -107,10 +107,21 @@ public class GuestPanel {
             icon.setColorFilter(color);
         }
         // Handle Contact Information
-        String name;
+        String name = "";
+
         if (!Common.isEmpty(contact.firstName)) {
-            name = String.format("%s %s", contact.firstName, contact.lastName);
-        } else {
+            name += contact.firstName;
+        }
+
+        if (!Common.isEmpty(contact.lastName)) {
+            if (!name.isEmpty()) {
+                name += " ";
+            }
+
+            name += contact.lastName;
+        }
+
+        if (name.isEmpty()) {
             name = contact.displayName;
         }
         // Contact Name

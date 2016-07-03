@@ -41,7 +41,7 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
     private ContactsAdapterListener listener;
     private List<ContactsGroup> groups = new ArrayList<>();
 
-    private boolean showEmptyLabels = true;
+    private boolean hideEmptyLabels;
     private String[] terms;
 
     public ContactsAdapter(ContactsAdapterListener listener) {
@@ -183,7 +183,7 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
     public void notifyInserted(int position) {
         notifyItemInserted(position);
 
-        setShowEmptyLabels(showEmptyLabels, false);
+        setHideEmptyLabels(hideEmptyLabels, false);
         notifyItemChanged(getGroupLabelPosition(position));
     }
 
@@ -203,7 +203,7 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
             fromPosition--;
         }
 
-        setShowEmptyLabels(showEmptyLabels, false);
+        setHideEmptyLabels(hideEmptyLabels, false);
         notifyItemChanged(getGroupLabelPosition(fromPosition));
         notifyItemChanged(getGroupLabelPosition(toPosition));
     }
@@ -217,21 +217,21 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
     public void notifyRemoved(int position) {
         notifyItemRemoved(position);
 
-        setShowEmptyLabels(showEmptyLabels, false);
+        setHideEmptyLabels(hideEmptyLabels, false);
         notifyItemChanged(getGroupLabelPosition(position));
     }
 
     /**
-     * Display labels even if there are no contacts belonging to the group.
+     * Disable labels if there are no contacts belonging to the group.
      *
      * @param status The value of the status.
      * @param notify The value to notify the adapter to refresh.
      */
-    public void setShowEmptyLabels(boolean status, boolean notify) {
-        showEmptyLabels = status;
+    public void setHideEmptyLabels(boolean status, boolean notify) {
+        hideEmptyLabels = status;
 
         for (ContactsGroup group : groups) {
-            group.setLabelHidden(!showEmptyLabels & group.isEmpty());
+            group.setHideEmptyLabels(status);
         }
 
         if (notify) {
@@ -286,7 +286,9 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
             int count = group.getCount();
 
             if (group.id == groupId) {
-                offset = size;
+                if (count > 0) {
+                    offset = size;
+                }
                 break;
             }
 
@@ -495,7 +497,7 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
         private final SimpleDataSource<HolderItem> dataSource;
 
         private LabelItem labelItem;
-        private boolean isLabelHidden;
+        private boolean hideEmptyLabels;
 
         public ContactsGroup(int id, int labelResId, SimpleDataSource<HolderItem> dataSource) {
             this.id = id;
@@ -507,7 +509,7 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
         public HolderItem getItem(int position) {
             HolderItem item;
 
-            if (position == 0 && !isLabelHidden) {
+            if (position == 0 && getContactsOffset() > 0) {
                 labelItem.count = String.format("(%d)", dataSource.getCount());
                 item = labelItem;
             } else {
@@ -527,11 +529,11 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
         }
 
         public int getContactsOffset() {
-            return !isLabelHidden ? 1 : 0;
+            return !hideEmptyLabels || !isEmpty() ? 1 : 0;
         }
 
-        public void setLabelHidden(boolean hidden) {
-            isLabelHidden = hidden;
+        public void setHideEmptyLabels(boolean status) {
+            hideEmptyLabels = status;
         }
     }
 
