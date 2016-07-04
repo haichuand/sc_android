@@ -25,14 +25,10 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
-import com.google.android.gms.location.places.Place;
-import com.google.android.gms.location.places.ui.PlaceAutocomplete;
-import com.google.android.gms.maps.model.LatLng;
 import com.mono.EventManager;
 import com.mono.R;
 import com.mono.model.Calendar;
 import com.mono.model.Event;
-import com.mono.model.Location;
 import com.mono.provider.CalendarProvider;
 import com.mono.util.GestureActivity;
 import com.mono.util.TimeZoneHelper;
@@ -75,8 +71,7 @@ public class EventDetailsActivity extends GestureActivity {
     private TextView endTime;
     private CheckBox allDay;
     private TextView timeZoneView;
-    private EditText location;
-    private ImageView locationPicker;
+    private LocationPanel locationPanel;
     private EditText notes;
     private GuestPanel guestPanel;
     private PhotoPanel photoPanel;
@@ -210,40 +205,8 @@ public class EventDetailsActivity extends GestureActivity {
             }
         });
 
-        location = (EditText) findViewById(R.id.location);
-        location.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                String value = s.toString().trim();
-
-                Location location = null;
-
-                if (!value.isEmpty()) {
-                    location = new Location();
-                    location.name = value;
-                }
-
-                event.location = location;
-            }
-        });
-
-        locationPicker = (ImageView) findViewById(R.id.location_picker);
-        locationPicker.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                showPlacePicker();
-            }
-        });
+        locationPanel = new LocationPanel(this);
+        locationPanel.onCreate(savedInstanceState);
 
         notes = (EditText) findViewById(R.id.notes);
         notes.addTextChangedListener(new TextWatcher() {
@@ -345,7 +308,7 @@ public class EventDetailsActivity extends GestureActivity {
 
         switch (requestCode) {
             case REQUEST_PLACE_PICKER:
-                handlePlacePicker(resultCode, data);
+                locationPanel.handlePlacePicker(resultCode, data);
                 break;
             case REQUEST_CONTACT_PICKER:
                 guestPanel.handleContactPicker(resultCode, data);
@@ -408,9 +371,7 @@ public class EventDetailsActivity extends GestureActivity {
         timeZoneView.setText(TimeZoneHelper.getTimeZoneGMTName(timeZone, event.startTime));
         allDay.setChecked(event.allDay);
 
-        if (event.location != null) {
-            location.setText(event.location.name);
-        }
+        locationPanel.setEvent(event);
 
         if (event.description != null) {
             notes.setText(event.description);
@@ -517,42 +478,6 @@ public class EventDetailsActivity extends GestureActivity {
         this.color = color;
         color |= 0xFF000000;
         colorPicker.setColorFilter(color);
-    }
-
-    public void showPlacePicker() {
-        try {
-            PlaceAutocomplete.IntentBuilder builder =
-                new PlaceAutocomplete.IntentBuilder(PlaceAutocomplete.MODE_FULLSCREEN);
-
-            Intent intent = builder.build(this);
-            startActivityForResult(intent, REQUEST_PLACE_PICKER);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void handlePlacePicker(int resultCode, Intent data) {
-        if (resultCode == RESULT_OK) {
-            Place place = PlaceAutocomplete.getPlace(this, data);
-            LatLng latLng = place.getLatLng();
-
-            Location location = new Location(latLng.latitude, latLng.longitude);
-            String name = place.getName().toString();
-            String address = place.getAddress().toString();
-
-            if (!address.startsWith(name)) {
-                location.name = name + ", " + address;
-            } else {
-                location.name = address;
-            }
-
-            setLocation(location);
-        }
-    }
-
-    public void setLocation(Location location) {
-        this.location.setText(location.name);
-        event.location = location;
     }
 
     public void onDateClick(long milliseconds, String timeZone,

@@ -210,42 +210,10 @@
                 </LinearLayout>
             </com.mono.util.SimpleLabelLayout>
 
-            <com.mono.util.SimpleLabelLayout
-                android:id="@+id/location_layout"
+            <include
+                layout="@layout/panel_location"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                app:label="@string/location"
-                app:labelColor="?attr/colorPrimary"
-                app:labelSize="14sp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="4dp">
-
-                    <EditText
-                        android:id="@+id/location"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:background="@drawable/input"
-                        android:hint="@string/location"
-                        android:padding="6dp"
-                        android:singleLine="true"
-                        android:textSize="16sp"/>
-
-                    <ImageView
-                        android:id="@+id/location_picker"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_gravity="center_vertical"
-                        android:layout_marginStart="10dp"
-                        android:src="@drawable/ic_map"
-                        android:tint="?attr/colorPrimary"/>
-                </LinearLayout>
-            </com.mono.util.SimpleLabelLayout>
+                android:layout_height="wrap_content"/>
 
             <com.mono.util.SimpleLabelLayout
                 android:id="@+id/notes_layout"
@@ -269,45 +237,15 @@
                     android:textSize="16sp"/>
             </com.mono.util.SimpleLabelLayout>
 
-            <com.mono.util.SimpleLabelLayout
-                android:id="@+id/guests_layout"
+            <include
+                layout="@layout/panel_guest"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                app:label="@string/guests"
-                app:labelColor="?attr/colorPrimary"
-                app:labelSize="14sp">
+                android:layout_height="wrap_content"/>
 
-                <LinearLayout
-                    android:id="@+id/guests"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginTop="4dp"/>
-            </com.mono.util.SimpleLabelLayout>
-
-            <com.mono.util.SimpleLabelLayout
-                android:id="@+id/photos_layout"
+            <include
+                layout="@layout/panel_photo"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                app:label="@string/photos"
-                app:labelColor="?attr/colorPrimary"
-                app:labelSize="14sp">
-
-                <HorizontalScrollView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:scrollbars="none">
-
-                    <LinearLayout
-                        android:id="@+id/photos"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"/>
-                </HorizontalScrollView>
-            </com.mono.util.SimpleLabelLayout>
+                android:layout_height="wrap_content"/>
         </LinearLayout>
     </ScrollView>
 </RelativeLayout>
