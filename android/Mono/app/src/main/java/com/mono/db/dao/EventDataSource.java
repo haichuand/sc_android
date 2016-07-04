@@ -19,14 +19,38 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * This class is used to perform database actions related to events.
+ *
+ * @author Gary Ng
+ */
 public class EventDataSource extends DataSource {
 
     private EventDataSource(Database database) {
         super(database);
     }
 
+    /**
+     * Create an event into the database.
+     *
+     * @param calendarId The value of the calendar ID.
+     * @param internalId The event ID being used in the Calendar Provider.
+     * @param externalId The event ID being used by Google Calendar.
+     * @param type The type of event.
+     * @param title The title of the event.
+     * @param description The description of the event.
+     * @param locationId The location ID of the event.
+     * @param color The color of the event.
+     * @param startTime The start time of the event.
+     * @param endTime The end time of th event.
+     * @param timeZone The time zone used for the start time.
+     * @param endTimeZone The time zone used for the end time.
+     * @param allDay The value of whether this is an all day event.
+     * @param createTime The current time event was created.
+     * @return the event ID.
+     */
     public String createEvent(long calendarId, long internalId, String externalId, String type,
-            String title, String description, String location, int color, long startTime,
+            String title, String description, Long locationId, int color, long startTime,
             long endTime, String timeZone, String endTimeZone, int allDay, long createTime) {
         String id = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
 
@@ -38,7 +62,7 @@ public class EventDataSource extends DataSource {
         values.put(DatabaseValues.Event.TYPE, type);
         values.put(DatabaseValues.Event.TITLE, title);
         values.put(DatabaseValues.Event.DESC, description);
-        values.put(DatabaseValues.Event.LOCATION, location);
+        values.put(DatabaseValues.Event.LOCATION_ID, locationId);
         values.put(DatabaseValues.Event.COLOR, color);
         values.put(DatabaseValues.Event.START_TIME, startTime);
         values.put(DatabaseValues.Event.END_TIME, endTime);
@@ -56,6 +80,12 @@ public class EventDataSource extends DataSource {
         return id;
     }
 
+    /**
+     * Retrieve an event using the ID.
+     *
+     * @param id The value of the event ID.
+     * @return an instance of the event.
+     */
     public Event getEvent(String id) {
         Event event = null;
 
@@ -77,20 +107,35 @@ public class EventDataSource extends DataSource {
         return event;
     }
 
+    /**
+     * Retrieve an event using the given time signature.
+     *
+     * @param internalId The event ID being used in the Calendar Provider.
+     * @param startTime The start time of the event.
+     * @param endTime The end time of th event.
+     * @return an instance of the event.
+     */
     public Event getEvent(long internalId, long startTime, long endTime) {
         Event event = null;
+
+        String selection = String.format(
+            "%s = ? AND %s = ? AND %s = ?",
+            DatabaseValues.Event.INTERNAL_ID,
+            DatabaseValues.Event.START_TIME,
+            DatabaseValues.Event.END_TIME
+        );
+
+        String[] selectionArgs = new String[]{
+            String.valueOf(internalId),
+            String.valueOf(startTime),
+            String.valueOf(endTime)
+        };
 
         Cursor cursor = database.select(
             DatabaseValues.Event.TABLE,
             DatabaseValues.Event.PROJECTION,
-            DatabaseValues.Event.INTERNAL_ID + " = ?" +
-            " AND " + DatabaseValues.Event.START_TIME + " = ?" +
-            " AND " + DatabaseValues.Event.END_TIME + " = ?",
-            new String[]{
-                String.valueOf(internalId),
-                String.valueOf(startTime),
-                String.valueOf(endTime)
-            }
+            selection,
+            selectionArgs
         );
 
         if (cursor.moveToNext()) {
@@ -102,22 +147,37 @@ public class EventDataSource extends DataSource {
         return event;
     }
 
+    /**
+     * Check if an event exists using the given time signature.
+     *
+     * @param internalId The event ID being used in the Calendar Provider.
+     * @param startTime The start time of the event.
+     * @param endTime The end time of th event.
+     * @return the value whether there exists an event.
+     */
     public boolean containsEvent(long internalId, long startTime, long endTime) {
         boolean status = false;
+
+        String selection = String.format(
+            "%s = ? AND %s = ? AND %s = ?",
+            DatabaseValues.Event.INTERNAL_ID,
+            DatabaseValues.Event.START_TIME,
+            DatabaseValues.Event.END_TIME
+        );
+
+        String[] selectionArgs = new String[]{
+            String.valueOf(internalId),
+            String.valueOf(startTime),
+            String.valueOf(endTime)
+        };
 
         Cursor cursor = database.select(
             DatabaseValues.Event.TABLE,
             new String[]{
                 "1"
             },
-            DatabaseValues.Event.INTERNAL_ID + " = ?" +
-            " AND " + DatabaseValues.Event.START_TIME + " = ?" +
-            " AND " + DatabaseValues.Event.END_TIME + " = ?",
-            new String[]{
-                String.valueOf(internalId),
-                String.valueOf(startTime),
-                String.valueOf(endTime)
-            }
+            selection,
+            selectionArgs
         );
 
         if (cursor.moveToNext()) {
@@ -129,6 +189,12 @@ public class EventDataSource extends DataSource {
         return status;
     }
 
+    /**
+     * Retrieve events using the internal ID.
+     *
+     * @param internalId The value of the internal ID.
+     * @return a list of events.
+     */
     public List<Event> getEventsByInternalId(long internalId) {
         List<Event> events = new ArrayList<>();
 
@@ -151,6 +217,13 @@ public class EventDataSource extends DataSource {
         return events;
     }
 
+    /**
+     * General function used to update values into the database.
+     *
+     * @param id The value of the event ID.
+     * @param values The values to be updated.
+     * @return the number of affected rows.
+     */
     public int updateValues(String id, ContentValues values) {
         return database.update(
             DatabaseValues.Event.TABLE,
@@ -162,6 +235,14 @@ public class EventDataSource extends DataSource {
         );
     }
 
+    /**
+     * Update event with the following start and end time.
+     *
+     * @param id The value of the event ID.
+     * @param startTime The start time of the event.
+     * @param endTime The end time of the event.
+     * @return the number of affected rows.
+     */
     public int updateTime(String id, long startTime, long endTime) {
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.Event.START_TIME, startTime);
@@ -170,6 +251,26 @@ public class EventDataSource extends DataSource {
         return updateValues(id, values);
     }
 
+    /**
+     * Update event with the following location ID.
+     *
+     * @param id The value of the event ID.
+     * @param locationId The value of the location ID.
+     * @return the number of affected rows.
+     */
+    public int updateLocation(String id, Long locationId) {
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.Event.LOCATION_ID, locationId);
+
+        return updateValues(id, values);
+    }
+
+    /**
+     * Remove an event from the database.
+     *
+     * @param id The value of the event ID.
+     * @return the number of affected rows.
+     */
     public int removeEvent(String id) {
         return database.delete(
             DatabaseValues.Event.TABLE,
@@ -180,6 +281,13 @@ public class EventDataSource extends DataSource {
         );
     }
 
+    /**
+     * Helper function to get the calendar IDs selection and arguments.
+     *
+     * @param args The list to insert arguments.
+     * @param calendarIds The array of calendar IDs.
+     * @return a selection string.
+     */
     private String getCalendarSelection(List<String> args, long[] calendarIds) {
         String selection = String.format(
             "(%s <= 0 OR %s IN (%s))",
@@ -195,6 +303,14 @@ public class EventDataSource extends DataSource {
         return selection;
     }
 
+    /**
+     * Helper function to get time range selection and arguments.
+     *
+     * @param args The list to insert arguments.
+     * @param startTime The start time of the event.
+     * @param endTime The end time of the event.
+     * @return a selection string.
+     */
     private String getTimeSelection(List<String> args, long startTime, long endTime) {
         String selection = String.format(
             "((%s BETWEEN ? AND ? OR %s BETWEEN ? AND ?) OR (%s <= ? AND %s >= ? OR %s >= ? AND %s <= ?))",
@@ -218,6 +334,16 @@ public class EventDataSource extends DataSource {
         return selection;
     }
 
+    /**
+     * Retrieve events after a specific time.
+     *
+     * @param startTime The start time of the event.
+     * @param offset The offset to start with.
+     * @param limit The max number of results to return.
+     * @param direction The ascending or descending order of events returned.
+     * @param calendarIds The array of calendar IDs.
+     * @return a list of events.
+     */
     public List<Event> getEvents(long startTime, int offset, int limit, int direction,
             long... calendarIds) {
         List<Event> events = new ArrayList<>();
@@ -264,6 +390,14 @@ public class EventDataSource extends DataSource {
         return events;
     }
 
+    /**
+     * Retrieve events belonging within a time range.
+     *
+     * @param startTime The start time of the event.
+     * @param endTime The end time of the event.
+     * @param calendarIds The array of calendar IDs.
+     * @return a list of events.
+     */
     public List<Event> getEvents(long startTime, long endTime, long... calendarIds) {
         List<Event> events = new ArrayList<>();
 
@@ -296,6 +430,15 @@ public class EventDataSource extends DataSource {
         return events;
     }
 
+    /**
+     * Retrieve events belonging to a specific day of the year.
+     *
+     * @param year The value of the year.
+     * @param month The value of the month.
+     * @param day The value of the day.
+     * @param calendarIds The array of calendar IDs.
+     * @return a list of events.
+     */
     public List<Event> getEvents(int year, int month, int day, long... calendarIds) {
         List<Event> events = new ArrayList<>();
 
@@ -355,6 +498,16 @@ public class EventDataSource extends DataSource {
         return events;
     }
 
+    /**
+     * Retrieve events belonging within a time range that contains terms found in the query.
+     *
+     * @param startTime The start time of the event.
+     * @param endTime The end time of the event.
+     * @param query The filtering query.
+     * @param limit The value of the limit.
+     * @param calendarIds The array of calendar IDs.
+     * @return a list of events.
+     */
     public List<Event> getEvents(long startTime, long endTime, String query, int limit,
             long... calendarIds) {
         List<Event> events = new ArrayList<>();
@@ -378,7 +531,7 @@ public class EventDataSource extends DataSource {
             String[] fields = {
                 DatabaseValues.Event.TITLE,
                 DatabaseValues.Event.DESC,
-                DatabaseValues.Event.LOCATION
+                DatabaseValues.Event.LOCATION_ID
             };
 
             for (int j = 0; j < fields.length; j++) {
@@ -414,6 +567,14 @@ public class EventDataSource extends DataSource {
         return events;
     }
 
+    /**
+     * Retrieve all color markers for the specific month.
+     *
+     * @param year The value of the year.
+     * @param month The value of the month.
+     * @param calendarIds The array of calendar IDs.
+     * @return a map of colors for each day of the month.
+     */
     public Map<Integer, List<Integer>> getEventColors(int year, int month, long... calendarIds) {
         Map<Integer, List<Integer>> result = new HashMap<>();
 
@@ -499,7 +660,7 @@ public class EventDataSource extends DataSource {
             " AND " + DatabaseValues.Event.TYPE + " = ?",
             new String[]{
                 String.valueOf(startTime),
-                String.valueOf("userstay")
+                String.valueOf(Event.TYPE_USERSTAY)
             }
         );
 
@@ -522,7 +683,7 @@ public class EventDataSource extends DataSource {
             " AND " + DatabaseValues.Event.TYPE + " = ?",
             new String[]{
                 String.valueOf(endTime),
-                String.valueOf("userstay")
+                String.valueOf(Event.TYPE_USERSTAY)
             }
         );
 
@@ -547,10 +708,9 @@ public class EventDataSource extends DataSource {
         event.title = cursor.getString(DatabaseValues.Event.INDEX_TITLE);
         event.description = cursor.getString(DatabaseValues.Event.INDEX_DESC);
 
-        String location = cursor.getString(DatabaseValues.Event.INDEX_LOCATION);
-        if (location != null) {
-            event.location = new Location();
-            event.location.name = location;
+        long locationId = cursor.getLong(DatabaseValues.Event.INDEX_LOCATION_ID);
+        if (locationId > 0) {
+            event.location = new Location(locationId);
         }
 
         event.color = cursor.getInt(DatabaseValues.Event.INDEX_COLOR);

@@ -30,7 +30,7 @@ public class DatabaseValues {
         public static final String TYPE = "`type`";
         public static final String TITLE = "`title`";
         public static final String DESC = "`description`";
-        public static final String LOCATION = "`location`";
+        public static final String LOCATION_ID = "`location_id`";
         public static final String COLOR = "`color`";
         public static final String START_TIME = "`start_time`";
         public static final String END_TIME = "`end_time`";
@@ -47,7 +47,7 @@ public class DatabaseValues {
             Event.TYPE,
             Event.TITLE,
             Event.DESC,
-            Event.LOCATION,
+            Event.LOCATION_ID,
             Event.COLOR,
             Event.START_TIME,
             Event.END_TIME,
@@ -64,7 +64,7 @@ public class DatabaseValues {
         public static final int INDEX_TYPE = 4;
         public static final int INDEX_TITLE = 5;
         public static final int INDEX_DESC = 6;
-        public static final int INDEX_LOCATION = 7;
+        public static final int INDEX_LOCATION_ID = 7;
         public static final int INDEX_COLOR = 8;
         public static final int INDEX_START_TIME = 9;
         public static final int INDEX_END_TIME = 10;
@@ -85,7 +85,7 @@ public class DatabaseValues {
                 TYPE + " TEXT",
                 TITLE + " TEXT",
                 DESC + " TEXT",
-                LOCATION + " TEXT",
+                LOCATION_ID + " INTEGER REFERENCES " + Location.TABLE + " (" + Location.ID + ")",
                 COLOR + " INTEGER",
                 START_TIME + " INTEGER",
                 END_TIME + " INTEGER",
@@ -104,7 +104,7 @@ public class DatabaseValues {
 
         public static final String TABLE = "`user`";
 
-        public static final String U_ID = "`u_id`";
+        public static final String U_ID = "`id`";
         public static final String MEDIA_ID = "`media_id`";
         public static final String PHONE_NUMBER = "`phone_number`";
         public static final String EMAIL = "`email`";
@@ -162,10 +162,11 @@ public class DatabaseValues {
     }
 
     public static class Location {
+
         public static final String TABLE = "`location`";
 
-        public static final String LOC_ID = "`loc_id`";
-        public static final String GOOGLE_PLACE_ID = "`GooglePlaceID`";
+        public static final String ID = "`id`";
+        public static final String GOOGLE_PLACE_ID = "`place_id`";
         public static final String NAME = "`name`";
         public static final String ADDRESS = "`address`";
         public static final String LATITUDE = "`latitude`";
@@ -173,17 +174,17 @@ public class DatabaseValues {
         public static final String BEEN_THERE = "`been_there`";
 
         public static final String[] PROJECTION = {
-                Location.LOC_ID,
-                Location.GOOGLE_PLACE_ID,
-                Location.NAME,
-                Location.ADDRESS,
-                Location.LATITUDE,
-                Location.LONGITUDE,
-                Location.BEEN_THERE
+            Location.ID,
+            Location.GOOGLE_PLACE_ID,
+            Location.NAME,
+            Location.ADDRESS,
+            Location.LATITUDE,
+            Location.LONGITUDE,
+            Location.BEEN_THERE
         };
 
-        public static final int INDEX_LOC_ID = 0;
-        public static final int INDEX_GOOGLE_PALCE_ID = 1;
+        public static final int INDEX_ID = 0;
+        public static final int INDEX_GOOGLE_PLACE_ID = 1;
         public static final int INDEX_NAME = 2;
         public static final int INDEX_ADDRESS = 3;
         public static final int INDEX_LATITUDE = 4;
@@ -195,13 +196,13 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                    LOC_ID + " TEXT PRIMARY KEY",
-                    GOOGLE_PLACE_ID + " TEXT",
-                    NAME + " TEXT",
-                    ADDRESS + " TEXT",
-                    LATITUDE + " REAL",
-                    LONGITUDE + " REAL",
-                    BEEN_THERE + " INTEGER"
+                ID + " INTEGER PRIMARY KEY AUTOINCREMENT",
+                GOOGLE_PLACE_ID + " TEXT",
+                NAME + " TEXT",
+                ADDRESS + " TEXT",
+                LATITUDE + " REAL",
+                LONGITUDE + " REAL",
+                BEEN_THERE + " INTEGER"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);
@@ -231,8 +232,8 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                    EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
-                    LOC_ID + " INTEGER REFERENCES " + Location.TABLE + " ( "+ Location.LOC_ID +" )"
+                EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " (" + Event.ID + ")",
+                LOC_ID + " INTEGER REFERENCES " + Location.TABLE + " (" + Location.ID + ")"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);
@@ -381,7 +382,7 @@ public class DatabaseValues {
 
         public static final String TABLE = "`media`";
 
-        public static final String ID = "`media_id`";
+        public static final String ID = "`id`";
         public static final String PATH = "`path`";
         public static final String TYPE = "`type`";
         public static final String SIZE = "`size`";
@@ -438,8 +439,8 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( " + Event.ID + " )",
-                MEDIA_ID + " INTEGER REFERENCES " + Media.TABLE + " ( " + Media.ID + " )"
+                EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " (" + Event.ID + ")",
+                MEDIA_ID + " INTEGER REFERENCES " + Media.TABLE + " (" + Media.ID + ")"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);
@@ -640,8 +641,8 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                    EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
-                    LOC_ID + " INTEGER REFERENCES " + Location.TABLE + " ( "+ Location.LOC_ID +" )"
+                EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " (" + Event.ID + ")",
+                LOC_ID + " INTEGER REFERENCES " + Location.TABLE + " (" + Location.ID + ")"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);

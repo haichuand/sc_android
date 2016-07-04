@@ -166,28 +166,32 @@ public class KmlLocationService extends IntentService{
                 locationList = parseGooglePlace(requestResult, address, place_id, llt);
                 //TODO: remove later, for testing purpose only:
                 String placeCandidates = "Place candidates: \n";
-                String locationId = "";
+                long locationId;
                 int counter = 1;
                 String firstPlaceName = "";
                 //todo: pick the location if the user had been there
                 //now simply pick the first location of returned locations
                 if(!locationList.isEmpty()) {
+                    Location firstLocation = locationList.get(0);
+
                     for (Location location : locationList) {
                         //check if the location exists in the database
                         if (locationDataSource.getLocationByGooglePlaceId(location.googlePlaceId) == null) {
-                            locationId = locationDataSource.createLocation(location.name, location.googlePlaceId, location.latitude, location.longitude, location.getAddress());
+                            locationId = locationDataSource.createLocation(location.name, location.googlePlaceId, location.getLatitude(), location.getLatitude(), location.getAddress());
                             //todo:this id would be used to map a location record to a event in eventLocationTable
                             location.id = locationId;
                         }
                         placeCandidates += "Place " + counter + ". " + location.name + "\n";
                         //TODO: Temporarily use the second place name as the event title
-                        if(counter == 2)
+                        if (counter == 2) {
                             firstPlaceName = location.name;
+                            firstLocation = location;
+                        }
                         counter++;
                     }
                     //create a userstay event
-                    event_id = eventManager.createEvent(-1, -1, null, Event.TYPE_USERSTAY, firstPlaceName, placeCandidates, address,
-                            1,startTime, endTime, null, null, false);
+                    event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, firstPlaceName, placeCandidates, firstLocation,
+                        1, startTime, endTime, null, null, false, null, null, null);
                     Log.d(TAG, "event with id: " + event_id + " created");
                 }
             }

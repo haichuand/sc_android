@@ -24,6 +24,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * This class is used to provide access to the Calendar Provider to allow the retrieval of
+ * calendar events stored on the device.
+ *
+ * @author Gary Ng
+ */
 public class CalendarEventProvider {
 
     private static final SimpleDateFormat DATE_FORMAT;
@@ -48,6 +54,22 @@ public class CalendarEventProvider {
         return instance;
     }
 
+    /**
+     * Create an event into the provider.
+     *
+     * @param calendarId The value of the calendar ID.
+     * @param title The title of the event.
+     * @param description The description of the event.
+     * @param location The location of the event.
+     * @param color The color of the event.
+     * @param startTime The start time of the event.
+     * @param endTime The end time of th event.
+     * @param timeZone The time zone used for the start time.
+     * @param endTimeZone The time zone used for the end time.
+     * @param allDay The value of whether this is an all day event.
+     * @return the event ID.
+     * @throws SecurityException
+     */
     public long createEvent(long calendarId, String title, String description, String location,
             int color, long startTime, long endTime, String timeZone, String endTimeZone,
             int allDay) throws SecurityException {
@@ -74,6 +96,12 @@ public class CalendarEventProvider {
         return eventId;
     }
 
+    /**
+     * Retrieve an event using the ID.
+     *
+     * @param id The value of the event ID.
+     * @return an instance of the event.
+     */
     public Event getEvent(long id) {
         Event event = null;
 
@@ -103,6 +131,14 @@ public class CalendarEventProvider {
         return event;
     }
 
+    /**
+     * Retrieve an event using the given time signature.
+     *
+     * @param id The value of the event ID.
+     * @param startTime The start time of the event.
+     * @param endTime The end time of th event.
+     * @return an instance of the event.
+     */
     public Event getEvent(long id, long startTime, long endTime) {
         Event event = getEvent(id);
 
@@ -139,6 +175,18 @@ public class CalendarEventProvider {
         return event;
     }
 
+    /**
+     * Update an existing event into the provider.
+     *
+     * @param eventId The value of the event ID.
+     * @param title The title of the event.
+     * @param description The description of the event.
+     * @param startTime The start time of the event.
+     * @param endTime The end time of th event.
+     * @param timeZone The time zone used for the start time.
+     * @return the number of affected rows.
+     * @throws SecurityException
+     */
     public int updateEvent(long eventId, String title, String description, Long startTime,
             Long endTime, String timeZone) throws SecurityException {
         ContentValues values = new ContentValues();
@@ -173,6 +221,13 @@ public class CalendarEventProvider {
         );
     }
 
+    /**
+     * Remove an event from the provider.
+     *
+     * @param eventId The value of the event ID.
+     * @return the number of affected rows.
+     * @throws SecurityException
+     */
     public int removeEvent(long eventId) throws SecurityException {
         return context.getContentResolver().delete(
             Events.CONTENT_URI,
@@ -183,6 +238,13 @@ public class CalendarEventProvider {
         );
     }
 
+    /**
+     * Helper function to get the calendar IDs selection and arguments.
+     *
+     * @param args The list to insert arguments.
+     * @param calendarIds The array of calendar IDs.
+     * @return a selection string.
+     */
     private String getCalendarSelection(List<String> args, long[] calendarIds) {
         String selection = String.format(
             "%s IN (%s)",
@@ -197,6 +259,16 @@ public class CalendarEventProvider {
         return selection;
     }
 
+    /**
+     * Retrieve a calendar containing events belonging within a time range.
+     *
+     * @param calendarId The value of the calendar ID.
+     * @param startMin The minimum start time of the event.
+     * @param startMax The maximum start time of the event.
+     * @param endMin The minimum end time of the event.
+     * @param endMax The maximum end time of the event.
+     * @return an instance of a calendar with events.
+     */
     public Calendar getEvents(long calendarId, long startMin, long startMax, long endMin,
             long endMax) {
         Calendar calendar = CalendarProvider.getInstance(context).getCalendar(calendarId);
@@ -216,6 +288,14 @@ public class CalendarEventProvider {
         return calendar;
     }
 
+    /**
+     * Retrieve events belonging within a time range.
+     *
+     * @param startTime The start time of the event.
+     * @param endTime The end time of the event.
+     * @param calendarIds The array of calendar IDs.
+     * @return a list of events.
+     */
     public List<Event> getEvents(long startTime, long endTime, long... calendarIds) {
         List<Event> events = new ArrayList<>();
 
@@ -231,6 +311,14 @@ public class CalendarEventProvider {
         return events;
     }
 
+    /**
+     * Retrieve specific events belonging within a time range
+     *
+     * @param startTime The start time of the event.
+     * @param endTime The end time of the event.
+     * @param eventIds The events to be returned.
+     * @return a list of events.
+     */
     public List<Event> getEvents(long startTime, long endTime, List<Long> eventIds) {
         List<Event> events = new ArrayList<>();
 
@@ -273,6 +361,16 @@ public class CalendarEventProvider {
         return events;
     }
 
+    /**
+     * Retrieve events belonging within a time range starting at a specified offset.
+     *
+     * @param startTime The start time of the event.
+     * @param offset The offset to start with.
+     * @param limit The max number of results to return.
+     * @param direction The ascending or descending order of events returned.
+     * @param calendarIds The array of calendar IDs.
+     * @return a list of events.
+     */
     public List<Event> getEvents(long startTime, long endTime, int offset, int limit,
             int direction, long... calendarIds) {
         List<Event> events = new ArrayList<>();
@@ -309,6 +407,15 @@ public class CalendarEventProvider {
         return events;
     }
 
+    /**
+     * Retrieve events belonging to a specific day of the year.
+     *
+     * @param year The value of the year.
+     * @param month The value of the month.
+     * @param day The value of the day.
+     * @param calendarIds The array of calendar IDs.
+     * @return a list of events.
+     */
     public List<Event> getEvents(int year, int month, int day, long... calendarIds) {
         List<Event> events = new ArrayList<>();
 
@@ -373,6 +480,16 @@ public class CalendarEventProvider {
         return events;
     }
 
+    /**
+     * Retrieve events belonging within a time range that contains terms found in the query.
+     *
+     * @param startTime The start time of the event.
+     * @param endTime The end time of the event.
+     * @param query The filtering query.
+     * @param limit The value of the limit.
+     * @param calendarIds The array of calendar IDs.
+     * @return a list of events.
+     */
     public List<Event> getEvents(long startTime, long endTime, String query, int limit,
             long... calendarIds) {
         List<Event> events = new ArrayList<>();
@@ -409,6 +526,14 @@ public class CalendarEventProvider {
         return events;
     }
 
+    /**
+     * Retrieve all color markers for the specific month.
+     *
+     * @param year The value of the year.
+     * @param month The value of the month.
+     * @param calendarIds The array of calendar IDs.
+     * @return a map of colors for each day of the month.
+     */
     public Map<Integer, List<Integer>> getEventColors(int year, int month, long... calendarIds) {
         Map<Integer, List<Integer>> result = new HashMap<>();
 
@@ -492,7 +617,15 @@ public class CalendarEventProvider {
         return result;
     }
 
-
+    /**
+     * Retrieve a calendar containing events updated within a time range.
+     *
+     * @param calendarId The value of the calendar ID.
+     * @param startTime The start time of the event updates.
+     * @param endTime The end time of the event updates.
+     * @return an instance of a calendar with events.
+     * @throws SecurityException
+     */
     public Calendar getUpdates(long calendarId, long startTime, long endTime)
             throws SecurityException {
         Calendar calendar = CalendarProvider.getInstance(context).getCalendar(calendarId);
@@ -546,6 +679,11 @@ public class CalendarEventProvider {
         return calendar;
     }
 
+    /**
+     * Helper function to retrieve attendees and reminders for the given events.
+     *
+     * @param events The list of events to resolve.
+     */
     private void resolveEventsData(List<Event> events) {
         if (events.isEmpty()) {
             return;
@@ -555,6 +693,13 @@ public class CalendarEventProvider {
         CalendarReminderProvider.getInstance(context).resolveReminders(events);
     }
 
+    /**
+     * Create an events cursor using the given event IDs.
+     *
+     * @param eventIds The list of event IDs.
+     * @return an instance of a cursor.
+     * @throws SecurityException
+     */
     private Cursor createEventsCursor(List<Long> eventIds) throws SecurityException {
         int size = eventIds.size();
 
@@ -578,6 +723,16 @@ public class CalendarEventProvider {
         );
     }
 
+    /**
+     * Create an instances cursor using the given time range.
+     *
+     * @param startMin The minimum start time of the event.
+     * @param startMax The maximum start time of the event.
+     * @param endMin The minimum end time of the event.
+     * @param endMax The maximum end time of the event.
+     * @param calendarIds The array of calendar IDs.
+     * @return an instance of a cursor.
+     */
     private Cursor createInstancesCursor(long startMin, long startMax, long endMin, long endMax,
             long... calendarIds) {
         Uri.Builder builder = Instances.CONTENT_URI.buildUpon();
@@ -637,8 +792,7 @@ public class CalendarEventProvider {
 
         String location = cursor.getString(CalendarValues.Event.INDEX_LOCATION);
         if (location != null && !location.isEmpty()) {
-            event.location = new Location();
-            event.location.name = location;
+            event.location = new Location(location);
         }
 
         event.color = cursor.getInt(CalendarValues.Event.INDEX_COLOR);
@@ -713,8 +867,16 @@ public class CalendarEventProvider {
         return result;
     }
 
+    /**
+     * Create a composite ID using the time signature.
+     *
+     * @param eventId The value of the event ID.
+     * @param startTime The start time of the event.
+     * @param endTime The end time of the event.
+     * @return a string representing the composite ID.
+     */
     public static String createId(long eventId, long startTime, long endTime) {
-        return String.format(Locale.getDefault(), "%d.%d.%d", eventId, startTime, endTime);
+        return String.format("%d.%d.%d", eventId, startTime, endTime);
     }
 
     private class Instance {

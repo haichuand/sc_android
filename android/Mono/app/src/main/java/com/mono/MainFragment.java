@@ -55,7 +55,7 @@ public class MainFragment extends Fragment implements OnBackPressedListener, OnP
 
         tabPagerAdapter.add(R.drawable.ic_list, null, new EventsFragment());
         tabPagerAdapter.add(R.drawable.ic_chat, null, new SocialFragment());
-        tabPagerAdapter.add(R.drawable.ic_map, null, new MapsFragment());
+        tabPagerAdapter.add(R.drawable.ic_place, null, new MapsFragment());
     }
 
     @Override

@@ -1,8 +1,11 @@
 package com.mono.details;
 
-import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
 import android.text.Editable;
@@ -10,21 +13,23 @@ import android.text.TextWatcher;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.EditText;
+import android.widget.ImageButton;
 
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.ui.PlaceAutocomplete;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.GoogleMap.OnMyLocationButtonClickListener;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.mono.PermissionManager;
 import com.mono.R;
 import com.mono.model.Event;
 import com.mono.model.Location;
+import com.mono.util.Colors;
 import com.mono.util.LocationHelper;
 import com.mono.util.LocationHelper.LocationCallback;
 
@@ -33,13 +38,14 @@ import com.mono.util.LocationHelper.LocationCallback;
  *
  * @author Gary Ng
  */
-public class LocationPanel implements OnMapReadyCallback, OnMyLocationButtonClickListener {
+public class LocationPanel implements OnMapReadyCallback {
 
     private static final float DEFAULT_ZOOM_LEVEL = 16f;
 
     private EventDetailsActivity activity;
     private SupportMapFragment fragment;
     private GoogleMap map;
+    private ImageButton currentButton;
     private EditText location;
     private TextWatcher textWatcher;
     private View locationPicker;
@@ -56,6 +62,14 @@ public class LocationPanel implements OnMapReadyCallback, OnMyLocationButtonClic
         FragmentManager manager = activity.getSupportFragmentManager();
         fragment = (SupportMapFragment) manager.findFragmentById(R.id.map);
         fragment.getMapAsync(this);
+
+        currentButton = (ImageButton) activity.findViewById(R.id.current_location);
+        currentButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                setCurrentLocation(true);
+            }
+        });
 
         location = (EditText) activity.findViewById(R.id.location);
         location.addTextChangedListener(textWatcher = new TextWatcher() {
@@ -76,8 +90,7 @@ public class LocationPanel implements OnMapReadyCallback, OnMyLocationButtonClic
                 Location location = null;
 
                 if (!value.isEmpty()) {
-                    location = new Location();
-                    location.name = value;
+                    location = new Location(value);
                 }
 
                 event.location = location;
@@ -115,33 +128,27 @@ public class LocationPanel implements OnMapReadyCallback, OnMyLocationButtonClic
         this.event = event;
 
         if (event.location != null) {
+            location.removeTextChangedListener(textWatcher);
             location.setText(event.location.name);
+            location.addTextChangedListener(textWatcher);
         }
     }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
-        // Display Current Location Button
-        if (PermissionManager.checkPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION) ||
-                PermissionManager.checkPermission(activity, Manifest.permission.ACCESS_COARSE_LOCATION)) {
-            map.setMyLocationEnabled(true);
-            map.setOnMyLocationButtonClickListener(this);
-        }
         // Disable Map Gestures
         map.getUiSettings().setAllGesturesEnabled(false);
         // Initialize Map
         if (event != null && event.location != null && event.location.containsLatLng()) {
-            setCamera(event.location.latitude, event.location.longitude);
+            double latitude = event.location.getLatitude();
+            double longitude = event.location.getLongitude();
+
+            setMarker(latitude, longitude);
+            setCamera(latitude, longitude);
         } else {
             setCurrentLocation(false);
         }
-    }
-
-    @Override
-    public boolean onMyLocationButtonClick() {
-        setCurrentLocation(true);
-        return true;
     }
 
     /**
@@ -170,6 +177,25 @@ public class LocationPanel implements OnMapReadyCallback, OnMyLocationButtonClic
 
         MarkerOptions options = new MarkerOptions();
         options.position(latLng);
+        // Custom Marker Icon
+        Drawable drawable = activity.getDrawable(R.drawable.ic_place);
+        if (drawable != null) {
+            float scale = 1.5f;
+
+            Bitmap bitmap = Bitmap.createBitmap(Math.round(drawable.getIntrinsicWidth() * scale),
+                Math.round(drawable.getIntrinsicHeight() * scale), Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+
+            drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+
+            int color = Colors.getColor(activity, R.color.red);
+            drawable.setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
+
+            drawable.draw(canvas);
+
+            BitmapDescriptor descriptor = BitmapDescriptorFactory.fromBitmap(bitmap);
+            options.icon(descriptor);
+        }
 
         marker = map.addMarker(options);
     }
@@ -187,8 +213,11 @@ public class LocationPanel implements OnMapReadyCallback, OnMyLocationButtonClic
 
         event.location = location;
 
-        setMarker(location.latitude, location.longitude);
-        setCamera(location.latitude, location.longitude);
+        double latitude = event.location.getLatitude();
+        double longitude = event.location.getLongitude();
+
+        setMarker(latitude, longitude);
+        setCamera(latitude, longitude);
     }
 
     /**
@@ -204,13 +233,16 @@ public class LocationPanel implements OnMapReadyCallback, OnMyLocationButtonClic
                     return;
                 }
 
-                setCamera(location.latitude, location.longitude);
+                double latitude = location.getLatitude();
+                double longitude = location.getLongitude();
+
+                setCamera(latitude, longitude);
 
                 if (marker) {
                     LocationHelper.getLocationFromLatLng(
                         activity,
-                        location.latitude,
-                        location.longitude,
+                        latitude,
+                        longitude,
                         new LocationCallback() {
                             @Override
                             public void onFinish(Location location) {
@@ -260,6 +292,8 @@ public class LocationPanel implements OnMapReadyCallback, OnMyLocationButtonClic
             } else {
                 location.name = address;
             }
+
+            location.address = new String[]{address};
 
             setLocation(location);
         }

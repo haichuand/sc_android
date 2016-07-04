@@ -162,7 +162,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback, OnMapC
 
         centerLastKnownLocation(false);
 
-        refresh();
+//        refresh();
     }
 
     @Override
@@ -331,7 +331,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback, OnMapC
             @Override
             public void onFinish(Location location) {
                 if (location != null) {
-                    LatLng latLng = new LatLng(location.latitude, location.longitude);
+                    LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
                     centerLocation(latLng, DEFAULT_ZOOM_LEVEL, animate);
                 }
             }
@@ -413,7 +413,7 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback, OnMapC
         for (Event event : events) {
             Location location = event.location;
             if (location != null && location.containsLatLng()) {
-                show(event.id, location.latitude, location.longitude, 0, 0, 0, 0, event);
+                show(event.id, location.getLatitude(), location.getLongitude(), 0, 0, 0, 0, event);
             }
         }
 

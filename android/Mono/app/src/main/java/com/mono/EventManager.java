@@ -9,9 +9,11 @@ import com.mono.db.dao.AttendeeDataSource;
 import com.mono.db.dao.EventAttendeeDataSource;
 import com.mono.db.dao.EventDataSource;
 import com.mono.db.dao.EventMediaDataSource;
+import com.mono.db.dao.LocationDataSource;
 import com.mono.db.dao.MediaDataSource;
 import com.mono.model.Attendee;
 import com.mono.model.Event;
+import com.mono.model.Location;
 import com.mono.model.Media;
 import com.mono.provider.CalendarEventProvider;
 import com.mono.util.Common;
@@ -106,6 +108,11 @@ public class EventManager {
             EventAttendeeDataSource dataSource =
                 DatabaseHelper.getDataSource(context, EventAttendeeDataSource.class);
             event.attendees = dataSource.getAttendees(event.id);
+        }
+
+        if (event.location != null && event.location.id > 0) {
+            LocationManager manager = LocationManager.getInstance(context);
+            event.location = manager.getLocation(event.location.id);
         }
 
         EventMediaDataSource mediaDataSource =
@@ -391,9 +398,10 @@ public class EventManager {
      * @param attendees The list of participants.
      * @param photos The list of photos.
      * @param callback The callback used once completed.
+     * @return the event ID.
      */
-    public void createEvent(int actor, long calendarId, long internalId, String externalId,
-            String type, String title, String description, String location, int color,
+    public String createEvent(int actor, long calendarId, long internalId, String externalId,
+            String type, String title, String description, Location location, int color,
             long startTime, long endTime, String timeZone, String endTimeZone, boolean allDay,
             List<Attendee> attendees, List<Media> photos, EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
@@ -416,7 +424,7 @@ public class EventManager {
                 type,
                 title,
                 description,
-                location,
+                location != null ? location.id : null,
                 color,
                 startTime,
                 endTime,
@@ -428,6 +436,11 @@ public class EventManager {
         }
 
         if (id != null) {
+            // Create Location
+            if (location != null) {
+                updateEventLocation(id, location);
+            }
+
             // Create Participants
             if (attendees != null) {
                 updateEventAttendees(id, attendees);
@@ -451,6 +464,8 @@ public class EventManager {
         if (callback != null) {
             callback.onEventAction(data);
         }
+
+        return id;
     }
 
     /**
@@ -470,9 +485,10 @@ public class EventManager {
      * @param attendees The list of participants.
      * @param photos The list of photos.
      * @param callback The callback used once completed.
+     * @return the event ID.
      */
-    public void createSyncEvent(int actor, long calendarId, String title, String description,
-            String location, int color, long startTime, long endTime, String timeZone,
+    public String createSyncEvent(int actor, long calendarId, String title, String description,
+            Location location, int color, long startTime, long endTime, String timeZone,
             String endTimeZone, boolean allDay, List<Attendee> attendees, List<Media> photos,
             EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
@@ -491,7 +507,7 @@ public class EventManager {
             calendarId,
             title,
             description,
-            location,
+            location != null ? location.name : null,
             color,
             startTime,
             endTime,
@@ -519,46 +535,7 @@ public class EventManager {
         if (callback != null) {
             callback.onEventAction(data);
         }
-    }
 
-    public String createEvent (long calendarId, long internalId, String externalId,
-                               String type, String title, String description, String location, int color,
-                               long startTime, long endTime, String timeZone, String endTimeZone, boolean allDay) {
-        Event event = null;
-        int status = EventAction.STATUS_OK;
-
-        EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-
-        String id = null;
-
-        if (timeZone == null) {
-            timeZone = TimeZone.getDefault().getID();
-        }
-
-        id = dataSource.createEvent(
-                calendarId,
-                internalId,
-                externalId,
-                type,
-                title,
-                description,
-                location,
-                color,
-                startTime,
-                endTime,
-                timeZone,
-                endTimeZone,
-                allDay ? 1 : 0,
-                System.currentTimeMillis()
-        );
-
-        if (id != null) {
-            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE, id);
-            event = getEvent(id, false);
-        } else {
-            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE_FAILED);
-            status = EventAction.STATUS_FAILED;
-        }
         return id;
     }
 
@@ -610,8 +587,7 @@ public class EventManager {
 
         if (event.location != null && !event.location.equals(original.location) ||
                 event.location == null && original.location != null) {
-            String location = event.location != null ? event.location.name : null;
-            values.put(DatabaseValues.Event.LOCATION, location);
+            updateEventLocation(id, event.location);
             original.location = event.location;
         }
 
@@ -726,6 +702,31 @@ public class EventManager {
         if (callback != null) {
             callback.onEventAction(data);
         }
+    }
+
+    /**
+     * Update event with the following location.
+     *
+     * @param id The value of the event ID.
+     * @param location The value of the location.
+     */
+    private void updateEventLocation(String id, Location location) {
+        LocationDataSource locationDataSource =
+            DatabaseHelper.getDataSource(context, LocationDataSource.class);
+        EventDataSource eventDataSource =
+            DatabaseHelper.getDataSource(context, EventDataSource.class);
+
+        Long locationId = null;
+
+        if (location != null) {
+            locationId = location.id;
+            if (locationDataSource.getLocation(locationId) == null) {
+                locationId = locationDataSource.createLocation(location.name, location.googlePlaceId,
+                    location.getLatitude(), location.getLongitude(), location.getAddress());
+            }
+        }
+
+        eventDataSource.updateLocation(id, locationId);
     }
 
     /**
