@@ -135,9 +135,8 @@ public class KmlParser {
             LatLngTime temp = inputList.get(i);
             double tempLat = temp.getLat();
             double tempLng = temp.getLng();
-            //TODO: change the distance calculation formular
-            if(Math.abs(tempLat-stay.getLat()) < 0.0012 && Math.abs(tempLng-stay.getLng()) < 0.0015) {
-                //System.out.println("start: "+stay.toString() + " temp: "+temp.toString());
+
+            if(distance(tempLat, tempLng, stay.getLat(), stay.getLng()) <= 50) {
                 stay.setEndTime(temp.getEndTime());
             }
             else {
@@ -151,7 +150,6 @@ public class KmlParser {
         if(stay!=null && stay.getEndTime() - stay.getStartTime() >= 600000){
             outputList.add(stay);
         }
-        //System.out.println("output: "+outputList.size()+" input: "+inputList.size());
         //recursion call
         if(outputList.size() == inputList.size())
             return outputList;
@@ -169,7 +167,7 @@ public class KmlParser {
             slice.setLat(llt.getLat());
             slice.setLng(llt.getLng());
             slice.setStartTime(curTime);
-            //get the nextend time(the end of current day) as per pacific time zone
+            //get the nextend time(the end of current day) as per pacific time zone, GMT is 7 hours ahead Pacific time
             long nextend = ((curTime-7*3600*1000) /(24*3600*1000)+1)*24*3600*1000 + 7*3600*1000 - 60*1000;
             long sliceEnd = nextend > endTime ? endTime : nextend;
             slice.setEndTime(sliceEnd);
@@ -179,25 +177,29 @@ public class KmlParser {
         return slices;
     }
 
-    // for test purpose
-    private void outputFile(String path) {
-        try {
-            StringBuilder builder = new StringBuilder(path + "\n\n");
-            BufferedReader reader = new BufferedReader(new FileReader(path));
-            String nextLine;
+    /*
+     * Calculate distance between two points in latitude and longitude
+     * Uses Haversine method as its base.
+     * lat1, lon1 Start point lat2, lon2 End point
+     * @returns distance in Meters
+    */
+    private double distance(double lat1, double lon1, double lat2,
+                                  double lon2) {
 
-            while ((nextLine = reader.readLine()) != null) {
-                builder.append(nextLine);
-                builder.append('\n');
-            }
+        final int R = 6371; // Radius of the earth
 
-            Log.d(TAG, builder.toString());
+        Double latDistance = Math.toRadians(lat2 - lat1);
+        Double lonDistance = Math.toRadians(lon2 - lon1);
+        Double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+        Double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        double distance = R * c * 1000; // convert to meters
 
-            reader.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
+        distance = Math.pow(distance, 2);
+
+        return Math.sqrt(distance);
     }
-
 
 }
