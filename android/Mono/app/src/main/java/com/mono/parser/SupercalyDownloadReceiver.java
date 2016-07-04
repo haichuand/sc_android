@@ -5,15 +5,10 @@ import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
-import android.preference.PreferenceManager;
 import android.util.Log;
 
-import com.mono.SuperCalyPreferences;
-import com.mono.parser.KmlDownloadingService;
-import com.mono.parser.KmlLocationService;
 
 /**
  * Created by xuejing on 3/14/16.
@@ -21,12 +16,10 @@ import com.mono.parser.KmlLocationService;
 public class SupercalyDownloadReceiver extends BroadcastReceiver {
 
     public static final String TAG = "DownloadReceiver";
-    private SharedPreferences sharedPreferences;
 
     public void onReceive(Context context, Intent intent) {
 
         Log.d(TAG, "downloadReceiver onReceive has been called");
-        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
         long downloadId = intent.getLongExtra(
                 DownloadManager.EXTRA_DOWNLOAD_ID, -1L);
 
@@ -45,23 +38,14 @@ public class SupercalyDownloadReceiver extends BroadcastReceiver {
 
                     if(fileName.endsWith(".kml")) {
                         Intent iIntent = new Intent(context, KmlLocationService.class);
+                        iIntent.putExtra("fileName", fileName);
                         if(fileName.startsWith("FirstTimeLocation")) {
-                            iIntent.putExtra("fileName", fileName);
                             iIntent.putExtra(KmlDownloadingService.TYPE, KmlDownloadingService.FIRST_TIME);
-                            context.startService(iIntent);
                         }
-                        else if(fileName.startsWith("Today") || fileName.startsWith("Yesterday")) {
-                            int curCounter = sharedPreferences.getInt(SuperCalyPreferences.KML_DOWNLOAD_COUNTER, 0);
-                            sharedPreferences.edit().putInt(SuperCalyPreferences.KML_DOWNLOAD_COUNTER, curCounter+1).apply();
-                            curCounter = sharedPreferences.getInt(SuperCalyPreferences.KML_DOWNLOAD_COUNTER, 0);
-                            Log.d(TAG, "Total regular kml file downloaded: " + curCounter);
-                            if(curCounter != 0 && curCounter%2 == 0) {
-                                sharedPreferences.edit().putInt(SuperCalyPreferences.KML_DOWNLOAD_COUNTER, 0).apply();
-                                Log.d(TAG, "Reset the kml file counter: " + sharedPreferences.getInt(SuperCalyPreferences.KML_DOWNLOAD_COUNTER, 0));
-                                iIntent.putExtra(KmlDownloadingService.TYPE, KmlDownloadingService.REGULAR);
-                                context.startService(iIntent);
-                            }
+                        else if(fileName.startsWith("Today")) {
+                            iIntent.putExtra(KmlDownloadingService.TYPE, KmlDownloadingService.REGULAR);
                         }
+                        context.startService(iIntent);
 
                     }
                     break;

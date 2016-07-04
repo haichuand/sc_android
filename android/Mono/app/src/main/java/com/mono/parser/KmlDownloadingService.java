@@ -43,7 +43,6 @@ public class KmlDownloadingService extends IntentService {
     }
 
     public static final String KML_FILENAME_TODAY = "TodayLocationHistory.kml";
-    public static final String KML_FILENAME_YESTERDAY = "YesterdayLocationHistory.kml";
     public static final String REGULAR = "regular";
     public static final String FIRST_TIME = "firstTime";
     public static final String TYPE = "Type";
@@ -67,7 +66,7 @@ public class KmlDownloadingService extends IntentService {
         if(KML.isSignedIn()) {
             if(downloadType.equals(REGULAR)) {
                 downloadKML(KML_URL + "&pb=" + getPbValue(0),KML_FILENAME_TODAY);
-                downloadKML(KML_URL + "&pb=" + getPbValue(1),KML_FILENAME_YESTERDAY);
+                //downloadKML(KML_URL + "&pb=" + getPbValue(1),KML_FILENAME_YESTERDAY);
             }
             else {
                 for(int i = 0; i <= 365; i++) {

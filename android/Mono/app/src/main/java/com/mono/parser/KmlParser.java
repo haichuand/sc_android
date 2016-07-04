@@ -12,6 +12,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -20,6 +21,8 @@ import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+
+import org.joda.time.DateTime;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -33,12 +36,6 @@ public class KmlParser {
 
     public KmlParser () {
         factory = DocumentBuilderFactory.newInstance();
-    }
-
-    public ArrayList<LatLngTime> parse(String fileName1, String fileName2) {
-        ArrayList<LatLngTime> result = parse(fileName1);
-        result.addAll(parse(fileName2));
-        return result;
     }
 
     public ArrayList<LatLngTime> parse(String fileName) {
@@ -104,8 +101,15 @@ public class KmlParser {
         catch (Exception e) {
             Log.d("kmlParser", e.getMessage());
         }
-
-            return getUserstay(result);
+            ArrayList<LatLngTime> userstayList = getUserstay(result);
+            //if any userstay is crossing few days, slice it into multiple userstays per 24 hours
+            ArrayList<LatLngTime> resultList = new ArrayList<>();
+            for(int i = 0; i < userstayList.size(); i++) {
+                for(LatLngTime llt: userstaySlicing(userstayList.get(i))) {
+                    resultList.add(llt);
+                }
+            }
+            return resultList;
 
         }
         return null;
@@ -131,6 +135,7 @@ public class KmlParser {
             LatLngTime temp = inputList.get(i);
             double tempLat = temp.getLat();
             double tempLng = temp.getLng();
+            //TODO: change the distance calculation formular
             if(Math.abs(tempLat-stay.getLat()) < 0.0012 && Math.abs(tempLng-stay.getLng()) < 0.0015) {
                 //System.out.println("start: "+stay.toString() + " temp: "+temp.toString());
                 stay.setEndTime(temp.getEndTime());
@@ -154,6 +159,26 @@ public class KmlParser {
             return getUserstay(outputList);
 
     }
+
+    private ArrayList<LatLngTime> userstaySlicing(LatLngTime llt) {
+        ArrayList<LatLngTime> slices = new ArrayList<>();
+        long endTime = llt.getEndTime();
+        long curTime = llt.getStartTime();
+        while(curTime < endTime) {
+            LatLngTime slice = new LatLngTime();
+            slice.setLat(llt.getLat());
+            slice.setLng(llt.getLng());
+            slice.setStartTime(curTime);
+            //get the nextend time(the end of current day) as per pacific time zone
+            long nextend = ((curTime-7*3600*1000) /(24*3600*1000)+1)*24*3600*1000 + 7*3600*1000 - 60*1000;
+            long sliceEnd = nextend > endTime ? endTime : nextend;
+            slice.setEndTime(sliceEnd);
+            slices.add(slice);
+            curTime = sliceEnd + 60*1000;
+        }
+        return slices;
+    }
+
     // for test purpose
     private void outputFile(String path) {
         try {
@@ -173,4 +198,6 @@ public class KmlParser {
             e.printStackTrace();
         }
     }
+
+
 }

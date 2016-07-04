@@ -155,7 +155,6 @@ public class LocationSettingActivity extends AppCompatActivity {
                 if (resultCode == Activity.RESULT_OK) {
                     Log.i(TAG, "User successfully login google account!");
                     sharedPreferences.edit().putBoolean(SuperCalyPreferences.GOOGLE_ACCOUNT_SIGN_IN, true).apply();
-                    sharedPreferences.edit().putInt(SuperCalyPreferences.KML_DOWNLOAD_COUNTER, 0).apply();
                     Intent i = new Intent(getApplicationContext(), KmlDownloadingService.class);
                     i.putExtra(KmlDownloadingService.TYPE, KmlDownloadingService.FIRST_TIME);
                     getApplicationContext().startService(i);
