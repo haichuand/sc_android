@@ -136,7 +136,7 @@ public class KmlParser {
             double tempLat = temp.getLat();
             double tempLng = temp.getLng();
 
-            if(distance(tempLat, tempLng, stay.getLat(), stay.getLng()) <= 50) {
+            if(distance(tempLat, tempLng, stay.getLat(), stay.getLng()) <= 100) {
                 stay.setEndTime(temp.getEndTime());
             }
             else {
