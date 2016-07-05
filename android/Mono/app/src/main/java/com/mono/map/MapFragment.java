@@ -1,4 +1,4 @@
-package com.mono.maps;
+package com.mono.map;
 
 import android.content.Context;
 import android.os.AsyncTask;
@@ -55,7 +55,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MapsFragment extends Fragment implements OnMapReadyCallback, OnMapClickListener,
+public class MapFragment extends Fragment implements OnMapReadyCallback, OnMapClickListener,
         OnMarkerClickListener, InfoWindowAdapter, OnInfoWindowClickListener,
         EventBroadcastListener, TabPagerCallback {
 
@@ -104,9 +104,9 @@ public class MapsFragment extends Fragment implements OnMapReadyCallback, OnMapC
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_maps, container, false);
+        View view = inflater.inflate(R.layout.fragment_map, container, false);
 
-        String tag = getString(R.string.fragment_maps);
+        String tag = getString(R.string.fragment_map);
 
         FragmentManager manager = getChildFragmentManager();
         SupportMapFragment fragment = (SupportMapFragment) manager.findFragmentByTag(tag);

@@ -11,7 +11,7 @@ import android.view.ViewGroup;
 
 import com.mono.calendar.CalendarFragment;
 import com.mono.events.EventsFragment;
-import com.mono.maps.MapsFragment;
+import com.mono.map.MapFragment;
 import com.mono.social.SocialFragment;
 import com.mono.util.OnBackPressedListener;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
@@ -55,7 +55,7 @@ public class MainFragment extends Fragment implements OnBackPressedListener, OnP
 
         tabPagerAdapter.add(R.drawable.ic_list, null, new EventsFragment());
         tabPagerAdapter.add(R.drawable.ic_chat, null, new SocialFragment());
-        tabPagerAdapter.add(R.drawable.ic_place, null, new MapsFragment());
+        tabPagerAdapter.add(R.drawable.ic_place, null, new MapFragment());
     }
 
     @Override

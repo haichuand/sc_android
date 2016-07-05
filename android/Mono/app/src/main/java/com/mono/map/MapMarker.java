@@ -1,4 +1,4 @@
-package com.mono.maps;
+package com.mono.map;
 
 import android.graphics.Color;
 import android.location.Location;

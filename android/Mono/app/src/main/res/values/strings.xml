@@ -37,7 +37,7 @@
     <string name="fragment_chats">ChatsFragment</string>
     <string name="fragment_chats_list">ChatsListFragment</string>
     <string name="fragment_friends_list">FriendsListFragment</string>
-    <string name="fragment_maps">MapsFragment</string>
+    <string name="fragment_map">MapFragment</string>
     <string name="fragment_dummy">DummyFragment</string>
     <string name="fragment_settings">SettingsFragment</string>
     <string name="fragment_location_setting">LocationSettingFragment</string>
