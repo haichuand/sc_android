@@ -140,11 +140,25 @@ public class KmlParser {
                 stay.setEndTime(temp.getEndTime());
             }
             else {
-                //600000 milliseconds == 10 mins
+                //1200000 milliseconds == 20 mins
                 if(stay.getEndTime() - stay.getStartTime() >= 600000){
                     outputList.add(stay);
                 }
-                stay = new LatLngTime(temp.getLat(), temp.getLng(), temp.getStartTime(), temp.getEndTime());
+                //this if-block handles special case of a sudden appeared coordinates
+                if(temp.getStartTime() - stay.getEndTime() >= 1200000) {
+                    long startTime = stay.getEndTime();
+                    //the new userstay will start 10 mins after the previous one(assume 10-mins moving)
+                    stay = new LatLngTime(temp.getLat(), temp.getLng(),startTime+600000, temp.getEndTime());
+                    outputList.add(stay);
+                    if(i < inputList.size()-1) {
+                        stay = new LatLngTime(inputList.get(i+1).getLat(), inputList.get(i+1).getLng(),
+                                inputList.get(i+1).getStartTime(), inputList.get(i+1).getEndTime());
+                        i++;
+                    }
+                    continue;
+                }
+
+                stay = new LatLngTime(temp.getLat(), temp.getLng(),temp.getStartTime(), temp.getEndTime());
             }
         }
         if(stay!=null && stay.getEndTime() - stay.getStartTime() >= 600000){
