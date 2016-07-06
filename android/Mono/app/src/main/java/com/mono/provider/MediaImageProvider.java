@@ -66,7 +66,7 @@ public class MediaImageProvider {
             MediaValues.Image.PROJECTION,
             selection,
             selectionArgs,
-            MediaStore.Images.Media.DATE_TAKEN
+            MediaStore.Images.Media.DATE_TAKEN + " DESC"
         );
 
         if (cursor != null) {
