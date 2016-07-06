@@ -145,7 +145,7 @@ public class KmlParser {
                     outputList.add(stay);
                 }
                 //this if-block handles special case of a sudden appeared coordinates
-                if(temp.getStartTime() - stay.getEndTime() >= 1200000) {
+                if(temp.getStartTime() - stay.getEndTime() >= 1200000 && temp.getStartTime()- temp.getEndTime() == 0) {
                     long startTime = stay.getEndTime();
                     //the new userstay will start 10 mins after the previous one(assume 10-mins moving)
                     stay = new LatLngTime(temp.getLat(), temp.getLng(),startTime+600000, temp.getEndTime());
