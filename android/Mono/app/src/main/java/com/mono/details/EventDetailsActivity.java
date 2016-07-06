@@ -72,7 +72,7 @@ public class EventDetailsActivity extends GestureActivity {
     private CheckBox allDay;
     private TextView timeZoneView;
     private LocationPanel locationPanel;
-    private EditText notes;
+    private NotePanel notePanel;
     private GuestPanel guestPanel;
     private PhotoPanel photoPanel;
 
@@ -208,24 +208,8 @@ public class EventDetailsActivity extends GestureActivity {
         locationPanel = new LocationPanel(this);
         locationPanel.onCreate(savedInstanceState);
 
-        notes = (EditText) findViewById(R.id.notes);
-        notes.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                String value = s.toString().trim();
-                event.description = !value.isEmpty() ? value : null;
-            }
-        });
+        notePanel = new NotePanel(this);
+        notePanel.onCreate(savedInstanceState);
 
         guestPanel = new GuestPanel(this);
         guestPanel.onCreate(savedInstanceState);
@@ -372,11 +356,7 @@ public class EventDetailsActivity extends GestureActivity {
         allDay.setChecked(event.allDay);
 
         locationPanel.setEvent(event);
-
-        if (event.description != null) {
-            notes.setText(event.description);
-        }
-
+        notePanel.setEvent(event);
         guestPanel.setEvent(event);
         photoPanel.setEvent(event);
     }
