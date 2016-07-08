@@ -4,6 +4,8 @@ import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
@@ -12,6 +14,7 @@ import android.text.TextWatcher;
 import android.text.format.DateFormat;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
@@ -25,10 +28,13 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
+import com.google.gson.Gson;
 import com.mono.EventManager;
 import com.mono.R;
+import com.mono.SuperCalyPreferences;
 import com.mono.model.Calendar;
 import com.mono.model.Event;
+import com.mono.model.Location;
 import com.mono.provider.CalendarProvider;
 import com.mono.util.GestureActivity;
 import com.mono.util.TimeZoneHelper;
@@ -38,7 +44,9 @@ import org.joda.time.DateTimeZone;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -81,6 +89,10 @@ public class EventDetailsActivity extends GestureActivity {
 
     private Calendar currentCalendar;
     private int color;
+    SharedPreferences sharedPreferences;
+    private  EventManager manager;
+    private List<Event> events = new ArrayList<>();
+    private HashMap<String, Location> LocationHashmap = new HashMap<String, Location>();
 
     static {
         DATE_FORMAT = new SimpleDateFormat("EEE, MMMM d, yyyy", Locale.getDefault());
@@ -222,6 +234,74 @@ public class EventDetailsActivity extends GestureActivity {
         Calendar calendar = intent.getParcelableExtra(EXTRA_CALENDAR);
 
         initialize(calendar, event);
+    }
+    @Override
+    public boolean dispatchTouchEvent(final MotionEvent event) {
+        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            View v = getCurrentFocus();
+            if ( locationPanel.location.isFocused()) {
+                if(locationPanel.locationChanged) {
+                    if (original.location != null) {
+                        Rect outRect = new Rect();
+                        v.getGlobalVisibleRect(outRect);
+                        if (!outRect.contains((int) event.getRawX(), (int) event.getRawY())) {
+                            v.clearFocus();
+                            AlertDialog.Builder builder = new AlertDialog.Builder(EventDetailsActivity.this);
+                            builder.setMessage(R.string.verify_location_change_forAll);
+
+                            DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    switch (which) {
+                                        case DialogInterface.BUTTON_POSITIVE:
+
+                                            //get all events with same location
+                                            manager = EventManager.getInstance(getApplicationContext());
+                                            events = manager.getEvents(original.location.name, 365);
+
+                                            LocationHashmap.put(locationPanel.location.getText().toString().trim(), original.location);
+                                            //convert to string using gson
+                                            Gson gson = new Gson();
+                                            String hashMapString = gson.toJson(LocationHashmap);
+                                            //save in shared prefs
+                                            sharedPreferences = getSharedPreferences(SuperCalyPreferences.USER_DEFINED_LOCATION, MODE_PRIVATE);
+                                            sharedPreferences.edit().putString(SuperCalyPreferences.USER_DEFINED_LOCATION, hashMapString).apply();
+
+                                            //make changes to all the events
+                                            String eventid = "";
+                                            for (int i = 0; i < events.size(); i++) {
+                                                eventid = events.get(i).id;
+                                                events.get(i).location.name = locationPanel.location.getText().toString().trim();
+                                                manager.updateEvent(
+                                                        EventManager.EventAction.ACTOR_SELF,
+                                                        eventid,
+                                                        events.get(i),
+                                                        null
+                                                );
+                                            }
+
+                                            break;
+
+                                        case DialogInterface.BUTTON_NEGATIVE:
+                                            break;
+                                    }
+
+                                    dialog.dismiss();
+                                    locationPanel.locationChanged = false;
+                                }
+                            };
+
+                            builder.setPositiveButton(R.string.yes, listener);
+                            builder.setNegativeButton(R.string.no, listener);
+
+                            AlertDialog dialog = builder.create();
+                            dialog.show();
+                        }
+                    }
+                }
+            }
+        }
+        return super.dispatchTouchEvent( event );
     }
 
     @Override
@@ -596,4 +676,5 @@ public class EventDetailsActivity extends GestureActivity {
 
         void onSet(Date date);
     }
+
 }

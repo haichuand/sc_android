@@ -46,10 +46,11 @@ public class LocationPanel implements OnMapReadyCallback {
     private SupportMapFragment fragment;
     private GoogleMap map;
     private ImageButton currentButton;
-    private EditText location;
+    public EditText location;
     private TextWatcher textWatcher;
     private View locationPicker;
     private View clear;
+    public boolean locationChanged = false;
 
     private Event event;
     private Marker marker;
@@ -86,7 +87,7 @@ public class LocationPanel implements OnMapReadyCallback {
             @Override
             public void afterTextChanged(Editable s) {
                 String value = s.toString().trim();
-
+                locationChanged = true;
                 Location location = null;
 
                 if (!value.isEmpty()) {

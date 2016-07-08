@@ -10,6 +10,8 @@ import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.mono.EventManager;
 import com.mono.MainActivity;
 import com.mono.SuperCalyPreferences;
@@ -34,6 +36,7 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -51,6 +54,7 @@ public class KmlLocationService extends IntentService{
     private String fileName = "";
     private KmlParser parser;
     ArrayList<LatLngTime> userStays;
+    SharedPreferences sharedPreferences;
 
     public KmlLocationService () {
         super(TAG);
@@ -189,10 +193,36 @@ public class KmlLocationService extends IntentService{
                         }
                         counter++;
                     }
-                    //create a userstay event
-                    event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, firstPlaceName, placeCandidates, firstLocation,
-                        1, startTime, endTime, null, null, false, null, null, null);
-                    Log.d(TAG, "event with id: " + event_id + " created");
+                    //get location info from shared pref to check any user defined address present
+                    sharedPreferences = getSharedPreferences(SuperCalyPreferences.USER_DEFINED_LOCATION, MODE_PRIVATE);
+                    Gson gson = new Gson();
+                    String storedHashMapString = sharedPreferences.getString(SuperCalyPreferences.USER_DEFINED_LOCATION, "default");
+                    java.lang.reflect.Type type = new TypeToken<HashMap<String, Location>>(){}.getType();
+                    if(storedHashMapString != "default") {
+                        HashMap<String, Location> testHashMap = gson.fromJson(storedHashMapString, type);
+                        //use values
+                        Location toastString = testHashMap.get(firstPlaceName);
+                        if (toastString != null) {
+                            Log.i("testtoast", toastString.name);
+                            //create a userstay event
+                            event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, firstPlaceName, placeCandidates, toastString,
+                                    1, startTime, endTime, null, null, false, null, null, null);
+                            Log.d(TAG, "event with id: " + event_id + " created");
+                        }
+                        else
+                        {
+                            event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, firstPlaceName, placeCandidates, firstLocation,
+                                    1, startTime, endTime, null, null, false, null, null, null);
+                            Log.d(TAG, "event with id: " + event_id + " created");
+                        }
+                    }
+                    else
+                    {
+                        //create a userstay event
+                        event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, firstPlaceName, placeCandidates, firstLocation,
+                                1, startTime, endTime, null, null, false, null, null, null);
+                        Log.d(TAG, "event with id: " + event_id + " created");
+                    }
                 }
             }
         }
