@@ -17,6 +17,7 @@ import com.mono.MainActivity;
 import com.mono.R;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.ConversationDataSource;
+import com.mono.model.Account;
 import com.mono.model.Conversation;
 import com.mono.model.Message;
 import com.mono.network.GCMHelper;
@@ -61,7 +62,7 @@ public class MyGcmListenerService extends GcmListenerService {
 
         switch (action) {
             case GCMHelper.ACTION_CONVERSATION_MESSAGE:
-                processMessage(from, data);
+                onNewConversationMessage(from, data);
                 break;
             case GCMHelper.ACTION_START_CONVERSATION:
                 addNewConversation(from, data);
@@ -91,7 +92,7 @@ public class MyGcmListenerService extends GcmListenerService {
         // [END_EXCLUDE]
     }
 
-    private void processMessage(String from, Bundle data) {
+    private void onNewConversationMessage(String from, Bundle data) {
         final String message = data.getString(GCMHelper.MESSAGE);
         final String sender_id = data.getString(GCMHelper.SENDER_ID);
         final String conversation_id = data.getString(GCMHelper.CONVERSATION_ID);
@@ -99,7 +100,7 @@ public class MyGcmListenerService extends GcmListenerService {
         Log.d(TAG, "From user: " + sender_id);
         Log.d(TAG, "Message: " + message);
         Log.d(TAG, "Conversaiton_id: " + conversation_id);
-        sendNotification(message);
+        sendChatNotification(message, conversation_id);
         conversationManager.saveChatMessageToDB(new Message(sender_id, conversation_id, message, new Date().getTime()));
 //        broadcastMessage(data);
         handler.post(new Runnable() {
@@ -206,6 +207,30 @@ public class MyGcmListenerService extends GcmListenerService {
         NotificationCompat.Builder notificationBuilder = (NotificationCompat.Builder) new NotificationCompat.Builder(this)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("GCM Message")
+                .setContentText(message)
+                .setAutoCancel(true)
+                .setSound(defaultSoundUri)
+                .setContentIntent(pendingIntent);
+
+        NotificationManager notificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        notificationManager.notify(0 /* ID of notification */, notificationBuilder.build());
+    }
+
+    private void sendChatNotification (String message, String conversationId) {
+        Intent intent = new Intent(this, ChatRoomActivity.class);
+        intent.putExtra(ChatRoomActivity.CONVERSATION_ID, conversationId);
+        Account account = AccountManager.getInstance(this).getAccount();
+        intent.putExtra(ChatRoomActivity.MY_ID, account.id + "");
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 /* Request code */, intent,
+                PendingIntent.FLAG_ONE_SHOT);
+
+        Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        NotificationCompat.Builder notificationBuilder = (NotificationCompat.Builder) new NotificationCompat.Builder(this)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("SuperCaly Message")
                 .setContentText(message)
                 .setAutoCancel(true)
                 .setSound(defaultSoundUri)

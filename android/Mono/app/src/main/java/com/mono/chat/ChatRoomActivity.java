@@ -105,8 +105,8 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         conversationId = intent.getStringExtra(CONVERSATION_ID);
         myId = intent.getStringExtra(MY_ID);
 
-        if (myId == null) {
-            Log.e(TAG, "Error: missing myId");
+        if (myId == null || conversationId == null) {
+            Log.e(TAG, "Error: missing myId or conversationId");
             finish();
         }
 
@@ -168,10 +168,6 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     }
 
     private void initialize() {
-        if (conversationId == null) {
-            return;
-        }
-
         //set up main chat main view
         chatLayoutManager = new LinearLayoutManager(this);
         chatView.setLayoutManager(chatLayoutManager);
