@@ -1,6 +1,8 @@
 package com.mono.map;
 
+import android.app.DatePickerDialog;
 import android.content.Context;
+import android.graphics.PorterDuff;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -14,23 +16,31 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemSelectedListener;
+import android.widget.ArrayAdapter;
+import android.widget.DatePicker;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
+import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.GoogleMap.InfoWindowAdapter;
+import com.google.android.gms.maps.GoogleMap.OnCameraChangeListener;
 import com.google.android.gms.maps.GoogleMap.OnInfoWindowClickListener;
 import com.google.android.gms.maps.GoogleMap.OnMapClickListener;
 import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptor;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.mono.EventManager;
@@ -38,48 +48,91 @@ import com.mono.EventManager.EventAction;
 import com.mono.EventManager.EventBroadcastListener;
 import com.mono.MainInterface;
 import com.mono.R;
+import com.mono.db.DatabaseHelper;
+import com.mono.db.dao.EventDataSource;
+import com.mono.details.EventDetailsActivity.DateTimePickerCallback;
+import com.mono.map.DirectionsTask.DirectionListener;
+import com.mono.map.MenuPagerAdapter.MenuPagerListener;
 import com.mono.model.Event;
 import com.mono.model.Location;
 import com.mono.settings.Settings;
 import com.mono.util.Colors;
+import com.mono.util.Constants;
 import com.mono.util.LocationHelper;
 import com.mono.util.LocationHelper.LocationCallback;
+import com.mono.util.Pixels;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
+import com.mono.util.SimpleViewPager;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.LocalDate;
+
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
+import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
 
-public class MapFragment extends Fragment implements OnMapReadyCallback, OnMapClickListener,
-        OnMarkerClickListener, InfoWindowAdapter, OnInfoWindowClickListener,
-        EventBroadcastListener, TabPagerCallback {
+/**
+ * A fragment that displays a map showing location events between a specified time period. Events
+ * selected can be viewed for more details or edited as well.
+ *
+ * @author Gary Ng
+ */
+public class MapFragment extends Fragment implements OnMapReadyCallback, OnCameraChangeListener,
+        OnMapClickListener, OnMarkerClickListener, InfoWindowAdapter, OnInfoWindowClickListener,
+        EventBroadcastListener, TabPagerCallback, OnItemSelectedListener {
+
+    private static final SimpleDateFormat DATE_FORMAT;
+    private static final SimpleDateFormat DATE_TIME_FORMAT;
 
     private static final float DEFAULT_ZOOM_LEVEL = 12.5f;
     private static final float DEFAULT_TAP_ZOOM_LEVEL = 14f;
     private static final int CIRCLE_STROKE_WIDTH = 4;
-    private static final int LINE_WIDTH = 4;
 
-    private static final int NUM_DAYS = 3;
+    private static final int MODE_NONE = 0;
+    private static final int MODE_TIMELINE = 1;
+
+    private static final CharSequence[] MENU_ITEMS = {"Day", "Week", "Custom"};
+    private static final int MENU_DAY = 0;
+    private static final int MENU_WEEK = 1;
+    private static final int MENU_CUSTOM = 2;
+
+    private static final float MENU_TEXT_SIZE_SP = 16;
+    private static final int OPTION_DIMENSION_DP = 24;
+    private static final int OPTION_MARGIN_DP = 2;
+
+    private static final int MARKER_COLOR_ID = R.color.colorPrimary;
+    private static final int LINE_WIDTH = 5;
+
+    private static final int LIMIT = 30;
 
     private MainInterface mainInterface;
     private EventManager eventManager;
 
+    private Spinner menu;
+    private ViewGroup menuContainer;
     private GoogleMap map;
 
-    private final Map<Marker, String> markers = new HashMap<>();
-    private final Map<String, MapMarker> mapMarkers = new HashMap<>();
-    private final Map<Integer, BitmapDescriptor> markerBitmapCache = new HashMap<>();
+    private MapMarkerMap markers = new MapMarkerMap();
 
+    private int mode;
     private MapMarker currentMarker;
     private int mapType;
 
-    private AsyncTask<Long, Void, List<? extends Event>> task;
-    private final List<MapMarker> sortedMarkers = new ArrayList<>();
+    private AsyncTask<Object, Void, Map<String, List<Event>>> task;
+
+    private long startTime;
+    private long endTime;
+
+    static {
+        DATE_FORMAT = new SimpleDateFormat("MM/dd/yy", Locale.getDefault());
+        DATE_TIME_FORMAT = new SimpleDateFormat("MMM d, h:mm a", Locale.getDefault());
+    }
 
     @Override
     public void onAttach(Context context) {
@@ -91,6 +144,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnMapCl
         }
 
         mapType = Settings.getInstance(context).getMapType();
+        setMode(MODE_TIMELINE);
     }
 
     @Override
@@ -105,6 +159,16 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnMapCl
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_map, container, false);
+
+        ArrayAdapter<CharSequence> adapter = new ArrayAdapter<>(getContext(),
+            R.layout.simple_spinner_item, MENU_ITEMS);
+        adapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item);
+
+        menu = (Spinner) view.findViewById(R.id.menu);
+        menu.setAdapter(adapter);
+        menu.setOnItemSelectedListener(this);
+
+        menuContainer = (ViewGroup) view.findViewById(R.id.menu_container);
 
         String tag = getString(R.string.fragment_map);
 
@@ -141,7 +205,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnMapCl
 
         switch (id) {
             case R.id.action_clear:
-                clear();
                 return true;
         }
 
@@ -152,6 +215,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnMapCl
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
         map.setMapType(mapType);
+        map.setOnCameraChangeListener(this);
         map.setOnMapClickListener(this);
         map.setOnMarkerClickListener(this);
         map.setInfoWindowAdapter(this);
@@ -162,7 +226,17 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnMapCl
 
         centerLastKnownLocation(false);
 
-//        refresh();
+        startTime = System.currentTimeMillis() - Constants.DAY_MS;
+        endTime = System.currentTimeMillis();
+        refresh();
+    }
+
+    @Override
+    public void onCameraChange(CameraPosition cameraPosition) {
+        if (mode == MODE_NONE) {
+            LatLng target = cameraPosition.target;
+            refresh(target);
+        }
     }
 
     @Override
@@ -173,14 +247,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnMapCl
 
             setZoomLevel(DEFAULT_ZOOM_LEVEL, true);
         }
-
-        createDummyCircle(latLng);
-    }
-
-    private void createDummyCircle(LatLng latLng) {
-        int[] colors = {Colors.BROWN, Colors.BROWN_LIGHT, Colors.LAVENDAR};
-        int color = colors[(int) (Math.random() * colors.length) % colors.length];
-        drawCircle(latLng, 500, color | 0x80000000, color | 0xFF000000);
     }
 
     @Override
@@ -190,7 +256,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnMapCl
             currentMarker = null;
         }
 
-        currentMarker = getMapMarker(marker);
+        currentMarker = markers.get(marker);
         currentMarker.onMarkerClick(true);
 
         marker.showInfoWindow();
@@ -206,13 +272,56 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnMapCl
 
     @Override
     public View getInfoContents(Marker marker) {
-        MapMarker mapMarker = getMapMarker(marker);
-        return null;
+        MapMarker mapMarker = markers.get(marker);
+        Event event = mapMarker.events.get(0);
+
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+        View view = inflater.inflate(R.layout.map_marker_info_event, null, false);
+
+        ImageView icon = (ImageView) view.findViewById(R.id.icon);
+        icon.setColorFilter(event.color | 0xFF000000);
+
+        TextView title = (TextView) view.findViewById(R.id.title);
+        title.setText(event.title);
+
+        String text = DATE_TIME_FORMAT.format(event.startTime) + " to " +
+            DATE_TIME_FORMAT.format(event.endTime);
+        TextView description = (TextView) view.findViewById(R.id.description);
+        description.setText(text);
+
+        ViewGroup options = (ViewGroup) view.findViewById(R.id.options);
+
+        if (event.photos != null && !event.photos.isEmpty()) {
+            createOption(options, R.drawable.ic_camera);
+        }
+
+        return view;
+    }
+
+    private void createOption(ViewGroup viewGroup, int resId) {
+        Context context = getContext();
+
+        ImageView image = new ImageView(context);
+        image.setImageResource(resId);
+
+        int color = Colors.getColor(context, R.color.lavender);
+        image.getDrawable().setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
+
+        int dimension = Pixels.pxFromDp(context, OPTION_DIMENSION_DP);
+        int margin = Pixels.pxFromDp(context, OPTION_MARGIN_DP);
+
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dimension, dimension);
+        params.setMargins(margin, 0, margin, 0);
+
+        viewGroup.addView(image, params);
     }
 
     @Override
     public void onInfoWindowClick(Marker marker) {
-        MapMarker mapMarker = getMapMarker(marker);
+        MapMarker mapMarker = markers.get(marker);
+        Event event = mapMarker.events.get(0);
+
+        mainInterface.showEventDetails(event);
     }
 
     @Override
@@ -252,24 +361,154 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnMapCl
 
     }
 
-    private MapMarker getMapMarker(Marker marker) {
-        return mapMarkers.get(markers.get(marker));
+    /**
+     * Set map mode.
+     *
+     * @param mode The value of the mode.
+     */
+    public void setMode(int mode) {
+        this.mode = mode;
     }
 
-    private void putMarkers(String id, Marker marker, MapMarker mapMarker) {
-        markers.put(marker, id);
-        mapMarkers.put(id, mapMarker);
-    }
-
-    private BitmapDescriptor getMarkerIcon(int resId) {
-        if (markerBitmapCache.containsKey(resId)) {
-            return markerBitmapCache.get(resId);
+    /**
+     * Refresh the map with markers around current centered position.
+     */
+    public void refresh() {
+        if (mode == MODE_TIMELINE) {
+            clear();
         }
 
-        BitmapDescriptor icon = BitmapDescriptorFactory.fromResource(resId);
-        markerBitmapCache.put(resId, icon);
+        refresh(map.getCameraPosition().target);
+    }
 
-        return icon;
+    /**
+     * Refresh the map with markers around the specified position.
+     *
+     * @param position The position in latitude and longitude.
+     */
+    public void refresh(LatLng position) {
+        if (mode == MODE_TIMELINE) {
+            clear();
+        }
+
+        LatLngBounds latLngBounds = map.getProjection().getVisibleRegion().latLngBounds;
+
+        LatLng lowerLeft = latLngBounds.southwest;
+        LatLng upperRight = latLngBounds.northeast;
+
+        double[] latLng = {
+            position.latitude,
+            position.longitude
+        };
+
+        double[] bounds = {
+            lowerLeft.latitude,
+            lowerLeft.longitude,
+            upperRight.latitude,
+            upperRight.longitude
+        };
+
+        int limit = LIMIT;
+
+        if (mode == MODE_TIMELINE) {
+            bounds = null;
+            limit = 100;
+        }
+
+        if (task != null) {
+            task.cancel(true);
+        }
+
+        task = new AsyncTask<Object, Void, Map<String, List<Event>>>() {
+            @Override
+            protected Map<String, List<Event>> doInBackground(Object... params) {
+                double[] latLng = (double[]) params[0];
+                double[] bounds = (double[]) params[1];
+                int limit = (int) params[2];
+
+                Map<String, List<Event>> result = new LinkedHashMap<>();
+                // Retrieve Event IDs
+                EventDataSource dataSource =
+                    DatabaseHelper.getDataSource(getContext(), EventDataSource.class);
+                List<String> eventIds =
+                    dataSource.getEventIds(startTime, endTime, latLng, bounds, 0, limit);
+
+                if (!eventIds.isEmpty()) {
+                    eventIds.removeAll(markers.getIds());
+                    // Group Events by Days
+                    for (int i = 0; i < eventIds.size(); i++) {
+                        String id = eventIds.get(i);
+                        Event event = eventManager.getEvent(id, false);
+                        // Only Locations with Latitude and Longitude
+                        if (event.location.containsLatLng()) {
+                            LocalDate date = new LocalDate(event.startTime);
+                            String key = date.getYear() + "/" + date.getMonthOfYear() + "/" +
+                                date.getDayOfMonth();
+
+                            List<Event> events = result.get(key);
+                            if (events == null) {
+                                result.put(key, events = new ArrayList<>());
+                            }
+
+                            events.add(event);
+                        }
+                    }
+                }
+
+                return result;
+            }
+
+            @Override
+            protected void onPostExecute(Map<String, List<Event>> result) {
+                int tempColor = Colors.getColor(getContext(), MARKER_COLOR_ID);
+
+                int i = result.size() - 1;
+
+                for (List<Event> events : result.values()) {
+                    // Color for Marker and Path
+                    final int color = Colors.getLighter(tempColor, Math.min(0.05f * i--, 0.5f));
+
+                    List<LatLng> positions = new ArrayList<>();
+
+                    for (Event event : events) {
+                        LatLng position = new LatLng(
+                            event.location.getLatitude(),
+                            event.location.getLongitude()
+                        );
+                        // Draw Marker for Event
+                        MapMarker marker = new MapMarker(event.id, event, position);
+
+                        int iconResId = R.drawable.ic_place;
+
+                        if (mode == MODE_TIMELINE) {
+                            marker.drawPointMarker(getContext(), map, color, true);
+                        } else {
+                            marker.drawPlaceMarker(getContext(), map, iconResId, color, true);
+                        }
+
+                        markers.put(event.id, marker);
+                        // Keep Unique Consecutive Positions
+                        if (positions.isEmpty() || !position.equals(positions.get(positions.size() - 1))) {
+                            positions.add(position);
+                        }
+                    }
+                    // Retrieve Path to Draw
+                    new DirectionsTask(positions, new DirectionListener() {
+                        @Override
+                        public void onFinish(List<LatLng> result) {
+                            PolylineOptions options = new PolylineOptions();
+                            options.addAll(result);
+                            options.color(color);
+                            options.width(LINE_WIDTH);
+
+                            map.addPolyline(options);
+                        }
+                    }).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                }
+
+                task = null;
+            }
+        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, latLng, bounds, limit);
     }
 
     private Circle drawCircle(LatLng position, double radius, int color, int strokeColor) {
@@ -281,19 +520,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnMapCl
         options.strokeWidth(CIRCLE_STROKE_WIDTH);
 
         return map.addCircle(options);
-    }
-
-    private Marker drawMarker(LatLng position, int iconResId) {
-        MarkerOptions options = new MarkerOptions();
-        options.anchor(0.5f, 0.5f);
-        options.position(position);
-
-        if (iconResId == 0) {
-            iconResId = R.drawable.ic_star_border;
-        }
-        options.icon(getMarkerIcon(iconResId));
-
-        return map.addMarker(options);
     }
 
     private Polyline drawLine(LatLng from, LatLng to, int color) {
@@ -348,93 +574,144 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnMapCl
         }
     }
 
-    public void refresh() {
-        if (task != null) {
-            task.cancel(true);
-        }
-
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.DAY_OF_MONTH, -NUM_DAYS);
-
-        long startTime = calendar.getTimeInMillis();
-        long endTime = System.currentTimeMillis();
-
-        task = new AsyncTask<Long, Void, List<? extends Event>>() {
-            @Override
-            protected List<? extends Event> doInBackground(Long... params) {
-                long startTime = params[0];
-                long endTime = params[1];
-
-                return eventManager.getEvents(startTime, endTime);
-            }
-
-            @Override
-            protected void onPostExecute(List<? extends Event> result) {
-                showAll(result, true);
-                task = null;
-            }
-        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, startTime, endTime);
-    }
-
     public void clear() {
         map.clear();
         markers.clear();
 
-        for (MapMarker mapMarker : mapMarkers.values()) {
-            mapMarker.clear();
-        }
-        mapMarkers.clear();
-
         currentMarker = null;
     }
 
-    public void show(String id, double latitude, double longitude, int iconResId, double radius,
-            int color, int strokeColor, Event event) {
-        if (mapMarkers.containsKey(id)) {
-            return;
+    @Override
+    public void onItemSelected(AdapterView parent, View view, int position, long id) {
+        ((TextView) parent.getChildAt(0)).setTextSize(MENU_TEXT_SIZE_SP);
+
+        switch (position) {
+            case MENU_DAY:
+                onMenuDay();
+                break;
+            case MENU_WEEK:
+                onMenuWeek();
+                break;
+            case MENU_CUSTOM:
+                onMenuCustom();
+                break;
         }
-
-        LatLng position = new LatLng(latitude, longitude);
-        Marker marker = drawMarker(position, iconResId);
-
-        MapMarker<Event> mapMarker = new MapMarker<>(id, marker, event);
-
-        Circle circle = drawCircle(position, radius, color, strokeColor);
-        mapMarker.setCircle(circle);
-
-        putMarkers(id, mapMarker.marker, mapMarker);
     }
 
-    public void showAll(List<? extends Event> events, boolean clear) {
-        if (clear) {
-            clear();
-        }
+    @Override
+    public void onNothingSelected(AdapterView parent) {
 
-        for (Event event : events) {
-            Location location = event.location;
-            if (location != null && location.containsLatLng()) {
-                show(event.id, location.getLatitude(), location.getLongitude(), 0, 0, 0, 0, event);
-            }
-        }
-
-        sortMarkersByTime();
     }
 
-    public void sortMarkersByTime() {
-        Collection<MapMarker> markers = mapMarkers.values();
-        sortedMarkers.clear();
+    private void showMenuPager(int type, MenuPagerListener listener) {
+        menuContainer.removeAllViews();
 
-        for (MapMarker marker : markers) {
-            if (marker.marker != null) {
-                sortedMarkers.add(marker);
-            }
-        }
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+        View view = inflater.inflate(R.layout.map_menu_pager, null, false);
 
-        Collections.sort(sortedMarkers, new Comparator<MapMarker>() {
+        int count = 100;
+        SimpleViewPager viewPager = (SimpleViewPager) view.findViewById(R.id.container);
+        viewPager.setAdapter(new MenuPagerAdapter(type, count, listener));
+
+        viewPager.setCurrentItem(count - 1);
+        viewPager.setOffscreenPageLimit(10);
+        viewPager.setSwipeEnabled(true);
+        viewPager.setPageMargin(Pixels.pxFromDp(getContext(), 1));
+        viewPager.setPageMarginDrawable(android.R.color.white);
+
+        menuContainer.addView(view);
+    }
+
+    private void onMenuDay() {
+        showMenuPager(MenuPagerAdapter.TYPE_DAY, new MenuPagerListener() {
             @Override
-            public int compare(MapMarker m1, MapMarker m2) {
-                return Long.compare(m1.getStartTime(), m2.getStartTime());
+            public void onDaySelected(int year, int month, int day) {
+                DateTime dateTime = new DateTime(year, month, day, 0, 0);
+
+                startTime = dateTime.millisOfDay().withMinimumValue().getMillis();
+                endTime = dateTime.millisOfDay().withMaximumValue().getMillis();
+
+                refresh();
             }
         });
+    }
+
+    private void onMenuWeek() {
+        showMenuPager(MenuPagerAdapter.TYPE_WEEK, new MenuPagerListener() {
+            @Override
+            public void onWeekSelected(int year, int week) {
+                DateTime dateTime = new DateTime().withYear(year).withWeekOfWeekyear(week);
+
+                DateTime startDateTime = dateTime.dayOfWeek().withMinimumValue().minusDays(1);
+                startTime = startDateTime.millisOfDay().withMinimumValue().getMillis();
+
+                DateTime endDateTime = dateTime.dayOfWeek().withMaximumValue().minusDays(1);
+                endTime = endDateTime.millisOfDay().withMaximumValue().getMillis();
+
+                refresh();
+            }
+        });
+    }
+
+    private void onMenuCustom() {
+        menuContainer.removeAllViews();
+
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+        View view = inflater.inflate(R.layout.map_menu_range, null, false);
+
+        final TextView startDate = (TextView) view.findViewById(R.id.start_date);
+        startDate.setText(DATE_FORMAT.format(startTime));
+        startDate.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String timeZone = TimeZone.getDefault().getID();
+                onDateClick(startTime, timeZone, new DateTimePickerCallback() {
+                    @Override
+                    public void onSet(Date date) {
+                        startDate.setText(DATE_FORMAT.format(startTime = date.getTime()));
+                        refresh();
+                    }
+                });
+            }
+        });
+
+        final TextView endDate = (TextView) view.findViewById(R.id.end_date);
+        endDate.setText(DATE_FORMAT.format(endTime));
+        endDate.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String timeZone = TimeZone.getDefault().getID();
+                onDateClick(endTime, timeZone, new DateTimePickerCallback() {
+                    @Override
+                    public void onSet(Date date) {
+                        endDate.setText(DATE_FORMAT.format(endTime = date.getTime()));
+                        refresh();
+                    }
+                });
+            }
+        });
+
+        menuContainer.addView(view);
+    }
+
+    public void onDateClick(long milliseconds, String timeZone,
+            final DateTimePickerCallback callback) {
+        final DateTime dateTime = new DateTime(milliseconds, DateTimeZone.forID(timeZone));
+
+        DatePickerDialog dialog = new DatePickerDialog(
+            getContext(),
+            new DatePickerDialog.OnDateSetListener() {
+                @Override
+                public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
+                    DateTime newDateTime = dateTime.withDate(year, monthOfYear + 1, dayOfMonth);
+                    callback.onSet(newDateTime.toDate());
+                }
+            },
+            dateTime.getYear(),
+            dateTime.getMonthOfYear() - 1,
+            dateTime.getDayOfMonth()
+        );
+
+        dialog.show();
     }
 }

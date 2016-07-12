@@ -568,6 +568,125 @@ public class EventDataSource extends DataSource {
     }
 
     /**
+     * Retrieve event IDs belonging within a time range as well as within a latitude and longitude
+     * bounding box.
+     *
+     * @param startTime The start time of the event.
+     * @param endTime The end time of the event.
+     * @param latLng The value containing latitude and longitude.
+     * @param bounds The value containing lower and upper bounds in latitude and longitude.
+     * @param offset The offset to start with.
+     * @param limit The max number of results to return.
+     * @param calendarIds The array of calendar IDs.
+     * @return a list of event IDs.
+     */
+    public List<String> getEventIds(long startTime, long endTime, double[] latLng, double[] bounds,
+            int offset, int limit, long... calendarIds) {
+        List<String> result = new ArrayList<>();
+
+        String DISTANCE = "`distance`";
+
+        String[] projection = {
+            "e." + DatabaseValues.Event.ID,
+            DatabaseValues.Event.CALENDAR_ID,
+            DatabaseValues.Event.LOCATION_ID,
+            DatabaseValues.Event.START_TIME,
+            DatabaseValues.Event.END_TIME,
+            DatabaseValues.Location.LATITUDE,
+            DatabaseValues.Location.LONGITUDE,
+            getLatLongDistanceSquared(latLng) + " AS " + DISTANCE
+        };
+
+        String table = "(" +
+            " SELECT " + Common.implode(", ", projection) +
+            " FROM " + DatabaseValues.Event.TABLE + " e" +
+            " INNER JOIN " + DatabaseValues.Location.TABLE + " l" +
+            " ON e." + DatabaseValues.Event.LOCATION_ID + " = l." + DatabaseValues.Location.ID +
+        ")";
+
+        List<String> args = new ArrayList<>();
+
+        String selection = getTimeSelection(args, startTime, endTime);
+
+        if (bounds != null) {
+            selection += " AND ";
+            selection += getLatLongBoundsSelection(args, bounds);
+        }
+
+        if (calendarIds != null && calendarIds.length > 0) {
+            selection += " AND ";
+            selection += getCalendarSelection(args, calendarIds);
+        }
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
+
+        Cursor cursor = database.select(
+            table,
+            new String[]{
+                DatabaseValues.Event.ID,
+                DatabaseValues.Event.LOCATION_ID,
+                DatabaseValues.Location.LATITUDE,
+                DatabaseValues.Location.LONGITUDE,
+                DISTANCE
+            },
+            selection,
+            selectionArgs,
+            null,
+            DatabaseValues.Event.START_TIME + " DESC, " + DISTANCE,
+            offset,
+            limit
+        );
+
+        while (cursor.moveToNext()) {
+            String eventId = cursor.getString(0);
+            result.add(eventId);
+        }
+
+        cursor.close();
+
+        return result;
+    }
+
+    /**
+     * Helper function to return a string to calculate distance of all locations to the given
+     * position.
+     *
+     * @param latLng The value containing latitude and longitude.
+     * @return a selection string.
+     */
+    private String getLatLongDistanceSquared(double[] latLng) {
+        String latExpr = "(" + DatabaseValues.Location.LATITUDE + " - " + latLng[0] + ")";
+        String longExpr = "(" + DatabaseValues.Location.LONGITUDE + " - " + latLng[1] + ")";
+
+        return String.format("%s * %s + %s * %s", latExpr, latExpr, longExpr, longExpr);
+    }
+
+    /**
+     * Helper function to get the latitude and longitude bounds selection and arguments.
+     *
+     * @param args The list to insert arguments.
+     * @param bounds The value containing lower and upper bounds in latitude and longitude.
+     * @return a selection string.
+     */
+    private String getLatLongBoundsSelection(List<String> args, double[] bounds) {
+        String selection = String.format(
+            "(%s BETWEEN ? AND ? AND %s BETWEEN ? AND ?)",
+            DatabaseValues.Location.LATITUDE,
+            DatabaseValues.Location.LONGITUDE
+        );
+
+        double minLat = bounds[0], minLong = bounds[1];
+        double maxLat = bounds[2], maxLong = bounds[3];
+
+        args.add(String.valueOf(minLat));
+        args.add(String.valueOf(maxLat));
+        args.add(String.valueOf(minLong));
+        args.add(String.valueOf(maxLong));
+
+        return selection;
+    }
+
+    /**
      * Retrieve all color markers for the specific month.
      *
      * @param year The value of the year.
