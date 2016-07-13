@@ -181,7 +181,7 @@ public class KmlLocationService extends IntentService{
                     for (Location location : locationList) {
                         //check if the location exists in the database
                         if (locationDataSource.getLocationByGooglePlaceId(location.googlePlaceId) == null) {
-                            locationId = locationDataSource.createLocation(location.name, location.googlePlaceId, location.getLatitude(), location.getLatitude(), location.getAddress());
+                            locationId = locationDataSource.createLocation(location.name, location.googlePlaceId, location.getLatitude(), location.getLongitude(), location.getAddress());
                             //todo:this id would be used to map a location record to a event in eventLocationTable
                             location.id = locationId;
                         }
