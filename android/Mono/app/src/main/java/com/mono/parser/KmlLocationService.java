@@ -77,7 +77,7 @@ public class KmlLocationService extends IntentService{
                 String storage = Environment.getExternalStorageDirectory().getPath() + "/";
                 File file = new File(storage + MainActivity.APP_DIR + fileName);
                 if (file.exists()) {
-                    //file.delete();
+                    file.delete();
                     //Log.d(TAG, fileName + "has been parsed and deleted!");
                 }
             }
