@@ -12,6 +12,7 @@ import android.support.v7.app.AlertDialog;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.format.DateFormat;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -255,10 +256,11 @@ public class EventDetailsActivity extends GestureActivity {
                                     switch (which) {
                                         case DialogInterface.BUTTON_POSITIVE:
 
+                                            title.setText(locationPanel.location.getText().toString().trim());
                                             //get all events with same location
                                             manager = EventManager.getInstance(getApplicationContext());
-                                            events = manager.getEvents(original.location.name, 365);
-
+                                            events = manager.getEvents(original.location.getAddress(), 365);
+                                            Log.d("test", "address" + original.location.getAddress());
                                             LocationHashmap.put(locationPanel.location.getText().toString().trim(), original.location);
                                             //convert to string using gson
                                             Gson gson = new Gson();
@@ -272,6 +274,7 @@ public class EventDetailsActivity extends GestureActivity {
                                             for (int i = 0; i < events.size(); i++) {
                                                 eventid = events.get(i).id;
                                                 events.get(i).location.name = locationPanel.location.getText().toString().trim();
+                                                events.get(i).title = locationPanel.location.getText().toString().trim();
                                                 manager.updateEvent(
                                                         EventManager.EventAction.ACTOR_SELF,
                                                         eventid,
