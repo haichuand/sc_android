@@ -159,8 +159,9 @@ public class KmlLocationService extends IntentService{
             address = (String)params[1];
             place_id = (String)params[2];
             Log.d(TAG, "google place LatLong: " + latitude + ", " +longitude);
-            String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + latitude + "," + longitude +
-                    "&radius=50&key=" + GOOGLE_API_KEY;
+           // String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + latitude + "," + longitude +
+              //      "&radius=50&key=" + GOOGLE_API_KEY;
+             String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + latitude + "," + longitude +"&rankby=distance&type=establishment&key="+ GOOGLE_API_KEY;
             requestResult = makeCall(url);
             return "";
         }
@@ -168,31 +169,23 @@ public class KmlLocationService extends IntentService{
         protected void onPostExecute(String result) {
             if(requestResult != null) {
                 locationList = parseGooglePlace(requestResult, address, place_id, llt);
-                //TODO: remove later, for testing purpose only:
-                String placeCandidates = "Place candidates: \n";
+
                 long locationId;
-                int counter = 1;
+              //  int counter = 1;
                 String firstPlaceName = "";
                 //todo: pick the location if the user had been there
                 //now simply pick the first location of returned locations
                 if(!locationList.isEmpty()) {
-                    Location firstLocation = locationList.get(0);
-
-                    for (Location location : locationList) {
+                    Location firstLocation = locationList.get(1);
+                    firstPlaceName = firstLocation.name;
+                    firstLocation.setAddress(locationList.get(0).address);
                         //check if the location exists in the database
-                        if (locationDataSource.getLocationByGooglePlaceId(location.googlePlaceId) == null) {
-                            locationId = locationDataSource.createLocation(location.name, location.googlePlaceId, location.getLatitude(), location.getLongitude(), location.getAddress());
+                        if (locationDataSource.getLocationByGooglePlaceId(firstLocation.googlePlaceId) == null) {
+                            locationId = locationDataSource.createLocation(firstLocation.name, firstLocation.googlePlaceId, firstLocation.getLatitude(), firstLocation.getLongitude(), firstLocation.getAddress());
                             //todo:this id would be used to map a location record to a event in eventLocationTable
-                            location.id = locationId;
+                            firstLocation.id = locationId;
                         }
-                        placeCandidates += "Place " + counter + ". " + location.name + "\n";
-                        //TODO: Temporarily use the second place name as the event title
-                        if (counter == 2) {
-                            firstPlaceName = location.name;
-                            firstLocation = location;
-                        }
-                        counter++;
-                    }
+
                     //get location info from shared pref to check any user defined address present
                     sharedPreferences = getSharedPreferences(SuperCalyPreferences.USER_DEFINED_LOCATION, MODE_PRIVATE);
                     Gson gson = new Gson();
@@ -205,13 +198,13 @@ public class KmlLocationService extends IntentService{
                         if (toastString != null) {
                             Log.i("testtoast", toastString.name);
                             //create a userstay event
-                            event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, firstPlaceName, placeCandidates, toastString,
+                            event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, firstPlaceName, address, toastString,
                                     1, startTime, endTime, null, null, false, null, null, null);
                             Log.d(TAG, "event with id: " + event_id + " created");
                         }
                         else
                         {
-                            event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, firstPlaceName, placeCandidates, firstLocation,
+                            event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, firstPlaceName, address, firstLocation,
                                     1, startTime, endTime, null, null, false, null, null, null);
                             Log.d(TAG, "event with id: " + event_id + " created");
                         }
@@ -219,7 +212,7 @@ public class KmlLocationService extends IntentService{
                     else
                     {
                         //create a userstay event
-                        event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, firstPlaceName, placeCandidates, firstLocation,
+                        event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, firstPlaceName, address, firstLocation,
                                 1, startTime, endTime, null, null, false, null, null, null);
                         Log.d(TAG, "event with id: " + event_id + " created");
                     }
