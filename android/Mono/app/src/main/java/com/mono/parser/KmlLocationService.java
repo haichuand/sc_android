@@ -169,14 +169,19 @@ public class KmlLocationService extends IntentService{
         protected void onPostExecute(String result) {
             if(requestResult != null) {
                 locationList = parseGooglePlace(requestResult, address, place_id, llt);
-
                 long locationId;
-              //  int counter = 1;
                 String firstPlaceName = "";
                 //todo: pick the location if the user had been there
                 //now simply pick the first location of returned locations
                 if(!locationList.isEmpty()) {
-                    Location firstLocation = locationList.get(1);
+
+                    Location firstLocation = locationList.get(0);
+
+                    if(locationList.size() >= 2)
+                    {
+                        firstLocation = locationList.get(1);
+                    }
+
                     firstPlaceName = firstLocation.name;
                     firstLocation.setAddress(locationList.get(0).address);
                         //check if the location exists in the database
