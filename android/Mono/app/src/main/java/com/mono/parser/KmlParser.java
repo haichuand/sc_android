@@ -59,7 +59,6 @@ public class KmlParser {
                 NodeList whenList = elem.getElementsByTagName("when");
                 NodeList locationList = elem.getElementsByTagName("gx:coord");
                 if(whenList == null || locationList == null) {
-
                     return null;
                 }
                 String format = "yyyy-MM-dd'T'HH:mm:ss.SSS";
@@ -144,7 +143,8 @@ public class KmlParser {
                 if(stay.getEndTime() - stay.getStartTime() >= 600000){
                     outputList.add(stay);
                 }
-                //this if-block handles special case of a sudden appeared coordinates
+                //this if-block handles special case of a standalone userstay in first round of iteration
+                //standalone userstay: one userstay records but represents a long period of stay
                 if(temp.getStartTime() - stay.getEndTime() >= 2400000 && temp.getStartTime()- temp.getEndTime() == 0) {
                     long startTime = stay.getEndTime();
                     //the new userstay will start 10 mins after the previous one(assume 10-mins moving)
