@@ -54,6 +54,7 @@ public class MyGcmListenerService extends GcmListenerService {
         handler = new Handler();
     }
 
+    @Override
     public void onMessageReceived(String from, Bundle data) {
         //TODO: need to handle different actions
         String action = data.getString(GCMHelper.ACTION);
@@ -96,13 +97,10 @@ public class MyGcmListenerService extends GcmListenerService {
         final String message = data.getString(GCMHelper.MESSAGE);
         final String sender_id = data.getString(GCMHelper.SENDER_ID);
         final String conversation_id = data.getString(GCMHelper.CONVERSATION_ID);
-        Log.d(TAG, "From: " + from);
-        Log.d(TAG, "From user: " + sender_id);
-        Log.d(TAG, "Message: " + message);
-        Log.d(TAG, "Conversaiton_id: " + conversation_id);
-        sendChatNotification(message, conversation_id);
-        conversationManager.saveChatMessageToDB(new Message(sender_id, conversation_id, message, new Date().getTime()));
-//        broadcastMessage(data);
+        if (!String.valueOf(AccountManager.getInstance(this).getAccount().id).equals(sender_id)) {
+            sendChatNotification(message, conversation_id);
+        }
+        conversationManager.saveChatMessageToDB(new Message(sender_id, conversation_id, message, System.currentTimeMillis()));
         handler.post(new Runnable() {
             @Override
             public void run() {
@@ -122,17 +120,20 @@ public class MyGcmListenerService extends GcmListenerService {
         String title = "";
         try {
             title = conversationInfo.getString(HttpServerManager.TITLE);
-            String creatorId = conversationInfo.getLong(HttpServerManager.CREATOR_ID) + "";
+            Long creatorId = conversationInfo.getLong(HttpServerManager.CREATOR_ID);
+            if (AccountManager.getInstance(this).getAccount().id == creatorId) { //sent by user self
+                return false;
+            }
             JSONArray attendeesArray = conversationInfo.getJSONArray(HttpServerManager.ATTENDEES_ID);
             ArrayList<String> attendeesList = new ArrayList<>();
-            if (attendeesArray != null && attendeesArray.length() > 0) {
+            if (attendeesArray != null) {
                 for (int i=0; i<attendeesArray.length(); i++) {
                     attendeesList.add(attendeesArray.get(i).toString());
                 }
             }
 
             ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
-            if (!conversationDataSource.createConversation(conversationId, creatorId, title, attendeesList)) {
+            if (!conversationDataSource.createConversation(conversationId, String.valueOf(creatorId), title, attendeesList)) {
                 Log.d(TAG, "Conversation with id: " + conversationId + " already exists");
             } else {
                 sendNotification("Added new conversation with title: " + title + "; attendees: " + attendeesList);

@@ -122,7 +122,7 @@ public class ChatUtil {
 
                 //checkedChatAttendeeIds should contain myId
                 if (httpServerManager.createConversation(conversation.id, conversationTitle, myId, checkedChatAttendeeIds)) {
-                    checkedChatAttendeeIds.remove(myId);
+//                    checkedChatAttendeeIds.remove(myId);
                     ChatServerManager chatServerManager = new ChatServerManager(context);
                     chatServerManager.startConversation(myId, conversation.id, checkedChatAttendeeIds);
                 } else { //set conversation sync_needed flag to true

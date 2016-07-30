@@ -28,15 +28,31 @@
             android:padding="6dp"
             android:textSize="16sp"/>
 
-        <ImageButton
-            android:id="@+id/sendButton"
+        <FrameLayout
             android:layout_width="44dp"
-            android:layout_height="34dp"
-            android:layout_marginStart="10dp"
-            android:background="@drawable/input"
-            android:src="@drawable/ic_send"
-            android:tint="?attr/colorPrimary"
-            android:onClick="onSendButtonClicked"
-            style="?attr/borderlessButtonStyle"/>
+            android:layout_height="34dp">
+
+            <ProgressBar
+                android:id="@+id/sendProgressBar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_margin="4dp"
+                android:indeterminate="true"
+                android:visibility="gone"/>
+
+            <ImageButton
+                android:id="@+id/sendButton"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/input"
+                android:src="@drawable/ic_send"
+                android:tint="?attr/colorPrimary"
+                android:onClick="onSendButtonClicked"
+                style="?attr/borderlessButtonStyle"/>
+
+        </FrameLayout>
+
+
     </LinearLayout>
 </LinearLayout>

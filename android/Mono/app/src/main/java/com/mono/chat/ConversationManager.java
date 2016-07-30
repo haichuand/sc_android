@@ -88,7 +88,7 @@ public class ConversationManager {
 
     public List<String> getChatAttendeeIdList(ChatAttendeeMap attendeeMap, String myId) {
         ArrayList<String> attendeeIdList = new ArrayList<>(attendeeMap.getAttendeeMap().keySet());
-        attendeeIdList.remove(myId);
+//        attendeeIdList.remove(myId); //commented out to send message to user self for confirmation
         return attendeeIdList;
     }
 
