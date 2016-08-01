@@ -22,6 +22,7 @@ public class ConversationManager {
     private ConversationDataSource conversationDataSource;
     private AttendeeDataSource attendeeDataSource;
     private final List<ConversationBroadcastListener> listeners = new ArrayList<>();
+    private String activeConversationId = null;
 
     private ConversationManager(Context context) {
         this.context = context;
@@ -34,6 +35,14 @@ public class ConversationManager {
             instance = new ConversationManager(context.getApplicationContext());
         }
         return instance;
+    }
+
+    public String getActiveConversationId() {
+        return activeConversationId;
+    }
+
+    public void setActiveConversationId(String activeConversationId) {
+        this.activeConversationId = activeConversationId;
     }
 
     public String createConversation(String name, String eventId, List<String> attendeeIds, String creatorId) {

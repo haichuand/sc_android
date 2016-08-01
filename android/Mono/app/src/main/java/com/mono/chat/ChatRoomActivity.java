@@ -289,6 +289,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         }
 
         conversationManager.addListener(this);
+        conversationManager.setActiveConversationId(conversationId);
     }
 
     @Override
@@ -313,12 +314,13 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     @Override
     protected void onStop() {
 //        LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver);
+        conversationManager.setActiveConversationId(null);
+        conversationManager.removeListener(this);
         super.onStop();
     }
 
     @Override
     protected void onDestroy() {
-        conversationManager.removeListener(this);
         super.onDestroy();
     }
 
@@ -581,7 +583,9 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         }
 
         if (myId.equals(senderId)) { //self-sent ack message
-            countDownTimer.cancel();
+            if (countDownTimer != null) {
+                countDownTimer.cancel();
+            }
             sendButton.setVisibility(View.VISIBLE);
             sendProgressBar.setVisibility(View.GONE);
         }

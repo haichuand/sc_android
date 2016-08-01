@@ -56,7 +56,6 @@ public class MyGcmListenerService extends GcmListenerService {
 
     @Override
     public void onMessageReceived(String from, Bundle data) {
-        //TODO: need to handle different actions
         String action = data.getString(GCMHelper.ACTION);
         if (action == null)
             return;
@@ -97,8 +96,8 @@ public class MyGcmListenerService extends GcmListenerService {
         final String message = data.getString(GCMHelper.MESSAGE);
         final String sender_id = data.getString(GCMHelper.SENDER_ID);
         final String conversation_id = data.getString(GCMHelper.CONVERSATION_ID);
-        if (!String.valueOf(AccountManager.getInstance(this).getAccount().id).equals(sender_id)) {
-            sendChatNotification(message, conversation_id);
+        if (sender_id == null || conversation_id == null) {
+            return;
         }
         conversationManager.saveChatMessageToDB(new Message(sender_id, conversation_id, message, System.currentTimeMillis()));
         handler.post(new Runnable() {
@@ -107,6 +106,9 @@ public class MyGcmListenerService extends GcmListenerService {
                 conversationManager.notifyListenersNewConversationMessage(conversation_id, sender_id, message);
             }
         });
+        if (!String.valueOf(AccountManager.getInstance(this).getAccount().id).equals(sender_id) && !conversation_id.equals(conversationManager.getActiveConversationId())) {
+            sendChatNotification(message, conversation_id);
+        }
     }
 
     private boolean addNewConversation(String from, Bundle data) {
@@ -200,7 +202,7 @@ public class MyGcmListenerService extends GcmListenerService {
      */
     private void sendNotification(String message) {
         Intent intent = new Intent(this, MainActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 /* Request code */, intent,
                 PendingIntent.FLAG_ONE_SHOT);
 
@@ -224,7 +226,7 @@ public class MyGcmListenerService extends GcmListenerService {
         intent.putExtra(ChatRoomActivity.CONVERSATION_ID, conversationId);
         Account account = AccountManager.getInstance(this).getAccount();
         intent.putExtra(ChatRoomActivity.MY_ID, account.id + "");
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 /* Request code */, intent,
                 PendingIntent.FLAG_ONE_SHOT);
 
@@ -240,7 +242,7 @@ public class MyGcmListenerService extends GcmListenerService {
         NotificationManager notificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
-        notificationManager.notify(0 /* ID of notification */, notificationBuilder.build());
+        notificationManager.notify(conversationId.hashCode() /* ID of notification */, notificationBuilder.build());
     }
 
 //    private void broadcastMessage(Bundle data) {

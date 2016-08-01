@@ -126,7 +126,7 @@
 
             <intent-filter>
                 <action android:name="com.google.android.c2dm.intent.RECEIVE"/>
-                <category android:name="com.example.gcm"/>
+                <category android:name="com.mono"/>
             </intent-filter>
         </receiver>
 
