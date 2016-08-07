@@ -222,12 +222,12 @@ public class MyGcmListenerService extends GcmListenerService {
     }
 
     private void sendChatNotification (String message, String conversationId) {
-        Intent intent = new Intent(this, ChatRoomActivity.class);
+        Intent intent = new Intent(getApplicationContext(), ChatRoomActivity.class);
         intent.putExtra(ChatRoomActivity.CONVERSATION_ID, conversationId);
         Account account = AccountManager.getInstance(this).getAccount();
         intent.putExtra(ChatRoomActivity.MY_ID, account.id + "");
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 /* Request code */, intent,
+        intent.addFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, conversationId.hashCode() /* Request code */, intent,
                 PendingIntent.FLAG_ONE_SHOT);
 
         Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);

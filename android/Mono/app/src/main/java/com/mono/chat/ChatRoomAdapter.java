@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * Created by hduan on 3/8/2016.
@@ -38,6 +39,18 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatVi
     private Map<String, Attendee> chatAttendees;
     private Map<String, Integer> userColors = new HashMap<>();
     private List<Message> chatMessages;
+    private static int[] colorIds = {
+            R.color.blue,
+            R.color.blue_1,
+            R.color.blue_dark,
+            R.color.brown,
+            R.color.green,
+            R.color.lavender,
+            R.color.orange,
+            R.color.purple,
+            R.color.red_1,
+            R.color.yellow_1
+    };
 
     static {
         DATE_TIME_FORMAT = new SimpleDateFormat("MMM d, h:mm a", Locale.getDefault());
@@ -89,11 +102,11 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatVi
                 holder.senderName.setText(userId);
             }
 
-            if (!userColors.containsKey(userId)) {
-                userColors.put(userId, getRandomColor());
-            }
+//            if (!userColors.containsKey(userId)) {
+//                userColors.put(userId, getRandomColor());
+//            }
 
-            color = userColors.get(userId);
+            color = getColorByUserId(userId);
         }
 
         holder.sendImage.getDrawable().setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
@@ -130,20 +143,12 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatVi
     }
 
     public int getRandomColor() {
-        int[] colorIds = {
-            R.color.blue,
-            R.color.blue_1,
-            R.color.blue_dark,
-            R.color.brown,
-            R.color.green,
-            R.color.lavender,
-            R.color.orange,
-            R.color.purple,
-            R.color.red_1,
-            R.color.yellow_1
-        };
-
         int colorId = colorIds[(int) (Math.random() * colorIds.length) % colorIds.length];
+        return Colors.getColor(context, colorId);
+    }
+
+    public int getColorByUserId (String userId) {
+        int colorId = colorIds[Math.abs(userId.hashCode()) % colorIds.length];
         return Colors.getColor(context, colorId);
     }
 

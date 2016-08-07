@@ -314,9 +314,9 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     @Override
     protected void onStop() {
 //        LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver);
+        super.onStop();
         conversationManager.setActiveConversationId(null);
         conversationManager.removeListener(this);
-        super.onStop();
     }
 
     @Override
