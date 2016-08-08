@@ -223,9 +223,10 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
 
         //set up auto complete text view for inviting friends
         addAttendeeTextView = (AutoCompleteTextView) findViewById(R.id.edit_text_invite);
-        List<Attendee> allUsersList = conversationManager.getAllUserList();
+        final List<Attendee> allUsersList = conversationManager.getAllUserList();
         Collections.sort(allUsersList, new AttendeeUsernameComparator());
-        ArrayAdapter<Attendee> addAttendeeAdapter = new ArrayAdapter<Attendee>(this, android.R.layout.simple_dropdown_item_1line, allUsersList);
+        List<String> allUserStringList = ChatUtil.getAttendeeStringtWithNameAndEmail(allUsersList);
+        ArrayAdapter<String> addAttendeeAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, allUserStringList);
         addAttendeeTextView.setAdapter(addAttendeeAdapter);
         addAttendeeTextView.setInputType(InputType.TYPE_NULL);
 //        addAttendeeTextView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
@@ -245,7 +246,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         addAttendeeTextView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                Attendee attendee = (Attendee) adapterView.getItemAtPosition(i);
+                Attendee attendee = allUsersList.get(i);
                 if (checkBoxAttendeeIdList.contains(attendee.id)) {
                     Toast.makeText(ChatRoomActivity.this, "User already in chat", Toast.LENGTH_SHORT).show();
                     addAttendeeTextView.setText("");
@@ -254,6 +255,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
                     updateChatAttendeeIdList.add(attendee.id);
                     addCheckBoxFromAttendee(chatAttendeeListLayout, attendee, checkedChangeListener);
                 }
+                addAttendeeTextView.setText("");
             }
         });
 

@@ -71,9 +71,10 @@ public class ChatUtil {
 
         //set AutoCompleteTextView to show all users
         final AutoCompleteTextView addAttendeeTextView = (AutoCompleteTextView) dialog.findViewById(R.id.create_chat_add_attendees);
-        List<Attendee> allUsersList = conversationManager.getAllUserList();
+        final List<Attendee> allUsersList = conversationManager.getAllUserList();
         Collections.sort(allUsersList, new AttendeeUsernameComparator());
-        ArrayAdapter<Attendee> addAttendeeAdapter = new ArrayAdapter<>(context, android.R.layout.simple_dropdown_item_1line, allUsersList);
+        List<String> attendeeStringList = getAttendeeStringtWithNameAndEmail(allUsersList);
+        ArrayAdapter<String> addAttendeeAdapter = new ArrayAdapter<>(context, android.R.layout.simple_dropdown_item_1line, attendeeStringList);
         addAttendeeTextView.setInputType(InputType.TYPE_NULL);
         addAttendeeTextView.setAdapter(addAttendeeAdapter);
         addAttendeeTextView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
@@ -94,14 +95,13 @@ public class ChatUtil {
         addAttendeeTextView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                Attendee attendee = (Attendee) adapterView.getItemAtPosition(i);
+                Attendee attendee = allUsersList.get(i);
                 if (listChatAttendeeIds.contains(attendee.id)) {
                     Toast.makeText(context, "User already in list", Toast.LENGTH_SHORT).show();
-                    addAttendeeTextView.setText("");
                 } else {
                     addCheckBoxFromAttendee(checkBoxLayout, attendee, checkedChangeListener, listChatAttendeeIds, checkedChatAttendeeIds, myId, context);
-                    addAttendeeTextView.setText("");
                 }
+                addAttendeeTextView.setText("");
             }
         });
 
@@ -191,4 +191,29 @@ public class ChatUtil {
         context.startActivity(intent, null);
     }
 
+    public static List<String> getAttendeeStringtWithNameAndEmail (List<Attendee> attendeeList) {
+        if (attendeeList == null) {
+            return null;
+        }
+        List<String> attendeeStringList = new ArrayList<>();
+        for (Attendee attendee : attendeeList) {
+            String str = "";
+            if (attendee.firstName != null && !attendee.firstName.isEmpty()) {
+                str += attendee.firstName;
+                if (attendee.lastName != null && !attendee.lastName.isEmpty()) {
+                    str += (" " + attendee.lastName);
+                }
+            } else if (attendee.userName != null && !attendee.userName.isEmpty()) {
+                str += attendee.userName;
+            }
+            if (attendee.email != null && !attendee.email.isEmpty()) {
+                str += (" (" + attendee.email + ")");
+            } else {
+                str += (" (" + attendee.phoneNumber + ")");
+            }
+            attendeeStringList.add(str);
+        }
+
+        return attendeeStringList;
+    }
 }

@@ -86,7 +86,8 @@
                     android:layout_weight="1"
                     android:hint="Invite more..."
                     android:layout_gravity="center_vertical"
-                    android:completionThreshold="1" />
+                    android:completionThreshold="1"
+                    android:dropDownWidth="match_parent" />
                 <Space
                     android:layout_width="0dp"
                     android:layout_height="match_parent"

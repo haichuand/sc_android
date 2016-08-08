@@ -43,7 +43,9 @@
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
             android:padding="6dp"
-            android:completionThreshold="1"/>
+            android:completionThreshold="1"
+            android:dropDownWidth="match_parent"
+            android:dropDownHorizontalOffset="-500dp"/>
 
         <!--<ImageView-->
             <!--android:layout_width="32dp"-->
