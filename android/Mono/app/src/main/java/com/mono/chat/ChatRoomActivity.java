@@ -590,7 +590,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
             sendProgressBar.setVisibility(View.GONE);
         }
 
-        chatMessages.add(new Message(myId, conversationId, msg, new Date().getTime()));
+        chatMessages.add(new Message(senderId, conversationId, msg, System.currentTimeMillis()));
         chatRoomAdapter.notifyItemInserted(chatMessages.size() - 1);
         sendMessageText.setText("");
     }
