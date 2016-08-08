@@ -3,6 +3,7 @@ package com.mono.chat;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
+import android.text.InputType;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -73,6 +74,7 @@ public class ChatUtil {
         List<Attendee> allUsersList = conversationManager.getAllUserList();
         Collections.sort(allUsersList, new AttendeeUsernameComparator());
         ArrayAdapter<Attendee> addAttendeeAdapter = new ArrayAdapter<>(context, android.R.layout.simple_dropdown_item_1line, allUsersList);
+        addAttendeeTextView.setInputType(InputType.TYPE_NULL);
         addAttendeeTextView.setAdapter(addAttendeeAdapter);
         addAttendeeTextView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override

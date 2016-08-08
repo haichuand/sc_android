@@ -178,7 +178,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         //set up main chat main view
         chatLayoutManager = new LinearLayoutManager(this);
         chatView.setLayoutManager(chatLayoutManager);
-        chatMessages = new ArrayList<>();
+        chatMessages = conversationManager.getChatMessages(conversationId);
         chatAttendeeMap = conversationManager.getChatAttendeeMap(conversationId);
         chatRoomAdapter = new ChatRoomAdapter(this, myId, chatAttendeeMap, chatMessages);
         chatView.setAdapter(chatRoomAdapter);
@@ -289,7 +289,6 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         }
 
         conversationManager.addListener(this);
-        conversationManager.setActiveConversationId(conversationId);
     }
 
     @Override
@@ -301,27 +300,28 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     @Override
     protected void onResume() {
         super.onResume();
-        chatMessages.clear();
-        chatMessages.addAll(conversationManager.getChatMessages(conversationId));
-        chatRoomAdapter.notifyDataSetChanged();
+        conversationManager.setActiveConversationId(conversationId);
+//        chatMessages.clear();
+//        chatMessages.addAll(conversationManager.getChatMessages(conversationId));
+//        chatRoomAdapter.notifyDataSetChanged();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        conversationManager.setActiveConversationId(null);
     }
 
     @Override
     protected void onStop() {
 //        LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver);
         super.onStop();
-        conversationManager.setActiveConversationId(null);
-        conversationManager.removeListener(this);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        conversationManager.removeListener(this);
     }
 
     @Override
