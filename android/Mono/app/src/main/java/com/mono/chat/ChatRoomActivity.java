@@ -10,6 +10,7 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.text.InputType;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -226,6 +227,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         Collections.sort(allUsersList, new AttendeeUsernameComparator());
         ArrayAdapter<Attendee> addAttendeeAdapter = new ArrayAdapter<Attendee>(this, android.R.layout.simple_dropdown_item_1line, allUsersList);
         addAttendeeTextView.setAdapter(addAttendeeAdapter);
+        addAttendeeTextView.setInputType(InputType.TYPE_NULL);
 //        addAttendeeTextView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
 //            @Override
 //            public void onFocusChange(View view, boolean hasFocus) {
