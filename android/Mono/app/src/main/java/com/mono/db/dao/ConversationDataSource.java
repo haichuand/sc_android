@@ -170,7 +170,7 @@ public class ConversationDataSource extends DataSource{
     public void addMessageToConversation (Message msg) {
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.ConversationContent.C_ID, msg.getConversationId());
-        values.put(DatabaseValues.ConversationContent.SENDER_ID, msg.getUserId());
+        values.put(DatabaseValues.ConversationContent.SENDER_ID, msg.getSenderId());
         values.put(DatabaseValues.ConversationContent.TEXT, msg.getMessageText());
         values.put(DatabaseValues.ConversationContent.TIMESTAMP, msg.getTimestamp());
 

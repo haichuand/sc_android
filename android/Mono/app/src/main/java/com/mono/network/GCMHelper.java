@@ -26,6 +26,7 @@ public class GCMHelper {
     public static final String CONVERSATION_ID = "conversationId";
     public static final String SENDER_ID = "senderId";
     public static final String MESSAGE = "message";
+    public static final String MESSAGE_ID = "messageId";
     public static final String RECIPIENTS = "recipients";
     public static final String GCM_ID = "gcmId";
     public static final String CREATOR_ID = "creatorId";
@@ -135,13 +136,14 @@ public class GCMHelper {
     }
 
     public static Bundle getConversationMessagePayload(String senderId, String conversationId,
-                                                       List<String> recipients, String message) {
+                                                       List<String> recipients, String message, String messageId) {
         Bundle args = new Bundle();
         args.putString(ACTION, ACTION_CONVERSATION_MESSAGE);
         args.putString(SENDER_ID, senderId);
         args.putString(CONVERSATION_ID, conversationId);
         args.putString(RECIPIENTS, Common.implode(",", recipients));
         args.putString(MESSAGE, message);
+        args.putString(MESSAGE_ID, messageId);
 
         return args;
     }

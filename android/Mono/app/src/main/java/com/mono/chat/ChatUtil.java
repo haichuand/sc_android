@@ -30,11 +30,15 @@ import com.mono.network.HttpServerManager;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 /**
  * Created by haichuand on 6/21/2016.
  */
 public class ChatUtil {
+    private static final char[] randomIdCharPool = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890".toCharArray();
+    private static Random random = new Random();
+    private static final int randomIdLength = 8;
 
     public static void showCreateChatDialog(final Account account, final Event event, final ConversationManager conversationManager, final Context context) {
         final HttpServerManager httpServerManager = new HttpServerManager(context);
@@ -215,5 +219,13 @@ public class ChatUtil {
         }
 
         return attendeeStringList;
+    }
+
+    public static String getRandomId () {
+        String str = "";
+        for (int i = 0; i < randomIdLength; i++) {
+            str += randomIdCharPool[random.nextInt(randomIdCharPool.length)];
+        }
+        return str;
     }
 }

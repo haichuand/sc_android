@@ -18,6 +18,7 @@ import com.mono.R;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.ConversationDataSource;
 import com.mono.model.Account;
+import com.mono.model.Attendee;
 import com.mono.model.Conversation;
 import com.mono.model.Message;
 import com.mono.network.GCMHelper;
@@ -93,21 +94,24 @@ public class MyGcmListenerService extends GcmListenerService {
     }
 
     private void onNewConversationMessage(String from, Bundle data) {
-        final String message = data.getString(GCMHelper.MESSAGE);
-        final String sender_id = data.getString(GCMHelper.SENDER_ID);
-        final String conversation_id = data.getString(GCMHelper.CONVERSATION_ID);
-        if (sender_id == null || conversation_id == null) {
+        final String msgText = data.getString(GCMHelper.MESSAGE);
+        final String senderId = data.getString(GCMHelper.SENDER_ID);
+        final String conversationId = data.getString(GCMHelper.CONVERSATION_ID);
+        final String messageId = data.getString(GCMHelper.MESSAGE_ID);
+        Attendee sender = conversationManager.getAttendeeById(senderId);
+        if (senderId == null || conversationId == null) {
             return;
         }
-        conversationManager.saveChatMessageToDB(new Message(sender_id, conversation_id, message, System.currentTimeMillis()));
+        final Message message = new Message(senderId, conversationId, msgText, System.currentTimeMillis(), messageId);
+        conversationManager.saveChatMessageToDB(message);
         handler.post(new Runnable() {
             @Override
             public void run() {
-                conversationManager.notifyListenersNewConversationMessage(conversation_id, sender_id, message);
+                conversationManager.notifyListenersNewConversationMessage(message);
             }
         });
-        if (!String.valueOf(AccountManager.getInstance(this).getAccount().id).equals(sender_id) && !conversation_id.equals(conversationManager.getActiveConversationId())) {
-            sendChatNotification(message, conversation_id);
+        if (!String.valueOf(AccountManager.getInstance(this).getAccount().id).equals(senderId) && !conversationId.equals(conversationManager.getActiveConversationId())) {
+            sendChatNotification(sender.toString() + ": " + msgText, conversationId);
         }
     }
 
@@ -221,7 +225,7 @@ public class MyGcmListenerService extends GcmListenerService {
         notificationManager.notify(0 /* ID of notification */, notificationBuilder.build());
     }
 
-    private void sendChatNotification (String message, String conversationId) {
+    private void sendChatNotification (String text, String conversationId) {
         Intent intent = new Intent(getApplicationContext(), ChatRoomActivity.class);
         intent.putExtra(ChatRoomActivity.CONVERSATION_ID, conversationId);
         Account account = AccountManager.getInstance(this).getAccount();
@@ -234,7 +238,7 @@ public class MyGcmListenerService extends GcmListenerService {
         NotificationCompat.Builder notificationBuilder = (NotificationCompat.Builder) new NotificationCompat.Builder(this)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("SuperCaly Message")
-                .setContentText(message)
+                .setContentText(text)
                 .setAutoCancel(true)
                 .setSound(defaultSoundUri)
                 .setContentIntent(pendingIntent);

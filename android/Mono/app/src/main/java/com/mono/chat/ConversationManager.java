@@ -129,16 +129,16 @@ public class ConversationManager {
         }
     }
 
-    public void notifyListenersNewConversationMessage (String conversationId, String senderId, String message) {
+    public void notifyListenersNewConversationMessage (Message message) {
         long timeStamp = System.currentTimeMillis();
         for (ConversationBroadcastListener listener : listeners) {
-            listener.onNewConversationMessage(conversationId, senderId, message, timeStamp);
+            listener.onNewConversationMessage(message);
         }
     }
 
     public interface ConversationBroadcastListener {
         void onNewConversation(Conversation conversation, int index);
         void onNewConversationAttendees (String conversationId, List<String> newAttendeeIds);
-        void onNewConversationMessage(String conversationId, String senderId, String message, long timeStamp);
+        void onNewConversationMessage(Message message);
     }
 }

@@ -231,7 +231,7 @@ public class SearchHandler implements OnQueryTextListener {
                 R.color.yellow_1
             };
 
-            Attendee user = attendeeDataSource.getAttendeeById(message.getUserId());
+            Attendee user = attendeeDataSource.getAttendeeById(message.getSenderId());
             if (user != null) {
                 if (Common.compareStrings(user.id, String.valueOf(selfId))) {
                     name = fragment.getString(R.string.me);

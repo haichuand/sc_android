@@ -17,6 +17,7 @@ import com.mono.R;
 import com.mono.chat.ConversationManager;
 import com.mono.model.Conversation;
 import com.mono.model.Event;
+import com.mono.model.Message;
 import com.mono.social.ChatsListAdapter.ListItem;
 import com.mono.util.Colors;
 import com.mono.util.Common;
@@ -287,11 +288,11 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
     }
 
     @Override
-    public void onNewConversationMessage(String conversationId, String senderId, String message, long timeStamp) {
+    public void onNewConversationMessage(Message message) {
         int index = -1;
         for (int i=0; i<chats.size(); i++) {
-            if (chats.get(i).getId().equals(conversationId)) {
-                chats.get(i).lastMessageTime = timeStamp;
+            if (chats.get(i).getId().equals(message.getConversationId())) {
+                chats.get(i).lastMessageTime = message.getTimestamp();
                 index = i;
                 break;
             }

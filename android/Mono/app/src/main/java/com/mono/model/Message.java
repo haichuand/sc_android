@@ -14,6 +14,8 @@ public class Message {
     public String firstName;
     public String lastName;
     public String username;
+    private String messageId; //used for matching user self-sent messages
+    public boolean showWarningIcon = false; //flag to show warning icon
 
     public Message(String senderId, String conversationId, String messageText, long timestamp) {
         this.senderId = senderId;
@@ -22,12 +24,16 @@ public class Message {
         this.timestamp = timestamp;
     }
 
-    public String getUserId() {
-        return senderId;
+    public Message(String senderId, String conversationId, String messageText, long timestamp, String messageId) {
+        this.senderId = senderId;
+        this.conversationId = conversationId;
+        this.messageText = messageText;
+        this.timestamp = timestamp;
+        this.messageId = messageId;
     }
 
-    public void setUserId(String senderId) {
-        this.senderId = senderId;
+    public String getSenderId() {
+        return senderId;
     }
 
     public String getConversationId() {
@@ -52,5 +58,13 @@ public class Message {
 
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public String getMessageId() {
+        return messageId;
+    }
+
+    public void setMessageId(String messageId) {
+        this.messageId = messageId;
     }
 }

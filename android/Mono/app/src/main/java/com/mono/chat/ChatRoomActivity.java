@@ -23,6 +23,7 @@ import android.widget.AutoCompleteTextView;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -43,8 +44,10 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class ChatRoomActivity extends GestureActivity implements ConversationManager.ConversationBroadcastListener{
     //constants used to send and receive bundles
@@ -70,8 +73,8 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     private RecyclerView chatView;
     private ChatRoomAdapter chatRoomAdapter;
     private TextView sendMessageText;
-    private ProgressBar sendProgressBar;
-    private CountDownTimer countDownTimer;
+//    private ProgressBar sendProgressBar;
+//    private CountDownTimer countDownTimer;
     private ImageButton sendButton;
     private AutoCompleteTextView addAttendeeTextView;
 
@@ -90,6 +93,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     private HttpServerManager httpServerManager;
     private ChatServerManager chatServerManager;
     private CompoundButton.OnCheckedChangeListener checkedChangeListener;
+    private Map<String, CountDownTimer> countDownTimerMap = new HashMap<>();
 
     static {
         DATE_FORMAT = new SimpleDateFormat("M/d/yyyy", Locale.getDefault());
@@ -169,7 +173,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         chatAttendeeListLayout = (LinearLayout) findViewById(R.id.chat_attendee_list);
         sendMessageText = (TextView) findViewById(R.id.sendMessageText);
         sendButton = (ImageButton) findViewById(R.id.sendButton);
-        sendProgressBar = (ProgressBar) findViewById(R.id.sendProgressBar);
+//        sendProgressBar = (ProgressBar) findViewById(R.id.sendProgressBar);
         httpServerManager = new HttpServerManager(this);
         chatServerManager = new ChatServerManager(this);
         initialize();
@@ -366,32 +370,31 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         if (msg.isEmpty()) {
             return;
         }
+        String messageId = ChatUtil.getRandomId();
 
-        chatServerManager.sendConversationMessage(myId, conversationId, chatAttendeeIdList, msg);
-        sendButton.setVisibility(View.GONE);
-        sendProgressBar.setVisibility(View.VISIBLE);
-        countDownTimer = new CountDownTimer(10000, 10000) {
+//        sendButton.setVisibility(View.GONE);
+//        sendProgressBar.setVisibility(View.VISIBLE);
+
+        Message message = new Message(myId, conversationId, msg, System.currentTimeMillis(), messageId);
+        chatMessages.add(message);
+        final int lastMessagePos = chatMessages.size() - 1;
+        chatRoomAdapter.notifyItemInserted(lastMessagePos);
+        CountDownTimer countDownTimer = new CountDownTimer(5000, 5000) {
             @Override
             public void onTick(long millisUntilFinished) {
             }
 
             @Override
             public void onFinish() {
-                sendButton.setVisibility(View.VISIBLE);
-                sendProgressBar.setVisibility(View.GONE);
-                Toast.makeText(ChatRoomActivity.this, "Chat server error, cannot send message", Toast.LENGTH_LONG).show();
+                chatMessages.get(lastMessagePos).showWarningIcon = true;
+                chatRoomAdapter.notifyItemChanged(lastMessagePos);
+                Toast.makeText(ChatRoomActivity.this, "Chat server error, cannot send message", Toast.LENGTH_SHORT).show();
             }
         };
+        chatServerManager.sendConversationMessage(myId, conversationId, chatAttendeeIdList, msg, messageId);
         countDownTimer.start();
-
-//        chatMessages.add(new Message(myId, conversationId, msg, new Date().getTime()));
-//        chatRoomAdapter.notifyItemInserted(chatMessages.size() - 1);
-//        sendMessageText.setText("");
-//
-//
-//        Message message = new Message(myId, conversationId, msg, new Date().getTime());
-//        conversationManager.saveChatMessageToDB(message);
-//        conversationManager.notifyListenersNewConversationMessage(conversationId, myId, msg);
+        countDownTimerMap.put(messageId, countDownTimer);
+        sendMessageText.setText("");
     }
 
 //    public void onAddAttendeeButtonClicked(View view) {
@@ -581,21 +584,20 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     }
 
     @Override
-    public void onNewConversationMessage(String incomingConversationId, String senderId, String msg, long timeStamp) {
-        if (!conversationId.equals(incomingConversationId) || senderId == null){
+    public void onNewConversationMessage(Message message) {
+        String senderId = message.getSenderId();
+        if (!conversationId.equals(message.getConversationId()) || senderId == null){
             return;
         }
 
         if (myId.equals(senderId)) { //self-sent ack message
-            if (countDownTimer != null) {
-                countDownTimer.cancel();
+            CountDownTimer timer = countDownTimerMap.remove(message.getMessageId());
+            if (timer != null) {
+                timer.cancel();
             }
-            sendButton.setVisibility(View.VISIBLE);
-            sendProgressBar.setVisibility(View.GONE);
+        } else {
+            chatMessages.add(message);
+            chatRoomAdapter.notifyItemInserted(chatMessages.size() - 1);
         }
-
-        chatMessages.add(new Message(senderId, conversationId, msg, System.currentTimeMillis()));
-        chatRoomAdapter.notifyItemInserted(chatMessages.size() - 1);
-        sendMessageText.setText("");
     }
 }

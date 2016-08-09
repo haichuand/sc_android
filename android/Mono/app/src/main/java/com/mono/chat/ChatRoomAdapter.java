@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Random;
 
 /**
  * Created by hduan on 3/8/2016.
@@ -93,7 +92,7 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatVi
             holder.senderName.setText(R.string.me);
             color = Colors.getColor(context, R.color.blue_1);
         } else {
-            String userId = message.getUserId();
+            String userId = message.getSenderId();
 
             Attendee attendee = chatAttendees.get(userId);
             if (attendee != null) {
@@ -109,7 +108,7 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatVi
             color = getColorByUserId(userId);
         }
 
-        holder.sendImage.getDrawable().setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
+        holder.senderImage.getDrawable().setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
 
         View arrow = holder.bubble.findViewById(R.id.arrow);
         arrow.getBackground().setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
@@ -126,11 +125,17 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatVi
         holder.chatText.setTextColor(textColor);
 
         holder.timeStamp.setText(getDateString(message.getTimestamp()));
+
+        if (message.showWarningIcon) {
+            holder.warningIcon.setVisibility(View.VISIBLE);
+        } else {
+            holder.warningIcon.setVisibility(View.INVISIBLE);
+        }
     }
 
     @Override
     public int getItemViewType(int position) {
-        if (chatMessages.get(position).getUserId().equals(myId)) {
+        if (chatMessages.get(position).getSenderId().equals(myId)) {
             return MY_MESSAGE;
         } else {
             return OTHERS_MESSAGE;
@@ -183,19 +188,21 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatVi
     public class ChatViewHolder extends RecyclerView.ViewHolder {
 
         public TextView senderName;
-        public ImageView sendImage;
+        public ImageView senderImage;
         public ViewGroup bubble;
         public TextView chatText;
         public TextView timeStamp;
+        public ImageView warningIcon;
 
         public ChatViewHolder(View itemView) {
             super(itemView);
 
             senderName = (TextView) itemView.findViewById(R.id.senderName);
-            sendImage = (ImageView) itemView.findViewById(R.id.senderImage);
+            senderImage = (ImageView) itemView.findViewById(R.id.senderImage);
             bubble = (ViewGroup) itemView.findViewById(R.id.chat_bubble);
             chatText = (TextView) itemView.findViewById(R.id.text);
             timeStamp = (TextView) itemView.findViewById(R.id.messageTime);
+            warningIcon = (ImageView) itemView.findViewById(R.id.warning_icon);
         }
     }
 }
