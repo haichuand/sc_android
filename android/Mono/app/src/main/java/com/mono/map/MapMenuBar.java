@@ -15,6 +15,7 @@ import android.widget.TextView;
 
 import com.mono.R;
 import com.mono.map.MenuPagerAdapter.MenuPagerListener;
+import com.mono.util.Constants;
 import com.mono.util.Pixels;
 import com.mono.util.SimpleViewPager;
 
@@ -71,6 +72,9 @@ public class MapMenuBar implements OnItemSelectedListener {
         menu.setOnItemSelectedListener(this);
 
         menuContainer = (ViewGroup) view.findViewById(R.id.menu_container);
+
+        startTime = System.currentTimeMillis() - Constants.DAY_MS;
+        endTime = System.currentTimeMillis();
     }
 
     @Override

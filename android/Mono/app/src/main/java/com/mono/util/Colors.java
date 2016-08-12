@@ -29,7 +29,7 @@ public class Colors {
     /**
      * Return a darker shade of a specific color.
      *
-     * @param color The value of the color.
+     * @param color The color value.
      * @param percent The amount to darken.
      * @return a color value.
      */
@@ -51,7 +51,7 @@ public class Colors {
     /**
      * Return a lighter shade of a specific color.
      *
-     * @param color The value of the color.
+     * @param color The color value.
      * @param percent The amount to lighten.
      * @return a color value.
      */
@@ -73,11 +73,28 @@ public class Colors {
     /**
      * Return the luma value of a specific color to determine its brightness.
      *
-     * @param color The value of the color.
+     * @param color The color value.
      * @return a luma value.
      */
     public static float getLuma(int color) {
         return 0.2126f * Color.red(color) + 0.7152f * Color.green(color) +
             0.0722f * Color.blue(color);
+    }
+
+    /**
+     * Change the alpha value of a specific color.
+     *
+     * @param color The color value.
+     * @param percent The amount to change.
+     * @return a color value.
+     */
+    public static int setAlpha(int color, float percent) {
+        percent = Common.clamp(percent, 0, 1);
+
+        int red = Color.red(color);
+        int green = Color.green(color);
+        int blue = Color.blue(color);
+
+        return Color.argb((int) (255 * percent), red, green, blue);
     }
 }

@@ -53,6 +53,7 @@ import com.mono.util.LocationHelper.LocationCallback;
 import com.mono.util.Pixels;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
 
+import org.joda.time.Days;
 import org.joda.time.LocalDate;
 
 import java.text.SimpleDateFormat;
@@ -83,6 +84,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
     private static final int OPTION_DIMENSION_DP = 24;
     private static final int OPTION_MARGIN_DP = 2;
 
+    private static final float BASE_ALPHA = 0.4f;
     private static final int MARKER_COLOR_ID = R.color.colorPrimary;
     private static final int LINE_WIDTH = 5;
 
@@ -426,13 +428,35 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
 
             @Override
             protected void onPostExecute(Map<String, List<Event>> result) {
+                if (result.isEmpty()) {
+                    task = null;
+                    return;
+                }
+
                 int tempColor = Colors.getColor(getContext(), MARKER_COLOR_ID);
 
-                int i = result.size() - 1;
+                List<List<Event>> values = new ArrayList<>(result.values());
 
-                for (List<Event> events : result.values()) {
+                Event firstDayEvent = values.get(0).get(0);
+                Event lastDayEvent = values.get(values.size() - 1).get(0);
+                LocalDate start = new LocalDate(lastDayEvent.startTime);
+                LocalDate end = new LocalDate(firstDayEvent.startTime);
+
+                int days = Days.daysBetween(start, end).getDays();
+
+                float base = BASE_ALPHA;
+
+                for (int i = values.size() - 1; i >= 0; i--) {
+                    List<Event> events = values.get(i);
+
+                    Event tempEvent = events.get(0);
+                    LocalDate date = new LocalDate(tempEvent.startTime);
+
+                    float delta = Days.daysBetween(start, date).getDays();
+                    float alpha = days == 0 ? 1 : base + (1 - base) * delta / days;
+
                     // Color for Marker and Path
-                    final int color = Colors.getLighter(tempColor, Math.min(0.05f * i--, 0.5f));
+                    final int color = Colors.setAlpha(tempColor, alpha);
 
                     List<LatLng> positions = new ArrayList<>();
 
@@ -470,7 +494,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
 
                             centerLocations(result, true);
                         }
-                    }).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                    }).executeOnExecutor(AsyncTask.SERIAL_EXECUTOR);
                 }
 
                 task = null;
