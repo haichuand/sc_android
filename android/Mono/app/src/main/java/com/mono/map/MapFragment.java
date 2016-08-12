@@ -1,6 +1,5 @@
 package com.mono.map;
 
-import android.app.DatePickerDialog;
 import android.content.Context;
 import android.graphics.PorterDuff;
 import android.os.AsyncTask;
@@ -16,13 +15,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemSelectedListener;
-import android.widget.ArrayAdapter;
-import android.widget.DatePicker;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.Spinner;
 import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdate;
@@ -36,12 +30,9 @@ import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
-import com.google.android.gms.maps.model.Circle;
-import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.mono.EventManager;
 import com.mono.EventManager.EventAction;
@@ -50,9 +41,8 @@ import com.mono.MainInterface;
 import com.mono.R;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.EventDataSource;
-import com.mono.details.EventDetailsActivity.DateTimePickerCallback;
 import com.mono.map.DirectionsTask.DirectionListener;
-import com.mono.map.MenuPagerAdapter.MenuPagerListener;
+import com.mono.map.MapMenuBar.MapMenuBarListener;
 import com.mono.model.Event;
 import com.mono.model.Location;
 import com.mono.settings.Settings;
@@ -62,20 +52,15 @@ import com.mono.util.LocationHelper;
 import com.mono.util.LocationHelper.LocationCallback;
 import com.mono.util.Pixels;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
-import com.mono.util.SimpleViewPager;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDate;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 
 /**
  * A fragment that displays a map showing location events between a specified time period. Events
@@ -85,37 +70,31 @@ import java.util.TimeZone;
  */
 public class MapFragment extends Fragment implements OnMapReadyCallback, OnCameraChangeListener,
         OnMapClickListener, OnMarkerClickListener, InfoWindowAdapter, OnInfoWindowClickListener,
-        EventBroadcastListener, TabPagerCallback, OnItemSelectedListener {
+        EventBroadcastListener, TabPagerCallback, MapMenuBarListener {
 
-    private static final SimpleDateFormat DATE_FORMAT;
     private static final SimpleDateFormat DATE_TIME_FORMAT;
 
     private static final float DEFAULT_ZOOM_LEVEL = 12.5f;
     private static final float DEFAULT_TAP_ZOOM_LEVEL = 14f;
-    private static final int CIRCLE_STROKE_WIDTH = 4;
 
     private static final int MODE_NONE = 0;
     private static final int MODE_TIMELINE = 1;
 
-    private static final CharSequence[] MENU_ITEMS = {"Day", "Week", "Custom"};
-    private static final int MENU_DAY = 0;
-    private static final int MENU_WEEK = 1;
-    private static final int MENU_CUSTOM = 2;
-
-    private static final float MENU_TEXT_SIZE_SP = 16;
     private static final int OPTION_DIMENSION_DP = 24;
     private static final int OPTION_MARGIN_DP = 2;
 
     private static final int MARKER_COLOR_ID = R.color.colorPrimary;
     private static final int LINE_WIDTH = 5;
 
+    private static final int TIMELINE_LIMIT = 100;
     private static final int LIMIT = 30;
+
+    private static final float BOUNDS_PADDING_DP = 30f;
 
     private MainInterface mainInterface;
     private EventManager eventManager;
 
-    private Spinner menu;
-    private ViewGroup menuContainer;
+    private MapMenuBar menuBar;
     private GoogleMap map;
 
     private MapMarkerMap markers = new MapMarkerMap();
@@ -130,7 +109,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
     private long endTime;
 
     static {
-        DATE_FORMAT = new SimpleDateFormat("MM/dd/yy", Locale.getDefault());
         DATE_TIME_FORMAT = new SimpleDateFormat("MMM d, h:mm a", Locale.getDefault());
     }
 
@@ -160,15 +138,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
             Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_map, container, false);
 
-        ArrayAdapter<CharSequence> adapter = new ArrayAdapter<>(getContext(),
-            R.layout.simple_spinner_item, MENU_ITEMS);
-        adapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item);
-
-        menu = (Spinner) view.findViewById(R.id.menu);
-        menu.setAdapter(adapter);
-        menu.setOnItemSelectedListener(this);
-
-        menuContainer = (ViewGroup) view.findViewById(R.id.menu_container);
+        menuBar = new MapMenuBar(getContext(), this);
+        menuBar.onCreateView(view);
 
         String tag = getString(R.string.fragment_map);
 
@@ -364,7 +335,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
     /**
      * Set map mode.
      *
-     * @param mode The value of the mode.
+     * @param mode Map mode to determine how content is displayed.
      */
     public void setMode(int mode) {
         this.mode = mode;
@@ -374,46 +345,36 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
      * Refresh the map with markers around current centered position.
      */
     public void refresh() {
-        if (mode == MODE_TIMELINE) {
-            clear();
-        }
-
         refresh(map.getCameraPosition().target);
     }
 
     /**
      * Refresh the map with markers around the specified position.
      *
-     * @param position The position in latitude and longitude.
+     * @param position Position in latitude and longitude.
      */
     public void refresh(LatLng position) {
+        double[] bounds = null;
+        int limit;
+
         if (mode == MODE_TIMELINE) {
             clear();
-        }
+            limit = TIMELINE_LIMIT;
+        } else {
+            LatLngBounds latLngBounds = map.getProjection().getVisibleRegion().latLngBounds;
 
-        LatLngBounds latLngBounds = map.getProjection().getVisibleRegion().latLngBounds;
+            LatLng lowerLeft = latLngBounds.southwest;
+            LatLng upperRight = latLngBounds.northeast;
 
-        LatLng lowerLeft = latLngBounds.southwest;
-        LatLng upperRight = latLngBounds.northeast;
+            bounds = new double[]{
+                lowerLeft.latitude,
+                lowerLeft.longitude,
+                upperRight.latitude,
+                upperRight.longitude
+            };
 
-        double[] latLng = {
-            position.latitude,
-            position.longitude
+            limit = LIMIT;
         };
-
-        double[] bounds = {
-            lowerLeft.latitude,
-            lowerLeft.longitude,
-            upperRight.latitude,
-            upperRight.longitude
-        };
-
-        int limit = LIMIT;
-
-        if (mode == MODE_TIMELINE) {
-            bounds = null;
-            limit = 100;
-        }
 
         if (task != null) {
             task.cancel(true);
@@ -422,9 +383,14 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
         task = new AsyncTask<Object, Void, Map<String, List<Event>>>() {
             @Override
             protected Map<String, List<Event>> doInBackground(Object... params) {
-                double[] latLng = (double[]) params[0];
+                LatLng position = (LatLng) params[0];
                 double[] bounds = (double[]) params[1];
                 int limit = (int) params[2];
+
+                double[] latLng = {
+                    position.latitude,
+                    position.longitude
+                };
 
                 Map<String, List<Event>> result = new LinkedHashMap<>();
                 // Retrieve Event IDs
@@ -478,11 +444,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
                         // Draw Marker for Event
                         MapMarker marker = new MapMarker(event.id, event, position);
 
-                        int iconResId = R.drawable.ic_place;
-
                         if (mode == MODE_TIMELINE) {
                             marker.drawPointMarker(getContext(), map, color, true);
                         } else {
+                            int iconResId = R.drawable.ic_place;
                             marker.drawPlaceMarker(getContext(), map, iconResId, color, true);
                         }
 
@@ -502,40 +467,34 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
                             options.width(LINE_WIDTH);
 
                             map.addPolyline(options);
+
+                            centerLocations(result, true);
                         }
                     }).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
                 }
 
                 task = null;
             }
-        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, latLng, bounds, limit);
+        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, position, bounds, limit);
     }
 
-    private Circle drawCircle(LatLng position, double radius, int color, int strokeColor) {
-        CircleOptions options = new CircleOptions();
-        options.center(position);
-        options.radius(radius);
-        options.fillColor(color);
-        options.strokeColor(strokeColor);
-        options.strokeWidth(CIRCLE_STROKE_WIDTH);
-
-        return map.addCircle(options);
-    }
-
-    private Polyline drawLine(LatLng from, LatLng to, int color) {
-        PolylineOptions options = new PolylineOptions();
-        options.add(from, to);
-        options.color(color);
-        options.width(LINE_WIDTH);
-
-        return map.addPolyline(options);
-    }
-
+    /**
+     * Change the current map type.
+     *
+     * @param type Map type used to render.
+     */
     public void setMapType(int type) {
         map.setMapType(mapType = type);
         Settings.getInstance(getContext()).setMapType(type);
     }
 
+    /**
+     * Center camera at given position.
+     *
+     * @param latLng Position to center at.
+     * @param zoom Camera zoom level after centering.
+     * @param animate Enable interpolation for camera movement.
+     */
     public void centerLocation(LatLng latLng, float zoom, boolean animate) {
         CameraUpdate update;
 
@@ -545,13 +504,47 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
             update = CameraUpdateFactory.newLatLng(latLng);
         }
 
+        moveCamera(update, animate);
+    }
+
+    /**
+     * Center camera to fit all given positions.
+     *
+     * @param positions Positions used to create a bounding box.
+     * @param animate Enable interpolation for camera movement.
+     */
+    public void centerLocations(List<LatLng> positions, boolean animate) {
+        LatLngBounds.Builder builder = new LatLngBounds.Builder();
+        for (LatLng latLng : positions) {
+            builder.include(latLng);
+        }
+
+        LatLngBounds bounds = builder.build();
+        int padding = Pixels.pxFromDp(getContext(), BOUNDS_PADDING_DP);
+
+        CameraUpdate update = CameraUpdateFactory.newLatLngBounds(bounds, padding);
+        moveCamera(update, animate);
+    }
+
+    /**
+     * Adjust camera position.
+     *
+     * @param cameraUpdate Values to adjust camera.
+     * @param animate Enable interpolation for camera movement.
+     */
+    public void moveCamera(CameraUpdate cameraUpdate, boolean animate) {
         if (animate) {
-            map.animateCamera(update);
+            map.animateCamera(cameraUpdate);
         } else {
-            map.moveCamera(update);
+            map.moveCamera(cameraUpdate);
         }
     }
 
+    /**
+     * Center camera at current position.
+     *
+     * @param animate Enable interpolation for camera movement.
+     */
     public void centerLastKnownLocation(final boolean animate) {
         LocationHelper.getLastKnownLatLng(getActivity(), new LocationCallback() {
             @Override
@@ -564,16 +557,20 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
         });
     }
 
+    /**
+     * Change camera zoom level.
+     *
+     * @param zoom Camera zoom level.
+     * @param animate Enable interpolation for camera movement.
+     */
     public void setZoomLevel(float zoom, boolean animate) {
         CameraUpdate update = CameraUpdateFactory.zoomTo(zoom);
-
-        if (animate) {
-            map.animateCamera(update);
-        } else {
-            map.moveCamera(update);
-        }
+        moveCamera(update, animate);
     }
 
+    /**
+     * Remove all existing markers from the map.
+     */
     public void clear() {
         map.clear();
         markers.clear();
@@ -582,136 +579,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
     }
 
     @Override
-    public void onItemSelected(AdapterView parent, View view, int position, long id) {
-        ((TextView) parent.getChildAt(0)).setTextSize(MENU_TEXT_SIZE_SP);
+    public void onTimeSelected(long startTime, long endTime) {
+        this.startTime = startTime;
+        this.endTime = endTime;
 
-        switch (position) {
-            case MENU_DAY:
-                onMenuDay();
-                break;
-            case MENU_WEEK:
-                onMenuWeek();
-                break;
-            case MENU_CUSTOM:
-                onMenuCustom();
-                break;
-        }
-    }
-
-    @Override
-    public void onNothingSelected(AdapterView parent) {
-
-    }
-
-    private void showMenuPager(int type, MenuPagerListener listener) {
-        menuContainer.removeAllViews();
-
-        LayoutInflater inflater = LayoutInflater.from(getContext());
-        View view = inflater.inflate(R.layout.map_menu_pager, null, false);
-
-        int count = 100;
-        SimpleViewPager viewPager = (SimpleViewPager) view.findViewById(R.id.container);
-        viewPager.setAdapter(new MenuPagerAdapter(type, count, listener));
-
-        viewPager.setCurrentItem(count - 1);
-        viewPager.setOffscreenPageLimit(10);
-        viewPager.setSwipeEnabled(true);
-        viewPager.setPageMargin(Pixels.pxFromDp(getContext(), 1));
-        viewPager.setPageMarginDrawable(android.R.color.white);
-
-        menuContainer.addView(view);
-    }
-
-    private void onMenuDay() {
-        showMenuPager(MenuPagerAdapter.TYPE_DAY, new MenuPagerListener() {
-            @Override
-            public void onDaySelected(int year, int month, int day) {
-                DateTime dateTime = new DateTime(year, month, day, 0, 0);
-
-                startTime = dateTime.millisOfDay().withMinimumValue().getMillis();
-                endTime = dateTime.millisOfDay().withMaximumValue().getMillis();
-
-                refresh();
-            }
-        });
-    }
-
-    private void onMenuWeek() {
-        showMenuPager(MenuPagerAdapter.TYPE_WEEK, new MenuPagerListener() {
-            @Override
-            public void onWeekSelected(int year, int week) {
-                DateTime dateTime = new DateTime().withYear(year).withWeekOfWeekyear(week);
-
-                DateTime startDateTime = dateTime.dayOfWeek().withMinimumValue().minusDays(1);
-                startTime = startDateTime.millisOfDay().withMinimumValue().getMillis();
-
-                DateTime endDateTime = dateTime.dayOfWeek().withMaximumValue().minusDays(1);
-                endTime = endDateTime.millisOfDay().withMaximumValue().getMillis();
-
-                refresh();
-            }
-        });
-    }
-
-    private void onMenuCustom() {
-        menuContainer.removeAllViews();
-
-        LayoutInflater inflater = LayoutInflater.from(getContext());
-        View view = inflater.inflate(R.layout.map_menu_range, null, false);
-
-        final TextView startDate = (TextView) view.findViewById(R.id.start_date);
-        startDate.setText(DATE_FORMAT.format(startTime));
-        startDate.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                String timeZone = TimeZone.getDefault().getID();
-                onDateClick(startTime, timeZone, new DateTimePickerCallback() {
-                    @Override
-                    public void onSet(Date date) {
-                        startDate.setText(DATE_FORMAT.format(startTime = date.getTime()));
-                        refresh();
-                    }
-                });
-            }
-        });
-
-        final TextView endDate = (TextView) view.findViewById(R.id.end_date);
-        endDate.setText(DATE_FORMAT.format(endTime));
-        endDate.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                String timeZone = TimeZone.getDefault().getID();
-                onDateClick(endTime, timeZone, new DateTimePickerCallback() {
-                    @Override
-                    public void onSet(Date date) {
-                        endDate.setText(DATE_FORMAT.format(endTime = date.getTime()));
-                        refresh();
-                    }
-                });
-            }
-        });
-
-        menuContainer.addView(view);
-    }
-
-    public void onDateClick(long milliseconds, String timeZone,
-            final DateTimePickerCallback callback) {
-        final DateTime dateTime = new DateTime(milliseconds, DateTimeZone.forID(timeZone));
-
-        DatePickerDialog dialog = new DatePickerDialog(
-            getContext(),
-            new DatePickerDialog.OnDateSetListener() {
-                @Override
-                public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
-                    DateTime newDateTime = dateTime.withDate(year, monthOfYear + 1, dayOfMonth);
-                    callback.onSet(newDateTime.toDate());
-                }
-            },
-            dateTime.getYear(),
-            dateTime.getMonthOfYear() - 1,
-            dateTime.getDayOfMonth()
-        );
-
-        dialog.show();
+        refresh();
     }
 }
