@@ -73,7 +73,7 @@ public class DirectionsTask extends AsyncTask<String, Void, List<LatLng>> {
                     "%s?origin=%s&destination=%s&waypoints=enc:%s:&key=%s",
                     DIRECTIONS_URL,
                     origin.latitude + "," + origin.longitude,
-                    destination.latitude + "," + origin.longitude,
+                    destination.latitude + "," + destination.longitude,
                     !route.isEmpty() ? PolyUtil.encode(route) : "",
                     API_KEY
                 );
