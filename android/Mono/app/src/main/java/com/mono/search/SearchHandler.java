@@ -10,6 +10,7 @@ import com.mono.chat.ConversationManager;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.AttendeeDataSource;
 import com.mono.db.dao.ConversationDataSource;
+import com.mono.model.Account;
 import com.mono.model.Attendee;
 import com.mono.model.Conversation;
 import com.mono.model.Event;
@@ -202,7 +203,12 @@ public class SearchHandler implements OnQueryTextListener {
         ConversationManager manager = ConversationManager.getInstance(fragment.getContext());
         Map<String, Conversation> conversations = new HashMap<>();
 
-        long selfId = AccountManager.getInstance(fragment.getContext()).getAccount().id;
+        long selfId = -1;
+        Account account = AccountManager.getInstance(fragment.getContext()).getAccount();
+
+        if (account != null) {
+            selfId = account.id;
+        }
 
         AttendeeDataSource attendeeDataSource =
             DatabaseHelper.getDataSource(fragment.getContext(), AttendeeDataSource.class);
