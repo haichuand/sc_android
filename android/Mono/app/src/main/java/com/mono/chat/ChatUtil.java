@@ -19,6 +19,8 @@ import android.widget.Toast;
 
 import com.mono.R;
 import com.mono.RequestCodes;
+import com.mono.db.DatabaseHelper;
+import com.mono.db.dao.AttendeeDataSource;
 import com.mono.model.Account;
 import com.mono.model.Attendee;
 import com.mono.model.AttendeeUsernameComparator;
@@ -66,11 +68,13 @@ public class ChatUtil {
             }
         };
 
+        final AttendeeDataSource attendeeDataSource = DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
+
         //add user self to list but does not show
         Attendee me = new Attendee(String.valueOf(account.id), null, account.email, account.phone, account.firstName, account.lastName, account.username, false, false);
-        addCheckBoxFromAttendee(checkBoxLayout, me, checkedChangeListener, listChatAttendeeIds, checkedChatAttendeeIds, myId, context);
+        addCheckBoxFromAttendee(checkBoxLayout, me, checkedChangeListener, listChatAttendeeIds, checkedChatAttendeeIds, myId, context, attendeeDataSource);
         for (Attendee attendee : event.attendees) {
-            addCheckBoxFromAttendee(checkBoxLayout, attendee, checkedChangeListener, listChatAttendeeIds, checkedChatAttendeeIds, myId, context);
+            addCheckBoxFromAttendee(checkBoxLayout, attendee, checkedChangeListener, listChatAttendeeIds, checkedChatAttendeeIds, myId, context, attendeeDataSource);
         }
 
         //set AutoCompleteTextView to show all users
@@ -103,7 +107,7 @@ public class ChatUtil {
                 if (listChatAttendeeIds.contains(attendee.id)) {
                     Toast.makeText(context, "User already in list", Toast.LENGTH_SHORT).show();
                 } else {
-                    addCheckBoxFromAttendee(checkBoxLayout, attendee, checkedChangeListener, listChatAttendeeIds, checkedChatAttendeeIds, myId, context);
+                    addCheckBoxFromAttendee(checkBoxLayout, attendee, checkedChangeListener, listChatAttendeeIds, checkedChatAttendeeIds, myId, context, attendeeDataSource);
                 }
                 addAttendeeTextView.setText("");
             }
@@ -153,7 +157,7 @@ public class ChatUtil {
         dialog.show();
     }
 
-    private static void addCheckBoxFromAttendee (LinearLayout checkBoxLayout, Attendee attendee, CompoundButton.OnCheckedChangeListener checkedChangeListener, List<String> attendeeIdList, List<String> checkedAttendeeIdList, String myId, Context context) {
+    private static void addCheckBoxFromAttendee (LinearLayout checkBoxLayout, Attendee attendee, CompoundButton.OnCheckedChangeListener checkedChangeListener, List<String> attendeeIdList, List<String> checkedAttendeeIdList, String myId, Context context, AttendeeDataSource attendeeDataSource) {
         if (attendeeIdList.contains(attendee.id)) { //do not add duplicate attendees
             return;
         }
@@ -169,6 +173,11 @@ public class ChatUtil {
         checkBox.setLayoutParams(params);
         checkBox.setId(Integer.valueOf(attendee.id));
         checkBox.setText(attendee.toString());
+
+        Attendee dbAttendee = attendeeDataSource.getAttendeeByEmail(attendee.email);
+        if (dbAttendee != null) {
+            attendee = dbAttendee;
+        }
 
         if (attendee.isFriend) {
             checkBox.setChecked(true);

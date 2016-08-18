@@ -124,9 +124,26 @@ public class AttendeeDataSource extends DataSource {
             DatabaseValues.User.TABLE,
             DatabaseValues.User.PROJECTION,
             DatabaseValues.User.U_ID + " = ?",
-            new String[]{
-                String.valueOf(id)
-            }
+            new String[]{id}
+        );
+
+        if (cursor.moveToNext()) {
+            user = cursorToAttendee(cursor);
+        }
+
+        cursor.close();
+
+        return user;
+    }
+
+    public Attendee getAttendeeByEmail (String email) {
+        Attendee user = null;
+
+        Cursor cursor = database.select(
+                DatabaseValues.User.TABLE,
+                DatabaseValues.User.PROJECTION,
+                DatabaseValues.User.EMAIL + " = ?",
+                new String[]{email}
         );
 
         if (cursor.moveToNext()) {
