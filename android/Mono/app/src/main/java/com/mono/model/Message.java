@@ -4,6 +4,7 @@ package com.mono.model;
  * Created by xuejing on 3/10/16.
  */
 public class Message {
+    public static final long GROUP_TIME_THRESHOLD = 60000; //max ms between messages to group time together
 
     private String senderId;
     private String conversationId;
@@ -15,7 +16,9 @@ public class Message {
     public String lastName;
     public String username;
     private String messageId; //used for matching user self-sent messages
-    public boolean showWarningIcon = false; //flag to show warning icon
+    public boolean showWarningIcon = false; //whether to show warning icon
+    public boolean showMessageTime = true; //whether to show message time
+    public boolean showMessageSender = true; //whether to show sender name
 
     public Message(String senderId, String conversationId, String messageText, long timestamp) {
         this.senderId = senderId;

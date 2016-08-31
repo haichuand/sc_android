@@ -184,6 +184,12 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         chatLayoutManager = new LinearLayoutManager(this);
         chatView.setLayoutManager(chatLayoutManager);
         chatMessages = conversationManager.getChatMessages(conversationId);
+        for (int i = 0; i < chatMessages.size() - 1; i++) {
+            Message currentMsg = chatMessages.get(i);
+            Message nextMsg = chatMessages.get(i + 1);
+            nextMsg.showMessageTime = nextMsg.getTimestamp() - currentMsg.getTimestamp() >= Message.GROUP_TIME_THRESHOLD;
+            nextMsg.showMessageSender = nextMsg.showMessageTime || !nextMsg.getSenderId().equals(currentMsg.getSenderId());
+        }
         chatAttendeeMap = conversationManager.getChatAttendeeMap(conversationId);
         chatRoomAdapter = new ChatRoomAdapter(this, myId, chatAttendeeMap, chatMessages);
         chatView.setAdapter(chatRoomAdapter);
@@ -376,9 +382,8 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
 //        sendProgressBar.setVisibility(View.VISIBLE);
 
         Message message = new Message(myId, conversationId, msg, System.currentTimeMillis(), messageId);
-        chatMessages.add(message);
+        addMessage(message);
         final int lastMessagePos = chatMessages.size() - 1;
-        chatRoomAdapter.notifyItemInserted(lastMessagePos);
         CountDownTimer countDownTimer = new CountDownTimer(5000, 5000) {
             @Override
             public void onTick(long millisUntilFinished) {
@@ -596,8 +601,19 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
                 timer.cancel();
             }
         } else {
-            chatMessages.add(message);
-            chatRoomAdapter.notifyItemInserted(chatMessages.size() - 1);
+            addMessage(message);
         }
+    }
+
+    //add message, set group time flag and notify adpater
+    private void addMessage (Message message) {
+        if (message == null) {
+            return;
+        }
+        Message lastMsg = chatMessages.isEmpty() ? null : chatMessages.get(chatMessages.size() - 1);
+        message.showMessageTime = lastMsg == null || message.getTimestamp() - lastMsg.getTimestamp() >= Message.GROUP_TIME_THRESHOLD;
+        message.showMessageSender = lastMsg == null || message.showMessageTime || !message.getSenderId().equals(lastMsg.getSenderId());
+        chatMessages.add(message);
+        chatRoomAdapter.notifyItemInserted(chatMessages.size() - 1);
     }
 }

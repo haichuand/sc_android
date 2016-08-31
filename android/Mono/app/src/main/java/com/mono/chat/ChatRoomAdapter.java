@@ -7,6 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.mono.R;
@@ -85,26 +86,27 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatVi
     @Override
     public void onBindViewHolder(ChatViewHolder holder, int position) {
         Message message = chatMessages.get(position);
+        String userId = message.getSenderId();
+        if (message.showMessageSender) {
+            holder.senderName.setVisibility(View.VISIBLE);
+            if (holder.getItemViewType() == MY_MESSAGE) {
+                holder.senderName.setText(R.string.me);
+            } else {
+                Attendee attendee = chatAttendees.get(userId);
+                if (attendee != null) {
+                    holder.senderName.setText(attendee.toString());
+                } else {
+                    holder.senderName.setText(userId);
+                }
+            }
+        } else {
+            holder.senderName.setVisibility(View.GONE);
+        }
 
         int color;
-
         if (holder.getItemViewType() == MY_MESSAGE) {
-            holder.senderName.setText(R.string.me);
             color = Colors.getColor(context, R.color.blue_1);
         } else {
-            String userId = message.getSenderId();
-
-            Attendee attendee = chatAttendees.get(userId);
-            if (attendee != null) {
-                holder.senderName.setText(attendee.toString());
-            } else {
-                holder.senderName.setText(userId);
-            }
-
-//            if (!userColors.containsKey(userId)) {
-//                userColors.put(userId, getRandomColor());
-//            }
-
             color = getColorByUserId(userId);
         }
 
@@ -124,12 +126,23 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatVi
         }
         holder.chatText.setTextColor(textColor);
 
-        holder.timeStamp.setText(getDateString(message.getTimestamp()));
 
         if (message.showWarningIcon) {
             holder.warningIcon.setVisibility(View.VISIBLE);
         } else {
             holder.warningIcon.setVisibility(View.INVISIBLE);
+        }
+
+        if (message.showMessageTime) {
+            holder.groupTime.setVisibility(View.VISIBLE);
+            holder.groupTime.setText(getDateString(message.getTimestamp()));
+        } else {
+            holder.groupTime.setVisibility(View.GONE);
+        }
+
+        if (position == chatMessages.size() - 1) {
+            float dpCoeff = context.getResources().getDisplayMetrics().density;
+            holder.chatLayout.setPadding(0, (int) (10 * dpCoeff), 0, (int) (10 * dpCoeff));
         }
     }
 
@@ -186,23 +199,25 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatVi
         return dateString;
     }
     public class ChatViewHolder extends RecyclerView.ViewHolder {
-
+        public LinearLayout chatLayout;
         public TextView senderName;
         public ImageView senderImage;
         public ViewGroup bubble;
         public TextView chatText;
-        public TextView timeStamp;
+//        public TextView timeStamp;
         public ImageView warningIcon;
+        public TextView groupTime;
 
         public ChatViewHolder(View itemView) {
             super(itemView);
-
+            chatLayout = (LinearLayout) itemView.findViewById(R.id.chat_layout);
             senderName = (TextView) itemView.findViewById(R.id.senderName);
             senderImage = (ImageView) itemView.findViewById(R.id.senderImage);
             bubble = (ViewGroup) itemView.findViewById(R.id.chat_bubble);
             chatText = (TextView) itemView.findViewById(R.id.text);
-            timeStamp = (TextView) itemView.findViewById(R.id.messageTime);
+//            timeStamp = (TextView) itemView.findViewById(R.id.messageTime);
             warningIcon = (ImageView) itemView.findViewById(R.id.warning_icon);
+            groupTime = (TextView) itemView.findViewById(R.id.group_time);
         }
     }
 }
