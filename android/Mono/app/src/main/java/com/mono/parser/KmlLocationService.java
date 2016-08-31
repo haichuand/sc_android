@@ -54,6 +54,7 @@ public class KmlLocationService extends IntentService{
     private String fileName = "";
     private KmlParser parser;
     ArrayList<LatLngTime> userStays;
+    ArrayList<KmlEvents> newuserStays;
     SharedPreferences sharedPreferences;
 
     public KmlLocationService () {
@@ -78,7 +79,7 @@ public class KmlLocationService extends IntentService{
                 File file = new File(storage + MainActivity.APP_DIR + fileName);
                 if (file.exists()) {
                     file.delete();
-                    //Log.d(TAG, fileName + "has been parsed and deleted!");
+                    Log.d(TAG, fileName + "has been parsed and deleted!");
                 }
             }
             if(type.equals(KmlDownloadingService.REGULAR)) {
@@ -91,11 +92,27 @@ public class KmlLocationService extends IntentService{
         userStays = parser.parse(fileName);
 
         if(userStays == null) {
-            Log.d(TAG, "No userstay available!");
             return;
         }
-        saveNewUserStayEvents();
-        Log.d(TAG, "Parsing for One Day from " + fileName + " is " + userStays.size());
+        else if ( userStays.size() == 0)
+        {
+            newuserStays = parser.newKmlParse(fileName);
+            Log.d(TAG, "kml files of new Format");
+
+            if(newuserStays == null)
+            {
+                Log.d(TAG, "No userStay data parsed");
+                return;
+            }
+
+            saveNewUserStayKMLEvents();
+            Log.d(TAG, "Parsing for One Day from " + fileName + " is " + newuserStays.size());
+
+        }
+        else {
+            saveNewUserStayEvents();
+            Log.d(TAG, "Parsing for One Day from " + fileName + " is " + userStays.size());
+        }
     }
 
 
@@ -129,6 +146,42 @@ public class KmlLocationService extends IntentService{
         }
     }
 
+    public void saveNewUserStayKMLEvents() {
+
+        for(KmlEvents kmlevent : newuserStays) {
+            if(eventManager == null) {
+                Log.d(TAG, "eventManager is null");
+                return;
+            }
+
+            Event userstayEventByStart = eventManager.getUserstayEventByStartTime(kmlevent.getStartTime());
+            Event userstayEventByEnd = eventManager.getUserstayEventByEndTime(kmlevent.getEndTime());
+
+            //the userstay is stored in previous parsing
+            // and the time duration does not change in the current parsing
+            if(userstayEventByEnd != null) {
+                continue;
+            }
+
+            if( userstayEventByStart != null) {
+                //the userstay is stored in previous parsing
+                // and the time duration extended in the current parsing
+                if(userstayEventByStart.endTime != kmlevent.getEndTime()) {
+                    eventManager.updateEventTime(userstayEventByStart.id, kmlevent.getStartTime(), kmlevent.getEndTime());
+                }
+            }
+            else {
+                writeLocationAndEventToDB(kmlevent);
+            }
+        }
+    }
+
+
+    private  boolean writeLocationAndEventToDB(KmlEvents kmlevent)
+    {
+        new detailedEvent().execute(kmlevent);
+        return true;
+    }
     /**
      * write corresponding location and event(TYPE: userstay) from given latlong and write them into database tables
      */
@@ -159,9 +212,9 @@ public class KmlLocationService extends IntentService{
             address = (String)params[1];
             place_id = (String)params[2];
             Log.d(TAG, "google place LatLong: " + latitude + ", " +longitude);
-           // String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + latitude + "," + longitude +
-              //      "&radius=50&key=" + GOOGLE_API_KEY;
-             String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + latitude + "," + longitude +"&rankby=distance&type=establishment&key="+ GOOGLE_API_KEY;
+            // String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + latitude + "," + longitude +
+            //      "&radius=50&key=" + GOOGLE_API_KEY;
+            String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + latitude + "," + longitude +"&rankby=distance&type=establishment&key="+ GOOGLE_API_KEY;
             requestResult = makeCall(url);
             return "";
         }
@@ -184,12 +237,12 @@ public class KmlLocationService extends IntentService{
 
                     firstPlaceName = firstLocation.name;
                     firstLocation.setAddress(locationList.get(0).address);
-                        //check if the location exists in the database
-                        if (locationDataSource.getLocationByGooglePlaceId(firstLocation.googlePlaceId) == null) {
-                            locationId = locationDataSource.createLocation(firstLocation.name, firstLocation.googlePlaceId, firstLocation.getLatitude(), firstLocation.getLongitude(), firstLocation.getAddress());
-                            //todo:this id would be used to map a location record to a event in eventLocationTable
-                            firstLocation.id = locationId;
-                        }
+                    //check if the location exists in the database
+                    if (locationDataSource.getLocationByGooglePlaceId(firstLocation.googlePlaceId) == null) {
+                        locationId = locationDataSource.createLocation(firstLocation.name, firstLocation.googlePlaceId, firstLocation.getLatitude(), firstLocation.getLongitude(), firstLocation.getAddress());
+                        //todo:this id would be used to map a location record to a event in eventLocationTable
+                        firstLocation.id = locationId;
+                    }
 
                     //get location info from shared pref to check any user defined address present
                     sharedPreferences = getSharedPreferences(SuperCalyPreferences.USER_DEFINED_LOCATION, MODE_PRIVATE);
@@ -254,6 +307,75 @@ public class KmlLocationService extends IntentService{
 
     }
 
+    private class detailedEvent extends AsyncTask<Object, Void, String> {
+        String requestResult;
+        KmlEvents kmlevent = null;
+        String event_id;
+
+        protected String doInBackground(Object ... params) {
+            kmlevent = (KmlEvents) params[0];
+            String latitude = String.valueOf(kmlevent.getLat());
+            String longitude = String.valueOf(kmlevent.getLng());
+            Log.d(TAG, "LatLong in the detailedAddress: "+ latitude + ", " +longitude);
+            String url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + latitude+ ","+ longitude +"&location_type=ROOFTOP&result_type=street_address"+ "&key=" + GOOGLE_API_KEY;
+            requestResult = makeCall(url);
+            return "";
+        }
+
+        protected void onPostExecute(String result) {
+            if(requestResult != null) {
+                String[] detailResult = getAddressByLatLong(requestResult);
+                long locationId;
+                if(detailResult != null) {
+
+                    String placeId =  detailResult[1];
+                    String address[] = kmlevent.getAddress().split(",");
+                    Location location = new Location(kmlevent.getName(), placeId, kmlevent.getLat(), kmlevent.getLng(), address);
+
+                    if (locationDataSource.getLocationByGooglePlaceId(placeId) == null) {
+                        locationId = locationDataSource.createLocation(kmlevent.getName(), placeId, kmlevent.getLat(),kmlevent.getLng(), kmlevent.getAddress());
+                        //todo:this id would be used to map a location record to a event in eventLocationTable
+                        location.id = locationId;
+                    }
+
+
+
+                    //get location info from shared pref to check any user defined address present
+                    sharedPreferences = getSharedPreferences(SuperCalyPreferences.USER_DEFINED_LOCATION, MODE_PRIVATE);
+                    Gson gson = new Gson();
+                    String storedHashMapString = sharedPreferences.getString(SuperCalyPreferences.USER_DEFINED_LOCATION, "default");
+                    java.lang.reflect.Type type = new TypeToken<HashMap<String, Location>>(){}.getType();
+                    if(storedHashMapString != "default") {
+                        HashMap<String, Location> testHashMap = gson.fromJson(storedHashMapString, type);
+                        //use values
+                        Location toastString = testHashMap.get(kmlevent.getName());
+                        if (toastString != null) {
+                            Log.i("testtoast", toastString.name);
+                            //create a userstay event
+                            event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, location.name, kmlevent.getAddress(), toastString,
+                                    1, kmlevent.getStartTime(), kmlevent.getEndTime(), null, null, false, null, null, null);
+                            Log.d(TAG, "event with id: " + event_id + " created");
+                        }
+                        else
+                        {
+                            event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, location.name, kmlevent.getAddress(), location,
+                                    1, kmlevent.getStartTime(),kmlevent.getEndTime(), null, null, false, null, null, null);
+                            Log.d(TAG, "event with id: " + event_id + " created");
+                        }
+                    }
+                    else
+                    {
+                        //create a userstay event
+                        event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, location.name, kmlevent.getAddress(), location,
+                                1, kmlevent.getStartTime(),kmlevent.getEndTime(), null, null, false, null, null, null);
+                        Log.d(TAG, "event with id: " + event_id + " created");
+                    }
+                }
+
+            }
+        }
+
+    }
     private class PlaceDetailByPlaceId extends AsyncTask<String, Void, String> {
         String requestResult;
         String place_id;
@@ -380,3 +502,4 @@ public class KmlLocationService extends IntentService{
         return placeName;
     }
 }
+

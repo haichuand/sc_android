@@ -41,7 +41,6 @@ public class KmlParser {
     public ArrayList<LatLngTime> parse(String fileName) {
 
         String state = Environment.getExternalStorageState();
-
         if (Environment.MEDIA_MOUNTED.equals(state)){
             String storage = Environment.getExternalStorageDirectory().getPath() + "/";
             Log.d(TAG, "parse(): file: "+ storage+MainActivity.APP_DIR+fileName);
@@ -54,52 +53,53 @@ public class KmlParser {
                 //get gx:Track layer
                 Node node = nodeList.item(0);
 
-            if(node.getNodeType() == Node.ELEMENT_NODE) {
-                Element elem = (Element) node;
-                NodeList whenList = elem.getElementsByTagName("when");
-                NodeList locationList = elem.getElementsByTagName("gx:coord");
-                if(whenList == null || locationList == null) {
-                    return null;
-                }
-                String format = "yyyy-MM-dd'T'HH:mm:ss.SSS";
-
-                for(int i = 0; i < whenList.getLength(); i++) {
-                    LatLngTime llt = new LatLngTime ();
-                    Node whenNode = whenList.item(i);
-                    if(whenNode.getNodeType() == Node.ELEMENT_NODE) {
-                        String time = whenNode.getChildNodes().item(0).getNodeValue();
-                        SimpleDateFormat formatter = new SimpleDateFormat(format);
-                        Date date = formatter.parse(time);
-                        long millis = date.getTime();
-                        llt.setStartTime(millis);
-                        llt.setEndTime(millis);
+                if(node.getNodeType() == Node.ELEMENT_NODE) {
+                    Element elem = (Element) node;
+                    NodeList whenList = elem.getElementsByTagName("when");
+                    NodeList locationList = elem.getElementsByTagName("gx:coord");
+                    NodeList placemarksList = elem.getElementsByTagName("Placemark");
+                    if(whenList == null || locationList == null) {
+                        return null;
                     }
+                    String format = "yyyy-MM-dd'T'HH:mm:ss.SSS";
 
-                    Node locNode = locationList.item(i);
-                    if(locNode.getNodeType() == Node.ELEMENT_NODE) {
-                        String coordinate = locNode.getChildNodes().item(0).getNodeValue();
-                        String[] split = coordinate.split(" ");
-                        double lng = Double.valueOf(split[0]);
-                        double lat = Double.valueOf(split[1]);
-                        llt.setLat(lat);
-                        llt.setLng(lng);
+                    for(int i = 0; i < whenList.getLength(); i++) {
+                        LatLngTime llt = new LatLngTime ();
+                        Node whenNode = whenList.item(i);
+                        if(whenNode.getNodeType() == Node.ELEMENT_NODE) {
+                            String time = whenNode.getChildNodes().item(0).getNodeValue();
+                            SimpleDateFormat formatter = new SimpleDateFormat(format);
+                            Date date = formatter.parse(time);
+                            long millis = date.getTime();
+                            llt.setStartTime(millis);
+                            llt.setEndTime(millis);
+                        }
+
+                        Node locNode = locationList.item(i);
+                        if(locNode.getNodeType() == Node.ELEMENT_NODE) {
+                            String coordinate = locNode.getChildNodes().item(0).getNodeValue();
+                            String[] split = coordinate.split(" ");
+                            double lng = Double.valueOf(split[0]);
+                            double lat = Double.valueOf(split[1]);
+                            llt.setLat(lat);
+                            llt.setLng(lng);
+                        }
+                        result.add(llt);
                     }
-                    result.add(llt);
                 }
             }
-        }
-        catch (ParserConfigurationException e) {
-            Log.d("kmlParser", e.getMessage());
-        }
-        catch (IOException e) {
-            Log.d("kmlParser", e.getMessage());
-        }
-        catch (SAXException e) {
-            Log.d("kmlParser", e.getMessage());
-        }
-        catch (Exception e) {
-            Log.d("kmlParser", e.getMessage());
-        }
+            catch (ParserConfigurationException e) {
+                Log.d("kmlParser", e.getMessage());
+            }
+            catch (IOException e) {
+                Log.d("kmlParser", e.getMessage());
+            }
+            catch (SAXException e) {
+                Log.d("kmlParser", e.getMessage());
+            }
+            catch (Exception e) {
+                Log.d("kmlParser", e.getMessage());
+            }
             ArrayList<LatLngTime> userstayList = getUserstay(result);
             //if any userstay is crossing few days, slice it into multiple userstays per 24 hours
             ArrayList<LatLngTime> resultList = new ArrayList<>();
@@ -114,6 +114,105 @@ public class KmlParser {
         return null;
     }
 
+    public ArrayList<KmlEvents> newKmlParse(String fileName)
+    {
+        String state = Environment.getExternalStorageState();
+
+        if (Environment.MEDIA_MOUNTED.equals(state)){
+            String storage = Environment.getExternalStorageDirectory().getPath() + "/";
+            Log.d(TAG, "parse(): file: "+ storage+MainActivity.APP_DIR+fileName);
+            File file = new File(storage + MainActivity.APP_DIR + fileName);
+            ArrayList<KmlEvents> result = new ArrayList<>();
+            try {
+                builder = factory.newDocumentBuilder();
+                Document document = builder.parse(file);
+                NodeList nodeList = document.getDocumentElement().getChildNodes();
+                Node node = nodeList.item(0);
+
+                if(node.getNodeType() == Node.ELEMENT_NODE) {
+                    Element elem = (Element) node;
+                    NodeList placemarksList = elem.getElementsByTagName("Placemark");
+
+                    String format = "yyyy-MM-dd'T'HH:mm:ss.SSS";
+                    if( placemarksList.getLength()> 0 )
+                    {
+                        for(int i = 0; i < placemarksList.getLength(); i++) {
+                            try{
+                                Node placemarkNode = placemarksList.item(i);
+                                KmlEvents kmlevent = new KmlEvents();
+                                if(placemarkNode.getNodeType() == Node.ELEMENT_NODE)
+                                {
+                                    String name = placemarkNode.getChildNodes().item(0).getChildNodes().item(0).getNodeValue();
+                                    String address = placemarkNode.getChildNodes().item(1).getChildNodes().item(0).getNodeValue();
+                                    String description = placemarkNode.getChildNodes().item(3).getChildNodes().item(0).getNodeValue();
+                                    String gxTrack = placemarkNode.getChildNodes().item(5).getChildNodes().item(1).getChildNodes().item(0).getNodeValue();
+                                    String TimeSpanStart = placemarkNode.getChildNodes().item(6).getChildNodes().item(0).getChildNodes().item(0).getNodeValue();
+                                    String TimeSpanEnd = placemarkNode.getChildNodes().item(6).getChildNodes().item(1).getChildNodes().item(0).getNodeValue();
+
+                                    //To get Start Time and end time
+                                    SimpleDateFormat formatter = new SimpleDateFormat(format);
+                                    Date startdate = formatter.parse(TimeSpanStart);
+                                    long startmillis = startdate.getTime();
+                                    Date enddate = formatter.parse(TimeSpanEnd);
+                                    long endmillis = enddate.getTime();
+
+                                    kmlevent.setStartTime(startmillis);
+                                    kmlevent.setEndTime(endmillis);
+
+                                    //Get distance for notes
+                                    String[] descriptionArray = description.split("Distance");
+                                    String distance = descriptionArray[1].trim();
+
+                                    kmlevent.setDistance(distance);
+
+                                    //get coordinates
+                                    String[] split = gxTrack.split(" ");
+                                    double lng = Double.valueOf(split[0]);
+                                    double lat = Double.valueOf(split[1]);
+
+                                    kmlevent.setLng(lng);
+                                    kmlevent.setLat(lat);
+                                    kmlevent.setName(name);
+                                    kmlevent.setAddress(address);
+
+                                }
+                                result.add(kmlevent);
+                            }
+                            catch(Exception ex)
+                            {
+                                Log.d("kmlParser", ex.getMessage());
+                            }
+
+                        }
+                    }
+                }
+            }
+            catch (ParserConfigurationException e) {
+                Log.d("kmlParser", e.getMessage());
+            }
+            catch (IOException e) {
+                Log.d("kmlParser", e.getMessage());
+            }
+            catch (SAXException e) {
+                Log.d("kmlParser", e.getMessage());
+            }
+            catch (Exception e) {
+                Log.d("kmlParser", e.getMessage());
+            }
+
+            //if any userstay is crossing few days, slice it into multiple userstays per 24 hours
+            ArrayList<KmlEvents> resultList = new ArrayList<>();
+            for(int i = 0; i < result.size(); i++) {
+                for(KmlEvents llt: userstaySlicing(result.get(i))) {
+                    resultList.add(llt);
+                }
+            }
+            return resultList;
+
+        }
+        return null;
+
+    }
     /**
      *
      * @param inputList
@@ -191,6 +290,28 @@ public class KmlParser {
         return slices;
     }
 
+    private ArrayList<KmlEvents> userstaySlicing(KmlEvents kmlevent) {
+        ArrayList<KmlEvents> slices = new ArrayList<>();
+        long endTime = kmlevent.getEndTime();
+        long curTime = kmlevent.getStartTime();
+        while(curTime < endTime) {
+            KmlEvents slice = new KmlEvents();
+            slice.setLat(kmlevent.getLat());
+            slice.setLng(kmlevent.getLng());
+            slice.setStartTime(curTime);
+            //get the nextend time(the end of current day) as per pacific time zone, GMT is 7 hours ahead Pacific time
+            long nextend = ((curTime-7*3600*1000) /(24*3600*1000)+1)*24*3600*1000 + 7*3600*1000 - 60*1000;
+            long sliceEnd = nextend > endTime ? endTime : nextend;
+            slice.setEndTime(sliceEnd);
+            slice.setName(kmlevent.getName());
+            slice.setAddress(kmlevent.getAddress());
+            slice.setDistance(kmlevent.getDistance());
+            slices.add(slice);
+            curTime = sliceEnd + 60*1000;
+        }
+        return slices;
+    }
+
     /*
      * Calculate distance between two points in latitude and longitude
      * Uses Haversine method as its base.
@@ -198,7 +319,7 @@ public class KmlParser {
      * @returns distance in Meters
     */
     private double distance(double lat1, double lon1, double lat2,
-                                  double lon2) {
+                            double lon2) {
 
         final int R = 6371; // Radius of the earth
 
