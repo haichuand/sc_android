@@ -16,7 +16,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 
 import com.google.android.gms.location.places.Place;
-import com.google.android.gms.location.places.ui.PlaceAutocomplete;
+import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -262,8 +262,7 @@ public class LocationPanel implements OnMapReadyCallback {
      */
     public void showPlacePicker() {
         try {
-            PlaceAutocomplete.IntentBuilder builder =
-                new PlaceAutocomplete.IntentBuilder(PlaceAutocomplete.MODE_FULLSCREEN);
+            PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
 
             Intent intent = builder.build(activity);
             activity.startActivityForResult(intent, EventDetailsActivity.REQUEST_PLACE_PICKER);
@@ -281,7 +280,7 @@ public class LocationPanel implements OnMapReadyCallback {
      */
     public void handlePlacePicker(int resultCode, Intent data) {
         if (resultCode == Activity.RESULT_OK) {
-            Place place = PlaceAutocomplete.getPlace(activity, data);
+            Place place = PlacePicker.getPlace(activity, data);
             LatLng latLng = place.getLatLng();
 
             Location location = new Location(latLng.latitude, latLng.longitude);
