@@ -35,6 +35,8 @@ import java.util.TimeZone;
 public class CalendarView extends RelativeLayout implements CalendarPageListener,
         SimpleDataSource<CalendarPageItem> {
 
+    private static final float SCROLL_TEXT_SIZE_DP = 20f;
+
     private static final int FAST_SCROLL_DELTA_Y = 80;
     private static final int FADE_IN_DURATION = 300;
     private static final int FADE_OUT_DURATION = 200;
@@ -106,8 +108,11 @@ public class CalendarView extends RelativeLayout implements CalendarPageListener
         scrollText = new TextView(context);
         scrollText.setAlpha(0);
         scrollText.setTextColor(Colors.getColor(context, R.color.colorPrimary));
+
+        int textSize = Pixels.pxFromDp(context, SCROLL_TEXT_SIZE_DP);
         scrollText.setTextSize(TypedValue.COMPLEX_UNIT_PX,
-            array.getDimensionPixelSize(R.styleable.CalendarView_scrollTextSize, 40));
+            array.getDimensionPixelSize(R.styleable.CalendarView_scrollTextSize, textSize));
+
         scrollText.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
 
         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
