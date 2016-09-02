@@ -65,6 +65,9 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
     private static final int ACTION_MOVE = 0;
     private static final int ACTION_COPY = 1;
 
+    private static final float ICON_DIMENSION_DP = 24f;
+    private static final float ICON_TEXT_SIZE_DP = 10f;
+
     public static final String EVENT_ITEM_LABEL = "event_item";
 
     private MainInterface mainInterface;
@@ -603,8 +606,9 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
             return null;
         }
 
-        int width = Pixels.pxFromDp(context, 24);
-        int height = Pixels.pxFromDp(context, 24);
+        int width = Pixels.pxFromDp(context, ICON_DIMENSION_DP);
+        int height = Pixels.pxFromDp(context, ICON_DIMENSION_DP);
+        float textSize = Pixels.pxFromDp(context, ICON_TEXT_SIZE_DP);
 
         Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
@@ -614,10 +618,10 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         Paint paint = new Paint();
         paint.setAntiAlias(true);
         paint.setTextAlign(Paint.Align.CENTER);
-        paint.setTextSize(20f);
+        paint.setTextSize(textSize);
         paint.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
 
-        canvas.drawText(value, width / 2 * 0.98f, height / 2 * 1.4f, paint);
+        canvas.drawText(value, width / 2f, (height + textSize) / 2, paint);
 
         Drawable text = new BitmapDrawable(context.getResources(), bitmap);
         return new LayerDrawable(new Drawable[]{background, text});
