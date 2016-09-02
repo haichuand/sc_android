@@ -771,8 +771,10 @@ public class EventManager {
             byte[] thumbnail;
             if (photo.thumbnail != null) {
                 thumbnail = photo.thumbnail;
-            } else {
+            } else if (Common.fileExists(path)) {
                 thumbnail = MediaManager.createThumbnail(path);
+            } else {
+                continue;
             }
 
             if (mediaId == 0) {
