@@ -1,5 +1,6 @@
 package com.mono;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.drawable.Drawable;
@@ -16,6 +17,7 @@ import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
@@ -123,8 +125,31 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                     button.setOnClickListener(new OnClickListener() {
                         @Override
                         public void onClick(View view) {
-                            AccountManager.getInstance(view.getContext()).logout();
-                            drawer.closeDrawer(GravityCompat.START);
+                            AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext(),
+                                R.style.AppTheme_Dialog_Alert);
+                            builder.setMessage(R.string.confirm_logout);
+
+                            DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    switch (which) {
+                                        case DialogInterface.BUTTON_POSITIVE:
+                                            AccountManager.getInstance(getApplicationContext()).logout();
+                                            drawer.closeDrawer(GravityCompat.START);
+                                            break;
+                                        case DialogInterface.BUTTON_NEGATIVE:
+                                            break;
+                                    }
+
+                                    dialog.dismiss();
+                                }
+                            };
+
+                            builder.setPositiveButton(R.string.yes, listener);
+                            builder.setNegativeButton(R.string.no, listener);
+
+                            AlertDialog dialog = builder.create();
+                            dialog.show();
                         }
                     });
                 } else {

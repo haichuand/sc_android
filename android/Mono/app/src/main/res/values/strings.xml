@@ -137,6 +137,7 @@
 
     <string name="confirm_event_save">Do you want to save your changes?</string>
     <string name="confirm_event_delete">Are you sure you want to delete this event?</string>
+    <string name="confirm_logout">Are you sure you want to sign out?</string>
     <string name="confirm_chat_leave">Are you sure you want to leave this chat?</string>
     <string name="confirm_friend_delete">Are you sure you want to remove this friend?</string>
     <string name="verify_location_change_forAll">Do you want to remember this location for all future/past events?</string>
