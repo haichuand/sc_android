@@ -23,13 +23,12 @@ import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.GoogleMap.InfoWindowAdapter;
-import com.google.android.gms.maps.GoogleMap.OnCameraChangeListener;
+import com.google.android.gms.maps.GoogleMap.OnCameraIdleListener;
 import com.google.android.gms.maps.GoogleMap.OnInfoWindowClickListener;
 import com.google.android.gms.maps.GoogleMap.OnMapClickListener;
 import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -41,7 +40,6 @@ import com.mono.MainInterface;
 import com.mono.R;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.EventDataSource;
-import com.mono.map.DirectionsTask.DirectionListener;
 import com.mono.map.MapMenuBar.MapMenuBarListener;
 import com.mono.model.Event;
 import com.mono.model.Location;
@@ -69,7 +67,7 @@ import java.util.Map;
  *
  * @author Gary Ng
  */
-public class MapFragment extends Fragment implements OnMapReadyCallback, OnCameraChangeListener,
+public class MapFragment extends Fragment implements OnMapReadyCallback, OnCameraIdleListener,
         OnMapClickListener, OnMarkerClickListener, InfoWindowAdapter, OnInfoWindowClickListener,
         EventBroadcastListener, TabPagerCallback, MapMenuBarListener {
 
@@ -188,7 +186,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
         map.setMapType(mapType);
-        map.setOnCameraChangeListener(this);
+        map.setOnCameraIdleListener(this);
         map.setOnMapClickListener(this);
         map.setOnMarkerClickListener(this);
         map.setInfoWindowAdapter(this);
@@ -205,10 +203,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
     }
 
     @Override
-    public void onCameraChange(CameraPosition cameraPosition) {
+    public void onCameraIdle() {
         if (mode == MODE_NONE) {
-            LatLng target = cameraPosition.target;
-            refresh(target);
+            refresh();
         }
     }
 
@@ -481,20 +478,28 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
                             positions.add(position);
                         }
                     }
+                    // Center Camera w/ All Locations
+                    centerLocations(positions, true);
                     // Retrieve Path to Draw
-                    new DirectionsTask(positions, new DirectionListener() {
+                    int year = date.getYear();
+                    int month = date.getMonthOfYear() - 1;
+                    int day = date.getDayOfMonth();
+
+                    new TimelineTask(new TimelineTask.TimelineListener() {
                         @Override
                         public void onFinish(List<LatLng> result) {
+                            if (result.isEmpty()) {
+                                return;
+                            }
+
                             PolylineOptions options = new PolylineOptions();
                             options.addAll(result);
                             options.color(color);
                             options.width(LINE_WIDTH);
 
                             map.addPolyline(options);
-
-                            centerLocations(result, true);
                         }
-                    }).executeOnExecutor(AsyncTask.SERIAL_EXECUTOR);
+                    }).executeOnExecutor(AsyncTask.SERIAL_EXECUTOR, year, month, day);
                 }
 
                 task = null;
