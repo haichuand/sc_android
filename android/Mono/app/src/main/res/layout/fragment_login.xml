@@ -71,6 +71,27 @@
                     android:textCursorDrawable="@null"
                     android:textSize="14sp"/>
 
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="10dp">
+
+                    <CheckBox
+                        android:id="@+id/remember"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:buttonTint="@color/translucent_50"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/remember_me"
+                        android:textColor="@android:color/white"
+                        android:textSize="14sp"/>
+                </LinearLayout>
+
                 <Button
                     android:id="@+id/submit"
                     android:layout_width="match_parent"

@@ -54,6 +54,9 @@ public class Settings {
     public static final String PREF_PERMISSION_CHECK = "pref_permission_check";
     public static final boolean DEFAULT_PERMISSION_CHECK = false;
 
+    public static final String PREF_REMEMBER_ME = "pref_remember_me";
+    public static final boolean DEFAULT_REMEMBER_ME = false;
+
     public static final String PREF_SCHEDULER_INTERVAL = "pref_scheduler_interval";
     public static final long DEFAULT_SCHEDULER_INTERVAL = Constants.DAY_MS;
 
@@ -292,6 +295,16 @@ public class Settings {
     public void setPermissionCheck(boolean value) {
         Editor editor = getEditor();
         editor.putBoolean(PREF_PERMISSION_CHECK, value);
+        editor.apply();
+    }
+
+    public boolean getRememberMe() {
+        return preferences.getBoolean(PREF_REMEMBER_ME, DEFAULT_REMEMBER_ME);
+    }
+
+    public void setRememberMe(boolean value) {
+        Editor editor = getEditor();
+        editor.putBoolean(PREF_REMEMBER_ME, value);
         editor.apply();
     }
 

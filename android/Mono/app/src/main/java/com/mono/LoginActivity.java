@@ -20,6 +20,7 @@ import com.mono.db.dao.AttendeeDataSource;
 import com.mono.model.Account;
 import com.mono.network.ChatServerManager;
 import com.mono.network.HttpServerManager;
+import com.mono.settings.Settings;
 
 import org.json.JSONObject;
 
@@ -138,8 +139,9 @@ public class LoginActivity extends AppCompatActivity {
      *
      * @param emailOrPhone The email or phone to be used to log in.
      * @param password The value of the password.
+     * @param remember Remember email or phone.
      */
-    public void submitLogin(String emailOrPhone, String password) {
+    public void submitLogin(String emailOrPhone, String password, boolean remember) {
         if (!hasToken) {
             return;
         }
@@ -147,6 +149,8 @@ public class LoginActivity extends AppCompatActivity {
         String toastMessage = null;
         switch (httpServerManager.loginUser(emailOrPhone, password)) {
             case 0:
+                Settings.getInstance(this).setRememberMe(remember);
+
                 getUserInfoAndSetAccount(emailOrPhone, httpServerManager);
                 resetUserTable(httpServerManager);
                 Toast.makeText(this, "Login successful", Toast.LENGTH_LONG).show();

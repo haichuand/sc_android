@@ -11,10 +11,13 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import com.mono.model.Account;
+import com.mono.settings.Settings;
 import com.mono.util.Colors;
 import com.mono.util.Common;
 
@@ -31,6 +34,7 @@ public class LoginFragment extends Fragment {
     private LoginActivity activity;
 
     private EditText[] fields;
+    private CheckBox remember;
     private Button submit;
 
     @Override
@@ -81,6 +85,17 @@ public class LoginFragment extends Fragment {
             editText.addTextChangedListener(textWatcher);
         }
 
+        remember = (CheckBox) view.findViewById(R.id.remember);
+        remember.setChecked(Settings.getInstance(getContext()).getRememberMe());
+        remember.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (!isChecked) {
+                    Settings.getInstance(getContext()).setRememberMe(false);
+                }
+            }
+        });
+
         submit = (Button) view.findViewById(R.id.submit);
         submit.setOnClickListener(new OnClickListener() {
             @Override
@@ -109,9 +124,10 @@ public class LoginFragment extends Fragment {
      * present, it will try to retrieve the phone number used by the device as the default.
      */
     public void initialize() {
+        boolean remember = Settings.getInstance(getContext()).getRememberMe();
         Account account = AccountManager.getInstance(getContext()).getAccount();
 
-        if (account != null) {
+        if (remember && account != null) {
             String value = account.email != null ? account.email : account.phone;
             fields[INDEX_USERNAME].setText(value);
         } else {
@@ -156,7 +172,7 @@ public class LoginFragment extends Fragment {
         String password = fields[INDEX_PASSWORD].getText().toString().trim();
 
         password = Common.md5(password);
-        activity.submitLogin(username, password);
+        activity.submitLogin(username, password, remember.isChecked());
     }
 
     /**

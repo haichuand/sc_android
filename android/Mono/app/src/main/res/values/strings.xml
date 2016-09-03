@@ -120,6 +120,7 @@
     <string name="no_results">No Search Results</string>
     <string name="no_contacts_found">No Contacts Found</string>
     <string name="hello">Hello</string>
+    <string name="remember_me">Remember Me</string>
 
     <string name="contacts_search">Enter Name or Email</string>
     <string name="favorites_add">Add to Favorites</string>
