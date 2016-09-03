@@ -24,7 +24,9 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.SupportMapFragment;
@@ -67,8 +69,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     public static final String APP_DIR = "MonoFiles/";
 
     public static final int HOME = R.id.nav_home;
-    public static final int LOGIN = R.id.nav_login;
-    public static final int LOGOUT = R.id.nav_logout;
     public static final int CONTACTS = R.id.nav_contacts;
     public static final int SETTINGS = R.id.nav_settings;
     public static final int LOCATION_SETTING = R.id.nav_location_setting;
@@ -101,8 +101,47 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         toolbarSpinner = (Spinner) findViewById(R.id.toolbar_spinner);
 
         drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawer, toolbar,
-            R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+                R.string.navigation_drawer_open, R.string.navigation_drawer_close) {
+            @Override
+            public void onDrawerSlide(View drawerView, float slideOffset) {
+                super.onDrawerSlide(drawerView, slideOffset);
+
+                Account account = AccountManager.getInstance(getApplicationContext()).getAccount();
+                boolean isOnline = account.status == Account.STATUS_ONLINE;
+
+                View navHeaderView = navView.getHeaderView(0);
+
+                TextView name = (TextView) navHeaderView.findViewById(R.id.display_name);
+                Button button = (Button) navHeaderView.findViewById(R.id.login_btn);
+
+                if (isOnline) {
+                    name.setText(!Common.isEmpty(account.email) ? account.email : account.phone);
+
+                    button.setText(R.string.action_logout);
+                    button.setOnClickListener(new OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            AccountManager.getInstance(view.getContext()).logout();
+                            drawer.closeDrawer(GravityCompat.START);
+                        }
+                    });
+                } else {
+                    name.setText(R.string.hello);
+
+                    button.setText(R.string.action_login);
+                    button.setOnClickListener(new OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            showLogin();
+                            drawer.closeDrawer(GravityCompat.START);
+                        }
+                    });
+                }
+            }
+        };
+
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
@@ -254,12 +293,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         switch (id) {
             case HOME:
                 showHome();
-                break;
-            case LOGIN:
-                showLogin();
-                break;
-            case LOGOUT:
-                AccountManager.getInstance(this).logout();
                 break;
             case CONTACTS:
                 showContacts();
