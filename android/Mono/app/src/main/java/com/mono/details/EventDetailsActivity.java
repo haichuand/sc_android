@@ -361,6 +361,9 @@ public class EventDetailsActivity extends GestureActivity {
             case android.R.id.home:
                 onBackPressed();
                 return true;
+            case R.id.action_save:
+                onSave();
+                return true;
             case R.id.action_delete:
                 onDelete();
                 return true;
@@ -447,6 +450,41 @@ public class EventDetailsActivity extends GestureActivity {
     public void close() {
         event = null;
         onBackPressed();
+    }
+
+    public void onSave() {
+        if (event != null && !event.equals(original)) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this,
+                R.style.AppTheme_Dialog_Alert);
+            builder.setMessage(R.string.confirm_event_save);
+
+            DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    switch (which) {
+                        case DialogInterface.BUTTON_POSITIVE:
+                            Intent data = new Intent();
+                            data.putExtra(EXTRA_EVENT, event);
+                            setResult(RESULT_OK, data);
+
+                            close();
+                            break;
+                        case DialogInterface.BUTTON_NEGATIVE:
+                            break;
+                    }
+
+                    dialog.dismiss();
+                }
+            };
+
+            builder.setPositiveButton(R.string.yes, listener);
+            builder.setNegativeButton(R.string.no, listener);
+
+            AlertDialog dialog = builder.create();
+            dialog.show();
+        } else {
+            close();
+        }
     }
 
     public void onDelete() {
