@@ -104,6 +104,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
     private int mapType;
 
     private AsyncTask<Object, Void, Map<String, List<Event>>> task;
+    private List<TimelineTask> timelineTasks = new ArrayList<>();
 
     private long startTime;
     private long endTime;
@@ -379,6 +380,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
             task.cancel(true);
         }
 
+        for (TimelineTask task : timelineTasks) {
+            task.cancel(true);
+        }
+        timelineTasks.clear();
+
         task = new AsyncTask<Object, Void, Map<String, List<Event>>>() {
             @Override
             protected Map<String, List<Event>> doInBackground(Object... params) {
@@ -485,7 +491,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
                     int month = date.getMonthOfYear() - 1;
                     int day = date.getDayOfMonth();
 
-                    new TimelineTask(new TimelineTask.TimelineListener() {
+                    TimelineTask task = new TimelineTask(new TimelineTask.TimelineListener() {
                         @Override
                         public void onFinish(List<LatLng> result) {
                             if (result.isEmpty()) {
@@ -499,7 +505,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
 
                             map.addPolyline(options);
                         }
-                    }).executeOnExecutor(AsyncTask.SERIAL_EXECUTOR, year, month, day);
+                    });
+
+                    task.executeOnExecutor(AsyncTask.SERIAL_EXECUTOR, year, month, day);
+                    timelineTasks.add(task);
                 }
 
                 task = null;
