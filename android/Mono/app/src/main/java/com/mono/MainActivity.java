@@ -75,6 +75,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     public static final int SETTINGS = R.id.nav_settings;
     public static final int LOCATION_SETTING = R.id.nav_location_setting;
     public static final int DUMMY = R.id.nav_dummy;
+    public static final int TERMINATE = R.id.nav_terminate;
 
     private static final String EXTRA_EVENT_ID = "eventId";
 
@@ -331,6 +332,8 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             case DUMMY:
                 showDummy();
                 break;
+            case TERMINATE:
+                throw new RuntimeException("Terminate");
         }
 
         drawer.closeDrawer(GravityCompat.START);

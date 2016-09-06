@@ -45,6 +45,9 @@ public class Settings {
     public static final String PREF_CONTACTS_SCAN_ID = "pref_contacts_scan_id";
     public static final long DEFAULT_CONTACTS_SCAN_ID = 0;
 
+    public static final String PREF_CRASH_REPORT = "pref_crash_report";
+    public static final boolean DEFAULT_CRASH_REPORT = true;
+
     public static final String PREF_DAY_ONE = "pref_day_one";
     public static final long DEFAULT_DAY_ONE = 0;
 
@@ -70,7 +73,7 @@ public class Settings {
 
     public static Settings getInstance(Context context) {
         if (instance == null) {
-            instance = new Settings(context.getApplicationContext());
+            instance = new Settings(context);
         }
 
         return instance;
@@ -265,6 +268,16 @@ public class Settings {
     public void setContactsScanId(long id) {
         Editor editor = getEditor();
         editor.putLong(PREF_CONTACTS_SCAN_ID, id);
+        editor.apply();
+    }
+
+    public boolean getCrashReport() {
+        return preferences.getBoolean(PREF_CRASH_REPORT, DEFAULT_CRASH_REPORT);
+    }
+
+    public void setCrashReport(boolean value) {
+        Editor editor = getEditor();
+        editor.putBoolean(PREF_CRASH_REPORT, value);
         editor.apply();
     }
 

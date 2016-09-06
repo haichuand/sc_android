@@ -28,6 +28,11 @@
         android:title="@string/settings_cat_other_title"
         android:layout="@layout/settings_category">
 
+        <SwitchPreference
+            android:key="@string/pref_crash_report_key"
+            android:title="@string/pref_crash_report_title"
+            android:defaultValue="@string/pref_crash_report_default"/>
+
         <Preference
             android:key="@string/pref_version_key"
             android:title="@string/pref_version_title"/>

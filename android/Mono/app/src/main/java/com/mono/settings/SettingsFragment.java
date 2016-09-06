@@ -15,9 +15,17 @@ import com.mono.R;
 import com.mono.model.Calendar;
 import com.mono.provider.CalendarProvider;
 
+import org.acra.ACRA;
+
 import java.util.List;
 import java.util.Set;
 
+/**
+ * A fragment that handles additional initialization for settings such as populating it with
+ * calendars found on the device and adding callbacks to specific settings to respond to changes.
+ *
+ * @author Gary Ng
+ */
 public class SettingsFragment extends PreferenceFragment {
 
     @Override
@@ -28,9 +36,13 @@ public class SettingsFragment extends PreferenceFragment {
         setCalendars();
         setCalendarWeekStart();
         setCalendarWeekNumber();
+        setCrashReport();
         setVersion();
     }
 
+    /**
+     * Populate settings with calendars found on device.
+     */
     public void setCalendars() {
         String key = getString(R.string.settings_cat_calendars_key);
         PreferenceCategory category = (PreferenceCategory) findPreference(key);
@@ -69,6 +81,9 @@ public class SettingsFragment extends PreferenceFragment {
         }
     }
 
+    /**
+     * Modifies the first day of the week.
+     */
     public void setCalendarWeekStart() {
         String key = getString(R.string.pref_week_start_key);
         ListPreference preference = (ListPreference) findPreference(key);
@@ -94,6 +109,9 @@ public class SettingsFragment extends PreferenceFragment {
         });
     }
 
+    /**
+     * Add callback to detect changes to enabling week numbers.
+     */
     public void setCalendarWeekNumber() {
         String key = getString(R.string.pref_week_num_key);
         SwitchPreference preference = (SwitchPreference) findPreference(key);
@@ -107,6 +125,26 @@ public class SettingsFragment extends PreferenceFragment {
         });
     }
 
+    /**
+     * Added callback to detect changes to enabling crash reporting.
+     */
+    public void setCrashReport() {
+        String key = getString(R.string.pref_crash_report_key);
+        SwitchPreference preference = (SwitchPreference) findPreference(key);
+
+        preference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+            @Override
+            public boolean onPreferenceChange(Preference preference, Object value) {
+                ACRA.getErrorReporter().setEnabled((boolean) value);
+                getActivity().setResult(Activity.RESULT_OK);
+                return true;
+            }
+        });
+    }
+
+    /**
+     * Updates the version number displayed in settings.
+     */
     public void setVersion() {
         String key = getString(R.string.pref_version_key);
         Preference preference = findPreference(key);
