@@ -112,7 +112,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                 super.onDrawerSlide(drawerView, slideOffset);
 
                 Account account = AccountManager.getInstance(getApplicationContext()).getAccount();
-                boolean isOnline = account.status == Account.STATUS_ONLINE;
+                boolean isOnline = account != null && account.status == Account.STATUS_ONLINE;
 
                 View navHeaderView = navView.getHeaderView(0);
 
