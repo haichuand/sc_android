@@ -1,0 +1,27 @@
+* {
+    font-family: Verdana, Geneva, sans-serif;
+}
+
+h4 {
+    margin: 1em 0;
+}
+
+#header {
+    padding: 1em 1em 0 1em;
+}
+
+#header .title {
+    font-size: 2.5em;
+}
+
+#header .subtitle {
+    font-size: 1.5em;
+}
+
+#content, #footer {
+    padding: 1em;
+}
+
+.font {
+    font-family: 'Roboto', sans-serif;
+}

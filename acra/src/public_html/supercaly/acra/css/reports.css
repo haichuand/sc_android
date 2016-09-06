@@ -1,0 +1,36 @@
+.badge {
+    background-color: #CD5C5C;
+    float: none !important;
+    vertical-align: top;
+    width: auto;
+}
+
+.count {
+    display: block;
+    font-style: italic;
+    margin-bottom: 1em;
+}
+
+.list-group {
+    max-width: 40em;
+}
+
+.list-group-item {
+    min-height: 3em;
+}
+
+.list-group-item .date {
+    float: right;
+    text-align: end;
+    padding: 0;
+}
+
+.list-group-item .title {
+    padding: 0;
+}
+
+.nowrap {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
