@@ -33,6 +33,7 @@ public class GCMHelper {
     public static final String EVENT_ID = "eventId";
     public static final String USER_IDS = "userIds";
     public static final String TITLE = "title";
+    public static final String ATTACHMENTS = "attachments";
 
     public static final String USERNAME = "username";
     public static final String EMAIL = "email";
@@ -136,7 +137,7 @@ public class GCMHelper {
     }
 
     public static Bundle getConversationMessagePayload(String senderId, String conversationId,
-                                                       List<String> recipients, String message, String messageId) {
+            List<String> recipients, String message, String messageId, List<String> attachments) {
         Bundle args = new Bundle();
         args.putString(ACTION, ACTION_CONVERSATION_MESSAGE);
         args.putString(SENDER_ID, senderId);
@@ -144,6 +145,10 @@ public class GCMHelper {
         args.putString(RECIPIENTS, Common.implode(",", recipients));
         args.putString(MESSAGE, message);
         args.putString(MESSAGE_ID, messageId);
+
+        if (attachments != null) {
+            args.putString(ATTACHMENTS, Common.implode(",", attachments));
+        }
 
         return args;
     }

@@ -58,8 +58,8 @@ public class ChatServerManager {
         gcmMessage.sendMessage(bundle, gcm);
     }
 
-    public void sendConversationMessage(String senderId, String conversationId, List<String> recipients, String msg, String msgId) {
-        Bundle bundle = GCMHelper.getConversationMessagePayload(senderId, conversationId, recipients, msg, msgId);
+    public void sendConversationMessage(String senderId, String conversationId, List<String> recipients, String msg, String msgId, List<String> attachments) {
+        Bundle bundle = GCMHelper.getConversationMessagePayload(senderId, conversationId, recipients, msg, msgId, attachments);
         gcmMessage.sendMessage(bundle, gcm);
     }
 }

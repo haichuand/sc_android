@@ -157,6 +157,9 @@
     <string name="start_time_format">Start Time: %s</string>
     <string name="end_time_format">End Time: %s</string>
 
+    <string name="media_size_limit">File exceeds size limit of %s</string>
+    <string name="attachment_error">[Download Failed]</string>
+
     <string name="crash_report_text">An unexpected error occurred forcing the application to stop. Please help us fix this by sending us a crash report.</string>
     <string name="crash_report_comment">Comments (Optional):</string>
     <string name="crash_report_sent">Thank you for your feedback!</string>
