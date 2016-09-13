@@ -34,10 +34,5 @@
             android:id="@+id/nav_dummy"
             android:icon="@drawable/ic_clipboard"
             android:title="@string/dummy"/>
-
-        <item
-            android:id="@+id/nav_terminate"
-            android:icon="@drawable/ic_clipboard"
-            android:title="@string/terminate"/>
     </group>
 </menu>
