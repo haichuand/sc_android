@@ -142,10 +142,26 @@ public class KmlParser {
                                 KmlEvents kmlevent = new KmlEvents();
                                 if(placemarkNode.getNodeType() == Node.ELEMENT_NODE)
                                 {
+                                    String address = "";
+                                    String gxTrackTo = "";
                                     String name = placemarkNode.getChildNodes().item(0).getChildNodes().item(0).getNodeValue();
-                                    String address = placemarkNode.getChildNodes().item(1).getChildNodes().item(0).getNodeValue();
+
+                                    if (!((i == 0)&&(name.equalsIgnoreCase("Driving")))) // ignore days when only event is driving
+                                    {
+                                          if(!(name.equalsIgnoreCase("Driving"))) //Non Driving events
+                                         {
+                                                     address = placemarkNode.getChildNodes().item(1).getChildNodes().item(0).getNodeValue();
+                                         }
+                                        else
+                                          {
+                                              // if Driving get destination lat long
+                                              gxTrackTo = placemarkNode.getChildNodes().item(5).getChildNodes().item(1).getLastChild().getNodeValue();
+
+                                          }
+
+
                                     String description = placemarkNode.getChildNodes().item(3).getChildNodes().item(0).getNodeValue();
-                                    String gxTrack = placemarkNode.getChildNodes().item(5).getChildNodes().item(1).getChildNodes().item(0).getNodeValue();
+                                    String gxTrackFrom = placemarkNode.getChildNodes().item(5).getChildNodes().item(1).getChildNodes().item(0).getNodeValue();
                                     String TimeSpanStart = placemarkNode.getChildNodes().item(6).getChildNodes().item(0).getChildNodes().item(0).getNodeValue();
                                     String TimeSpanEnd = placemarkNode.getChildNodes().item(6).getChildNodes().item(1).getChildNodes().item(0).getNodeValue();
 
@@ -161,22 +177,34 @@ public class KmlParser {
 
                                     //Get distance for notes
                                     String[] descriptionArray = description.split("Distance");
-                                    String distance = descriptionArray[1].trim();
-
-                                    kmlevent.setDistance(distance);
+                                    String notes = "";
 
                                     //get coordinates
-                                    String[] split = gxTrack.split(" ");
+                                    String[] split = gxTrackFrom.split(" ");
                                     double lng = Double.valueOf(split[0]);
                                     double lat = Double.valueOf(split[1]);
 
-                                    kmlevent.setLng(lng);
-                                    kmlevent.setLat(lat);
-                                    kmlevent.setName(name);
-                                    kmlevent.setAddress(address);
+                                        if(gxTrackTo != "")
+                                        {
+                                            String[] split2 = gxTrackTo.split(" ");
+                                            double lng2 = Double.valueOf(split2[0]);
+                                            double lat2 = Double.valueOf(split2[1]);
+                                            notes += lng2 + " " +lat2 + " ";
+                                        }
+                                        notes += descriptionArray[1].trim();
+                                        if(descriptionArray[1].trim().equalsIgnoreCase("0m"))
+                                            break;
+
+                                        kmlevent.setLng(lng);
+                                        kmlevent.setLat(lat);
+                                        kmlevent.setName(name);
+                                        kmlevent.setAddress(address);
+                                        kmlevent.setNotes(notes);
+                                        result.add(kmlevent);
+                                }
 
                                 }
-                                result.add(kmlevent);
+
                             }
                             catch(Exception ex)
                             {
@@ -305,7 +333,7 @@ public class KmlParser {
             slice.setEndTime(sliceEnd);
             slice.setName(kmlevent.getName());
             slice.setAddress(kmlevent.getAddress());
-            slice.setDistance(kmlevent.getDistance());
+            slice.setNotes(kmlevent.getNotes());
             slices.add(slice);
             curTime = sliceEnd + 60*1000;
         }

@@ -309,6 +309,9 @@ public class KmlLocationService extends IntentService{
 
     private class detailedEvent extends AsyncTask<Object, Void, String> {
         String requestResult;
+        String requestResult2;
+        String notes = "";
+        String distance = "";
         KmlEvents kmlevent = null;
         String event_id;
 
@@ -319,18 +322,47 @@ public class KmlLocationService extends IntentService{
             Log.d(TAG, "LatLong in the detailedAddress: "+ latitude + ", " +longitude);
             String url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + latitude+ ","+ longitude +"&location_type=ROOFTOP&result_type=street_address"+ "&key=" + GOOGLE_API_KEY;
             requestResult = makeCall(url);
+            //Driving events additions
+            if(kmlevent.getName().equalsIgnoreCase("Driving"))
+            {
+                String[] arr = kmlevent.getNotes().split(" ");
+                if(arr.length == 3)
+                {
+                    String url2 = "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + arr[1]+ ","+ arr[0] +"&location_type=ROOFTOP&result_type=street_address"+ "&key=" + GOOGLE_API_KEY;
+                    requestResult2 = makeCall(url2);
+                    distance = arr[2];
+                }
+            }
             return "";
         }
 
         protected void onPostExecute(String result) {
             if(requestResult != null) {
+
                 String[] detailResult = getAddressByLatLong(requestResult);
+                String[] detailResult2 = null;
+                if(requestResult2 != null)
+                {
+                    detailResult2  = getAddressByLatLong(requestResult2);
+                }
                 long locationId;
                 if(detailResult != null) {
 
                     String placeId =  detailResult[1];
                     String address[] = kmlevent.getAddress().split(",");
                     Location location = new Location(kmlevent.getName(), placeId, kmlevent.getLat(), kmlevent.getLng(), address);
+
+                    if(detailResult2 != null)
+                    {
+                        if(detailResult2[0]!= null)
+                            notes = "Driving from :" +detailResult[0] + " To " +detailResult2[0] +"\n";
+                        if(distance != "")
+                            notes += "Distance Travelled :" + distance;
+
+                    }
+                    else {
+                        notes = kmlevent.getAddress();
+                    }
 
                     if (locationDataSource.getLocationByGooglePlaceId(placeId) == null) {
                         locationId = locationDataSource.createLocation(kmlevent.getName(), placeId, kmlevent.getLat(),kmlevent.getLng(), kmlevent.getAddress());
@@ -352,13 +384,13 @@ public class KmlLocationService extends IntentService{
                         if (toastString != null) {
                             Log.i("testtoast", toastString.name);
                             //create a userstay event
-                            event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, location.name, kmlevent.getAddress(), toastString,
+                            event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, location.name, notes, toastString,
                                     1, kmlevent.getStartTime(), kmlevent.getEndTime(), null, null, false, null, null, null);
                             Log.d(TAG, "event with id: " + event_id + " created");
                         }
                         else
                         {
-                            event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, location.name, kmlevent.getAddress(), location,
+                            event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, location.name, notes, location,
                                     1, kmlevent.getStartTime(),kmlevent.getEndTime(), null, null, false, null, null, null);
                             Log.d(TAG, "event with id: " + event_id + " created");
                         }
@@ -366,7 +398,7 @@ public class KmlLocationService extends IntentService{
                     else
                     {
                         //create a userstay event
-                        event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, location.name, kmlevent.getAddress(), location,
+                        event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, location.name, notes , location,
                                 1, kmlevent.getStartTime(),kmlevent.getEndTime(), null, null, false, null, null, null);
                         Log.d(TAG, "event with id: " + event_id + " created");
                     }
