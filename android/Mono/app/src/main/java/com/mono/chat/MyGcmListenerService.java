@@ -20,6 +20,7 @@ import com.mono.db.dao.ConversationDataSource;
 import com.mono.model.Account;
 import com.mono.model.Attendee;
 import com.mono.model.Conversation;
+import com.mono.model.Media;
 import com.mono.model.Message;
 import com.mono.network.GCMHelper;
 import com.mono.network.HttpServerManager;
@@ -103,6 +104,19 @@ public class MyGcmListenerService extends GcmListenerService {
             return;
         }
         final Message message = new Message(senderId, conversationId, msgText, System.currentTimeMillis(), messageId);
+        if (data.containsKey(GCMHelper.ATTACHMENTS)) {
+            List<Media> attachments = new ArrayList<>();
+            String[] items = Common.explode(",", data.getString(GCMHelper.ATTACHMENTS));
+            for (String item : items) {
+                if (item.isEmpty()) {
+                    continue;
+                }
+                String[] values = Common.explode(":", item);
+                attachments.add(new Media(Uri.parse(values[1]), values[0], 0));
+            }
+
+            message.attachments = attachments;
+        }
         conversationManager.saveChatMessageToDB(message);
         handler.post(new Runnable() {
             @Override

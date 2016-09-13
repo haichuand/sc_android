@@ -179,7 +179,7 @@ public class DummyFragment extends Fragment {
         String conversationId = "conversationId...";
         String recipients = "210";
         String msg = "I am sending message to myself";
-        Bundle conversationMessageBundle = GCMHelper.getConversationMessagePayload(senderId, conversationId, new ArrayList<>(Arrays.asList("210")), msg, null);
+        Bundle conversationMessageBundle = GCMHelper.getConversationMessagePayload(senderId, conversationId, new ArrayList<>(Arrays.asList("210")), msg, null, null);
         gcmMessage.sendMessage(conversationMessageBundle, gcm);
     }
 

@@ -40,6 +40,9 @@ public class HttpServerManager {
     public static final String ADD_CONVERSATION_ATTENDEES_URL = SERVER_URL + "/SuperCaly/rest/conversation/addAttendees";
     public static final String UPDATE_CONVERSATION_TITLE_URL = SERVER_URL + "/SuperCaly/rest/conversation/updateTitle";
     public static final String DROP_CONVERSATION_ATTENDEES_URL = SERVER_URL + "/SuperCaly/rest/conversation/dropAttendees";
+    public static final String UPLOAD_IMAGE_URL = SERVER_URL + "/SuperCaly/rest/file/upload/image";
+    public static final String UPLOAD_VIDEO_URL = SERVER_URL + "/SuperCaly/rest/file/upload/video";
+    public static final String DOWNLOAD_URL = SERVER_URL + "/SuperCaly/rest/file/download/";
 
     //http server return codes
     public static final int STATUS_OK = 0;

@@ -10,11 +10,26 @@
         android:layout_height="1dp"
         android:background="@color/gray"/>
 
+    <include
+        layout="@layout/panel_attachment"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:layout_margin="8dp">
+
+        <ImageButton
+            android:id="@+id/attachment_btn"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:layout_marginEnd="10dp"
+            android:background="@drawable/input"
+            android:src="@drawable/ic_attachment"
+            android:tint="?attr/colorPrimary"
+            style="?attr/borderlessButtonStyle"/>
 
         <EditText
             android:id="@+id/sendMessageText"

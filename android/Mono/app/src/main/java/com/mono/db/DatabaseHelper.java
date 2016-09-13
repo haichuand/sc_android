@@ -4,14 +4,18 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-import com.mono.AccountManager;
 import com.mono.db.dao.DataSource;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 
+/**
+ * This class is used to manage the database by performing a series of create table queries.
+ * References to all database objects will be cached here for efficiency purposes.
+ *
+ * @author Gary Ng
+ */
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "database.db";
@@ -45,6 +49,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             DatabaseValues.Location.CREATE_TABLE,
             DatabaseValues.EventConversation.CREATE_TABLE,
             DatabaseValues.ConversationContent.CREATE_TABLE,
+            DatabaseValues.ConversationAttachments.CREATE_TABLE,
             DatabaseValues.EventLocationCandidates.CREATE_TABLE,
             DatabaseValues.EventAttendee.CREATE_TABLE,
             DatabaseValues.EventMedia.CREATE_TABLE,
@@ -65,22 +70,23 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         executeQueries(db, new String[]{
-                DatabaseValues.Event.DROP_TABLE,
-                DatabaseValues.User.DROP_TABLE,
-                DatabaseValues.Conversation.DROP_TABLE,
-                DatabaseValues.Media.DROP_TABLE,
-                DatabaseValues.Location.DROP_TABLE,
-                DatabaseValues.EventConversation.DROP_TABLE,
-                DatabaseValues.ConversationContent.DROP_TABLE,
-                DatabaseValues.EventLocationCandidates.DROP_TABLE,
-                DatabaseValues.EventAttendee.DROP_TABLE,
-                DatabaseValues.EventMedia.DROP_TABLE,
-                DatabaseValues.Alarm.DROP_TABLE,
-                DatabaseValues.EventAlarm.DROP_TABLE,
-                DatabaseValues.ConversationAttendee.DROP_TABLE,
-                DatabaseValues.RecurringEvent.DROP_TABLE,
-                DatabaseValues.RecurringEventRules.DROP_TABLE,
-                DatabaseValues.CommuteEventEndLocation.DROP_TABLE
+            DatabaseValues.Event.DROP_TABLE,
+            DatabaseValues.User.DROP_TABLE,
+            DatabaseValues.Conversation.DROP_TABLE,
+            DatabaseValues.Media.DROP_TABLE,
+            DatabaseValues.Location.DROP_TABLE,
+            DatabaseValues.EventConversation.DROP_TABLE,
+            DatabaseValues.ConversationContent.DROP_TABLE,
+            DatabaseValues.ConversationAttachments.DROP_TABLE,
+            DatabaseValues.EventLocationCandidates.DROP_TABLE,
+            DatabaseValues.EventAttendee.DROP_TABLE,
+            DatabaseValues.EventMedia.DROP_TABLE,
+            DatabaseValues.Alarm.DROP_TABLE,
+            DatabaseValues.EventAlarm.DROP_TABLE,
+            DatabaseValues.ConversationAttendee.DROP_TABLE,
+            DatabaseValues.RecurringEvent.DROP_TABLE,
+            DatabaseValues.RecurringEventRules.DROP_TABLE,
+            DatabaseValues.CommuteEventEndLocation.DROP_TABLE
         });
 
         onCreate(db);
@@ -92,6 +98,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
     }
 
+    /**
+     * Connect to the existing database.
+     *
+     * @return a reference of the database for further transactions.
+     */
     public Database connect() {
         if (database == null || !database.isOpen()) {
             database = getWritableDatabase();
@@ -101,6 +112,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return wrapper;
     }
 
+    /**
+     * Close database connection.
+     */
     public void close() {
         if (database != null && database.isOpen()) {
             database.close();
@@ -109,6 +123,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         dataSources.clear();
     }
 
+    /**
+     * Retrieve database access object from cache.
+     *
+     * @param key Database access object class.
+     * @param <T> Class type.
+     * @return the database access object.
+     */
     private <T extends DataSource> T getDataSource(Class<T> key) {
         T dataSource = null;
 
@@ -129,8 +150,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return dataSource;
     }
 
+    /**
+     * Retrieve database access object from cache.
+     *
+     * @param context Context of the application.
+     * @param key Database access object class.
+     * @param <T> Class type.
+     * @return the database access object.
+     */
     public static <T extends DataSource> T getDataSource(Context context, Class<T> key) {
         return getInstance(context).getDataSource(key);
     }
-
 }

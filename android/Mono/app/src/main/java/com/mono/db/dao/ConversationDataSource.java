@@ -3,12 +3,14 @@ package com.mono.db.dao;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.SQLException;
+import android.net.Uri;
 
 import com.mono.db.Database;
 import com.mono.db.DatabaseValues;
 import com.mono.model.Attendee;
 import com.mono.model.Conversation;
 import com.mono.model.Event;
+import com.mono.model.Media;
 import com.mono.model.Message;
 import com.mono.util.Common;
 
@@ -175,7 +177,10 @@ public class ConversationDataSource extends DataSource{
         values.put(DatabaseValues.ConversationContent.TIMESTAMP, msg.getTimestamp());
 
         try {
-            database.insert(DatabaseValues.ConversationContent.TABLE, values);
+            long id = database.insert(DatabaseValues.ConversationContent.TABLE, values);
+            if (msg.attachments != null) {
+                setMessageAttachments(String.valueOf(id), msg.attachments);
+            }
         }catch (SQLException e) {
             e.printStackTrace();
         }
@@ -256,7 +261,11 @@ public class ConversationDataSource extends DataSource{
             String senderId = cursor.getString(DatabaseValues.ConversationContent.INDEX_SENDER_ID);
             String text = cursor.getString(DatabaseValues.ConversationContent.INDEX_TEXT);
             long timestamp = cursor.getLong(DatabaseValues.ConversationContent.INDEX_TIMESTAMP);
+
             Message msg = new Message(senderId, conversationId, text, timestamp);
+            msg.setMessageId(cursor.getString(DatabaseValues.ConversationContent.INDEX_ID));
+            msg.attachments = getMessageAttachments(msg.getMessageId());
+
             messages.add(msg);
         }
 
@@ -588,6 +597,64 @@ public class ConversationDataSource extends DataSource{
         cursor.close();
 
         return messages;
+    }
+
+    /**
+     * Retrieve a list of message attachments.
+     *
+     * @param messageId The message ID belonging to the attachments.
+     * @return a list of attachments.
+     */
+    public List<Media> getMessageAttachments(String messageId) {
+        List<Media> result = new ArrayList<>();
+
+        Cursor cursor = database.select(
+            DatabaseValues.ConversationAttachments.TABLE,
+            DatabaseValues.ConversationAttachments.PROJECTION,
+            DatabaseValues.ConversationAttachments.MESSAGE_ID + " = ?",
+            new String[]{
+                String.valueOf(messageId)
+            }
+        );
+
+        while (cursor.moveToNext()) {
+            String path = cursor.getString(DatabaseValues.ConversationAttachments.INDEX_PATH);
+            String type = cursor.getString(DatabaseValues.ConversationAttachments.INDEX_TYPE);
+            int status = cursor.getInt(DatabaseValues.ConversationAttachments.INDEX_STATUS);
+
+            Media attachment = new Media(Uri.parse(path), type, status);
+            result.add(attachment);
+        }
+
+        cursor.close();
+
+        return result;
+    }
+
+    /**
+     * Insert message attachments belonging to a message.
+     *
+     * @param messageId The message ID belonging to the attachments.
+     * @param attachments List of attachments.
+     */
+    public void setMessageAttachments(String messageId, List<Media> attachments) {
+        database.delete(
+            DatabaseValues.ConversationAttachments.TABLE,
+            DatabaseValues.ConversationAttachments.MESSAGE_ID + " = ?",
+            new String[]{
+                messageId
+            }
+        );
+
+        for (Media attachment : attachments) {
+            ContentValues values = new ContentValues();
+            values.put(DatabaseValues.ConversationAttachments.MESSAGE_ID, messageId);
+            values.put(DatabaseValues.ConversationAttachments.PATH, attachment.uri.toString());
+            values.put(DatabaseValues.ConversationAttachments.TYPE, attachment.type);
+            values.put(DatabaseValues.ConversationAttachments.STATUS, attachment.size);
+
+            database.insert(DatabaseValues.ConversationAttachments.TABLE, values);
+        }
     }
 
     private Message cursorToMessage(Cursor cursor) {

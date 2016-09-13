@@ -1,6 +1,8 @@
 package com.mono;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.media.ThumbnailUtils;
 import android.net.Uri;
 
 import com.mono.db.DatabaseHelper;
@@ -10,10 +12,13 @@ import com.mono.provider.MediaImageProvider;
 import com.mono.util.BitmapHelper;
 import com.mono.util.Common;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static android.provider.MediaStore.Video.*;
 
 /**
  * This manager class is used to centralize all media related actions such as retrieve media from
@@ -147,5 +152,20 @@ public class MediaManager {
     public static byte[] createThumbnail(String path) {
         return BitmapHelper.getBytes(path, THUMBNAIL_DIMENSION_PX, THUMBNAIL_DIMENSION_PX,
             BitmapHelper.FORMAT_JPEG, 100);
+    }
+
+    /**
+     * Create a thumbnail of a video of a specific size with the video path given.
+     *
+     * @param path The video path.
+     * @return the image data of the thumbnail.
+     */
+    public static byte[] createVideoThumbnail(String path) {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        Bitmap bitmap = ThumbnailUtils.createVideoThumbnail(path, Thumbnails.MINI_KIND);
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, output);
+
+        return output.toByteArray();
     }
 }
