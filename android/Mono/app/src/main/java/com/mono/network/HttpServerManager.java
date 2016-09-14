@@ -22,27 +22,30 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 public class HttpServerManager {
-    public static final String SERVER_URL = "http://52.25.71.19:8080";
-    public static final String CREATE_USER_URL = SERVER_URL + "/SuperCaly/rest/user/createUser";
-    public static final String GET_USER_URL = SERVER_URL + "/SuperCaly/rest/user/basicInfo/";
-    public static final String GET_USER_BY_EMAIL_URL = SERVER_URL + "/SuperCaly/rest/user/getUserByEmail/";
-    public static final String GET_USER_BY_PHONE_URL = SERVER_URL + "/SuperCaly/rest/user/getUserByPhoneNumber/";
-    public static final String VERIFY_USER_BY_EMAIL_URL = SERVER_URL + "/SuperCaly/rest/user/verifyUserByEmail";
-    public static final String VERIFY_USER_BY_PHONE_URL = SERVER_URL + "/SuperCaly/rest/user/verifyUserByPhoneNumber";
-    public static final String EDIT_USER_URL = SERVER_URL + "/SuperCaly/rest/user/basicInfo/";
-    public static final String GET_USER_EVENTS_URL = SERVER_URL + "/SuperCaly/rest/user/userEvents/";
-    public static final String GET_USER_CONVERSATIONS_URL = SERVER_URL + "/SuperCaly/rest/user/userConversations/";
-    public static final String CREATE_EVENT_URL = SERVER_URL + "/SuperCaly/rest/event/createEvent";
-    public static final String UPDATE_GCM_ID_URL = SERVER_URL + "/SuperCaly/rest/user/updateUserGcmId/";
-    public static final String GET_ALL_USER_ID_URL = SERVER_URL + "/SuperCaly/rest/user/getAllUserId";
-    public static final String CREATE_CONVERSATION_URL = SERVER_URL + "/SuperCaly/rest/conversation/createConversation";
-    public static final String GET_CONVERSATION_URL = SERVER_URL + "/SuperCaly/rest/conversation/";
-    public static final String ADD_CONVERSATION_ATTENDEES_URL = SERVER_URL + "/SuperCaly/rest/conversation/addAttendees";
-    public static final String UPDATE_CONVERSATION_TITLE_URL = SERVER_URL + "/SuperCaly/rest/conversation/updateTitle";
-    public static final String DROP_CONVERSATION_ATTENDEES_URL = SERVER_URL + "/SuperCaly/rest/conversation/dropAttendees";
-    public static final String UPLOAD_IMAGE_URL = SERVER_URL + "/SuperCaly/rest/file/upload/image";
-    public static final String UPLOAD_VIDEO_URL = SERVER_URL + "/SuperCaly/rest/file/upload/video";
-    public static final String DOWNLOAD_URL = SERVER_URL + "/SuperCaly/rest/file/download/";
+
+    public static final String SERVER_URL = "http://52.25.71.19:8080/";
+    public static final String REST_URL = SERVER_URL + "SuperCaly/rest/";
+
+    public static final String CREATE_USER_URL = REST_URL + "user/createUser";
+    public static final String GET_USER_URL = REST_URL + "user/basicInfo/";
+    public static final String GET_USER_BY_EMAIL_URL = REST_URL + "user/getUserByEmail/";
+    public static final String GET_USER_BY_PHONE_URL = REST_URL + "user/getUserByPhoneNumber/";
+    public static final String VERIFY_USER_BY_EMAIL_URL = REST_URL + "user/verifyUserByEmail";
+    public static final String VERIFY_USER_BY_PHONE_URL = REST_URL + "user/verifyUserByPhoneNumber";
+    public static final String EDIT_USER_URL = REST_URL + "user/basicInfo/";
+    public static final String GET_USER_EVENTS_URL = REST_URL + "user/userEvents/";
+    public static final String GET_USER_CONVERSATIONS_URL = REST_URL + "user/userConversations/";
+    public static final String CREATE_EVENT_URL = REST_URL + "event/createEvent";
+    public static final String UPDATE_GCM_ID_URL = REST_URL + "user/updateUserGcmId/";
+    public static final String GET_ALL_USER_ID_URL = REST_URL + "user/getAllUserId";
+    public static final String CREATE_CONVERSATION_URL = REST_URL + "conversation/createConversation";
+    public static final String GET_CONVERSATION_URL = REST_URL + "conversation/getConversation";
+    public static final String ADD_CONVERSATION_ATTENDEES_URL = REST_URL + "conversation/addAttendees";
+    public static final String UPDATE_CONVERSATION_TITLE_URL = REST_URL + "conversation/updateTitle";
+    public static final String DROP_CONVERSATION_ATTENDEES_URL = REST_URL + "conversation/dropAttendees";
+    public static final String UPLOAD_IMAGE_URL = REST_URL + "file/upload/image";
+    public static final String UPLOAD_VIDEO_URL = REST_URL + "file/upload/video";
+    public static final String DOWNLOAD_URL = REST_URL + "file/download/";
 
     //http server return codes
     public static final int STATUS_OK = 0;
