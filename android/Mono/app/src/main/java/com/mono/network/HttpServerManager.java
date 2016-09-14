@@ -39,7 +39,7 @@ public class HttpServerManager {
     public static final String UPDATE_GCM_ID_URL = REST_URL + "user/updateUserGcmId/";
     public static final String GET_ALL_USER_ID_URL = REST_URL + "user/getAllUserId";
     public static final String CREATE_CONVERSATION_URL = REST_URL + "conversation/createConversation";
-    public static final String GET_CONVERSATION_URL = REST_URL + "conversation/getConversation";
+    public static final String GET_CONVERSATION_URL = REST_URL + "conversation/getConversation/";
     public static final String ADD_CONVERSATION_ATTENDEES_URL = REST_URL + "conversation/addAttendees";
     public static final String UPDATE_CONVERSATION_TITLE_URL = REST_URL + "conversation/updateTitle";
     public static final String DROP_CONVERSATION_ATTENDEES_URL = REST_URL + "conversation/dropAttendees";
