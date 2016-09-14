@@ -435,17 +435,27 @@ public class KmlLocationService extends IntentService{
         long[] calendarIds = Settings.getInstance(getApplicationContext()).getCalendarsArray();
         List<Event> events = eventManager.getEvents(mYear, mMonth, mDay, calendarIds);
 
+        int flag =0;
+
         for (Event event : events) {
 
-            long diff = kmlevent.getEndTime()-event.endTime;
-
-            if((kmlevent.getStartTime() >= event.startTime)&& (kmlevent.getEndTime()-event.endTime<900000)) // end time window of 15 minutes
+            if((event.startTime>= kmlevent.getStartTime())&&(event.endTime <= kmlevent.getEndTime()))// if event lies in between userstay period
             {
+
                 event.location = location;
                 event.description = notes;
-                return true;
+                eventManager.updateEvent(
+                        EventManager.EventAction.ACTOR_SELF,
+                        event.id,
+                        event,
+                        null
+                );
+                flag = 1;
             }
 
+        }
+        if(flag ==1) {
+         return true;
         }
       return false;
     }
