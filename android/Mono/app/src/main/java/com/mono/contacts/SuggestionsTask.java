@@ -184,6 +184,10 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
         Contact result = null;
 
         try {
+            if (json.has("status") && json.getInt("status") == HttpServerManager.STATUS_NO_USER) {
+                return result;
+            }
+
             String id = json.getString(HttpServerManager.UID);
             String mediaId = json.getString(HttpServerManager.MEDIA_ID);
             String email = json.getString(HttpServerManager.EMAIL);
