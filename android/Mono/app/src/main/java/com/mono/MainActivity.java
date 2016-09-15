@@ -36,7 +36,6 @@ import com.mono.chat.ChatUtil;
 import com.mono.chat.ConversationManager;
 import com.mono.contacts.ContactsActivity;
 import com.mono.details.EventDetailsActivity;
-import com.mono.dummy.DummyActivity;
 import com.mono.intro.IntroActivity;
 import com.mono.locationSetting.LocationSettingActivity;
 import com.mono.model.Account;
@@ -74,8 +73,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     public static final int CONTACTS = R.id.nav_contacts;
     public static final int SETTINGS = R.id.nav_settings;
     public static final int LOCATION_SETTING = R.id.nav_location_setting;
-    public static final int DUMMY = R.id.nav_dummy;
-    public static final int TERMINATE = R.id.nav_terminate;
 
     private static final String EXTRA_EVENT_ID = "eventId";
 
@@ -335,11 +332,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             case LOCATION_SETTING:
                 showLocationSetting();
                 break;
-            case DUMMY:
-                showDummy();
-                break;
-            case TERMINATE:
-                throw new RuntimeException("Terminate");
         }
 
         drawer.closeDrawer(GravityCompat.START);
@@ -770,7 +762,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             chatUtil.showCreateChatDialog(account, event, conversationManager);
         } else {
             Conversation conversation = conversations.get(0);
-            chatUtil.startChatRoomActivity(event.id, event.startTime, event.endTime, conversation.id, account.id+"");
+            chatUtil.startChatRoomActivity(event.id, event.startTime, event.endTime, event.allDay, conversation.id, account.id+"");
         }
     }
 
@@ -789,23 +781,15 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
         String myId = String.valueOf(AccountManager.getInstance(this).getAccount().id);
         if (event == null) {
-            chatUtil.startChatRoomActivity(null, 0, 0, conversationId, myId);
+            chatUtil.startChatRoomActivity(null, 0, 0, false, conversationId, myId);
         } else {
-            chatUtil.startChatRoomActivity(event.id, event.startTime, event.endTime, conversationId, myId);
+            chatUtil.startChatRoomActivity(event.id, event.startTime, event.endTime, event.allDay, conversationId, myId);
         }
     }
-
-
 
     public void showLocationSetting() {
         Intent intent = new Intent(this, LocationSettingActivity.class);
         startActivityForResult(intent, RequestCodes.Activity.LOCATION_SETTING);
-    }
-
-    @Override
-    public void showDummy() {
-        Intent intent = new Intent(this, DummyActivity.class);
-        startActivityForResult(intent, RequestCodes.Activity.DUMMY);
     }
 
     /**

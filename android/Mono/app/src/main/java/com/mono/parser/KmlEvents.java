@@ -7,7 +7,7 @@ public class KmlEvents {
 
     private String name;
     private String address;
-    private String distance;
+    private String notes;
     private double lat;
     private double lng;
     private long startTime;
@@ -17,10 +17,10 @@ public class KmlEvents {
 
     }
 
-    public KmlEvents (String name, String address, String distance,double latitude, double longitude, long startTime, long endTime) {
+    public KmlEvents (String name, String address, String notes,double latitude, double longitude, long startTime, long endTime) {
         this.name = name;
         this.address = address;
-        this.distance = distance;
+        this.notes = notes;
         this.lat = latitude;
         this.lng = longitude;
         this.startTime = startTime;
@@ -75,12 +75,12 @@ public class KmlEvents {
         this.address = address;
     }
 
-    public String getDistance() {
-        return distance;
+    public String getNotes() {
+        return notes;
     }
 
-    public void setDistance(String distance) {
-        this.distance = distance;
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 
     public String toString() {

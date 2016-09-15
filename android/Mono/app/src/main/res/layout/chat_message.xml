@@ -65,24 +65,36 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
-                    <TextView
-                        android:id="@+id/text"
+                    <LinearLayout
+                        android:id="@+id/container"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
+                        android:orientation="vertical"
                         android:background="@drawable/simple_quick_action_base"
                         android:clickable="true"
                         android:minHeight="42dp"
-                        android:padding="10dp"
-                        android:textAlignment="textStart"
-                        android:textSize="14sp"/>
+                        android:padding="10dp">
+
+                        <LinearLayout
+                            android:id="@+id/attachments"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"/>
+
+                        <TextView
+                            android:id="@+id/text"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textAlignment="textStart"
+                            android:textSize="14sp"/>
+                    </LinearLayout>
 
                     <ImageView
                         android:layout_width="42dp"
                         android:layout_height="42dp"
                         android:id="@+id/warning_icon"
                         android:padding="6dp"
-                        android:layout_toEndOf="@id/text"
+                        android:layout_toEndOf="@id/container"
                         android:src="@drawable/warning_icon_red"/>
 
                     <!--<TextView-->

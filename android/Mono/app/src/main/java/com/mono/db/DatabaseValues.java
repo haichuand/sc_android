@@ -281,6 +281,7 @@ public class DatabaseValues {
     public static class ConversationContent {
         public static final String TABLE = "`conversation_content`";
 
+        public static final String ID = "`id`";
         public static final String C_ID = "`c_id`";
         public static final String SENDER_ID = "`sender_id`";
         public static final String TEXT = "`text`";
@@ -288,16 +289,18 @@ public class DatabaseValues {
 
 
         public static final String[] PROJECTION = {
+                ConversationContent.ID,
                 ConversationContent.C_ID,
                 ConversationContent.SENDER_ID,
                 ConversationContent.TEXT,
                 ConversationContent.TIMESTAMP
         };
 
-        public static final int INDEX_C_ID = 0;
-        public static final int INDEX_SENDER_ID = 1;
-        public static final int INDEX_TEXT = 2;
-        public static final int INDEX_TIMESTAMP = 3;
+        public static final int INDEX_ID = 0;
+        public static final int INDEX_C_ID = 1;
+        public static final int INDEX_SENDER_ID = 2;
+        public static final int INDEX_TEXT = 3;
+        public static final int INDEX_TIMESTAMP = 4;
 
 
         public static final String CREATE_TABLE;
@@ -305,10 +308,48 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
+                    ID + " INTEGER PRIMARY KEY AUTOINCREMENT",
                     C_ID + " TEXT REFERENCES " + Conversation.TABLE + " ( "+ Conversation.C_ID +" ) ON DELETE CASCADE",
                     SENDER_ID + " TEXT REFERENCES " + User.TABLE + " ( "+ User.U_ID +" )",
                     TEXT + " TEXT",
                     TIMESTAMP + " INTEGER"
+            };
+
+            CREATE_TABLE = createTableQuery(TABLE, parameters);
+            DROP_TABLE = dropTableQuery(TABLE);
+        }
+    }
+
+    public static class ConversationAttachments {
+
+        public static final String TABLE = "`conversation_attachments`";
+
+        public static final String MESSAGE_ID = "`message_id`";
+        public static final String PATH = "`path`";
+        public static final String TYPE = "`type`";
+        public static final String STATUS = "`status`";
+
+        public static final String[] PROJECTION = {
+            ConversationAttachments.MESSAGE_ID,
+            ConversationAttachments.PATH,
+            ConversationAttachments.TYPE,
+            ConversationAttachments.STATUS
+        };
+
+        public static final int INDEX_MESSAGE_ID = 0;
+        public static final int INDEX_PATH = 1;
+        public static final int INDEX_TYPE = 2;
+        public static final int INDEX_STATUS = 3;
+
+        public static final String CREATE_TABLE;
+        public static final String DROP_TABLE;
+
+        static {
+            String[] parameters = {
+                MESSAGE_ID + " TEXT REFERENCES " + Conversation.TABLE + " (" + ConversationContent.ID + ")",
+                PATH + " TEXT",
+                TYPE + " TEXT",
+                STATUS + " INTEGER"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);

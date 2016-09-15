@@ -1,5 +1,7 @@
 package com.mono.model;
 
+import java.util.List;
+
 /**
  * Created by xuejing on 3/10/16.
  */
@@ -19,6 +21,8 @@ public class Message {
     public boolean showWarningIcon = false; //whether to show warning icon
     public boolean showMessageTime = true; //whether to show message time
     public boolean showMessageSender = true; //whether to show sender name
+
+    public List<Media> attachments;
 
     public Message(String senderId, String conversationId, String messageText, long timestamp) {
         this.senderId = senderId;

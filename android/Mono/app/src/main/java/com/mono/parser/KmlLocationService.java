@@ -23,6 +23,7 @@ import com.mono.model.Event;
 import com.mono.model.Location;
 import com.mono.parser.KmlParser;
 import com.mono.parser.LatLngTime;
+import com.mono.settings.Settings;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -36,6 +37,7 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -309,8 +311,12 @@ public class KmlLocationService extends IntentService{
 
     private class detailedEvent extends AsyncTask<Object, Void, String> {
         String requestResult;
+        String requestResult2;
+        String notes = "";
+        String distance = "";
         KmlEvents kmlevent = null;
         String event_id;
+        Boolean isPresent;
 
         protected String doInBackground(Object ... params) {
             kmlevent = (KmlEvents) params[0];
@@ -319,18 +325,54 @@ public class KmlLocationService extends IntentService{
             Log.d(TAG, "LatLong in the detailedAddress: "+ latitude + ", " +longitude);
             String url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + latitude+ ","+ longitude +"&location_type=ROOFTOP&result_type=street_address"+ "&key=" + GOOGLE_API_KEY;
             requestResult = makeCall(url);
+            //Driving events additions
+            if(kmlevent.getName().equalsIgnoreCase("Driving"))
+            {
+                String[] arr = kmlevent.getNotes().split(" ");
+                if(arr.length == 3)
+                {
+                    String url2 = "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + arr[1]+ ","+ arr[0] +"&location_type=ROOFTOP&result_type=street_address"+ "&key=" + GOOGLE_API_KEY;
+                    requestResult2 = makeCall(url2);
+                    distance = arr[2];
+                }
+            }
             return "";
         }
 
         protected void onPostExecute(String result) {
             if(requestResult != null) {
+
                 String[] detailResult = getAddressByLatLong(requestResult);
+                String[] detailResult2 = null;
+                if(requestResult2 != null)
+                {
+                    detailResult2  = getAddressByLatLong(requestResult2);
+                }
                 long locationId;
                 if(detailResult != null) {
 
                     String placeId =  detailResult[1];
                     String address[] = kmlevent.getAddress().split(",");
                     Location location = new Location(kmlevent.getName(), placeId, kmlevent.getLat(), kmlevent.getLng(), address);
+
+                    if(detailResult2 != null)
+                    {
+                        if(detailResult2[0]!= null)
+                        {
+                            if ((detailResult[0]!= null)&&(detailResult2[0]!=null)) {
+                                notes = "Driving from :" + detailResult[0] + " To " + detailResult2[0] + "\n";
+                            }
+                        }
+                        if(distance != "")
+                        {
+                            double disinMiles = Integer.parseInt(distance.split("m")[0]) * 0.00062;
+                            notes += "Distance Travelled :" + disinMiles + "miles";
+                        }
+
+                    }
+                    else {
+                        notes = kmlevent.getAddress();
+                    }
 
                     if (locationDataSource.getLocationByGooglePlaceId(placeId) == null) {
                         locationId = locationDataSource.createLocation(kmlevent.getName(), placeId, kmlevent.getLat(),kmlevent.getLng(), kmlevent.getAddress());
@@ -349,32 +391,73 @@ public class KmlLocationService extends IntentService{
                         HashMap<String, Location> testHashMap = gson.fromJson(storedHashMapString, type);
                         //use values
                         Location toastString = testHashMap.get(kmlevent.getName());
-                        if (toastString != null) {
-                            Log.i("testtoast", toastString.name);
-                            //create a userstay event
-                            event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, location.name, kmlevent.getAddress(), toastString,
-                                    1, kmlevent.getStartTime(), kmlevent.getEndTime(), null, null, false, null, null, null);
-                            Log.d(TAG, "event with id: " + event_id + " created");
-                        }
-                        else
-                        {
-                            event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, location.name, kmlevent.getAddress(), location,
-                                    1, kmlevent.getStartTime(),kmlevent.getEndTime(), null, null, false, null, null, null);
-                            Log.d(TAG, "event with id: " + event_id + " created");
+                        isPresent = checkEventOverlap(kmlevent, notes, location);
+                        if(!isPresent) {
+                            if (toastString != null) {
+                                Log.i("testtoast", toastString.name);
+                                //create a userstay event
+                                event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, location.name, notes, toastString,
+                                        1, kmlevent.getStartTime(), kmlevent.getEndTime(), null, null, false, null, null, null);
+                                Log.d(TAG, "event with id: " + event_id + " created");
+                            } else {
+                                event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, location.name, notes, location,
+                                        1, kmlevent.getStartTime(), kmlevent.getEndTime(), null, null, false, null, null, null);
+                                Log.d(TAG, "event with id: " + event_id + " created");
+                            }
                         }
                     }
                     else
                     {
-                        //create a userstay event
-                        event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, location.name, kmlevent.getAddress(), location,
-                                1, kmlevent.getStartTime(),kmlevent.getEndTime(), null, null, false, null, null, null);
-                        Log.d(TAG, "event with id: " + event_id + " created");
+                        isPresent = checkEventOverlap(kmlevent, notes, location);
+                        if(!isPresent) {
+                            //create a userstay event
+                            event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, location.name, notes, location,
+                                    1, kmlevent.getStartTime(), kmlevent.getEndTime(), null, null, false, null, null, null);
+                            Log.d(TAG, "event with id: " + event_id + " created");
+                        }
                     }
                 }
 
             }
         }
 
+    }
+
+    private Boolean checkEventOverlap(KmlEvents kmlevent,String notes,Location location)
+    {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(kmlevent.getStartTime());
+
+        int mYear = calendar.get(Calendar.YEAR);
+        int mMonth = calendar.get(Calendar.MONTH);
+        int mDay = calendar.get(Calendar.DAY_OF_MONTH);
+
+        long[] calendarIds = Settings.getInstance(getApplicationContext()).getCalendarsArray();
+        List<Event> events = eventManager.getEvents(mYear, mMonth, mDay, calendarIds);
+
+        int flag =0;
+
+        for (Event event : events) {
+
+            if((event.startTime>= kmlevent.getStartTime())&&(event.endTime <= kmlevent.getEndTime()))// if event lies in between userstay period
+            {
+
+                event.location = location;
+                event.description = notes;
+                eventManager.updateEvent(
+                        EventManager.EventAction.ACTOR_SELF,
+                        event.id,
+                        event,
+                        null
+                );
+                flag = 1;
+            }
+
+        }
+        if(flag ==1) {
+         return true;
+        }
+      return false;
     }
     private class PlaceDetailByPlaceId extends AsyncTask<String, Void, String> {
         String requestResult;

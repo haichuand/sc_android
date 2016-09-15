@@ -76,10 +76,10 @@ public class ChatUtil implements ConversationManager.ConversationBroadcastListen
     }
 
     public void showCreateChatDialog (final Account account, final Event event, final ConversationManager conversationManager) {
-//        if ("UTC".equals(event.timeZone)) {
-//            event.startTime = Common.convertHolidayMillis(event.startTime);
-//            event.endTime = Common.convertHolidayMillis(event.endTime);
-//        }
+        if ("UTC".equals(event.timeZone)) { //holiday, all day event
+            event.startTime = Common.convertHolidayMillis(event.startTime);
+            event.endTime = event.startTime;
+        }
         final AttendeeDataSource attendeeDataSource = DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
         replaceWithDatabaseAttendees(event.attendees, attendeeDataSource);
         this.event = event;
@@ -228,12 +228,13 @@ public class ChatUtil implements ConversationManager.ConversationBroadcastListen
         checkBoxLayout.addView(checkBox);
     }
 
-    public void startChatRoomActivity(String eventId, long startTime, long endTime, String conversationId, String accountId) {
+    public void startChatRoomActivity(String eventId, long startTime, long endTime, boolean isAllDay, String conversationId, String accountId) {
         Intent intent = new Intent(context, ChatRoomActivity.class);
         intent.putExtra(ChatRoomActivity.EVENT_ID, eventId);
 //        intent.putExtra(ChatRoomActivity.EVENT_NAME, eventTitle);
         intent.putExtra(ChatRoomActivity.EVENT_START_TIME, startTime);
         intent.putExtra(ChatRoomActivity.EVENT_END_TIME, endTime);
+        intent.putExtra(ChatRoomActivity.EVENT_ALL_DAY, isAllDay);
         intent.putExtra(ChatRoomActivity.CONVERSATION_ID, conversationId);
         intent.putExtra(ChatRoomActivity.MY_ID, accountId);
 
@@ -289,7 +290,7 @@ public class ChatUtil implements ConversationManager.ConversationBroadcastListen
             timer.cancel();
             isRunning = false;
             dialog.dismiss();
-            startChatRoomActivity(event.id, event.startTime, event.endTime, conversation.id, myId);
+            startChatRoomActivity(event.id, event.startTime, event.endTime, event.allDay, conversation.id, myId);
         }
     }
 

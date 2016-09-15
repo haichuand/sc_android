@@ -1,5 +1,6 @@
 package com.mono.util;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.BitmapFactory.Options;
@@ -10,6 +11,13 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.media.ExifInterface;
+import android.net.Uri;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+
+import com.mono.R;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -206,5 +214,45 @@ public class BitmapHelper {
         bitmap.compress(compressFormat, quality, output);
 
         return output.toByteArray();
+    }
+
+    /**
+     * Create and return an image view containing the image at the given dimensions.
+     *
+     * @param context Context of the application.
+     * @param uri Path of the image file.
+     * @param data Binary data of image.
+     * @param overlayResId Drawable resource used as an overlay image.
+     * @param width Width of the view.
+     * @param height Height of the view.
+     * @return an image view.
+     */
+    public static View createThumbnail(Context context, Uri uri, byte[] data, int overlayResId,
+            int width, int height) {
+        LayoutInflater inflater = LayoutInflater.from(context);
+        View view = inflater.inflate(R.layout.photos_item, null, false);
+
+        ImageView image = (ImageView) view.findViewById(R.id.image);
+
+        Bitmap bitmap = null;
+        if (data != null) {
+            bitmap = createBitmap(data, width, height);
+        } else if (Common.fileExists(uri.toString())) {
+            bitmap = createBitmap(uri.toString(), width, height);
+        }
+        image.setImageBitmap(bitmap);
+
+        if (overlayResId != 0) {
+            ImageView overlay = (ImageView) view.findViewById(R.id.overlay);
+            overlay.setImageResource(overlayResId);
+        }
+
+        int margin = Pixels.pxFromDp(context, 2);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(width, height);
+        params.setMargins(margin, margin, margin, margin);
+
+        view.setLayoutParams(params);
+
+        return view;
     }
 }

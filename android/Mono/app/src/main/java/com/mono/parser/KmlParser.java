@@ -13,16 +13,21 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.TimeZone;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -133,7 +138,8 @@ public class KmlParser {
                     Element elem = (Element) node;
                     NodeList placemarksList = elem.getElementsByTagName("Placemark");
 
-                    String format = "yyyy-MM-dd'T'HH:mm:ss.SSS";
+                    String format = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+
                     if( placemarksList.getLength()> 0 )
                     {
                         for(int i = 0; i < placemarksList.getLength(); i++) {
@@ -142,41 +148,76 @@ public class KmlParser {
                                 KmlEvents kmlevent = new KmlEvents();
                                 if(placemarkNode.getNodeType() == Node.ELEMENT_NODE)
                                 {
+                                    String address = "";
+                                    String gxTrackTo = "";
                                     String name = placemarkNode.getChildNodes().item(0).getChildNodes().item(0).getNodeValue();
-                                    String address = placemarkNode.getChildNodes().item(1).getChildNodes().item(0).getNodeValue();
+
+                                    if (!((i == 0)&&(name.equalsIgnoreCase("Driving")))) // ignore days when only event is driving
+                                    {
+                                          if(!(name.equalsIgnoreCase("Driving"))) //Non Driving events
+                                         {
+                                                     address = placemarkNode.getChildNodes().item(1).getChildNodes().item(0).getNodeValue();
+                                         }
+                                        else
+                                          {
+                                              // if Driving get destination lat long
+                                              gxTrackTo = placemarkNode.getChildNodes().item(5).getLastChild().getChildNodes().item(0).getNodeValue();
+
+                                          }
+
+
                                     String description = placemarkNode.getChildNodes().item(3).getChildNodes().item(0).getNodeValue();
-                                    String gxTrack = placemarkNode.getChildNodes().item(5).getChildNodes().item(1).getChildNodes().item(0).getNodeValue();
+                                    String gxTrackFrom = placemarkNode.getChildNodes().item(5).getChildNodes().item(1).getChildNodes().item(0).getNodeValue();
                                     String TimeSpanStart = placemarkNode.getChildNodes().item(6).getChildNodes().item(0).getChildNodes().item(0).getNodeValue();
                                     String TimeSpanEnd = placemarkNode.getChildNodes().item(6).getChildNodes().item(1).getChildNodes().item(0).getNodeValue();
 
                                     //To get Start Time and end time
-                                    SimpleDateFormat formatter = new SimpleDateFormat(format);
-                                    Date startdate = formatter.parse(TimeSpanStart);
-                                    long startmillis = startdate.getTime();
-                                    Date enddate = formatter.parse(TimeSpanEnd);
-                                    long endmillis = enddate.getTime();
+                                         SimpleDateFormat formatter = new SimpleDateFormat(format);
+                                         Date startdate = formatter.parse(TimeSpanStart);
+                                         long startmillis = startdate.getTime();
+                                         Date enddate = formatter.parse(TimeSpanEnd);
+                                         long endmillis = enddate.getTime();
+
+                                        TimeZone tz = TimeZone.getDefault();
+                                        long offset = tz.getRawOffset() + tz.getDSTSavings();
+
+                                        startmillis +=offset;
+                                        endmillis +=offset;
 
                                     kmlevent.setStartTime(startmillis);
                                     kmlevent.setEndTime(endmillis);
 
                                     //Get distance for notes
                                     String[] descriptionArray = description.split("Distance");
-                                    String distance = descriptionArray[1].trim();
-
-                                    kmlevent.setDistance(distance);
+                                    String notes = "";
 
                                     //get coordinates
-                                    String[] split = gxTrack.split(" ");
+                                    String[] split = gxTrackFrom.split(" ");
                                     double lng = Double.valueOf(split[0]);
                                     double lat = Double.valueOf(split[1]);
 
-                                    kmlevent.setLng(lng);
-                                    kmlevent.setLat(lat);
-                                    kmlevent.setName(name);
-                                    kmlevent.setAddress(address);
+                                        if(gxTrackTo != "")
+                                        {
+                                            String[] split2 = gxTrackTo.split(" ");
+                                            double lng2 = Double.valueOf(split2[0]);
+                                            double lat2 = Double.valueOf(split2[1]);
+                                            notes += lng2 + " " +lat2 + " ";
+                                        }
+                                        notes += descriptionArray[1].trim();
+                                        if((descriptionArray[1].trim().equalsIgnoreCase("0m")) && (name.equalsIgnoreCase("Driving"))) {
+                                            continue;
+                                        }
+
+                                        kmlevent.setLng(lng);
+                                        kmlevent.setLat(lat);
+                                        kmlevent.setName(name);
+                                        kmlevent.setAddress(address);
+                                        kmlevent.setNotes(notes);
+                                        result.add(kmlevent);
+                                }
 
                                 }
-                                result.add(kmlevent);
+
                             }
                             catch(Exception ex)
                             {
@@ -305,7 +346,7 @@ public class KmlParser {
             slice.setEndTime(sliceEnd);
             slice.setName(kmlevent.getName());
             slice.setAddress(kmlevent.getAddress());
-            slice.setDistance(kmlevent.getDistance());
+            slice.setNotes(kmlevent.getNotes());
             slices.add(slice);
             curTime = sliceEnd + 60*1000;
         }
