@@ -29,30 +29,32 @@ public class ConversationDataSource extends DataSource{
     * Create a conversation from an event with
     * Params: name of the conversation, the id of associated event
     * */
-    public String createConversationFromEvent (String name, Event event, String creatorId) {
-        String id = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
+    public boolean createEventConversation(String eventId, String conversationId, String name, String creatorId, List<String> conversationAttendeesId) {
         ContentValues conversationValues = new ContentValues();
-        conversationValues.put(DatabaseValues.Conversation.C_ID, id);
+        conversationValues.put(DatabaseValues.Conversation.C_ID, conversationId);
         conversationValues.put(DatabaseValues.Conversation.C_NAME, name);
         conversationValues.put(DatabaseValues.Conversation.C_CREATOR, creatorId);
 
         ContentValues conversationEventValues = new ContentValues();
-        conversationEventValues.put(DatabaseValues.EventConversation.C_ID, id);
-        conversationEventValues.put(DatabaseValues.EventConversation.EVENT_ID, event.id);
+        conversationEventValues.put(DatabaseValues.EventConversation.C_ID, conversationId);
+        conversationEventValues.put(DatabaseValues.EventConversation.EVENT_ID, eventId);
 
-        ArrayList<String> attendeeIds = new ArrayList<>();
-        for (Attendee attendee : event.attendees) {
-            attendeeIds.add(attendee.id);
-        }
+        ContentValues convAttendeeValues = new ContentValues();
+        convAttendeeValues.put(DatabaseValues.ConversationAttendee.C_ID, conversationId);
+
         try {
             database.insert(DatabaseValues.Conversation.TABLE,conversationValues);
             database.insert(DatabaseValues.EventConversation.TABLE,conversationEventValues);
-            addAttendeesToConversation(id, attendeeIds);
+            for (String id : conversationAttendeesId) {
+                convAttendeeValues.put(DatabaseValues.ConversationAttendee.ATTENDEE_ID, id);
+                database.insert(DatabaseValues.ConversationAttendee.TABLE, convAttendeeValues);
+            }
         } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
 
-        return id;
+        return true;
     }
 
     public String getConversationFromEvent (String eventID) {
@@ -84,7 +86,16 @@ public class ConversationDataSource extends DataSource{
      * @return
      */
     public String createConversationWithSelectedAttendees (String name, String eventId, List<String> attendeesID, String creatorId) {
-        String conversationId = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
+        String conversationId = getUniqueConversationId();
+        createConversationGivenId(conversationId, name, eventId, attendeesID, creatorId);
+        return conversationId;
+    }
+
+    public String getUniqueConversationId () {
+        return DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
+    }
+
+    public void createConversationGivenId (String conversationId, String name, String eventId, List<String> attendeesID, String creatorId) {
         ContentValues conversationValues = new ContentValues();
         conversationValues.put(DatabaseValues.Conversation.C_ID, conversationId);
         conversationValues.put(DatabaseValues.Conversation.C_NAME, name);
@@ -106,8 +117,6 @@ public class ConversationDataSource extends DataSource{
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
-        return conversationId;
     }
 
     public boolean createConversation(String conversationID, String creatorId, String name, List<String> attendeesID ) {
@@ -140,24 +149,24 @@ public class ConversationDataSource extends DataSource{
         return false;
     }
 
-    public boolean createConversationWithConversationIdFromEvent(String name, String eventID, String conversationID) {
-        ContentValues conversationValues = new ContentValues();
-        conversationValues.put(DatabaseValues.Conversation.C_ID, conversationID);
-        conversationValues.put(DatabaseValues.Conversation.C_NAME, name);
-
-        ContentValues conversationEventValues = new ContentValues();
-        conversationEventValues.put(DatabaseValues.EventConversation.C_ID, eventID);
-        conversationEventValues.put(DatabaseValues.EventConversation.EVENT_ID, eventID);
-
-        try {
-            database.insert(DatabaseValues.Conversation.TABLE,conversationValues);
-            database.insert(DatabaseValues.EventConversation.TABLE,conversationEventValues);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-        return true;
-    }
+//    public boolean createConversationWithConversationIdFromEvent(String name, String eventID, String conversationID) {
+//        ContentValues conversationValues = new ContentValues();
+//        conversationValues.put(DatabaseValues.Conversation.C_ID, conversationID);
+//        conversationValues.put(DatabaseValues.Conversation.C_NAME, name);
+//
+//        ContentValues conversationEventValues = new ContentValues();
+//        conversationEventValues.put(DatabaseValues.EventConversation.C_ID, eventID);
+//        conversationEventValues.put(DatabaseValues.EventConversation.EVENT_ID, eventID);
+//
+//        try {
+//            database.insert(DatabaseValues.Conversation.TABLE,conversationValues);
+//            database.insert(DatabaseValues.EventConversation.TABLE,conversationEventValues);
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//            return false;
+//        }
+//        return true;
+//    }
 
     public int clearConversationTable() {
         return database.delete(DatabaseValues.Conversation.TABLE, null, null);

@@ -63,7 +63,7 @@ public class RegistrationIntentService extends IntentService {
         HttpServerManager httpServerManager = new HttpServerManager(this);
         Account account = AccountManager.getInstance(this).getAccount();
         if (account != null) {
-            long accountId = account.id;
+            int accountId = (int) (account.id);
             httpServerManager.updateUserGcmId(accountId, token);
             ChatServerManager chatServerManager = new ChatServerManager(this);
             chatServerManager.updateUserGcmId(accountId, token);

@@ -90,6 +90,8 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
     private ServiceScheduler scheduler;
     private GoogleClient googleClient;
+    private ChatUtil chatUtil;
+    private ConversationManager conversationManager;
 
 //    private Attendee selectedAttendee = null; //attendee selected in AutoCompleteTextView
 
@@ -183,6 +185,9 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         googleClient = new GoogleClient(this);
         googleClient.initialize();
 
+        chatUtil = new ChatUtil(this);
+        conversationManager = ConversationManager.getInstance(this);
+        conversationManager.addListener(chatUtil);
         start();
     }
 
@@ -227,6 +232,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        conversationManager.removeListener(chatUtil);
     }
 
     @Override
@@ -753,7 +759,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             return;
         }
 
-        ConversationManager conversationManager = ConversationManager.getInstance(this);
         List<Conversation> conversations = conversationManager.getConversations(eventId);
         String conversationId;
         if (conversations.isEmpty()) { //create new chat
@@ -762,16 +767,15 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                 return;
             }
 
-            ChatUtil.showCreateChatDialog(account, event, conversationManager, this);
+            chatUtil.showCreateChatDialog(account, event, conversationManager);
         } else {
             Conversation conversation = conversations.get(0);
-            ChatUtil.startChatRoomActivity(event.id, event.startTime, event.endTime, conversation.id, account.id+"", this);
+            chatUtil.startChatRoomActivity(event.id, event.startTime, event.endTime, conversation.id, account.id+"");
         }
     }
 
     @Override
     public void showExistingChat(String conversationId) {
-        ConversationManager conversationManager = ConversationManager.getInstance(this);
         Conversation conversation = conversationManager.getConversationById(conversationId);
         if (conversation == null) {
             Toast.makeText(this, "Cannot find conversation with id: " + conversationId, Toast.LENGTH_SHORT).show();
@@ -785,9 +789,9 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
         String myId = String.valueOf(AccountManager.getInstance(this).getAccount().id);
         if (event == null) {
-            ChatUtil.startChatRoomActivity(null, 0, 0, conversationId, myId, this);
+            chatUtil.startChatRoomActivity(null, 0, 0, conversationId, myId);
         } else {
-            ChatUtil.startChatRoomActivity(event.id, event.startTime, event.endTime, conversationId, myId, this);
+            chatUtil.startChatRoomActivity(event.id, event.startTime, event.endTime, conversationId, myId);
         }
     }
 

@@ -393,7 +393,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
             public void onFinish() {
                 chatMessages.get(lastMessagePos).showWarningIcon = true;
                 chatRoomAdapter.notifyItemChanged(lastMessagePos);
-                Toast.makeText(ChatRoomActivity.this, "Chat server error, cannot send message", Toast.LENGTH_SHORT).show();
+                Toast.makeText(ChatRoomActivity.this, "Chat server error. Please try later.", Toast.LENGTH_SHORT).show();
             }
         };
         chatServerManager.sendConversationMessage(myId, conversationId, chatAttendeeIdList, msg, messageId);

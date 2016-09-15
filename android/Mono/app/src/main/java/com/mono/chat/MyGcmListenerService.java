@@ -13,13 +13,17 @@ import android.util.Log;
 
 import com.google.android.gms.gcm.GcmListenerService;
 import com.mono.AccountManager;
+import com.mono.EventManager;
 import com.mono.MainActivity;
 import com.mono.R;
 import com.mono.db.DatabaseHelper;
+import com.mono.db.dao.AttendeeDataSource;
 import com.mono.db.dao.ConversationDataSource;
+import com.mono.db.dao.EventDataSource;
 import com.mono.model.Account;
 import com.mono.model.Attendee;
 import com.mono.model.Conversation;
+import com.mono.model.Event;
 import com.mono.model.Message;
 import com.mono.network.GCMHelper;
 import com.mono.network.HttpServerManager;
@@ -31,7 +35,6 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -42,8 +45,9 @@ public class MyGcmListenerService extends GcmListenerService {
     public static final String GCM_MESSAGE_DATA = "com.mono.chat.MyGcmListenerService.MESSAGE_DATA";
 
     private static final String TAG = "MyGcmListenerService";
-//    private LocalBroadcastManager broadcaster;
+    //    private LocalBroadcastManager broadcaster;
     private ConversationManager conversationManager;
+    private EventManager eventManager;
     private HttpServerManager httpServerManager;
     private Handler handler;
 
@@ -51,6 +55,7 @@ public class MyGcmListenerService extends GcmListenerService {
     public void onCreate() {
 //        broadcaster = LocalBroadcastManager.getInstance(this);
         conversationManager = ConversationManager.getInstance(this);
+        eventManager = EventManager.getInstance(this);
         httpServerManager = new HttpServerManager(this);
         handler = new Handler();
     }
@@ -65,8 +70,8 @@ public class MyGcmListenerService extends GcmListenerService {
             case GCMHelper.ACTION_CONVERSATION_MESSAGE:
                 onNewConversationMessage(from, data);
                 break;
-            case GCMHelper.ACTION_START_CONVERSATION:
-                addNewConversation(from, data);
+            case GCMHelper.ACTION_START_EVENT_CONVERSATION:
+                onNewEventConversation(from, data);
                 break;
             case GCMHelper.ACTION_ADD_CONVERSATION_ATTENDEES:
                 addConversationAttendees(from, data);
@@ -115,47 +120,104 @@ public class MyGcmListenerService extends GcmListenerService {
         }
     }
 
-    private boolean addNewConversation(String from, Bundle data) {
-        String conversationId = data.getString(GCMHelper.CONVERSATION_ID);
-        if (conversationId == null || conversationId.isEmpty()) {
-            Log.e(TAG, "Error: no conversationId");
+    private boolean onNewEventConversation(String from, Bundle data) {
+        String eventId = data.getString(GCMHelper.EVENT_ID);
+        if (eventId == null || eventId.isEmpty()) {
+            Log.e(TAG, "Error: no eventId");
             return false;
         }
-        //get conversation details from server
-        JSONObject conversationInfo = httpServerManager.getConversation(conversationId);
-        String title = "";
+
+        JSONObject eventObj = httpServerManager.getEvent(eventId);
+        if (eventObj == null) {
+            Log.e(TAG, "Error: cannot get event from server");
+            return false;
+        }
+
+        //find events with matching start, end times & title in local database
+        long startTime;
+        long endTime;
+        String eventTitle;
+        List<String> eventAttendeesId = new ArrayList<>();
+        String conversationId;
+        int eventCreatorId;
         try {
-            title = conversationInfo.getString(HttpServerManager.TITLE);
-            Long creatorId = conversationInfo.getLong(HttpServerManager.CREATOR_ID);
-            if (AccountManager.getInstance(this).getAccount().id == creatorId) { //sent by user self
-                return false;
+            startTime = eventObj.getLong(GCMHelper.START_TIME);
+            endTime = eventObj.getLong(GCMHelper.END_TIME);
+            eventTitle = eventObj.getString(GCMHelper.TITLE);
+            conversationId = eventObj.getString(GCMHelper.CONVERSATION_ID);
+            eventCreatorId = eventObj.getInt(GCMHelper.CREATOR_ID);
+            JSONArray attendeesId = eventObj.getJSONArray(GCMHelper.ATTENDEES_ID);
+            for (int i = 0; i < attendeesId.length(); i++) {
+                eventAttendeesId.add(attendeesId.get(i).toString());
             }
-            JSONArray attendeesArray = conversationInfo.getJSONArray(HttpServerManager.ATTENDEES_ID);
-            ArrayList<String> attendeesList = new ArrayList<>();
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+//        if (AccountManager.getInstance(this).getAccount().id != eventCreatorId) { //skip if it's user's self-confirmation
+            List<Event> events = eventManager.getEvents(startTime, endTime);
+            if (events.isEmpty()) {  //create new event
+                if (!createEvent(eventId, startTime, endTime, eventTitle, eventAttendeesId)) {
+                    return false;
+                }
+            } else {  //find matching event, if any
+                Event localEvent = null;
+                for (Event event : events) {
+                    if (event.startTime == startTime && event.endTime == endTime && eventTitle.equals(event.title)) {
+                        localEvent = event;
+                        break;
+                    }
+                }
+                if (localEvent == null) {
+                    if (!createEvent(eventId, startTime, endTime, eventTitle, eventAttendeesId)) {
+                        return false;
+                    }
+                } else { //copy event to local database if it's a calendar provider event
+                    if (localEvent.source == Event.SOURCE_PROVIDER) {
+                        if (!eventManager.saveEventToDatabase(localEvent, eventId)) {
+                            return false;
+                        }
+                    }
+                }
+            }
+//        }
+
+        //get conversation details from server
+        JSONObject conversationObj = httpServerManager.getConversation(conversationId);
+        String conversationTitle;
+        String creatorId;
+        List<String> attendeesList = new ArrayList<>();
+        try {
+            conversationTitle = conversationObj.getString(HttpServerManager.TITLE);
+            creatorId = conversationObj.getString(HttpServerManager.CREATOR_ID);
+            JSONArray attendeesArray = conversationObj.getJSONArray(HttpServerManager.ATTENDEES_ID);
             if (attendeesArray != null) {
-                for (int i=0; i<attendeesArray.length(); i++) {
+                for (int i = 0; i < attendeesArray.length(); i++) {
                     attendeesList.add(attendeesArray.get(i).toString());
                 }
             }
-
-            ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
-            if (!conversationDataSource.createConversation(conversationId, String.valueOf(creatorId), title, attendeesList)) {
-                Log.d(TAG, "Conversation with id: " + conversationId + " already exists");
-            } else {
-                sendNotification("Added new conversation with title: " + title + "; attendees: " + attendeesList);
-                final Conversation conversation = conversationDataSource.getConversation(conversationId);
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        conversationManager.notifyListenersNewConversation(conversation, 0);
-                    }
-                });
-            }
-            return true;
         } catch (JSONException e) {
             e.printStackTrace();
+            return false;
         }
-        return false;
+
+        //create conversation in local database, even for creator's self-confirmation
+        ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
+        conversationDataSource.createEventConversation(eventId, conversationId, conversationTitle, creatorId, attendeesList);
+        //do not send notification if conversation's creator is user self because it's for self-confirmation
+        String myId = String.valueOf(AccountManager.getInstance(this).getAccount().id);
+        if (!creatorId.equals(myId)) {
+            sendNotification("Added new conversation with title: " + conversationTitle + "; attendees: " + attendeesList);
+        }
+        final Conversation conversation = conversationDataSource.getConversation(conversationId);
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                conversationManager.notifyListenersNewConversation(conversation, 0);
+            }
+        });
+        return true;
     }
 
     private void addConversationAttendees(String from, Bundle data) {
@@ -179,7 +241,7 @@ public class MyGcmListenerService extends GcmListenerService {
     }
 
     public void onSendError(String msgId, String error) {
-        Log.d(TAG, "Fail to send Message: " + msgId );
+        Log.d(TAG, "Fail to send Message: " + msgId);
         Log.d(TAG, "Error while sending: " + error);
     }
 
@@ -189,7 +251,7 @@ public class MyGcmListenerService extends GcmListenerService {
         String[] userIds = Common.explode(",", data.getString(GCMHelper.USER_IDS));
         List<String> userList = Arrays.asList(userIds);
         ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
-        String myId = AccountManager.getInstance(this).getAccount().id + "";
+        String myId = String.valueOf(AccountManager.getInstance(this).getAccount().id);
         if (userList.contains(myId)) { //myself is dropped from conversation
             conversationDataSource.clearConversationAttendees(conversationId);
             sendNotification("Dropped from conversation with id: " + conversationId);
@@ -225,7 +287,7 @@ public class MyGcmListenerService extends GcmListenerService {
         notificationManager.notify(0 /* ID of notification */, notificationBuilder.build());
     }
 
-    private void sendChatNotification (String text, String conversationId) {
+    private void sendChatNotification(String text, String conversationId) {
         Intent intent = new Intent(getApplicationContext(), ChatRoomActivity.class);
         intent.putExtra(ChatRoomActivity.CONVERSATION_ID, conversationId);
         Account account = AccountManager.getInstance(this).getAccount();
@@ -249,11 +311,44 @@ public class MyGcmListenerService extends GcmListenerService {
         notificationManager.notify(conversationId.hashCode() /* ID of notification */, notificationBuilder.build());
     }
 
-//    private void broadcastMessage(Bundle data) {
-//        Intent intent = new Intent(GCM_INCOMING_INTENT);
-//        if (data != null) {
-//            intent.putExtra(GCM_MESSAGE_DATA, data);
-//        }
-//        broadcaster.sendBroadcast(intent);
-//    }
+    private boolean createEvent(String eventId, long startTime, long endTime, String title, List<String> attendeeIds) {
+        List<Attendee> attendees = new ArrayList<>();
+        AttendeeDataSource attendeeDataSource = DatabaseHelper.getDataSource(this, AttendeeDataSource.class);
+        for (String id : attendeeIds) {
+            Attendee attendee = attendeeDataSource.getAttendeeById(id);
+            if (attendee == null) {
+                attendee = getAttendeeFromServer(id);
+                if (attendee == null) {
+                    return false;
+                }
+            }
+            attendees.add(attendee);
+        }
+        String id = eventManager.createEvent(EventManager.EventAction.ACTOR_SELF, 0, 0, null, Event.TYPE_CALENDAR,
+                title, null, null, R.color.green, startTime, endTime, null, null, false, attendees, null, null);
+        return eventManager.updateEventId(id, eventId);
+    }
+
+    private Attendee getAttendeeFromServer(String attendeeId) {
+        Attendee attendee = null;
+        JSONObject obj = httpServerManager.getUserInfo(Integer.valueOf(attendeeId));
+        if (obj != null) {
+            try {
+                attendee = new Attendee(
+                        attendeeId,
+                        obj.getString(HttpServerManager.MEDIA_ID),
+                        obj.getString(HttpServerManager.EMAIL),
+                        obj.getString(HttpServerManager.PHONE_NUMBER),
+                        obj.getString(HttpServerManager.FIRST_NAME),
+                        obj.getString(HttpServerManager.LAST_NAME),
+                        obj.getString(HttpServerManager.USER_NAME),
+                        false,
+                        true
+                );
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+        return attendee;
+    }
 }

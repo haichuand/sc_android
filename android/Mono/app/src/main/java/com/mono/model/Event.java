@@ -6,6 +6,7 @@ import android.os.Parcelable;
 import com.mono.util.Common;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -257,5 +258,13 @@ public class Event implements Parcelable {
 
     public String getEndTimeZone() {
         return endTimeZone == null ? timeZone : endTimeZone;
+    }
+
+    public List<String> getAttendeeIdList () {
+        List<String> attendeeIdList = new LinkedList<>();
+        for (Attendee attendee : attendees) {
+            attendeeIdList.add(attendee.id);
+        }
+        return attendeeIdList;
     }
 }

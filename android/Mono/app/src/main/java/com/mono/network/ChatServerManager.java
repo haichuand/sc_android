@@ -5,6 +5,8 @@ import android.os.Bundle;
 
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.mono.chat.GcmMessage;
+import com.mono.model.Conversation;
+import com.mono.model.Event;
 import com.mono.util.Common;
 
 import java.util.List;
@@ -38,6 +40,13 @@ public class ChatServerManager {
     public void startConversation(String creatorId, String conversationId, List<String> recipients) {
         String recipientsString = Common.implode(",", recipients);
         Bundle bundle = GCMHelper.getStartConversationPayload(creatorId, conversationId, recipientsString);
+        gcmMessage.sendMessage(bundle, gcm);
+    }
+
+    public void startEventConversation (String creatorId, String eventId, List<String> recipients) {
+//        Bundle bundle = GCMHelper.getStartEventConversationPayload(creatorId, convId, convTitle, Common.implode(",", recipients),
+//                eventStartTime, eventEndTime, eventTitle, Common.implode(",", eventAttendees));
+        Bundle bundle = GCMHelper.getStartEventConversationPayload(creatorId, eventId, Common.implode(",", recipients));
         gcmMessage.sendMessage(bundle, gcm);
     }
 

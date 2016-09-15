@@ -10,6 +10,7 @@ import com.mono.model.Conversation;
 import com.mono.model.Message;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -21,7 +22,7 @@ public class ConversationManager {
     private Context context;
     private ConversationDataSource conversationDataSource;
     private AttendeeDataSource attendeeDataSource;
-    private final List<ConversationBroadcastListener> listeners = new ArrayList<>();
+    private final List<ConversationBroadcastListener> listeners = new LinkedList<>();
     private String activeConversationId = null;
 
     private ConversationManager(Context context) {
@@ -47,6 +48,10 @@ public class ConversationManager {
 
     public String createConversation(String name, String eventId, List<String> attendeeIds, String creatorId) {
         return conversationDataSource.createConversationWithSelectedAttendees(name, eventId, attendeeIds, creatorId);
+    }
+
+    public String getUniqueConversationId () {
+        return conversationDataSource.getUniqueConversationId();
     }
 
     public List<Conversation> getConversations() {

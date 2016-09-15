@@ -18,9 +18,6 @@
         android:paddingStart="4dp"
         android:paddingEnd="4dp"
         android:textAlignment="center"
-        android:background="@android:color/darker_gray"
-        android:text="Aug. 31, 12:14 PM"
-        android:textColor="@android:color/white"
         android:textSize="12sp" />
 
     <LinearLayout

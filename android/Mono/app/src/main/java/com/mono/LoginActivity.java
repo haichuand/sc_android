@@ -189,7 +189,7 @@ public class LoginActivity extends AppCompatActivity {
 
             //refresh GCM tokens on http and chat servers
             String token = accountManager.getGCMToken();
-            if (httpServerManager.updateUserGcmId(account.id, token) != 0) {
+            if (httpServerManager.updateUserGcmId((int) account.id, token) != 0) {
                 Toast.makeText(this, "Error updating GCM token on http server", Toast.LENGTH_LONG).show();
             }
             new ChatServerManager(this).updateUserGcmId(account.id, token);

@@ -16,6 +16,7 @@ import org.joda.time.Days;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -78,6 +79,47 @@ public class EventDataSource extends DataSource {
         }
 
         return id;
+    }
+
+    public boolean createEvent(String eventId, long calendarId, long internalId, String externalId, String type,
+                              String title, String description, Long locationId, int color, long startTime,
+                              long endTime, String timeZone, String endTimeZone, int allDay, long createTime) {
+
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.Event.ID, eventId);
+        values.put(DatabaseValues.Event.CALENDAR_ID, calendarId);
+        values.put(DatabaseValues.Event.INTERNAL_ID, internalId);
+        values.put(DatabaseValues.Event.EXTERNAL_ID, externalId);
+        values.put(DatabaseValues.Event.TYPE, type);
+        values.put(DatabaseValues.Event.TITLE, title);
+        values.put(DatabaseValues.Event.DESC, description);
+        values.put(DatabaseValues.Event.LOCATION_ID, locationId);
+        values.put(DatabaseValues.Event.COLOR, color);
+        values.put(DatabaseValues.Event.START_TIME, startTime);
+        values.put(DatabaseValues.Event.END_TIME, endTime);
+        values.put(DatabaseValues.Event.TIMEZONE, timeZone);
+        values.put(DatabaseValues.Event.END_TIMEZONE, endTimeZone);
+        values.put(DatabaseValues.Event.ALL_DAY, allDay);
+        values.put(DatabaseValues.Event.CREATE_TIME, createTime);
+
+        try {
+            database.insert(DatabaseValues.Event.TABLE, values);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    public int updateEventId (String originalId, String newId) {
+        try {
+            ContentValues values = new ContentValues();
+            values.put(DatabaseValues.Event.ID, newId);
+            return updateValues(originalId, values);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return 0;
+        }
     }
 
     /**
@@ -145,6 +187,40 @@ public class EventDataSource extends DataSource {
         cursor.close();
 
         return event;
+    }
+
+    /**
+     * Find events given start time and end time
+     * @param startTime
+     * @param endTime
+     * @return
+     */
+    public List<Event> getEvents(long startTime, long endTime) {
+        List<Event> events = new LinkedList<>();
+        String selection = String.format(
+                "%s = ? AND %s = ?",
+                DatabaseValues.Event.START_TIME,
+                DatabaseValues.Event.END_TIME
+        );
+
+        String[] selectionArgs = new String[]{
+                String.valueOf(startTime),
+                String.valueOf(endTime)
+        };
+
+        Cursor cursor = database.select(
+                DatabaseValues.Event.TABLE,
+                DatabaseValues.Event.PROJECTION,
+                selection,
+                selectionArgs
+        );
+
+        while (cursor.moveToNext()) {
+            events.add(cursorToEvent(cursor));
+        }
+
+        cursor.close();
+        return events;
     }
 
     /**

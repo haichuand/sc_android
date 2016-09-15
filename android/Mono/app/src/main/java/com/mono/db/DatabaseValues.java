@@ -232,7 +232,7 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " (" + Event.ID + ")",
+                EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " (" + Event.ID + ") ON UPDATE CASCADE ON DELETE CASCADE",
                 LOC_ID + " INTEGER REFERENCES " + Location.TABLE + " (" + Location.ID + ")"
             };
 
@@ -305,7 +305,7 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                    C_ID + " TEXT REFERENCES " + Conversation.TABLE + " ( "+ Conversation.C_ID +" )",
+                    C_ID + " TEXT REFERENCES " + Conversation.TABLE + " ( "+ Conversation.C_ID +" ) ON DELETE CASCADE",
                     SENDER_ID + " TEXT REFERENCES " + User.TABLE + " ( "+ User.U_ID +" )",
                     TEXT + " TEXT",
                     TIMESTAMP + " INTEGER"
@@ -338,8 +338,8 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                    EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
-                    C_ID + " TEXT REFERENCES " + Conversation.TABLE + " ( "+ Conversation.C_ID +" )"
+                    EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" ) ON UPDATE CASCADE ON DELETE CASCADE",
+                    C_ID + " TEXT REFERENCES " + Conversation.TABLE + " ( "+ Conversation.C_ID +" ) ON DELETE CASCADE"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);
@@ -369,7 +369,7 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                    EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
+                    EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" ) ON UPDATE CASCADE ON DELETE CASCADE",
                     ATTENDEE_ID + " TEXT REFERENCES " + User.TABLE + " ( "+ User.U_ID +" )"
             };
 
@@ -439,7 +439,7 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " (" + Event.ID + ")",
+                EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " (" + Event.ID + ") ON UPDATE CASCADE ON DELETE CASCADE",
                 MEDIA_ID + " INTEGER REFERENCES " + Media.TABLE + " (" + Media.ID + ")"
             };
 
@@ -508,7 +508,7 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                    E_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
+                    E_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" ) ON UPDATE CASCADE ON DELETE CASCADE",
                     A_ID + " TEXT REFERENCES " + Alarm.TABLE + " ( "+ Alarm.ALARM_ID +" )"
             };
 
@@ -539,8 +539,8 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                    PARENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
-                    CHILD_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )"
+                    PARENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" ) ON UPDATE CASCADE ON DELETE CASCADE",
+                    CHILD_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" ) ON UPDATE CASCADE ON DELETE CASCADE"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);
@@ -570,7 +570,7 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                    C_ID + " TEXT REFERENCES " + Conversation.TABLE + " ( "+ Conversation.C_ID +" )",
+                    C_ID + " TEXT REFERENCES " + Conversation.TABLE + " ( "+ Conversation.C_ID +" ) ON DELETE CASCADE",
                     ATTENDEE_ID + " TEXT REFERENCES " + User.TABLE + " ( "+ User.U_ID +" )"
             };
 
@@ -608,7 +608,7 @@ public class DatabaseValues {
         static {
             String[] parameters = {
                     RULE_ID + " TEXT PRIMARY KEY",
-                    EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" )",
+                    EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" ) ON UPDATE CASCADE ON DELETE CASCADE",
                     START_TIME + " REAL",
                     END_TIME + " REAL",
                     FREQUENCY + " TEXT"
@@ -641,7 +641,7 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " (" + Event.ID + ")",
+                EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " (" + Event.ID + ") ON UPDATE CASCADE ON DELETE CASCADE",
                 LOC_ID + " INTEGER REFERENCES " + Location.TABLE + " (" + Location.ID + ")"
             };
 

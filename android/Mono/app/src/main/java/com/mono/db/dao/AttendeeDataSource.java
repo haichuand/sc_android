@@ -71,6 +71,11 @@ public class AttendeeDataSource extends DataSource {
         return true;
     }
 
+    public boolean createAttendee (Attendee attendee) {
+        return createAttendeeWithAttendeeId(attendee.id, attendee.mediaId, attendee.email, attendee.phoneNumber,
+                attendee.firstName, attendee.lastName, attendee.userName, attendee.isFavorite, attendee.isFriend);
+    }
+
     /**
      * Set user as friend.
      *

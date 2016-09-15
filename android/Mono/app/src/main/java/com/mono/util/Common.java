@@ -13,10 +13,16 @@ import org.joda.time.LocalDate;
 
 import java.io.File;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 
 /**
  * This class is used to provide common helper functions such as determining if values are between
@@ -54,6 +60,20 @@ public class Common {
             return false;
         }
 
+        return true;
+    }
+
+    public static boolean compareStringLists (List<String> list1, List<String> list2) {
+        if (list1 == null || list2 == null || list1.size() != list2.size()) {
+            return false;
+        }
+        Collections.sort(list1);
+        Collections.sort(list2);
+        for (int i = 0; i < list1.size(); i++) {
+            if (!list1.get(i).equals(list2.get(i))) {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -244,5 +264,36 @@ public class Common {
     public static boolean isConnectedToInternet(Context context) {
         NetworkInfo activeNetwork = ((ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE)).getActiveNetworkInfo();
         return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
+    }
+
+    public static List<Integer> convertIdList (List<String> idList) {
+        if (idList == null) {
+            return null;
+        }
+        List<Integer> idIntegerList = new ArrayList<>();
+        for (String id : idList) {
+            idIntegerList.add(Integer.valueOf(id));
+        }
+        return idIntegerList;
+    }
+
+    /**
+     * For changing holiday timestamps from UTC to current time zone
+     * @param ms
+     * @return Timestamp of the holiday in current time zone
+     */
+    public static long convertHolidayMillis (long ms) {
+        Calendar utcCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        utcCalendar.setTimeInMillis(ms);
+        Calendar localCalendar = Calendar.getInstance();
+        localCalendar.set(
+                utcCalendar.get(Calendar.YEAR),
+                utcCalendar.get(Calendar.MONTH),
+                utcCalendar.get(Calendar.DAY_OF_MONTH),
+                utcCalendar.get(Calendar.HOUR_OF_DAY),
+                utcCalendar.get(Calendar.MINUTE),
+                utcCalendar.get(Calendar.SECOND)
+                );
+        return localCalendar.getTimeInMillis() / 1000 * 1000;
     }
 }

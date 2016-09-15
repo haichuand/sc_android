@@ -6,6 +6,7 @@ import android.os.AsyncTask;
 import com.mono.AccountManager;
 import com.mono.db.dao.AttendeeDataSource;
 import com.mono.model.Account;
+import com.mono.util.Common;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -33,13 +34,15 @@ public class HttpServerManager {
     public static final String GET_USER_EVENTS_URL = SERVER_URL + "/SuperCaly/rest/user/userEvents/";
     public static final String GET_USER_CONVERSATIONS_URL = SERVER_URL + "/SuperCaly/rest/user/userConversations/";
     public static final String CREATE_EVENT_URL = SERVER_URL + "/SuperCaly/rest/event/createEvent";
+    public static final String GET_EVENT_URL = SERVER_URL + "/SuperCaly/rest/event/getEvent/";
     public static final String UPDATE_GCM_ID_URL = SERVER_URL + "/SuperCaly/rest/user/updateUserGcmId/";
     public static final String GET_ALL_USER_ID_URL = SERVER_URL + "/SuperCaly/rest/user/getAllUserId";
     public static final String CREATE_CONVERSATION_URL = SERVER_URL + "/SuperCaly/rest/conversation/createConversation";
-    public static final String GET_CONVERSATION_URL = SERVER_URL + "/SuperCaly/rest/conversation/";
+    public static final String GET_CONVERSATION_URL = SERVER_URL + "/SuperCaly/rest/conversation/getConversation/";
     public static final String ADD_CONVERSATION_ATTENDEES_URL = SERVER_URL + "/SuperCaly/rest/conversation/addAttendees";
     public static final String UPDATE_CONVERSATION_TITLE_URL = SERVER_URL + "/SuperCaly/rest/conversation/updateTitle";
     public static final String DROP_CONVERSATION_ATTENDEES_URL = SERVER_URL + "/SuperCaly/rest/conversation/dropAttendees";
+    public static final String CREATE_EVENT_CONVERSATION_URL = SERVER_URL + "/SuperCaly/rest/event/addConversation/";
 
     //http server return codes
     public static final int STATUS_OK = 0;
@@ -135,7 +138,7 @@ public class HttpServerManager {
         return -1;
     }
 
-    public int updateUserGcmId(long userId, String gcmId) {
+    public int updateUserGcmId(int userId, String gcmId) {
         try {
             JSONObject responseJson = queryServer(null, UPDATE_GCM_ID_URL + userId + "/" + gcmId, POST);
             if (responseJson != null && responseJson.has(STATUS)) {
@@ -156,8 +159,7 @@ public class HttpServerManager {
             JSONArray userIdArray = allUserIds.getJSONArray("allUserId");
             int length = userIdArray.length();
             for (int i=0; i<length; i++) {
-                String userId = userIdArray.get(i).toString();
-                JSONObject userInfo = getUserInfo(userId);
+                JSONObject userInfo = getUserInfo(Integer.valueOf(userIdArray.get(i).toString()));
                 attendeeDataSource.createAttendeeWithAttendeeId(userInfo.getString(UID), userInfo.getString(MEDIA_ID),
                         userInfo.getString(EMAIL), userInfo.getString(PHONE_NUMBER), userInfo.getString(FIRST_NAME),
                         userInfo.getString(LAST_NAME), userInfo.getString(USER_NAME), false, true);
@@ -179,15 +181,6 @@ public class HttpServerManager {
     }
 
     public JSONObject getUserInfo(int userId) {
-        try {
-            return queryServer(null, GET_USER_URL + userId, GET);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    public JSONObject getUserInfo(String userId) {
         try {
             return queryServer(null, GET_USER_URL + userId, GET);
         } catch (Exception e) {
@@ -247,25 +240,50 @@ public class HttpServerManager {
         return null;
     }
 
-
-    public JSONObject createEvent(JSONObject eventInfo) {
+    /**
+     *
+     * @param eventId
+     * @param eventType
+     * @param title
+     * @param location
+     * @param startTime
+     * @param endTime
+     * @param creatorId
+     * @param createTime
+     * @param attendeesId
+     * @return Server-generated event id
+     */
+    public String createEvent(String eventId, String eventType, String title, String location,
+                                  long startTime, long endTime, Integer creatorId, long createTime, List<String> attendeesId) {
         try {
-            return queryServer(eventInfo, CREATE_EVENT_URL, "POST");
+            JSONObject jsonObject = getJSONObject(
+                    new String[]{EVENT_ID, EVENT_TYPE, TITLE, LOCATION, START_TIME, END_TIME, CREATOR_ID, CREATE_TIME, ATTENDEES_ID},
+                    new Object[]{eventId, eventType, title, location, startTime, endTime, creatorId, createTime, new JSONArray(Common.convertIdList(attendeesId))}
+            );
+            JSONObject responseJson = queryServer(jsonObject, CREATE_EVENT_URL, POST);
+            if (responseJson != null && responseJson.has(EVENT_ID)) {
+                return  responseJson.getString(EVENT_ID);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return null;
+    }
+
+    public JSONObject getEvent (String eventId) {
+        try {
+            return queryServer(null, GET_EVENT_URL + eventId, GET);
         } catch (Exception e) {
             e.printStackTrace();
         }
         return null;
     }
 
-    public boolean createConversation(String conversationId, String title, String creatorId, List<String> attendeesId) {
-        ArrayList<Long> attendeesLongId = new ArrayList<>();
+    public boolean createConversation(String conversationId, String title, Integer creatorId, List<String> attendeesId) {
         try {
-            for (String attendee : attendeesId) {
-                attendeesLongId.add(Long.valueOf(attendee));
-            }
             JSONObject conversationInfo = getJSONObject(
                     new String[] {CONVERSATION_ID, TITLE, CREATOR_ID, ATTENDEES_ID},
-                    new Object[] {conversationId, title, creatorId, new JSONArray(attendeesLongId)}
+                    new Object[] {conversationId, title, creatorId, new JSONArray(Common.convertIdList(attendeesId))}
             );
             JSONObject responseJson = queryServer(conversationInfo, CREATE_CONVERSATION_URL, POST);
             if (responseJson != null && responseJson.has(STATUS) && responseJson.getInt(STATUS) == 0) {
@@ -275,6 +293,31 @@ public class HttpServerManager {
             e.printStackTrace();
         }
 
+        return false;
+    }
+
+    /**
+     * Possible status: OK = 0, NO_EVENT = 5;
+     * @param eventId
+     * @param conversationId
+     * @param title
+     * @param creatorId
+     * @param attendeesId
+     * @return True if successful, false if not
+     */
+    public boolean createEventConversation (String eventId, String conversationId, String title, Integer creatorId, List<String> attendeesId) {
+        try {
+            JSONObject conversationInfo = getJSONObject(
+                    new String[] {CONVERSATION_ID, TITLE, CREATOR_ID, ATTENDEES_ID},
+                    new Object[] {conversationId, title, creatorId, new JSONArray(Common.convertIdList(attendeesId))}
+            );
+            JSONObject responseJson = queryServer(conversationInfo, CREATE_EVENT_CONVERSATION_URL + eventId, POST);
+            if (responseJson != null && responseJson.has(STATUS) && responseJson.getInt(STATUS) == 0) {
+                return true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return false;
     }
 
@@ -297,7 +340,7 @@ public class HttpServerManager {
         try {
             JSONObject jsonObject = getJSONObject(
                     new String[]{CONVERSATION_ID, ATTENDEES_ID},
-                    new Object[]{conversationId, new JSONArray(newAttendeesId)}
+                    new Object[]{conversationId, new JSONArray(Common.convertIdList(newAttendeesId))}
             );
             JSONObject responseJson = queryServer(jsonObject, ADD_CONVERSATION_ATTENDEES_URL, POST);
             if (responseJson != null && responseJson.has(STATUS)) {
@@ -319,7 +362,7 @@ public class HttpServerManager {
         try {
             JSONObject jsonObject = getJSONObject(
                     new String[]{CONVERSATION_ID, ATTENDEES_ID},
-                    new Object[]{conversationId, new JSONArray(attendeesId)}
+                    new Object[]{conversationId, new JSONArray(Common.convertIdList(attendeesId))}
             );
             JSONObject responseJson = queryServer(jsonObject, DROP_CONVERSATION_ATTENDEES_URL, POST);
             if (responseJson != null && responseJson.has(STATUS)) {

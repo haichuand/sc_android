@@ -10,6 +10,7 @@ import com.mono.model.Attendee;
 import com.mono.util.Common;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -93,6 +94,31 @@ public class EventAttendeeDataSource extends DataSource {
         cursor.close();
 
         return users;
+    }
+
+    /**
+     * Get an event's attendee id list in ascending order
+     * @param eventId
+     * @return
+     */
+    public List<String> getAttendeeIds (String eventId) {
+        List<String> attendeeIds = new LinkedList<>();
+
+        Cursor cursor = database.rawQuery(
+                " SELECT " + DatabaseValues.EventAttendee.ATTENDEE_ID +
+                        " FROM " + DatabaseValues.EventAttendee.TABLE +
+                        " WHERE " + DatabaseValues.EventAttendee.EVENT_ID + " = " + eventId +
+                        " ORDER BY " + DatabaseValues.EventAttendee.ATTENDEE_ID
+        );
+
+        while (cursor.moveToNext()) {
+            String id = cursor.getString(0);
+            attendeeIds.add(id);
+        }
+
+        cursor.close();
+
+        return attendeeIds;
     }
 
     /**

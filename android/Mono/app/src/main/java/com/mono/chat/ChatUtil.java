@@ -3,6 +3,7 @@ package com.mono.chat;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
+import android.os.CountDownTimer;
 import android.text.InputType;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,7 +19,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.mono.R;
-import com.mono.RequestCodes;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.AttendeeDataSource;
 import com.mono.model.Account;
@@ -26,26 +26,65 @@ import com.mono.model.Attendee;
 import com.mono.model.AttendeeUsernameComparator;
 import com.mono.model.Conversation;
 import com.mono.model.Event;
+import com.mono.model.Message;
 import com.mono.network.ChatServerManager;
 import com.mono.network.HttpServerManager;
+import com.mono.util.Common;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.TimeZone;
 
 /**
  * Created by haichuand on 6/21/2016.
  */
-public class ChatUtil {
+public class ChatUtil implements ConversationManager.ConversationBroadcastListener {
     private static final char[] randomIdCharPool = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890".toCharArray();
+    private static final long TIMER_TIMEOUT_MS = 1000000;
     private static Random random = new Random();
     private static final int randomIdLength = 8;
 
-    public static void showCreateChatDialog(final Account account, final Event event, final ConversationManager conversationManager, final Context context) {
-        final HttpServerManager httpServerManager = new HttpServerManager(context);
-        final String myId = account.id + "";
-        final Dialog dialog = new Dialog(context);
+    private Context context;
+    private CountDownTimer timer;
+    private boolean isRunning = false;
+    private Dialog dialog;
+    private String conversationId;
+    private Event event;
+    private String myId;
+    private HttpServerManager httpServerManager;
+    private ChatServerManager chatServerManager;
+
+    public ChatUtil(Context context) {
+        this.context = context;
+        timer = new CountDownTimer(TIMER_TIMEOUT_MS, TIMER_TIMEOUT_MS) {
+            @Override
+            public void onTick(long l) {}
+
+            @Override
+            public void onFinish() {
+                //TODO: delete events and conversations from server because they have not been broadcast successfully
+
+                isRunning = false;
+                Toast.makeText(ChatUtil.this.context, "Chat server error. Please try later.", Toast.LENGTH_LONG).show();
+            }
+        };
+        httpServerManager = new HttpServerManager(context);
+        chatServerManager = new ChatServerManager(context);
+    }
+
+    public void showCreateChatDialog (final Account account, final Event event, final ConversationManager conversationManager) {
+//        if ("UTC".equals(event.timeZone)) {
+//            event.startTime = Common.convertHolidayMillis(event.startTime);
+//            event.endTime = Common.convertHolidayMillis(event.endTime);
+//        }
+        final AttendeeDataSource attendeeDataSource = DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
+        replaceWithDatabaseAttendees(event.attendees, attendeeDataSource);
+        this.event = event;
+        myId = account.id + "";
+        dialog = new Dialog(context);
 
         dialog.setContentView(R.layout.dialog_create_chat);
         final EditText titleInput = (EditText) dialog.findViewById(R.id.create_chat_title_input);
@@ -68,13 +107,13 @@ public class ChatUtil {
             }
         };
 
-        final AttendeeDataSource attendeeDataSource = DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
 
         //add user self to list but does not show
-        Attendee me = new Attendee(String.valueOf(account.id), null, account.email, account.phone, account.firstName, account.lastName, account.username, false, false);
-        addCheckBoxFromAttendee(checkBoxLayout, me, checkedChangeListener, listChatAttendeeIds, checkedChatAttendeeIds, myId, context, attendeeDataSource);
+        Attendee me = new Attendee(myId, null, account.email, account.phone, account.firstName, account.lastName, account.username, false, false);
+        addCheckBoxFromAttendee(checkBoxLayout, me, checkedChangeListener, listChatAttendeeIds, checkedChatAttendeeIds, myId, attendeeDataSource);
+        //add other event attendees
         for (Attendee attendee : event.attendees) {
-            addCheckBoxFromAttendee(checkBoxLayout, attendee, checkedChangeListener, listChatAttendeeIds, checkedChatAttendeeIds, myId, context, attendeeDataSource);
+            addCheckBoxFromAttendee(checkBoxLayout, attendee, checkedChangeListener, listChatAttendeeIds, checkedChatAttendeeIds, myId, attendeeDataSource);
         }
 
         //set AutoCompleteTextView to show all users
@@ -107,7 +146,7 @@ public class ChatUtil {
                 if (listChatAttendeeIds.contains(attendee.id)) {
                     Toast.makeText(context, "User already in list", Toast.LENGTH_SHORT).show();
                 } else {
-                    addCheckBoxFromAttendee(checkBoxLayout, attendee, checkedChangeListener, listChatAttendeeIds, checkedChatAttendeeIds, myId, context, attendeeDataSource);
+                    addCheckBoxFromAttendee(checkBoxLayout, attendee, checkedChangeListener, listChatAttendeeIds, checkedChatAttendeeIds, myId, attendeeDataSource);
                 }
                 addAttendeeTextView.setText("");
             }
@@ -127,37 +166,39 @@ public class ChatUtil {
                     Toast.makeText(context, "Conversation title cannot be empty", Toast.LENGTH_LONG).show();
                     return;
                 }
-                String conversationId = conversationManager.createConversation(conversationTitle, event.id, checkedChatAttendeeIds, myId);
-                Conversation conversation = conversationManager.getConversationById(conversationId);
-
-                //checkedChatAttendeeIds should contain myId
-                if (httpServerManager.createConversation(conversation.id, conversationTitle, myId, checkedChatAttendeeIds)) {
-//                    checkedChatAttendeeIds.remove(myId);
-                    ChatServerManager chatServerManager = new ChatServerManager(context);
-                    chatServerManager.startConversation(myId, conversation.id, checkedChatAttendeeIds);
-                } else { //set conversation sync_needed flag to true
-                    conversationManager.setConversationSyncNeeded(conversation.id, true);
-                    checkedChatAttendeeIds.remove(myId);
-                    Toast.makeText(context, "Error creating conversation on server.", Toast.LENGTH_LONG).show();
+                //create event on http server
+                String eventServerId = httpServerManager.createEvent(event.id, event.type, event.title,
+                        event.location == null ? null : event.location.name, event.startTime, event.endTime, Integer.valueOf(myId), event.createTime, event.getAttendeeIdList());
+                if (eventServerId == null) {
+                    Toast.makeText(context, "Cannot add event on server. Please try later.", Toast.LENGTH_LONG).show();
+                    return;
                 }
 
-                conversationManager.notifyListenersNewConversation(conversation, 0);
-
-                startChatRoomActivity(event.id, event.startTime, event.endTime, conversation.id, myId, context);
-                dialog.dismiss();
+                conversationId = conversationManager.getUniqueConversationId();
+                //add conversation to event on http server; checkedChatAttendeeIds should contain myId
+                if (!httpServerManager.createEventConversation(eventServerId, conversationId, conversationTitle, Integer.valueOf(myId), checkedChatAttendeeIds)) {
+                    Toast.makeText(context, "Cannot add conversation on server. Please try later.", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                chatServerManager.startEventConversation(myId, eventServerId, checkedChatAttendeeIds);
+                timer.start();
+                isRunning = true;
             }
         });
         Button cancelButton = (Button) dialog.findViewById(R.id.create_chat_cancel_button);
         cancelButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                dialog.dismiss();
+                //dismiss only if the countdown timer is not running
+                if (!isRunning) {
+                    dialog.dismiss();
+                }
             }
         });
         dialog.show();
     }
 
-    private static void addCheckBoxFromAttendee (LinearLayout checkBoxLayout, Attendee attendee, CompoundButton.OnCheckedChangeListener checkedChangeListener, List<String> attendeeIdList, List<String> checkedAttendeeIdList, String myId, Context context, AttendeeDataSource attendeeDataSource) {
+    private void addCheckBoxFromAttendee (LinearLayout checkBoxLayout, Attendee attendee, CompoundButton.OnCheckedChangeListener checkedChangeListener, List<String> attendeeIdList, List<String> checkedAttendeeIdList, String myId, AttendeeDataSource attendeeDataSource) {
         if (attendeeIdList.contains(attendee.id)) { //do not add duplicate attendees
             return;
         }
@@ -174,11 +215,6 @@ public class ChatUtil {
         checkBox.setId(Integer.valueOf(attendee.id));
         checkBox.setText(attendee.toString());
 
-        Attendee dbAttendee = attendeeDataSource.getAttendeeByEmail(attendee.email);
-        if (dbAttendee != null) {
-            attendee = dbAttendee;
-        }
-
         if (attendee.isFriend) {
             checkBox.setChecked(true);
             checkBox.setEnabled(true);
@@ -192,7 +228,7 @@ public class ChatUtil {
         checkBoxLayout.addView(checkBox);
     }
 
-    public static void startChatRoomActivity(String eventId, long startTime, long endTime, String conversationId, String accountId, Context context) {
+    public void startChatRoomActivity(String eventId, long startTime, long endTime, String conversationId, String accountId) {
         Intent intent = new Intent(context, ChatRoomActivity.class);
         intent.putExtra(ChatRoomActivity.EVENT_ID, eventId);
 //        intent.putExtra(ChatRoomActivity.EVENT_NAME, eventTitle);
@@ -236,5 +272,34 @@ public class ChatUtil {
             str += randomIdCharPool[random.nextInt(randomIdCharPool.length)];
         }
         return str;
+    }
+
+    public void replaceWithDatabaseAttendees (List<Attendee> attendeeList, AttendeeDataSource dataSource) {
+        for (int i = 0; i < attendeeList.size(); i++) {
+            Attendee dbAttendee = dataSource.getAttendeeByEmail(attendeeList.get(i).email);
+            if (dbAttendee != null) {
+                attendeeList.set(i, dbAttendee);
+            }
+        }
+    }
+
+    @Override
+    public void onNewConversation(Conversation conversation, int index) {
+        if (isRunning && conversation.id.equals(conversationId)) {
+            timer.cancel();
+            isRunning = false;
+            dialog.dismiss();
+            startChatRoomActivity(event.id, event.startTime, event.endTime, conversation.id, myId);
+        }
+    }
+
+    @Override
+    public void onNewConversationAttendees(String conversationId, List<String> newAttendeeIds) {
+
+    }
+
+    @Override
+    public void onNewConversationMessage(Message message) {
+
     }
 }

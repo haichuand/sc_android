@@ -539,6 +539,37 @@ public class EventManager {
         return id;
     }
 
+    public boolean saveEventToDatabase (Event event, String eventId) {
+        String id = createEvent(
+                EventAction.ACTOR_NONE,
+                event.calendarId,
+                event.internalId,
+                event.externalId,
+                Event.TYPE_CALENDAR,
+                event.title,
+                event.description,
+                event.location,
+                R.color.green,
+                event.startTime,
+                event.endTime,
+                event.timeZone,
+                event.endTimeZone,
+                event.allDay,
+                event.attendees,
+                event.photos,
+                null
+        );
+        if (id == null) {
+            return false;
+        }
+        return updateEventId(id, eventId);
+    }
+
+    public boolean updateEventId (String originalId, String newId) {
+        EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+        return dataSource.updateEventId(originalId, newId) == 1;
+    }
+
     /**
      * Update an existing event in the database.
      *

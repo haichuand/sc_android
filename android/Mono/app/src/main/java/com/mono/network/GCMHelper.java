@@ -16,6 +16,7 @@ public class GCMHelper {
     public static final String ACTION_SHARE_EVENT = "SHARE_EVENT";
     public static final String ACTION_UPDATE_EVENT = "UPDATE_EVENT";
     public static final String ACTION_START_CONVERSATION= "START_CONVERSATION";
+    public static final String ACTION_START_EVENT_CONVERSATION = "startEventConversation";
     public static final String ACTION_CONVERSATION_MESSAGE = "CONVERSATION_MESSAGE";
     public static final String ACTION_ADD_CONVERSATION_ATTENDEES = "ADD_CONVERSATION_ATTENDEES";
     public static final String ACTION_DROP_CONVERSATION_ATTENDEES = "DROP_CONVERSATION_ATTENDEES";
@@ -32,7 +33,12 @@ public class GCMHelper {
     public static final String CREATOR_ID = "creatorId";
     public static final String EVENT_ID = "eventId";
     public static final String USER_IDS = "userIds";
+    public static final String CONVERSATION_TITLE = "conversationTitle";
+    public static final String START_TIME = "startTime";
+    public static final String END_TIME = "endTime";
     public static final String TITLE = "title";
+    public static final String ATTENDEES = "attendees";
+    public static final String ATTENDEES_ID = "attendeesId";
 
     public static final String USERNAME = "username";
     public static final String EMAIL = "email";
@@ -116,6 +122,30 @@ public class GCMHelper {
         return args;
     }
 
+//    public static Bundle getStartEventConversationPayload(String creatorId, String conversationId, String conversationTitle, String recipients,
+//                                                          long  startTime, long endTime, String eventTitle, String eventAttendees) {
+//        Bundle args = new Bundle();
+//        args.putString(ACTION, ACTION_START_EVENT_CONVERSATION);
+//        args.putString(CREATOR_ID, creatorId);
+//        args.putString(CONVERSATION_ID, conversationId);
+//        args.putString(CONVERSATION_TITLE, conversationTitle);
+//        args.putString(RECIPIENTS, recipients);
+//        args.putLong(START_TIME, startTime);
+//        args.putLong(END_TIME, endTime);
+//        args.putString(TITLE, eventTitle);
+//        args.putString(ATTENDEES, eventAttendees);
+//        return args;
+//    }
+
+    public static Bundle getStartEventConversationPayload (String creatorId, String eventId, String recipients) {
+        Bundle args = new Bundle();
+        args.putString(ACTION, ACTION_START_EVENT_CONVERSATION);
+        args.putString(CREATOR_ID, creatorId);
+        args.putString(EVENT_ID, eventId);
+        args.putString(RECIPIENTS, recipients);
+        return args;
+    }
+
     public static Bundle getShareEventPayload(String creatorId, String eventId, String recipients) {
         Bundle args = new Bundle();
         args.putString(ACTION, ACTION_SHARE_EVENT);
@@ -187,7 +217,7 @@ public class GCMHelper {
         args.putString(ACTION, ACTION_UPDATE_CONVERSATION_TITLE);
         args.putString(SENDER_ID, senderId);
         args.putString(CONVERSATION_ID, conversationId);
-        args.putString(TITLE, newTitle);
+        args.putString(CONVERSATION_TITLE, newTitle);
         args.putString(RECIPIENTS, recipientIds);
 
         return args;
