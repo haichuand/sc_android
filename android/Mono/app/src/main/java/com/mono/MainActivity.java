@@ -694,18 +694,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                     // Create Event into the Provider
                     EventManager.getInstance(this).createSyncEvent(
                         EventManager.EventAction.ACTOR_SELF,
-                        event.calendarId,
-                        event.title,
-                        event.description,
-                        event.location,
-                        event.color,
-                        event.startTime,
-                        event.endTime,
-                        event.timeZone,
-                        event.endTimeZone,
-                        event.allDay,
-                        event.attendees,
-                        event.photos,
+                        event,
                         null
                     );
                 } else {
@@ -713,21 +702,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                     // Create Event into the Database
                     EventManager.getInstance(this).createEvent(
                         EventManager.EventAction.ACTOR_SELF,
-                        event.calendarId,
-                        event.internalId,
-                        event.externalId,
-                        event.type,
-                        event.title,
-                        event.description,
-                        event.location,
-                        event.color,
-                        event.startTime,
-                        event.endTime,
-                        event.timeZone,
-                        event.endTimeZone,
-                        event.allDay,
-                        event.attendees,
-                        event.photos,
+                        event,
                         null
                     );
                 }

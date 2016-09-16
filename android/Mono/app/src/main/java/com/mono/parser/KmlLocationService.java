@@ -255,25 +255,38 @@ public class KmlLocationService extends IntentService{
                         HashMap<String, Location> testHashMap = gson.fromJson(storedHashMapString, type);
                         //use values
                         Location toastString = testHashMap.get(firstPlaceName);
+
+                        Event event = new Event();
+                        event.type = Event.TYPE_USERSTAY;
+                        event.title = firstPlaceName;
+                        event.description = address;
+                        event.startTime = startTime;
+                        event.endTime = endTime;
+
                         if (toastString != null) {
                             Log.i("testtoast", toastString.name);
-                            //create a userstay event
-                            event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, firstPlaceName, address, toastString,
-                                    1, startTime, endTime, null, null, false, null, null, null);
-                            Log.d(TAG, "event with id: " + event_id + " created");
+                            event.location = toastString;
                         }
                         else
                         {
-                            event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, firstPlaceName, address, firstLocation,
-                                    1, startTime, endTime, null, null, false, null, null, null);
-                            Log.d(TAG, "event with id: " + event_id + " created");
+                            event.location = firstLocation;
                         }
+
+                        event_id = eventManager.createEvent(EventManager.EventAction.ACTOR_NONE, event, null);
+                        Log.d(TAG, "event with id: " + event_id + " created");
                     }
                     else
                     {
                         //create a userstay event
-                        event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, firstPlaceName, address, firstLocation,
-                                1, startTime, endTime, null, null, false, null, null, null);
+                        Event event = new Event();
+                        event.type = Event.TYPE_USERSTAY;
+                        event.title = firstPlaceName;
+                        event.description = address;
+                        event.location = firstLocation;
+                        event.startTime = startTime;
+                        event.endTime = endTime;
+
+                        event_id = eventManager.createEvent(EventManager.EventAction.ACTOR_NONE, event, null);
                         Log.d(TAG, "event with id: " + event_id + " created");
                     }
                 }
@@ -393,17 +406,22 @@ public class KmlLocationService extends IntentService{
                         Location toastString = testHashMap.get(kmlevent.getName());
                         isPresent = checkEventOverlap(kmlevent, notes, location);
                         if(!isPresent) {
+                            Event event = new Event();
+                            event.type = Event.TYPE_USERSTAY;
+                            event.title = location.name;
+                            event.description = notes;
+                            event.startTime = kmlevent.getStartTime();
+                            event.endTime = kmlevent.getEndTime();
+
                             if (toastString != null) {
                                 Log.i("testtoast", toastString.name);
-                                //create a userstay event
-                                event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, location.name, notes, toastString,
-                                        1, kmlevent.getStartTime(), kmlevent.getEndTime(), null, null, false, null, null, null);
-                                Log.d(TAG, "event with id: " + event_id + " created");
+                                event.location = toastString;
                             } else {
-                                event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, location.name, notes, location,
-                                        1, kmlevent.getStartTime(), kmlevent.getEndTime(), null, null, false, null, null, null);
-                                Log.d(TAG, "event with id: " + event_id + " created");
+                                event.location = location;
                             }
+
+                            event_id = eventManager.createEvent(EventManager.EventAction.ACTOR_NONE, event, null);
+                            Log.d(TAG, "event with id: " + event_id + " created");
                         }
                     }
                     else
@@ -411,8 +429,15 @@ public class KmlLocationService extends IntentService{
                         isPresent = checkEventOverlap(kmlevent, notes, location);
                         if(!isPresent) {
                             //create a userstay event
-                            event_id = eventManager.createEvent(0, -1, -1, null, Event.TYPE_USERSTAY, location.name, notes, location,
-                                    1, kmlevent.getStartTime(), kmlevent.getEndTime(), null, null, false, null, null, null);
+                            Event event = new Event();
+                            event.type = Event.TYPE_USERSTAY;
+                            event.title = location.name;
+                            event.description = notes;
+                            event.location = location;
+                            event.startTime = kmlevent.getStartTime();
+                            event.endTime = kmlevent.getEndTime();
+
+                            event_id = eventManager.createEvent(EventManager.EventAction.ACTOR_NONE, event, null);
                             Log.d(TAG, "event with id: " + event_id + " created");
                         }
                     }

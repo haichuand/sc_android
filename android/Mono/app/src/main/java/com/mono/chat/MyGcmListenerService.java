@@ -339,8 +339,17 @@ public class MyGcmListenerService extends GcmListenerService {
             attendees.add(attendee);
         }
         boolean isAllDay = (startTime == endTime);
-        String id = eventManager.createEvent(EventManager.EventAction.ACTOR_SELF, 0, 0, null, Event.TYPE_CALENDAR,
-                title, null, null, R.color.green, startTime, endTime, null, null, isAllDay, attendees, null, null);
+
+        Event event = new Event();
+        event.type = Event.TYPE_CALENDAR;
+        event.title = title;
+        event.color = R.color.green;
+        event.startTime = startTime;
+        event.endTime = endTime;
+        event.allDay = isAllDay;
+        event.attendees = attendees;
+
+        String id = eventManager.createEvent(EventManager.EventAction.ACTOR_SELF, event, null);
         return eventManager.updateEventId(id, eventId);
     }
 

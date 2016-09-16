@@ -314,43 +314,24 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
                 };
 
                 if (event.source == Event.SOURCE_DATABASE) {
-                    long internalId = System.currentTimeMillis();
+                    Event tempEvent = new Event(event);
+                    tempEvent.internalId = System.currentTimeMillis();
+                    tempEvent.startTime = startTime;
+                    tempEvent.endTime = endTime;
                     // Create Event into the Database
                     eventManager.createEvent(
                         EventAction.ACTOR_SELF,
-                        event.calendarId,
-                        internalId,
-                        event.externalId,
-                        Event.TYPE_CALENDAR,
-                        event.title,
-                        event.description,
-                        event.location,
-                        event.color,
-                        startTime,
-                        endTime,
-                        event.timeZone,
-                        event.endTimeZone,
-                        event.allDay,
-                        event.attendees,
-                        event.photos,
+                        tempEvent,
                         callback
                     );
                 } else if (event.source == Event.SOURCE_PROVIDER) {
+                    Event tempEvent = new Event(event);
+                    tempEvent.startTime = startTime;
+                    tempEvent.endTime = endTime;
                     // Create Event into the Provider
                     eventManager.createSyncEvent(
                         EventAction.ACTOR_SELF,
-                        event.calendarId,
-                        event.title,
-                        event.description,
-                        event.location,
-                        event.color,
-                        startTime,
-                        endTime,
-                        event.timeZone,
-                        event.endTimeZone,
-                        event.allDay,
-                        event.attendees,
-                        event.photos,
+                        event,
                         callback
                     );
                 }

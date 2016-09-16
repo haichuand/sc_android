@@ -382,72 +382,53 @@ public class EventManager {
      * Create an event into the database.
      *
      * @param actor The caller such as the user or system.
-     * @param calendarId The value of the calendar ID.
-     * @param internalId The event ID being used in the Calendar Provider.
-     * @param externalId The event ID being used by Google Calendar.
-     * @param type The type of event.
-     * @param title The title of the event.
-     * @param description The description of the event.
-     * @param location The location of the event.
-     * @param color The color of the event.
-     * @param startTime The start time of the event.
-     * @param endTime The end time of th event.
-     * @param timeZone The time zone used for the start time.
-     * @param endTimeZone The time zone used for the end time.
-     * @param allDay The value of whether this is an all day event.
-     * @param attendees The list of participants.
-     * @param photos The list of photos.
+     * @param event The data describing the event.
      * @param callback The callback used once completed.
      * @return the event ID.
      */
-    public String createEvent(int actor, long calendarId, long internalId, String externalId,
-            String type, String title, String description, Location location, int color,
-            long startTime, long endTime, String timeZone, String endTimeZone, boolean allDay,
-            List<Attendee> attendees, List<Media> photos, EventActionCallback callback) {
+    public String createEvent(int actor, Event event, EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
-
-        Event event = null;
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
 
-        if (timeZone == null) {
-            timeZone = TimeZone.getDefault().getID();
+        if (event.timeZone == null) {
+            event.timeZone = TimeZone.getDefault().getID();
         }
 
         String id = null;
-        if (!dataSource.containsEvent(internalId, startTime, endTime)) {
+        if (!dataSource.containsEvent(event.internalId, event.startTime, event.endTime)) {
             // Create Event into Database
             id = dataSource.createEvent(
-                calendarId,
-                internalId,
-                externalId,
-                type,
-                title,
-                description,
-                location != null ? location.id : null,
-                color,
-                startTime,
-                endTime,
-                timeZone,
-                endTimeZone,
-                allDay ? 1 : 0,
+                event.calendarId,
+                event.internalId,
+                event.externalId,
+                event.type,
+                event.title,
+                event.description,
+                event.location != null ? event.location.id : null,
+                event.color,
+                event.startTime,
+                event.endTime,
+                event.timeZone,
+                event.endTimeZone,
+                event.allDay ? 1 : 0,
                 System.currentTimeMillis()
             );
         }
 
         if (id != null) {
             // Create Location
-            if (location != null) {
-                updateEventLocation(id, location);
+            if (event.location != null) {
+                updateEventLocation(id, event.location);
             }
 
             // Create Participants
-            if (attendees != null) {
-                updateEventAttendees(id, attendees);
+            if (event.attendees != null) {
+                updateEventAttendees(id, event.attendees);
             }
             // Create Photos
-            if (photos != null) {
-                updateEventPhotos(id, photos);
+            if (event.photos != null) {
+                updateEventPhotos(id, event.photos);
             }
 
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE, id);
@@ -472,52 +453,36 @@ public class EventManager {
      * Create an event into the Calendar Provider.
      *
      * @param actor The caller such as the user or system.
-     * @param calendarId The value of the calendar ID.
-     * @param title The title of the event.
-     * @param description The description of the event.
-     * @param location The location of the event.
-     * @param color The color of the event.
-     * @param startTime The start time of the event.
-     * @param endTime The end time of the event.
-     * @param timeZone The time zone used for the start time.
-     * @param endTimeZone The time zone used for the end time.
-     * @param allDay The value of whether this is an all day event.
-     * @param attendees The list of participants.
-     * @param photos The list of photos.
+     * @param event The data describing the event.
      * @param callback The callback used once completed.
      * @return the event ID.
      */
-    public String createSyncEvent(int actor, long calendarId, String title, String description,
-            Location location, int color, long startTime, long endTime, String timeZone,
-            String endTimeZone, boolean allDay, List<Attendee> attendees, List<Media> photos,
-            EventActionCallback callback) {
+    public String createSyncEvent(int actor, Event event, EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
-
-        Event event = null;
 
         CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
 
-        if (timeZone == null) {
-            timeZone = TimeZone.getDefault().getID();
+        if (event.timeZone == null) {
+            event.timeZone = TimeZone.getDefault().getID();
         }
 
         String id = null;
         // Create Event into Calendar Provider
         long eventId = provider.createEvent(
-            calendarId,
-            title,
-            description,
-            location != null ? location.name : null,
-            color,
-            startTime,
-            endTime,
-            timeZone,
-            endTimeZone,
-            allDay ? 1 : 0
+            event.calendarId,
+            event.title,
+            event.description,
+            event.location != null ? event.location.name : null,
+            event.color,
+            event.startTime,
+            event.endTime,
+            event.timeZone,
+            event.endTimeZone,
+            event.allDay ? 1 : 0
         );
 
         if (eventId > 0) {
-            id = CalendarEventProvider.createId(eventId, startTime, endTime);
+            id = CalendarEventProvider.createId(eventId, event.startTime, event.endTime);
         }
 
         if (id != null) {
@@ -540,25 +505,10 @@ public class EventManager {
     }
 
     public boolean saveEventToDatabase (Event event, String eventId) {
-        String id = createEvent(
-                EventAction.ACTOR_NONE,
-                event.calendarId,
-                event.internalId,
-                event.externalId,
-                Event.TYPE_CALENDAR,
-                event.title,
-                event.description,
-                event.location,
-                R.color.green,
-                event.startTime,
-                event.endTime,
-                event.timeZone,
-                event.endTimeZone,
-                event.allDay,
-                event.attendees,
-                event.photos,
-                null
-        );
+        Event tempEvent = new Event(event);
+        tempEvent.color = R.color.green;
+
+        String id = createEvent(EventAction.ACTOR_NONE, tempEvent, null);
         if (id == null) {
             return false;
         }
