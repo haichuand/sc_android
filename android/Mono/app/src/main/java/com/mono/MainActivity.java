@@ -32,6 +32,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.SupportMapFragment;
+import com.mono.alarm.AlarmHelper;
 import com.mono.chat.ChatUtil;
 import com.mono.chat.ConversationManager;
 import com.mono.contacts.ContactsActivity;
@@ -74,7 +75,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     public static final int SETTINGS = R.id.nav_settings;
     public static final int LOCATION_SETTING = R.id.nav_location_setting;
 
-    private static final String EXTRA_EVENT_ID = "eventId";
+    public static final String EXTRA_EVENT_ID = "eventId";
 
     private Toolbar toolbar;
     private Spinner toolbarSpinner;
@@ -198,6 +199,22 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         triggerGooglePlayServices(this);
         // Load Initial Fragment
         showHome();
+        // Handle Reminders
+        AlarmHelper.startAll(this);
+        // Handle Intent Extras
+        Intent intent = getIntent();
+        if (intent == null) {
+            return;
+        }
+
+        if (intent.hasExtra(EXTRA_EVENT_ID)) {
+            String eventId = intent.getStringExtra(EXTRA_EVENT_ID);
+            Event event = EventManager.getInstance(this).getEvent(eventId, false);
+
+            if (event != null) {
+                showEventDetails(event);
+            }
+        }
     }
 
     @Override

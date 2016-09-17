@@ -3,6 +3,11 @@ package com.mono.model;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+/**
+ * This data structure is used to store information about a specific reminder.
+ *
+ * @author Gary Ng
+ */
 public class Reminder implements Parcelable {
 
     public final long id;
@@ -40,6 +45,21 @@ public class Reminder implements Parcelable {
             return new Reminder[size];
         }
     };
+
+    @Override
+    public boolean equals(Object object) {
+        if (!(object instanceof Reminder)) {
+            return false;
+        }
+
+        Reminder reminder = (Reminder) object;
+
+        if (minutes != reminder.minutes || method != reminder.method) {
+            return false;
+        }
+
+        return true;
+    }
 
     @Override
     public int describeContents() {

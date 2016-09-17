@@ -5,7 +5,6 @@
     android:id="@+id/photos_layout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="6dp"
     app:label="@string/photos"
     app:labelColor="?attr/colorPrimary"
     app:labelSize="14sp">

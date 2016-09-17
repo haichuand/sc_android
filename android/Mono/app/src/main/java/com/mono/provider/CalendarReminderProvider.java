@@ -15,6 +15,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * This class is used to provide access to the Calendar Reminder Provider to allow the retrieval
+ * of calendar event reminders stored on the device.
+ *
+ * @author Gary Ng
+ */
 public class CalendarReminderProvider {
 
     private static CalendarReminderProvider instance;
@@ -33,6 +39,15 @@ public class CalendarReminderProvider {
         return instance;
     }
 
+    /**
+     * Create an event reminder into the provider.
+     *
+     * @param eventId Event ID of the reminder.
+     * @param minutes Time in minutes.
+     * @param method Type of reminder.
+     * @return the result status.
+     * @throws SecurityException
+     */
     public boolean createReminder(long eventId, int minutes, int method) throws SecurityException {
         boolean result = false;
 
@@ -50,19 +65,25 @@ public class CalendarReminderProvider {
         return result;
     }
 
+    /**
+     * Retrieve reminders for an event.
+     *
+     * @param eventId Event ID of the reminders.
+     * @return a list of reminders.
+     */
     public List<Reminder> getReminders(long eventId) {
         List<Reminder> reminders = new ArrayList<>();
 
         Cursor cursor = Reminders.query(
             context.getContentResolver(),
             eventId,
-            CalendarValues.Attendee.PROJECTION
+            CalendarValues.Reminder.PROJECTION
         );
 
         if (cursor != null) {
             while (cursor.moveToNext()) {
-                Reminder attendee = cursorToReminder(cursor);
-                reminders.add(attendee);
+                Reminder reminder = cursorToReminder(cursor);
+                reminders.add(reminder);
             }
 
             cursor.close();
@@ -71,6 +92,14 @@ public class CalendarReminderProvider {
         return reminders;
     }
 
+    /**
+     * Remove a reminder with the given signature.
+     *
+     * @param eventId Event ID of the reminder.
+     * @param minutes Time in minutes.
+     * @return the result status.
+     * @throws SecurityException
+     */
     public int removeReminder(long eventId, int minutes) throws SecurityException {
         String selection = String.format(
             "%s = ? AND %s = ?",
@@ -90,6 +119,11 @@ public class CalendarReminderProvider {
         );
     }
 
+    /**
+     * Retrieve reminders for all the following events.
+     *
+     * @param events Events needed to be resolved.
+     */
     public void resolveReminders(List<Event> events) {
         List<Long> eventIds = new ArrayList<>();
         for (Event event : events) {
@@ -122,6 +156,13 @@ public class CalendarReminderProvider {
         }
     }
 
+    /**
+     * Create a reminder cursor using the given event IDs.
+     *
+     * @param eventIds Event IDs for the cursor.
+     * @return an instance of a cursor.
+     * @throws SecurityException
+     */
     private Cursor createReminderCursor(List<Long> eventIds) throws SecurityException {
         int size = eventIds.size();
 

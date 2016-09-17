@@ -80,6 +80,8 @@ public class EventDetailsActivity extends GestureActivity {
     private TextView endTime;
     private CheckBox allDay;
     private TextView timeZoneView;
+
+    private ReminderPanel reminderPanel;
     private LocationPanel locationPanel;
     private NotePanel notePanel;
     private GuestPanel guestPanel;
@@ -217,6 +219,9 @@ public class EventDetailsActivity extends GestureActivity {
 //                onTimeZoneClick(event.timeZone);
             }
         });
+
+        reminderPanel = new ReminderPanel(this);
+        reminderPanel.onCreate(savedInstanceState);
 
         locationPanel = new LocationPanel(this);
         locationPanel.onCreate(savedInstanceState);
@@ -420,7 +425,17 @@ public class EventDetailsActivity extends GestureActivity {
         if (event.startTime > 0) {
             dateTime = dateTime.withMillis(event.startTime);
         } else {
-            dateTime = dateTime.withTime(dateTime.getHourOfDay(), 0, 0, 0);
+            int hour = dateTime.getHourOfDay();
+            int minute = dateTime.getMinuteOfHour();
+
+            if (minute < 30) {
+                minute = 30;
+            } else {
+                hour++;
+                minute = 0;
+            }
+
+            dateTime = dateTime.withTime(hour, minute, 0, 0);
             event.startTime = dateTime.getMillis();
         }
 
@@ -430,7 +445,6 @@ public class EventDetailsActivity extends GestureActivity {
         if (event.endTime > 0) {
             dateTime = dateTime.withMillis(event.endTime);
         } else {
-            dateTime = dateTime.withTime(dateTime.getHourOfDay(), 0, 0, 0);
             dateTime = dateTime.plusHours(1);
             event.endTime = dateTime.getMillis();
         }
@@ -441,6 +455,7 @@ public class EventDetailsActivity extends GestureActivity {
         timeZoneView.setText(TimeZoneHelper.getTimeZoneGMTName(timeZone, event.startTime));
         allDay.setChecked(event.allDay);
 
+        reminderPanel.setEvent(event);
         locationPanel.setEvent(event);
         notePanel.setEvent(event);
         guestPanel.setEvent(event);

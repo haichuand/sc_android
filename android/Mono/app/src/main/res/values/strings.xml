@@ -47,6 +47,8 @@
     <string name="settings_cat_general_title">General</string>
     <string name="settings_cat_calendars_key">category_calendar</string>
     <string name="settings_cat_calendars_title">Calendars</string>
+    <string name="settings_cat_notifications_key">category_notifications</string>
+    <string name="settings_cat_notifications_title">Notifications</string>
     <string name="settings_cat_other_key">category_other</string>
     <string name="settings_cat_other_title">Other</string>
 
@@ -73,6 +75,14 @@
     <string name="pref_crash_report_title">Enable Crash Reporting</string>
     <string name="pref_crash_report_default">true</string>
 
+    <string name="pref_notification_key">pref_notification</string>
+    <string name="pref_notification_title">Enable Notifications</string>
+    <string name="pref_notification_default">true</string>
+
+    <string name="pref_notification_vibrate_key">pref_notification_vibrate</string>
+    <string name="pref_notification_vibrate_title">Vibration</string>
+    <string name="pref_notification_vibrate_default">false</string>
+
     <string name="pref_version_key">pref_version</string>
     <string name="pref_version_title">Version</string>
 
@@ -93,6 +103,7 @@
     <string name="notes">Notes</string>
     <string name="guests">Guests</string>
     <string name="photos">Photos</string>
+    <string name="reminders">Reminders</string>
     <string name="chats">Chats</string>
     <string name="friends">Friends</string>
     <string name="phone">Phone</string>
@@ -124,6 +135,8 @@
     <string name="no_contacts_found">No Contacts Found</string>
     <string name="hello">Hello</string>
     <string name="remember_me">Remember Me</string>
+    <string name="reminder_add">Add Reminder</string>
+    <string name="no_subject">No Subject</string>
 
     <string name="contacts_search">Enter Name or Email</string>
     <string name="favorites_add">Add to Favorites</string>

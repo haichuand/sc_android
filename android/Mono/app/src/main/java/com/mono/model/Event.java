@@ -26,8 +26,8 @@ public class Event implements Parcelable {
     public String parentId;
     public int source;
     public long calendarId;
-    public long internalId;
-    public String externalId;
+    public long internalId; // Calendar Provider ID
+    public String externalId; // Google Calendar Sync ID
     public String type;
     public String title;
     public String description;
@@ -207,9 +207,9 @@ public class Event implements Parcelable {
             return false;
         }
 
-//        if (!reminders.equals(event.reminders)) {
-//            return false;
-//        }
+        if (!reminders.equals(event.reminders)) {
+            return false;
+        }
 
         if (!photos.equals(event.photos)) {
             return false;

@@ -8,6 +8,7 @@ import com.mono.db.Database;
 import com.mono.db.DatabaseValues;
 import com.mono.model.Event;
 import com.mono.model.Location;
+import com.mono.model.Reminder;
 import com.mono.util.Common;
 
 import org.joda.time.DateTime;
@@ -47,12 +48,14 @@ public class EventDataSource extends DataSource {
      * @param timeZone The time zone used for the start time.
      * @param endTimeZone The time zone used for the end time.
      * @param allDay The value of whether this is an all day event.
+     * @param reminders Format: minutes,method;minutes,method;...
      * @param createTime The current time event was created.
      * @return the event ID.
      */
     public String createEvent(long calendarId, long internalId, String externalId, String type,
             String title, String description, Long locationId, int color, long startTime,
-            long endTime, String timeZone, String endTimeZone, int allDay, long createTime) {
+            long endTime, String timeZone, String endTimeZone, int allDay, String reminders,
+            long createTime) {
         String id = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
 
         ContentValues values = new ContentValues();
@@ -70,6 +73,7 @@ public class EventDataSource extends DataSource {
         values.put(DatabaseValues.Event.TIMEZONE, timeZone);
         values.put(DatabaseValues.Event.END_TIMEZONE, endTimeZone);
         values.put(DatabaseValues.Event.ALL_DAY, allDay);
+        values.put(DatabaseValues.Event.REMINDERS, reminders);
         values.put(DatabaseValues.Event.CREATE_TIME, createTime);
 
         try {
@@ -644,6 +648,54 @@ public class EventDataSource extends DataSource {
     }
 
     /**
+     * Retrieve events with reminders belonging within a time range.
+     *
+     * @param startTime Start time of the events.
+     * @param endTime End time of the events.
+     * @param calendarIds Restrict events to these calendars.
+     * @return a list of events.
+     */
+    public List<Event> getEventsWithReminders(long startTime, long endTime, long... calendarIds) {
+        List<Event> events = new ArrayList<>();
+
+        List<String> args = new ArrayList<>();
+
+        String selection = "";
+        if (calendarIds != null && calendarIds.length > 0) {
+            selection = getCalendarSelection(args, calendarIds) + " AND ";
+        }
+
+        selection += String.format(
+            "%s BETWEEN ? AND ?",
+            DatabaseValues.Event.START_TIME
+        );
+        args.add(String.valueOf(startTime));
+        args.add(String.valueOf(endTime));
+
+        selection += " AND ";
+        selection += DatabaseValues.Event.REMINDERS + " IS NOT NULL";
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
+
+        Cursor cursor = database.select(
+            DatabaseValues.Event.TABLE,
+            DatabaseValues.Event.PROJECTION,
+            selection,
+            selectionArgs,
+            DatabaseValues.Event.START_TIME
+        );
+
+        while (cursor.moveToNext()) {
+            Event event = cursorToEvent(cursor);
+            events.add(event);
+        }
+
+        cursor.close();
+
+        return events;
+    }
+
+    /**
      * Retrieve event IDs belonging within a time range as well as within a latitude and longitude
      * bounding box.
      *
@@ -914,6 +966,24 @@ public class EventDataSource extends DataSource {
         event.timeZone = cursor.getString(DatabaseValues.Event.INDEX_TIMEZONE);
         event.endTimeZone = cursor.getString(DatabaseValues.Event.INDEX_END_TIMEZONE);
         event.allDay = cursor.getInt(DatabaseValues.Event.INDEX_ALL_DAY) != 0;
+
+        String reminders = cursor.getString(DatabaseValues.Event.INDEX_REMINDERS);
+        if (reminders != null) {
+            for (String value : Common.explode(";", reminders)) {
+                if (value.isEmpty()) {
+                    continue;
+                }
+
+                String[] values = Common.explode(",", value);
+
+                Reminder reminder = new Reminder();
+                reminder.minutes = Integer.parseInt(values[0]);
+                reminder.method = Integer.parseInt(values[1]);
+
+                event.reminders.add(reminder);
+            }
+        }
+
         event.createTime = cursor.getLong(DatabaseValues.Event.INDEX_CREATE_TIME);
 
         return event;

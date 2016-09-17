@@ -24,6 +24,22 @@
         android:layout="@layout/settings_category"/>
 
     <PreferenceCategory
+        android:key="@string/settings_cat_notifications_key"
+        android:title="@string/settings_cat_notifications_title"
+        android:layout="@layout/settings_category">
+
+        <SwitchPreference
+            android:key="@string/pref_notification_key"
+            android:title="@string/pref_notification_title"
+            android:defaultValue="@string/pref_notification_default"/>
+
+        <SwitchPreference
+            android:key="@string/pref_notification_vibrate_key"
+            android:title="@string/pref_notification_vibrate_title"
+            android:defaultValue="@string/pref_notification_vibrate_default"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:key="@string/settings_cat_other_key"
         android:title="@string/settings_cat_other_title"
         android:layout="@layout/settings_category">

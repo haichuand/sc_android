@@ -37,6 +37,7 @@ public class DatabaseValues {
         public static final String TIMEZONE = "`timezone`";
         public static final String END_TIMEZONE = "`end_timezone`";
         public static final String ALL_DAY = "`all_day`";
+        public static final String REMINDERS = "`reminders`";
         public static final String CREATE_TIME = "`create_time`";
 
         public static final String[] PROJECTION = {
@@ -54,6 +55,7 @@ public class DatabaseValues {
             Event.TIMEZONE,
             Event.END_TIMEZONE,
             Event.ALL_DAY,
+            Event.REMINDERS,
             Event.CREATE_TIME
         };
 
@@ -71,7 +73,8 @@ public class DatabaseValues {
         public static final int INDEX_TIMEZONE = 11;
         public static final int INDEX_END_TIMEZONE = 12;
         public static final int INDEX_ALL_DAY = 13;
-        public static final int INDEX_CREATE_TIME = 14;
+        public static final int INDEX_REMINDERS = 14;
+        public static final int INDEX_CREATE_TIME = 15;
 
         public static final String CREATE_TABLE;
         public static final String DROP_TABLE;
@@ -92,6 +95,7 @@ public class DatabaseValues {
                 TIMEZONE + " TEXT",
                 END_TIMEZONE + " TEXT",
                 ALL_DAY + " INTEGER",
+                REMINDERS + " TEXT",
                 CREATE_TIME + " INTEGER"
             };
 
@@ -482,75 +486,6 @@ public class DatabaseValues {
             String[] parameters = {
                 EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " (" + Event.ID + ") ON UPDATE CASCADE ON DELETE CASCADE",
                 MEDIA_ID + " INTEGER REFERENCES " + Media.TABLE + " (" + Media.ID + ")"
-            };
-
-            CREATE_TABLE = createTableQuery(TABLE, parameters);
-            DROP_TABLE = dropTableQuery(TABLE);
-        }
-    }
-
-    public static class Alarm {
-        public static final String TABLE = "`alarm`";
-
-        public static final String ALARM_ID = "`alarm_id`";
-        public static final String ALARM_TIME = "`alarm_time`";
-        public static final String CREATE_TIME = "`create_time`";
-        public static final String ENABLE = "`enable`";
-
-
-        public static final String[] PROJECTION = {
-                Alarm.ALARM_ID,
-                Alarm.ALARM_TIME,
-                Alarm.CREATE_TIME,
-                Alarm.ENABLE
-        };
-
-        public static final int INDEX_ALARM_ID = 0;
-        public static final int INDEX_ALARM_TIME = 1;
-        public static final int INDEX_CREATE_TIME = 2;
-        public static final int INDEX_ENABLE = 3;
-
-
-        public static final String CREATE_TABLE;
-        public static final String DROP_TABLE;
-
-        static {
-            String[] parameters = {
-                    ALARM_ID + " TEXT PRIMARY KEY",
-                    ALARM_TIME + " INTEGER",
-                    CREATE_TIME + " INTEGER",
-                    ENABLE + " INTEGER"
-            };
-
-            CREATE_TABLE = createTableQuery(TABLE, parameters);
-            DROP_TABLE = dropTableQuery(TABLE);
-        }
-    }
-
-    public static class EventAlarm {
-        public static final String TABLE = "`event_alarm`";
-
-        public static final String E_ID = "`e_id`";
-        public static final String A_ID = "`a_id`";
-
-
-
-        public static final String[] PROJECTION = {
-                EventAlarm.E_ID,
-                EventAlarm.A_ID
-        };
-
-        public static final int INDEX_E_ID = 0;
-        public static final int INDEX_A_ID = 1;
-
-
-        public static final String CREATE_TABLE;
-        public static final String DROP_TABLE;
-
-        static {
-            String[] parameters = {
-                    E_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" ) ON UPDATE CASCADE ON DELETE CASCADE",
-                    A_ID + " TEXT REFERENCES " + Alarm.TABLE + " ( "+ Alarm.ALARM_ID +" )"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);

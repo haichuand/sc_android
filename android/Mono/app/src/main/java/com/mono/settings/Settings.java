@@ -45,6 +45,12 @@ public class Settings {
     public static final String PREF_CONTACTS_SCAN_ID = "pref_contacts_scan_id";
     public static final long DEFAULT_CONTACTS_SCAN_ID = 0;
 
+    public static final String PREF_NOTIFICATION = "pref_notification";
+    public static final boolean DEFAULT_NOTIFICATION = true;
+
+    public static final String PREF_NOTIFICATION_VIBRATE = "pref_notification_vibrate";
+    public static final boolean DEFAULT_NOTIFICATION_VIBRATE = false;
+
     public static final String PREF_CRASH_REPORT = "pref_crash_report";
     public static final boolean DEFAULT_CRASH_REPORT = true;
 
@@ -268,6 +274,26 @@ public class Settings {
     public void setContactsScanId(long id) {
         Editor editor = getEditor();
         editor.putLong(PREF_CONTACTS_SCAN_ID, id);
+        editor.apply();
+    }
+
+    public boolean getNotification() {
+        return preferences.getBoolean(PREF_NOTIFICATION, DEFAULT_NOTIFICATION);
+    }
+
+    public void setNotification(boolean value) {
+        Editor editor = getEditor();
+        editor.putBoolean(PREF_NOTIFICATION, value);
+        editor.apply();
+    }
+
+    public boolean getNotificationVibrate() {
+        return preferences.getBoolean(PREF_NOTIFICATION_VIBRATE, DEFAULT_NOTIFICATION_VIBRATE);
+    }
+
+    public void setNotificationVibrate(boolean value) {
+        Editor editor = getEditor();
+        editor.putBoolean(PREF_NOTIFICATION_VIBRATE, value);
         editor.apply();
     }
 

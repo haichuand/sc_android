@@ -3,6 +3,7 @@ package com.mono;
 import android.content.ContentValues;
 import android.content.Context;
 
+import com.mono.alarm.AlarmHelper;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
 import com.mono.db.dao.AttendeeDataSource;
@@ -15,7 +16,9 @@ import com.mono.model.Attendee;
 import com.mono.model.Event;
 import com.mono.model.Location;
 import com.mono.model.Media;
+import com.mono.model.Reminder;
 import com.mono.provider.CalendarEventProvider;
+import com.mono.provider.CalendarReminderProvider;
 import com.mono.util.Common;
 import com.mono.util.Constants;
 import com.mono.util.Log;
@@ -321,6 +324,34 @@ public class EventManager {
     }
 
     /**
+     * Retrieve events with reminders belonging within a time range.
+     *
+     * @param startTime Start time of the events.
+     * @param endTime End time of the events.
+     * @param calendarIds Restrict events to these calendars.
+     * @return a list of events.
+     */
+    public List<Event> getEventsWithReminders(long startTime, long endTime, long... calendarIds) {
+        List<Event> result = new ArrayList<>();
+        // Events from Calendar Provider
+        CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
+        result.addAll(provider.getEventsWithReminders(startTime, endTime, calendarIds));
+        // Events from Database
+        EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+        List<Event> events = dataSource.getEventsWithReminders(startTime, endTime, calendarIds);
+
+        for (Event event : events) {
+            add(event);
+
+            if (!result.contains(event)) {
+                result.add(event);
+            }
+        }
+
+        return result;
+    }
+
+    /**
      * Retrieve all color markers for the specific month.
      *
      * @param year The value of the year.
@@ -397,6 +428,17 @@ public class EventManager {
 
         String id = null;
         if (!dataSource.containsEvent(event.internalId, event.startTime, event.endTime)) {
+            // Convert Reminders
+            String reminders = null;
+            if (!event.reminders.isEmpty()) {
+                reminders = "";
+
+                for (int i = 0; i < event.reminders.size(); i++) {
+                    if (i > 0) reminders += ";";
+                    Reminder reminder = event.reminders.get(i);
+                    reminders += reminder.minutes + "," + reminder.method;
+                }
+            }
             // Create Event into Database
             id = dataSource.createEvent(
                 event.calendarId,
@@ -412,16 +454,23 @@ public class EventManager {
                 event.timeZone,
                 event.endTimeZone,
                 event.allDay ? 1 : 0,
+                reminders,
                 System.currentTimeMillis()
             );
         }
 
         if (id != null) {
+            // Handle Reminders
+            if (event.reminders != null) {
+                for (Reminder reminder : event.reminders) {
+                    long alarmTime = event.startTime - reminder.minutes * Constants.MINUTE_MS;
+                    AlarmHelper.createAlarm(context, id, alarmTime, event.title, event.startTime);
+                }
+            }
             // Create Location
             if (event.location != null) {
                 updateEventLocation(id, event.location);
             }
-
             // Create Participants
             if (event.attendees != null) {
                 updateEventAttendees(id, event.attendees);
@@ -483,6 +532,18 @@ public class EventManager {
 
         if (eventId > 0) {
             id = CalendarEventProvider.createId(eventId, event.startTime, event.endTime);
+            // Handle Reminders
+            if (event.reminders != null) {
+                for (Reminder reminder : event.reminders) {
+                    CalendarReminderProvider reminderProvider =
+                        CalendarReminderProvider.getInstance(context);
+
+                    if (reminderProvider.createReminder(eventId, reminder.minutes, reminder.method)) {
+                        long alarmTime = event.startTime - reminder.minutes * Constants.MINUTE_MS;
+                        AlarmHelper.createAlarm(context, id, alarmTime, event.title, event.startTime);
+                    }
+                }
+            }
         }
 
         if (id != null) {
@@ -614,7 +675,26 @@ public class EventManager {
         }
 
         if (!event.reminders.equals(original.reminders)) {
+            String value = null;
+            if (!event.reminders.isEmpty()) {
+                value = "";
 
+                for (int i = 0; i < event.reminders.size(); i++) {
+                    if (i > 0) value += ";";
+                    Reminder reminder = event.reminders.get(i);
+                    value += reminder.minutes + "," + reminder.method;
+                }
+            }
+            values.put(DatabaseValues.Event.REMINDERS, value);
+
+            original.reminders.clear();
+            original.reminders.addAll(event.reminders);
+
+            AlarmHelper.removeAlarms(context, id);
+            for (Reminder reminder : event.reminders) {
+                long alarmTime = event.startTime - reminder.minutes * Constants.MINUTE_MS;
+                AlarmHelper.createAlarm(context, id, alarmTime, event.title, event.startTime);
+            }
         }
 
         if (!event.photos.equals(original.photos)) {
@@ -670,6 +750,8 @@ public class EventManager {
         }
 
         if (result) {
+            AlarmHelper.removeAlarms(context, id);
+
             cache.remove(id);
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_REMOVE, id);
         } else {
@@ -773,6 +855,7 @@ public class EventManager {
      */
     public void onProviderChange() {
         System.out.format("Calendar Provider has %d changes.\n", -1);
+        AlarmHelper.startAll(context);
     }
 
     public static class EventAction {

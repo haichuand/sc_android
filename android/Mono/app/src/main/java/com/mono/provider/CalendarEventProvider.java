@@ -20,6 +20,7 @@ import org.joda.time.Days;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -521,6 +522,56 @@ public class CalendarEventProvider {
             cursor.close();
 
             resolveEventsData(events);
+        }
+
+        return events;
+    }
+
+    /**
+     * Retrieve events with reminders belonging within a time range.
+     *
+     * @param startTime Start time of the events.
+     * @param endTime End time of the events.
+     * @param calendarIds Restrict events to these calendars.
+     * @return a list of events.
+     */
+    public List<Event> getEventsWithReminders(long startTime, long endTime, long... calendarIds) {
+        List<Event> events = new ArrayList<>();
+
+        Uri.Builder builder = Instances.CONTENT_URI.buildUpon();
+        ContentUris.appendId(builder, startTime);
+        ContentUris.appendId(builder, endTime);
+
+        List<String> args = new ArrayList<>();
+
+        String selection = "";
+        if (calendarIds != null && calendarIds.length > 0) {
+            selection = getCalendarSelection(args, calendarIds);
+        }
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
+
+        Cursor cursor = context.getContentResolver().query(
+            builder.build(),
+            CalendarValues.Instance.PROJECTION,
+            selection,
+            selectionArgs,
+            Instances.BEGIN
+        );
+
+        if (cursor != null) {
+            events.addAll(cursorInstancesToEvents(cursor));
+            cursor.close();
+
+            resolveEventsData(events);
+
+            Iterator<Event> iterator = events.iterator();
+            while (iterator.hasNext()) {
+                Event event = iterator.next();
+                if (event.reminders == null || event.reminders.isEmpty()) {
+                    iterator.remove();
+                }
+            }
         }
 
         return events;
