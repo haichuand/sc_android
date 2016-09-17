@@ -19,7 +19,7 @@ import com.mono.util.Constants;
 import com.mono.util.Pixels;
 
 /**
- * This class is used to handle the reminders section location in Event Details.
+ * This class is used to handle the reminders section located in Event Details.
  *
  * @author Gary Ng
  */

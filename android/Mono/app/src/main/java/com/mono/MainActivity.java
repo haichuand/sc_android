@@ -493,7 +493,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         View view = findViewById(android.R.id.content);
 
         snackBar = Snackbar.make(view, resId, Snackbar.LENGTH_LONG);
-        snackBar.setAction(actionResId, listener);
+//        snackBar.setAction(actionResId, listener);
         // Default Action Text Color
         if (actionColor == 0) {
             actionColor = Colors.getColor(this, android.R.color.white);
