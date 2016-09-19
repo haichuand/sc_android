@@ -66,7 +66,6 @@ public class KmlDownloadingService extends IntentService {
         if(KML.isSignedIn()) {
             if(downloadType.equals(REGULAR)) {
                 downloadKML(KML_URL + "&pb=" + getPbValue(0),KML_FILENAME_TODAY);
-                //downloadKML(KML_URL + "&pb=" + getPbValue(1),KML_FILENAME_YESTERDAY);
             }
             else {
                 for(int i = 0; i <= 365; i++) {
