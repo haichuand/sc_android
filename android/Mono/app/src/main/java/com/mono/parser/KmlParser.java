@@ -9,9 +9,11 @@ import android.util.Log;
 import com.mono.MainActivity;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Array;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -43,18 +45,16 @@ public class KmlParser {
         factory = DocumentBuilderFactory.newInstance();
     }
 
-    public ArrayList<KmlEvents> newKmlParse(String fileName)
+    public ArrayList<KmlEvents> newKmlParse(String data)
     {
-        String state = Environment.getExternalStorageState();
 
-        if (Environment.MEDIA_MOUNTED.equals(state)){
-            String storage = Environment.getExternalStorageDirectory().getPath() + "/";
-            Log.d(TAG, "parse(): file: "+ storage+MainActivity.APP_DIR+fileName);
-            File file = new File(storage + MainActivity.APP_DIR + fileName);
+            factory.setNamespaceAware(true);
             ArrayList<KmlEvents> result = new ArrayList<>();
             try {
                 builder = factory.newDocumentBuilder();
-                Document document = builder.parse(file);
+                InputStream inputStream = new ByteArrayInputStream(data.getBytes("UTF-8"));
+                Document document = builder.parse(inputStream);
+
                 NodeList nodeList = document.getDocumentElement().getChildNodes();
                 Node node = nodeList.item(0);
 
@@ -173,10 +173,6 @@ public class KmlParser {
                 }
             }
             return resultList;
-
-        }
-        return null;
-
     }
 
     private ArrayList<KmlEvents> userstaySlicing(KmlEvents kmlevent) {

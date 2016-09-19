@@ -1,19 +1,19 @@
 package com.mono.parser;
 
-import android.app.Activity;
-import android.app.DownloadManager;
 import android.app.IntentService;
-import android.content.BroadcastReceiver;
 import android.content.Intent;
-import android.net.Uri;
-import android.os.Environment;
+
 
 import android.util.Log;
 import android.webkit.CookieManager;
 
-import com.mono.MainActivity;
 
-import java.io.File;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -23,8 +23,8 @@ import java.util.HashMap;
  */
 public class KmlDownloadingService extends IntentService {
 
+    private KmlParser kmlparser;
     private static final String TAG = "Kml Downloading Service";
-    private long downloadId;
     static HashMap<Integer, Integer> endOfMonthMap;
     static {
         endOfMonthMap = new HashMap<>();
@@ -65,35 +65,44 @@ public class KmlDownloadingService extends IntentService {
         Log.i(TAG, "downloadType: "+downloadType);
         if(KML.isSignedIn()) {
             if(downloadType.equals(REGULAR)) {
-                downloadKML(KML_URL + "&pb=" + getPbValue(0),KML_FILENAME_TODAY);
+                downloadKML(KML_URL + "&pb=" + getPbValue(0));
             }
             else {
                 for(int i = 0; i <= 365; i++) {
-                    String fileName = "FirstTimeLocationHistory"+i+".kml";
-                    downloadKML(KML_URL + "&pb=" + getPbValue(i),fileName);
+                    downloadKML(KML_URL + "&pb=" + getPbValue(i));
                 }
             }
         }
     }
 
-    private void downloadKML (String url, String filename) {
-        Log.d(TAG, "downloadKML():" + url + " to " + filename);
-        CookieManager cookieManager = CookieManager.getInstance();
-        String cookie = cookieManager.getCookie(COOKIE_URL);
+    private void downloadKML (String url) {
 
-        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
-        request.addRequestHeader("Cookie", cookie);
+        try {
+            // Request + Response
+            StringBuilder builder = new StringBuilder();
 
-        String storage = Environment.getExternalStorageDirectory().getPath() + "/";
-        File file = new File(storage + MainActivity.APP_DIR + filename);
-        if (file.exists()) {
-            file.delete();
+            CookieManager cookieManager = CookieManager.getInstance();
+            String cookie = cookieManager.getCookie(COOKIE_URL);
+
+            URLConnection connection = new URL(url).openConnection();
+            connection.addRequestProperty("Cookie", cookie);
+
+            InputStream inputStream = connection.getInputStream();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+
+            String nextLine;
+            while ((nextLine = reader.readLine()) != null) {
+                builder.append(nextLine + "\n");
+            }
+
+            Intent i = new Intent(getApplicationContext(), KmlLocationService.class);
+            i.putExtra("dataString", builder.toString());
+            getApplicationContext().startService(i);
+
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        request.setDestinationUri(Uri.fromFile(file));
 
-        DownloadManager manager =
-                (DownloadManager) getApplicationContext().getSystemService(Activity.DOWNLOAD_SERVICE);
-        downloadId = manager.enqueue(request);
     }
 
 //    public boolean isSignedIn() {

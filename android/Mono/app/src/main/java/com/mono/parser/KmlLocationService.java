@@ -30,7 +30,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -39,7 +38,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -53,7 +51,7 @@ public class KmlLocationService extends IntentService {
     private static final String TYPE = "userstay";
     private EventManager eventManager;
     private LocationDataSource locationDataSource;
-    private String fileName = "";
+
     private KmlParser parser;
     ArrayList<LatLngTime> userStays;
     ArrayList<KmlEvents> newuserStays;
@@ -71,35 +69,19 @@ public class KmlLocationService extends IntentService {
 
     public void onHandleIntent(Intent intent) {
         if (intent != null) {
-            String type = intent.getStringExtra(KmlDownloadingService.TYPE);
+            String data = intent.getStringExtra("dataString");
             parser = new KmlParser();
-            if (type.equals(KmlDownloadingService.FIRST_TIME)) {
-                fileName = intent.getStringExtra("fileName");
-                getNewUserstaysForOneDay(fileName);
-                //delete file when parsing is done
-                String storage = Environment.getExternalStorageDirectory().getPath() + "/";
-                File file = new File(storage + MainActivity.APP_DIR + fileName);
-                if (file.exists()) {
-                    file.delete();
-                    Log.d(TAG, fileName + "has been parsed and deleted!");
-                }
-            }
-            if (type.equals(KmlDownloadingService.REGULAR)) {
-                getNewUserstaysForOneDay(KmlDownloadingService.KML_FILENAME_TODAY);
-            }
+            getNewUserstaysForOneDay(data);
         }
     }
 
-    public void getNewUserstaysForOneDay(String fileName) {
-        newuserStays = parser.newKmlParse(fileName);
+    public void getNewUserstaysForOneDay(String data) {
+        newuserStays = parser.newKmlParse(data);
         if (newuserStays == null) {
             Log.d(TAG, "No userStay data parsed");
             return;
         }
-
         saveNewUserStayKMLEvents();
-        Log.d(TAG, "Parsing for One Day from " + fileName + " is " + newuserStays.size());
-
     }
 
     public void saveNewUserStayKMLEvents() {
@@ -187,12 +169,12 @@ public class KmlLocationService extends IntentService {
                     if (detailResult2 != null) {
                         if (detailResult2[0] != null) {
                             if ((detailResult[0] != null) && (detailResult2[0] != null)) {
-                                notes = "Driving from :" + detailResult[0] + " To " + detailResult2[0] + "\n";
+                                notes = "Driving from : " + detailResult[0] + " To " + detailResult2[0] + "\n";
                             }
                         }
                         if (distance != "") {
                             double disinMiles = Math.round(Integer.parseInt(distance.split("m")[0]) * 0.00062);
-                            notes += "Distance Travelled :" + disinMiles + "miles";
+                            notes += "Distance Travelled : " + disinMiles + "miles";
                         }
 
                     } else {
