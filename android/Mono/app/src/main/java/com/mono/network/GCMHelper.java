@@ -40,6 +40,7 @@ public class GCMHelper {
     public static final String ATTENDEES = "attendees";
     public static final String ATTENDEES_ID = "attendeesId";
     public static final String ATTACHMENTS = "attachments";
+    public static final String TIMESTAMP = "timestamp";
 
     public static final String USERNAME = "username";
     public static final String EMAIL = "email";

@@ -2,7 +2,6 @@ package com.mono.chat;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.CountDownTimer;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
@@ -23,9 +22,7 @@ import android.widget.AutoCompleteTextView;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -37,7 +34,6 @@ import com.mono.model.Media;
 import com.mono.model.Message;
 import com.mono.network.ChatServerManager;
 import com.mono.network.HttpServerManager;
-import com.mono.util.Common;
 import com.mono.util.GestureActivity;
 
 import java.text.SimpleDateFormat;
@@ -45,10 +41,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 public class ChatRoomActivity extends GestureActivity implements ConversationManager.ConversationBroadcastListener{
 
@@ -64,6 +58,8 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     public static final String EVENT_ALL_DAY = "eventAllDay";
     public static final String MY_ID = "myId";
     private static final String TAG = "ChatRoomActivity";
+    private static final String DROP_ATTENDEES = "dropAttendees";
+    private static final String ADD_ATTENDEES = "addAttendees";
 
     private static final SimpleDateFormat DATE_FORMAT;
     private static final SimpleDateFormat TIME_FORMAT;
@@ -102,7 +98,6 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     private HttpServerManager httpServerManager;
     private ChatServerManager chatServerManager;
     private CompoundButton.OnCheckedChangeListener checkedChangeListener;
-    private Map<String, CountDownTimer> countDownTimerMap = new HashMap<>();
 
     static {
         DATE_FORMAT = new SimpleDateFormat("M/d/yy", Locale.getDefault());
@@ -400,28 +395,25 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     }
 
     public void onSendButtonClicked(View view) {
-        if (!Common.isConnectedToInternet(this)) {
-            Toast.makeText(this, "No network connection. Cannot send message", Toast.LENGTH_SHORT).show();
-            return;
-        }
+//        if (!Common.isConnectedToInternet(this)) {
+//            Toast.makeText(this, "No network connection. Cannot send message", Toast.LENGTH_SHORT).show();
+//            return;
+//        }
         if (chatAttendeeIdList == null || chatAttendeeIdList.isEmpty()) {
             Toast.makeText(this, "No participants in chat", Toast.LENGTH_LONG).show();
             return;
         }
-        String msg = sendMessageText.getText().toString();
+        String messageText = sendMessageText.getText().toString();
         List<Media> attachments = attachmentPanel.getAttachments();;
-        if (msg.isEmpty() && attachments.isEmpty()) {
+        if (messageText.isEmpty() && attachments.isEmpty()) {
             return;
         }
-        String messageId = ChatUtil.getRandomId();
 
-//        sendButton.setVisibility(View.GONE);
-//        sendProgressBar.setVisibility(View.VISIBLE);
-
-        Message message = new Message(myId, conversationId, msg, System.currentTimeMillis(), messageId);
+        Message message = new Message(myId, conversationId, messageText, System.currentTimeMillis());
+        message.ack = false;
         message.attachments = attachments;
-
-        addMessage(message);
+        message.setMessageId(conversationManager.saveChatMessageToDB(message));
+        addMessageToUI(message);
 
         if (message.attachments.isEmpty()) {
             sendMessage(message, null);
@@ -438,23 +430,8 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         attachmentPanel.clear();
     }
 
-    public void sendMessage(Message message, List<String> attachments) {
-        final int lastMessagePos = chatMessages.size() - 1;
-        CountDownTimer countDownTimer = new CountDownTimer(5000, 5000) {
-            @Override
-            public void onTick(long millisUntilFinished) {
-            }
-
-            @Override
-            public void onFinish() {
-                chatMessages.get(lastMessagePos).showWarningIcon = true;
-                chatRoomAdapter.notifyItemChanged(lastMessagePos);
-                Toast.makeText(ChatRoomActivity.this, "Chat server error. Please try later.", Toast.LENGTH_SHORT).show();
-            }
-        };
-        chatServerManager.sendConversationMessage(myId, conversationId, chatAttendeeIdList, message.getMessageText(), message.getMessageId(), attachments);
-        countDownTimer.start();
-        countDownTimerMap.put(message.getMessageId(), countDownTimer);
+    public void sendMessage(final Message message, List<String> attachments) {
+        chatServerManager.sendConversationMessage(myId, conversationId, chatAttendeeIdList, message.getMessageText(), String.valueOf(message.getMessageId()), attachments);
     }
 
 //    public void onAddAttendeeButtonClicked(View view) {
@@ -488,7 +465,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
 //                message = "Cannot find conversation with id: " + conversationId + "in database";
 //                break;
 //            case -1:
-//                message = "Server unavailable. Mark as SYNC_NEEDED";
+//                message = "Server unavailable. Mark as ACK";
 //                //TODO: mark Conversation_Attendees table as Sync_Needed
 //                break;
 //        }
@@ -644,6 +621,11 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     }
 
     @Override
+    public void onDropConversationAttendees(String conversationId, List<String> dropAttendeeIds) {
+
+    }
+
+    @Override
     public void onNewConversationMessage(Message message) {
         String senderId = message.getSenderId();
         if (!conversationId.equals(message.getConversationId()) || senderId == null){
@@ -651,25 +633,49 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         }
 
         if (myId.equals(senderId)) { //self-sent ack message
-            CountDownTimer timer = countDownTimerMap.remove(message.getMessageId());
-            if (timer != null) {
-                timer.cancel();
+            for (int i = chatMessages.size() - 1; i >= 0; i--) {
+                Message chatMessage = chatMessages.get(i);
+                if (chatMessage.getMessageId() == message.getMessageId()) {
+                    chatMessage.ack = true;
+                    chatRoomAdapter.notifyItemChanged(i);
+                    break;
+                }
             }
         } else {
-            addMessage(message);
+            addMessageToUI(message);
         }
     }
 
     //add message, set group time flag and notify adpater
-    private void addMessage (Message message) {
+    private void addMessageToUI (Message message) {
         if (message == null) {
             return;
         }
-        Message lastMsg = chatMessages.isEmpty() ? null : chatMessages.get(chatMessages.size() - 1);
-        message.showMessageTime = lastMsg == null || message.getTimestamp() - lastMsg.getTimestamp() >= Message.GROUP_TIME_THRESHOLD;
+
+        //find the correct position based on timestamp
+        int index = chatMessages.size() - 1;
+        while (index >= 0 && message.getTimestamp() < chatMessages.get(index).getTimestamp()) {
+            index--;
+        }
+
+        //update inerted message show time/sender flags
+        Message lastMsg = index >= 0 ? chatMessages.get(index) : null;
+        message.showMessageTime = lastMsg == null || message.getTimestamp() - lastMsg.getTimestamp() > Message.GROUP_TIME_THRESHOLD;
         message.showMessageSender = lastMsg == null || message.showMessageTime || !message.getSenderId().equals(lastMsg.getSenderId());
-        chatMessages.add(message);
-        chatRoomAdapter.notifyItemInserted(chatMessages.size() - 1);
+        chatMessages.add(index + 1, message);
+        chatRoomAdapter.notifyItemInserted(index + 1);
+
+        //upate next message show time/sender flags
+        Message nextMsg = index + 2 < chatMessages.size() ? chatMessages.get(index + 2) : null;
+        if (nextMsg != null) {
+            boolean nextMsgShowMsgTime = nextMsg.getTimestamp() - message.getTimestamp() > Message.GROUP_TIME_THRESHOLD;
+            boolean nextMsgShowMsgSender = nextMsgShowMsgTime || !nextMsg.getSenderId().equals(message.getSenderId());
+            if (nextMsgShowMsgTime != nextMsg.showMessageTime || nextMsgShowMsgSender != nextMsg.showMessageSender) {
+                nextMsg.showMessageTime = nextMsgShowMsgTime;
+                nextMsg.showMessageSender = nextMsgShowMsgSender;
+                chatRoomAdapter.notifyItemChanged(index + 2);
+            }
+        }
 
         chatLayoutManager.scrollToPosition(chatMessages.size() - 1);
     }

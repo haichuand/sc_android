@@ -288,6 +288,10 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
     }
 
     @Override
+    public void onDropConversationAttendees(String conversationId, List<String> dropAttendeeIds) {
+    }
+
+    @Override
     public void onNewConversationMessage(Message message) {
         int index = -1;
         for (int i=0; i<chats.size(); i++) {

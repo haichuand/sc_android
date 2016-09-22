@@ -90,12 +90,14 @@
                     </LinearLayout>
 
                     <ImageView
-                        android:layout_width="42dp"
-                        android:layout_height="42dp"
-                        android:id="@+id/warning_icon"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_alignParentBottom="true"
+                        android:id="@+id/icon_sending"
                         android:padding="6dp"
                         android:layout_toEndOf="@id/container"
-                        android:src="@drawable/warning_icon_red"/>
+                        android:src="@drawable/ic_send"
+                        android:tint="?attr/colorPrimary"/>
 
                     <!--<TextView-->
                         <!--android:id="@+id/messageTime"-->

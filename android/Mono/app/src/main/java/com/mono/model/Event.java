@@ -44,6 +44,7 @@ public class Event implements Parcelable {
     public List<Attendee> attendees = new ArrayList<>();
     public List<Reminder> reminders = new ArrayList<>();
     public List<Media> photos = new ArrayList<>();
+    public boolean syncNeeded;
 
     public Event() {
         id = null;

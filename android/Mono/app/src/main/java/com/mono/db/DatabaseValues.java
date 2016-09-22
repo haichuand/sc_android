@@ -39,6 +39,7 @@ public class DatabaseValues {
         public static final String ALL_DAY = "`all_day`";
         public static final String REMINDERS = "`reminders`";
         public static final String CREATE_TIME = "`create_time`";
+        public static final String ACK = "`ack`"; //flag for ack from server; 1: acked; 0: non-acked
 
         public static final String[] PROJECTION = {
             Event.ID,
@@ -56,7 +57,8 @@ public class DatabaseValues {
             Event.END_TIMEZONE,
             Event.ALL_DAY,
             Event.REMINDERS,
-            Event.CREATE_TIME
+            Event.CREATE_TIME,
+            Event.ACK
         };
 
         public static final int INDEX_ID = 0;
@@ -75,6 +77,7 @@ public class DatabaseValues {
         public static final int INDEX_ALL_DAY = 13;
         public static final int INDEX_REMINDERS = 14;
         public static final int INDEX_CREATE_TIME = 15;
+        public static final int INDEX_ACK = 16;
 
         public static final String CREATE_TABLE;
         public static final String DROP_TABLE;
@@ -96,7 +99,8 @@ public class DatabaseValues {
                 END_TIMEZONE + " TEXT",
                 ALL_DAY + " INTEGER",
                 REMINDERS + " TEXT",
-                CREATE_TIME + " INTEGER"
+                CREATE_TIME + " INTEGER",
+                ACK + " INTEGER DEFAULT 1"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);
@@ -251,20 +255,20 @@ public class DatabaseValues {
         public static final String C_ID = "`c_id`";
         public static final String C_NAME = "`c_name`";
         public static final String C_CREATOR = "`c_creator`"; //conversation's creator id
-        public static final String C_SYNC_NEEDED = "`c_sync_needed`"; //flag for if needs to be synced with server when network is available
+        public static final String ACK = "`ack`"; //flag for ack from server; 1: acked; 0: non-acked
 
 
         public static final String[] PROJECTION = {
                 Conversation.C_ID,
                 Conversation.C_NAME,
                 Conversation.C_CREATOR,
-                Conversation.C_SYNC_NEEDED
+                Conversation.ACK
         };
 
         public static final int INDEX_C_ID = 0;
         public static final int INDEX_C_NAME = 1;
         public static final int INDEX_C_CREATOR = 2;
-        public static final int INDEX_C_SYNC_NEEDED = 3;
+        public static final int INDEX_ACK = 3;
 
         public static final String CREATE_TABLE;
         public static final String DROP_TABLE;
@@ -274,7 +278,7 @@ public class DatabaseValues {
                     C_ID + " TEXT PRIMARY KEY",
                     C_NAME + " TEXT",
                     C_CREATOR + " TEXT",
-                    C_SYNC_NEEDED + "INTEGER DEFAULT 0"
+                    ACK + "INTEGER DEFAULT 1"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);
@@ -290,6 +294,7 @@ public class DatabaseValues {
         public static final String SENDER_ID = "`sender_id`";
         public static final String TEXT = "`text`";
         public static final String TIMESTAMP = "`timestamp`";
+        public static final String ACK = "`ack`"; //flag for ack from server; 1: acked; 0: non-acked
 
 
         public static final String[] PROJECTION = {
@@ -297,7 +302,8 @@ public class DatabaseValues {
                 ConversationContent.C_ID,
                 ConversationContent.SENDER_ID,
                 ConversationContent.TEXT,
-                ConversationContent.TIMESTAMP
+                ConversationContent.TIMESTAMP,
+                ConversationContent.ACK
         };
 
         public static final int INDEX_ID = 0;
@@ -305,6 +311,7 @@ public class DatabaseValues {
         public static final int INDEX_SENDER_ID = 2;
         public static final int INDEX_TEXT = 3;
         public static final int INDEX_TIMESTAMP = 4;
+        public static final int INDEX_ACK = 5;
 
 
         public static final String CREATE_TABLE;
@@ -316,7 +323,8 @@ public class DatabaseValues {
                     C_ID + " TEXT REFERENCES " + Conversation.TABLE + " ( "+ Conversation.C_ID +" ) ON DELETE CASCADE",
                     SENDER_ID + " TEXT REFERENCES " + User.TABLE + " ( "+ User.U_ID +" )",
                     TEXT + " TEXT",
-                    TIMESTAMP + " INTEGER"
+                    TIMESTAMP + " INTEGER",
+                    ACK + "INTEGER DEFAULT 1"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);

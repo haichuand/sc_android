@@ -46,9 +46,9 @@ public class ConversationManager {
         this.activeConversationId = activeConversationId;
     }
 
-    public String createConversation(String name, String eventId, List<String> attendeeIds, String creatorId) {
-        return conversationDataSource.createConversationWithSelectedAttendees(name, eventId, attendeeIds, creatorId);
-    }
+//    public String createConversation(String name, String eventId, List<String> attendeeIds, String creatorId) {
+//        return conversationDataSource.createConversationWithSelectedAttendees(name, eventId, attendeeIds, creatorId);
+//    }
 
     public String getUniqueConversationId () {
         return conversationDataSource.getUniqueConversationId();
@@ -79,8 +79,8 @@ public class ConversationManager {
         return new ChatAttendeeMap(attendeeList);
     }
 
-    public void saveChatMessageToDB(Message message) {
-        conversationDataSource.addMessageToConversation(message);
+    public long saveChatMessageToDB(Message message) {
+        return conversationDataSource.addMessageToConversation(message);
     }
 
     public void addAttendee(String conversationId, String attendeeId) {
@@ -96,8 +96,16 @@ public class ConversationManager {
         conversationDataSource.addAttendeesToConversation(conversationId, attendeeIds);
     }
 
+    public void dropAttendees (String conversationId, List<String> dropAttendeesId) {
+        conversationDataSource.dropAttendeesFromConversation(conversationId, dropAttendeesId);
+    }
+
     public boolean setConversationSyncNeeded(String conversationId, boolean isSynNeeded) {
         return conversationDataSource.setConversationSyncNeeded(conversationId, isSynNeeded);
+    }
+
+    public boolean setConversationMessageAckAndTimestamp (long messageId, boolean ack, long timestamp) {
+        return conversationDataSource.setConversationMessageAckAndTimestamp(messageId, ack, timestamp);
     }
 
     public List<String> getChatAttendeeIdList(ChatAttendeeMap attendeeMap, String myId) {
@@ -135,7 +143,6 @@ public class ConversationManager {
     }
 
     public void notifyListenersNewConversationMessage (Message message) {
-        long timeStamp = System.currentTimeMillis();
         for (ConversationBroadcastListener listener : listeners) {
             listener.onNewConversationMessage(message);
         }
@@ -143,7 +150,8 @@ public class ConversationManager {
 
     public interface ConversationBroadcastListener {
         void onNewConversation(Conversation conversation, int index);
-        void onNewConversationAttendees (String conversationId, List<String> newAttendeeIds);
         void onNewConversationMessage(Message message);
+        void onNewConversationAttendees (String conversationId, List<String> newAttendeeIds);
+        void onDropConversationAttendees (String conversationId, List<String> dropAttendeeIds);
     }
 }

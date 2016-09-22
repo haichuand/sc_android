@@ -21,6 +21,7 @@ import com.mono.model.Account;
 import com.mono.network.ChatServerManager;
 import com.mono.network.HttpServerManager;
 import com.mono.settings.Settings;
+import com.mono.util.Common;
 
 import org.json.JSONObject;
 
@@ -142,6 +143,10 @@ public class LoginActivity extends AppCompatActivity {
      * @param remember Remember email or phone.
      */
     public void submitLogin(String emailOrPhone, String password, boolean remember) {
+        if (!Common.isConnectedToInternet(this)) {
+            Toast.makeText(this, "No network connection. Cannot log in", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (!hasToken) {
             return;
         }

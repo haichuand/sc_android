@@ -17,26 +17,25 @@ public class Message {
     public String firstName;
     public String lastName;
     public String username;
-    private String messageId; //used for matching user self-sent messages
-    public boolean showWarningIcon = false; //whether to show warning icon
+    private long messageId; //message ID in database
+    public boolean ack = true; //if message ack has been received from server
     public boolean showMessageTime = true; //whether to show message time
     public boolean showMessageSender = true; //whether to show sender name
 
     public List<Media> attachments;
+
+//    public Message(String senderId, String conversationId, String messageText, long timestamp) {
+//        this.senderId = senderId;
+//        this.conversationId = conversationId;
+//        this.messageText = messageText;
+//        this.timestamp = timestamp;
+//    }
 
     public Message(String senderId, String conversationId, String messageText, long timestamp) {
         this.senderId = senderId;
         this.conversationId = conversationId;
         this.messageText = messageText;
         this.timestamp = timestamp;
-    }
-
-    public Message(String senderId, String conversationId, String messageText, long timestamp, String messageId) {
-        this.senderId = senderId;
-        this.conversationId = conversationId;
-        this.messageText = messageText;
-        this.timestamp = timestamp;
-        this.messageId = messageId;
     }
 
     public String getSenderId() {
@@ -67,11 +66,11 @@ public class Message {
         this.timestamp = timestamp;
     }
 
-    public String getMessageId() {
+    public long getMessageId() {
         return messageId;
     }
 
-    public void setMessageId(String messageId) {
+    public void setMessageId(long messageId) {
         this.messageId = messageId;
     }
 }

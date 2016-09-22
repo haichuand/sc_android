@@ -300,6 +300,11 @@ public class ChatUtil implements ConversationManager.ConversationBroadcastListen
     }
 
     @Override
+    public void onDropConversationAttendees(String conversationId, List<String> dropAttendeeIds) {
+
+    }
+
+    @Override
     public void onNewConversationMessage(Message message) {
 
     }

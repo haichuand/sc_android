@@ -43,7 +43,7 @@ public class GcmMessage {
                 Log.d(TAG, "messageid: " + id);
 
                 try {
-                    gcm.send(SERVER_ID + "@gcm.googleapis.com", id, data);
+                    gcm.send(SERVER_ID + "@gcm.googleapis.com", id, 0, data); //timeToLive = 0
                     Log.d(TAG, "After gcm.send successful.");
                 } catch (IOException e) {
                     Log.d(TAG, "Exception: " + e);

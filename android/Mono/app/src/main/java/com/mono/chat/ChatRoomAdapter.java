@@ -154,10 +154,10 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatVi
             holder.chatText.setVisibility(View.GONE);
         }
 
-        if (message.showWarningIcon) {
-            holder.warningIcon.setVisibility(View.VISIBLE);
+        if (message.ack) {
+            holder.iconSending.setVisibility(View.INVISIBLE);
         } else {
-            holder.warningIcon.setVisibility(View.INVISIBLE);
+            holder.iconSending.setVisibility(View.VISIBLE);
         }
 
         if (message.showMessageTime) {
@@ -352,7 +352,7 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatVi
         public ViewGroup attachments;
         public TextView chatText;
 //        public TextView timeStamp;
-        public ImageView warningIcon;
+        public ImageView iconSending;
         public TextView groupTime;
 
         public ChatViewHolder(View itemView) {
@@ -365,7 +365,7 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatVi
             attachments = (ViewGroup) itemView.findViewById(R.id.attachments);
             chatText = (TextView) itemView.findViewById(R.id.text);
 //            timeStamp = (TextView) itemView.findViewById(R.id.messageTime);
-            warningIcon = (ImageView) itemView.findViewById(R.id.warning_icon);
+            iconSending = (ImageView) itemView.findViewById(R.id.icon_sending);
             groupTime = (TextView) itemView.findViewById(R.id.group_time);
         }
     }

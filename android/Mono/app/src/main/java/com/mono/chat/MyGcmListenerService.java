@@ -1,6 +1,5 @@
 package com.mono.chat;
 
-import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -20,7 +19,6 @@ import com.mono.R;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.AttendeeDataSource;
 import com.mono.db.dao.ConversationDataSource;
-import com.mono.db.dao.EventDataSource;
 import com.mono.model.Account;
 import com.mono.model.Attendee;
 import com.mono.model.Conversation;
@@ -101,15 +99,18 @@ public class MyGcmListenerService extends GcmListenerService {
     }
 
     private void onNewConversationMessage(String from, Bundle data) {
-        final String msgText = data.getString(GCMHelper.MESSAGE);
-        final String senderId = data.getString(GCMHelper.SENDER_ID);
-        final String conversationId = data.getString(GCMHelper.CONVERSATION_ID);
-        final String messageId = data.getString(GCMHelper.MESSAGE_ID);
+        String msgText = data.getString(GCMHelper.MESSAGE);
+        String senderId = data.getString(GCMHelper.SENDER_ID);
+        String conversationId = data.getString(GCMHelper.CONVERSATION_ID);
+        long timestamp = Long.valueOf(data.getString(GCMHelper.TIMESTAMP));
+
+        boolean isAckMessage = String.valueOf(AccountManager.getInstance(this).getAccount().id).equals(senderId);
         Attendee sender = conversationManager.getAttendeeById(senderId);
         if (senderId == null || conversationId == null) {
             return;
         }
-        final Message message = new Message(senderId, conversationId, msgText, System.currentTimeMillis(), messageId);
+        final Message message = new Message(senderId, conversationId, msgText, timestamp);
+        message.setMessageId(Long.valueOf(data.getString(GCMHelper.MESSAGE_ID)));
         if (data.containsKey(GCMHelper.ATTACHMENTS)) {
             List<Media> attachments = new ArrayList<>();
             String[] items = Common.explode(",", data.getString(GCMHelper.ATTACHMENTS));
@@ -123,14 +124,22 @@ public class MyGcmListenerService extends GcmListenerService {
 
             message.attachments = attachments;
         }
-        conversationManager.saveChatMessageToDB(message);
+        if (isAckMessage) {
+            long messageId = Long.valueOf(data.getString(GCMHelper.MESSAGE_ID));
+            if (!conversationManager.setConversationMessageAckAndTimestamp(messageId, true, timestamp)) {
+                Log.e(TAG, "Error changing ACK for messageId: " + messageId);
+            }
+        } else {
+            conversationManager.saveChatMessageToDB(message);
+        }
+
         handler.post(new Runnable() {
             @Override
             public void run() {
                 conversationManager.notifyListenersNewConversationMessage(message);
             }
         });
-        if (!String.valueOf(AccountManager.getInstance(this).getAccount().id).equals(senderId) && !conversationId.equals(conversationManager.getActiveConversationId())) {
+        if (!isAckMessage && !conversationId.equals(conversationManager.getActiveConversationId())) {
             sendChatNotification(sender.toString() + ": " + msgText, conversationId);
         }
     }
@@ -219,7 +228,7 @@ public class MyGcmListenerService extends GcmListenerService {
 
         //create conversation in local database, even for creator's self-confirmation
         ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
-        conversationDataSource.createEventConversation(eventId, conversationId, conversationTitle, creatorId, attendeesList);
+        conversationDataSource.createEventConversation(eventId, conversationId, conversationTitle, creatorId, attendeesList, false);
         //do not send notification if conversation's creator is user self because it's for self-confirmation
         String myId = String.valueOf(AccountManager.getInstance(this).getAccount().id);
         if (!creatorId.equals(myId)) {
@@ -261,7 +270,7 @@ public class MyGcmListenerService extends GcmListenerService {
     }
 
     private void dropConversationAttendees(String from, Bundle data) {
-//        String senderId = data.getString(GCMHelper.SENDER_ID);
+        String senderId = data.getString(GCMHelper.SENDER_ID);
         String conversationId = data.getString(GCMHelper.CONVERSATION_ID);
         String[] userIds = Common.explode(",", data.getString(GCMHelper.USER_IDS));
         List<String> userList = Arrays.asList(userIds);
