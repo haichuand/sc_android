@@ -1,7 +1,5 @@
 package com.mono.details;
 
-import android.app.DatePickerDialog;
-import android.app.TimePickerDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -11,23 +9,15 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
-import android.widget.CompoundButton.OnCheckedChangeListener;
-import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.TimePicker;
 
 import com.google.gson.Gson;
 import com.mono.EventManager;
@@ -38,19 +28,10 @@ import com.mono.model.Event;
 import com.mono.model.Location;
 import com.mono.provider.CalendarProvider;
 import com.mono.util.GestureActivity;
-import com.mono.util.TimeZoneHelper;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.TimeZone;
 
 /**
  * This activity displays information of an event as well as allowing the user to create and
@@ -67,20 +48,11 @@ public class EventDetailsActivity extends GestureActivity {
     public static final int REQUEST_CONTACT_PICKER = 2;
     public static final int REQUEST_PHOTO_PICKER = 3;
 
-    private static final SimpleDateFormat DATE_FORMAT;
-    private static final SimpleDateFormat TIME_FORMAT;
-    private static final SimpleDateFormat DATETIME_FORMAT;
-
     private TextView calendar;
     private EditText title;
     private ImageView colorPicker;
-    private TextView startDate;
-    private TextView startTime;
-    private TextView endDate;
-    private TextView endTime;
-    private CheckBox allDay;
-    private TextView timeZoneView;
 
+    private DateTimePanel dateTimePanel;
     private ReminderPanel reminderPanel;
     private LocationPanel locationPanel;
     private NotePanel notePanel;
@@ -93,15 +65,9 @@ public class EventDetailsActivity extends GestureActivity {
     private Calendar currentCalendar;
     private int color;
     SharedPreferences sharedPreferences;
-    private  EventManager manager;
+    private EventManager manager;
     private List<Event> events = new ArrayList<>();
-    private HashMap<String, Location> LocationHashmap = new HashMap<String, Location>();
-
-    static {
-        DATE_FORMAT = new SimpleDateFormat("EEE, MMMM d, yyyy", Locale.getDefault());
-        TIME_FORMAT = new SimpleDateFormat("h:mm a", Locale.getDefault());
-        DATETIME_FORMAT = new SimpleDateFormat("EEE, MMMM d, yyyy h:mm a", Locale.getDefault());
-    }
+    private HashMap<String, Location> LocationHashmap = new HashMap<>();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -148,77 +114,8 @@ public class EventDetailsActivity extends GestureActivity {
             }
         });
 
-        startDate = (TextView) findViewById(R.id.start_date);
-        startDate.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                long time = getTime(startDate, startTime, event.timeZone);
-                onDateClick(time, event.timeZone, new DateTimePickerCallback() {
-                    @Override
-                    public void onSet(Date date) {
-                        setStartTime(date);
-                    }
-                });
-            }
-        });
-
-        startTime = (TextView) findViewById(R.id.start_time);
-        startTime.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                long time = getTime(startDate, startTime, event.timeZone);
-                onTimeClick(time, event.timeZone, new DateTimePickerCallback() {
-                    @Override
-                    public void onSet(Date date) {
-                        setStartTime(date);
-                    }
-                });
-            }
-        });
-
-        endDate = (TextView) findViewById(R.id.end_date);
-        endDate.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                long time = getTime(endDate, endTime, event.getEndTimeZone());
-                onDateClick(time, event.getEndTimeZone(), new DateTimePickerCallback() {
-                    @Override
-                    public void onSet(Date date) {
-                        setEndTime(date);
-                    }
-                });
-            }
-        });
-
-        endTime = (TextView) findViewById(R.id.end_time);
-        endTime.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                long time = getTime(endDate, endTime, event.getEndTimeZone());
-                onTimeClick(time, event.getEndTimeZone(), new DateTimePickerCallback() {
-                    @Override
-                    public void onSet(Date date) {
-                        setEndTime(date);
-                    }
-                });
-            }
-        });
-
-        allDay = (CheckBox) findViewById(R.id.all_day);
-        allDay.setOnCheckedChangeListener(new OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                onAllDayChecked(isChecked);
-            }
-        });
-
-        timeZoneView = (TextView) findViewById(R.id.timezone);
-        timeZoneView.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-//                onTimeZoneClick(event.timeZone);
-            }
-        });
+        dateTimePanel = new DateTimePanel(this);
+        dateTimePanel.onCreate(savedInstanceState);
 
         reminderPanel = new ReminderPanel(this);
         reminderPanel.onCreate(savedInstanceState);
@@ -241,6 +138,7 @@ public class EventDetailsActivity extends GestureActivity {
 
         initialize(calendar, event);
     }
+
     @Override
     public boolean dispatchTouchEvent(final MotionEvent event) {
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
@@ -394,6 +292,12 @@ public class EventDetailsActivity extends GestureActivity {
         }
     }
 
+    /**
+     * Populate the interface with the given event data.
+     *
+     * @param calendar Calendar containing the event.
+     * @param original Event data to be used.
+     */
     public void initialize(Calendar calendar, Event original) {
         if (original == null) {
             original = new Event();
@@ -412,49 +316,7 @@ public class EventDetailsActivity extends GestureActivity {
         color = event.color != 0 ? event.color : calendar.color;
         setColorPicker(color);
 
-        if (event.timeZone == null) {
-            event.timeZone = TimeZone.getDefault().getID();
-        }
-
-        TimeZone timeZone = TimeZone.getTimeZone(event.timeZone);
-        DATE_FORMAT.setTimeZone(timeZone);
-        TIME_FORMAT.setTimeZone(timeZone);
-
-        DateTime dateTime = new DateTime(DateTimeZone.forTimeZone(timeZone));
-
-        if (event.startTime > 0) {
-            dateTime = dateTime.withMillis(event.startTime);
-        } else {
-            int hour = dateTime.getHourOfDay();
-            int minute = dateTime.getMinuteOfHour();
-
-            if (minute < 30) {
-                minute = 30;
-            } else {
-                hour++;
-                minute = 0;
-            }
-
-            dateTime = dateTime.withTime(hour, minute, 0, 0);
-            event.startTime = dateTime.getMillis();
-        }
-
-        startDate.setText(DATE_FORMAT.format(dateTime.toDate()));
-        startTime.setText(TIME_FORMAT.format(dateTime.toDate()));
-
-        if (event.endTime > 0) {
-            dateTime = dateTime.withMillis(event.endTime);
-        } else {
-            dateTime = dateTime.plusHours(1);
-            event.endTime = dateTime.getMillis();
-        }
-
-        endDate.setText(DATE_FORMAT.format(dateTime.toDate()));
-        endTime.setText(TIME_FORMAT.format(dateTime.toDate()));
-
-        timeZoneView.setText(TimeZoneHelper.getTimeZoneGMTName(timeZone, event.startTime));
-        allDay.setChecked(event.allDay);
-
+        dateTimePanel.setEvent(event);
         reminderPanel.setEvent(event);
         locationPanel.setEvent(event);
         notePanel.setEvent(event);
@@ -462,11 +324,17 @@ public class EventDetailsActivity extends GestureActivity {
         photoPanel.setEvent(event);
     }
 
+    /**
+     * Close the activity.
+     */
     public void close() {
         event = null;
         onBackPressed();
     }
 
+    /**
+     * Handle the action of saving an event.
+     */
     public void onSave() {
         if (event != null && !event.equals(original)) {
             AlertDialog.Builder builder = new AlertDialog.Builder(this,
@@ -502,6 +370,9 @@ public class EventDetailsActivity extends GestureActivity {
         }
     }
 
+    /**
+     * Handle the action of deleting an event.
+     */
     public void onDelete() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AppTheme_Dialog_Alert);
         builder.setMessage(R.string.confirm_event_delete);
@@ -538,6 +409,9 @@ public class EventDetailsActivity extends GestureActivity {
         dialog.show();
     }
 
+    /**
+     * Display the calendar picker to choose the current calendar for the event to belong to.
+     */
     public void showCalendarPicker() {
         final List<Calendar> calendars = CalendarProvider.getInstance(this).getCalendars();
         final CharSequence[] items = new CharSequence[1 + calendars.size()];
@@ -570,6 +444,9 @@ public class EventDetailsActivity extends GestureActivity {
         builder.create().show();
     }
 
+    /**
+     * Display the color picker to choose colors for event.
+     */
     public void showColorPicker() {
         int[] colors;
         if (event.color == 0) {
@@ -596,147 +473,14 @@ public class EventDetailsActivity extends GestureActivity {
         dialog.show();
     }
 
+    /**
+     * Set the color for the event.
+     *
+     * @param color Color value.
+     */
     public void setColorPicker(int color) {
         this.color = color;
         color |= 0xFF000000;
         colorPicker.setColorFilter(color);
     }
-
-    public void onDateClick(long milliseconds, String timeZone,
-            final DateTimePickerCallback callback) {
-        final DateTime dateTime = new DateTime(milliseconds, DateTimeZone.forID(timeZone));
-
-        DatePickerDialog dialog = new DatePickerDialog(
-            this,
-            new DatePickerDialog.OnDateSetListener() {
-                @Override
-                public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
-                    DateTime newDateTime = dateTime.withDate(year, monthOfYear + 1, dayOfMonth);
-                    callback.onSet(newDateTime.toDate());
-                }
-            },
-            dateTime.getYear(),
-            dateTime.getMonthOfYear() - 1,
-            dateTime.getDayOfMonth()
-        );
-
-        dialog.show();
-    }
-
-    public void onTimeClick(long milliseconds, String timeZone,
-            final DateTimePickerCallback callback) {
-        final DateTime dateTime = new DateTime(milliseconds, DateTimeZone.forID(timeZone));
-
-        TimePickerDialog dialog = new TimePickerDialog(
-            this,
-            new TimePickerDialog.OnTimeSetListener() {
-                @Override
-                public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
-                    DateTime newDateTime = dateTime.withTime(hourOfDay, minute, 0, 0);
-                    callback.onSet(newDateTime.toDate());
-                }
-            },
-            dateTime.getHourOfDay(),
-            dateTime.getMinuteOfHour(),
-            DateFormat.is24HourFormat(this)
-        );
-
-        dialog.show();
-    }
-
-    public void onAllDayChecked(boolean isChecked) {
-        int visibility = isChecked ? View.INVISIBLE : View.VISIBLE;
-
-        startTime.setVisibility(visibility);
-        endTime.setVisibility(visibility);
-        timeZoneView.setVisibility(visibility);
-
-        setTimeZone(isChecked ? "UTC" : TimeZone.getDefault().getID());
-
-        event.allDay = isChecked;
-    }
-
-    public void onTimeZoneClick(String timeZone) {
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.dialog_timezone_item,
-            TimeZoneHelper.getTimeZones(event.startTime));
-
-        AlertDialog.Builder dialog = new AlertDialog.Builder(this, R.style.AppTheme_Dialog_Alert);
-        dialog.setAdapter(adapter, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-
-            }
-        });
-
-        dialog.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView parent, View view, int position, long id) {
-
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView parent) {
-
-            }
-        });
-
-        dialog.show();
-    }
-
-    public void setStartTime(Date date) {
-        event.startTime = date.getTime();
-
-        TimeZone timeZone = TimeZone.getTimeZone(event.timeZone);
-
-        DATE_FORMAT.setTimeZone(timeZone);
-        startDate.setText(DATE_FORMAT.format(date));
-
-        TIME_FORMAT.setTimeZone(timeZone);
-        startTime.setText(TIME_FORMAT.format(date));
-
-        timeZoneView.setText(TimeZoneHelper.getTimeZoneGMTName(timeZone, event.startTime));
-    }
-
-    public void setEndTime(Date date) {
-        event.endTime = date.getTime();
-
-        TimeZone timeZone = TimeZone.getTimeZone(event.getEndTimeZone());
-
-        DATE_FORMAT.setTimeZone(timeZone);
-        endDate.setText(DATE_FORMAT.format(date));
-
-        TIME_FORMAT.setTimeZone(timeZone);
-        endTime.setText(TIME_FORMAT.format(date));
-
-        timeZoneView.setText(TimeZoneHelper.getTimeZoneGMTName(timeZone, event.endTime));
-    }
-
-    public void setTimeZone(String id) {
-        event.timeZone = id;
-
-        event.startTime = getTime(startDate, startTime, event.timeZone);
-        event.endTime = getTime(endDate, endTime, event.getEndTimeZone());
-
-        TimeZone timeZone = TimeZone.getTimeZone(id);
-        timeZoneView.setText(TimeZoneHelper.getTimeZoneGMTName(timeZone, event.startTime));
-    }
-
-    public long getTime(TextView date, TextView time, String timeZone) {
-        long milliseconds = -1;
-
-        try {
-            DATETIME_FORMAT.setTimeZone(TimeZone.getTimeZone(timeZone));
-            milliseconds = DATETIME_FORMAT.parse(date.getText() + " " + time.getText()).getTime();
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-
-        return milliseconds;
-    }
-
-    public interface DateTimePickerCallback {
-
-        void onSet(Date date);
-    }
-
 }
