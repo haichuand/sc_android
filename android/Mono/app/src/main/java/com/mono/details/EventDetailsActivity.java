@@ -554,6 +554,12 @@ public class EventDetailsActivity extends GestureActivity {
                 currentCalendar = which > 0 ? calendars.get(which - 1) : new Calendar(-1);
                 event.calendarId = currentCalendar.id;
 
+                if (event.calendarId <= 0) {
+                    event.source = Event.SOURCE_DATABASE;
+                } else {
+                    event.source = Event.SOURCE_PROVIDER;
+                }
+
                 if (event.color == 0) {
                     setColorPicker(currentCalendar.color);
                 }

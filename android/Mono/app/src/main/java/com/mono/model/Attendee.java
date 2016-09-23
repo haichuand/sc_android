@@ -5,6 +5,11 @@ import android.os.Parcelable;
 
 import com.mono.util.Common;
 
+/**
+ * This data structure is used to store information about a specific attendee.
+ *
+ * @author Gary Ng, Xuejing Dong
+ */
 public class Attendee implements Parcelable {
 
     public final String id;
@@ -14,6 +19,9 @@ public class Attendee implements Parcelable {
     public String firstName;
     public String lastName;
     public String userName;
+    public int relationship;
+    public int type;
+    public int status;
     public boolean isFavorite;
     public boolean isFriend;
     public int isSuggested;
@@ -34,6 +42,9 @@ public class Attendee implements Parcelable {
         this.firstName = user.firstName;
         this.lastName = user.lastName;
         this.userName = user.userName;
+        this.relationship = user.relationship;
+        this.type = user.type;
+        this.status = user.status;
         this.isFavorite = user.isFavorite;
         this.isFriend = user.isFriend;
         this.isSuggested = user.isSuggested;
@@ -66,6 +77,9 @@ public class Attendee implements Parcelable {
         firstName = in.readString();
         lastName = in.readString();
         userName = in.readString();
+        relationship = in.readInt();
+        type = in.readInt();
+        status = in.readInt();
         isFavorite = in.readByte() != 0;
         isFriend = in.readByte() != 0;
         isSuggested = in.readInt();
@@ -112,6 +126,9 @@ public class Attendee implements Parcelable {
         dest.writeString(firstName);
         dest.writeString(lastName);
         dest.writeString(userName);
+        dest.writeInt(relationship);
+        dest.writeInt(type);
+        dest.writeInt(status);
         dest.writeByte((byte) (isFavorite ? 1 : 0));
         dest.writeByte((byte) (isFriend ? 1 : 0));
         dest.writeInt(isSuggested);

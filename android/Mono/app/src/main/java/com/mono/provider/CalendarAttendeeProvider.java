@@ -15,6 +15,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * This class is used to provide access to the Calendar Attendee Provider to allow the retrieval
+ * of calendar event attendees stored on the device.
+ *
+ * @author Gary Ng
+ */
 public class CalendarAttendeeProvider {
 
     private static CalendarAttendeeProvider instance;
@@ -33,6 +39,18 @@ public class CalendarAttendeeProvider {
         return instance;
     }
 
+    /**
+     * Create an event attendee into the provider.
+     *
+     * @param eventId Event ID of attendee.
+     * @param name Name of attendee.
+     * @param email Email of attendee.
+     * @param relationship Relationship of attendee.
+     * @param type Type of attendee.
+     * @param status Status of attendee.
+     * @return the result status.
+     * @throws SecurityException
+     */
     public boolean createAttendee(long eventId, String name, String email, int relationship,
             int type, int status) throws SecurityException {
         boolean result = false;
@@ -54,6 +72,12 @@ public class CalendarAttendeeProvider {
         return result;
     }
 
+    /**
+     * Retrieve attendees for an event.
+     *
+     * @param eventId Event ID of the attendees.
+     * @return a list of attendees.
+     */
     public List<Attendee> getAttendees(long eventId) {
         List<Attendee> attendees = new ArrayList<>();
 
@@ -75,6 +99,14 @@ public class CalendarAttendeeProvider {
         return attendees;
     }
 
+    /**
+     * Remove an attendee with the given signature.
+     *
+     * @param eventId Event ID of attendee.
+     * @param name Name of attendee.
+     * @return the number of affected rows.
+     * @throws SecurityException
+     */
     public int removeAttendee(long eventId, String name) throws SecurityException {
         String selection = String.format(
             "%s = ? AND %s = ?",
@@ -94,6 +126,28 @@ public class CalendarAttendeeProvider {
         );
     }
 
+    /**
+     * Remove all attendees of a specific event.
+     *
+     * @param eventId Event ID of attendee.
+     * @return the number of affected rows.
+     * @throws SecurityException
+     */
+    public int clearAll(long eventId) throws SecurityException {
+        return context.getContentResolver().delete(
+            Attendees.CONTENT_URI,
+            Attendees.EVENT_ID + " = ?",
+            new String[]{
+                String.valueOf(eventId)
+            }
+        );
+    }
+
+    /**
+     * Retrieve attendees for all the following events.
+     *
+     * @param events Events needed to be resolved.
+     */
     public void resolveAttendees(List<Event> events) {
         List<Long> eventIds = new ArrayList<>();
         for (Event event : events) {
@@ -126,6 +180,13 @@ public class CalendarAttendeeProvider {
         }
     }
 
+    /**
+     * Create an attendee cursor using the given event IDs.
+     *
+     * @param eventIds Event IDs for the cursor.
+     * @return an instance of a cursor.
+     * @throws SecurityException
+     */
     private Cursor createAttendeeCursor(List<Long> eventIds) throws SecurityException {
         int size = eventIds.size();
 
@@ -153,6 +214,9 @@ public class CalendarAttendeeProvider {
         Attendee attendee = new Attendee(cursor.getLong(CalendarValues.Attendee.INDEX_ID));
         attendee.userName = cursor.getString(CalendarValues.Attendee.INDEX_NAME);
         attendee.email = cursor.getString(CalendarValues.Attendee.INDEX_EMAIL);
+        attendee.relationship = cursor.getInt(CalendarValues.Attendee.INDEX_RELATIONSHIP);
+        attendee.type = cursor.getInt(CalendarValues.Attendee.INDEX_TYPE);
+        attendee.status = cursor.getInt(CalendarValues.Attendee.INDEX_STATUS);
 
         return attendee;
     }

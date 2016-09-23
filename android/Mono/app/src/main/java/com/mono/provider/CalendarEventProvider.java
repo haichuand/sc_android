@@ -177,41 +177,14 @@ public class CalendarEventProvider {
     }
 
     /**
-     * Update an existing event into the provider.
+     * General function used to update values related to event.
      *
-     * @param eventId The value of the event ID.
-     * @param title The title of the event.
-     * @param description The description of the event.
-     * @param startTime The start time of the event.
-     * @param endTime The end time of th event.
-     * @param timeZone The time zone used for the start time.
+     * @param eventId Event of ID to be updated.
+     * @param values Values to be updated.
      * @return the number of affected rows.
      * @throws SecurityException
      */
-    public int updateEvent(long eventId, String title, String description, Long startTime,
-            Long endTime, String timeZone) throws SecurityException {
-        ContentValues values = new ContentValues();
-
-        if (title != null) {
-            values.put(Events.TITLE, title);
-        }
-
-        if (description != null) {
-            values.put(Events.DESCRIPTION, description);
-        }
-
-        if (startTime != null) {
-            values.put(Events.DTSTART, startTime);
-        }
-
-        if (endTime != null) {
-            values.put(Events.DTEND, endTime);
-        }
-
-        if (timeZone != null) {
-            values.put(Events.EVENT_TIMEZONE, timeZone);
-        }
-
+    public int updateValues(long eventId, ContentValues values) throws SecurityException {
         return context.getContentResolver().update(
             Events.CONTENT_URI,
             values,
@@ -836,7 +809,7 @@ public class CalendarEventProvider {
             event.title = null;
         }
 
-        event.description = cursor.getString(CalendarValues.Event.INDEX_DESCRIPTION);
+        event.description = cursor.getString(CalendarValues.Event.INDEX_DESC);
         if (event.description != null && event.description.isEmpty()) {
             event.description = null;
         }

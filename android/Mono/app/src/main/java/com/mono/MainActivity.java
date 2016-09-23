@@ -696,33 +696,13 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
      */
     public void handleEventDetails(int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
+            EventManager manager = EventManager.getInstance(this);
             Event event = data.getParcelableExtra(EventDetailsActivity.EXTRA_EVENT);
 
             if (event.id != null) {
-                // Update Existing Event
-                EventManager.getInstance(this).updateEvent(
-                    EventManager.EventAction.ACTOR_SELF,
-                    event.id,
-                    event,
-                    null
-                );
+                manager.updateEvent(EventManager.EventAction.ACTOR_SELF, event.id, event, null);
             } else {
-                if (event.calendarId > 0) {
-                    // Create Event into the Provider
-                    EventManager.getInstance(this).createSyncEvent(
-                        EventManager.EventAction.ACTOR_SELF,
-                        event,
-                        null
-                    );
-                } else {
-                    event.internalId = System.currentTimeMillis();
-                    // Create Event into the Database
-                    EventManager.getInstance(this).createEvent(
-                        EventManager.EventAction.ACTOR_SELF,
-                        event,
-                        null
-                    );
-                }
+                manager.createEvent(EventManager.EventAction.ACTOR_SELF, event, null);
             }
         }
     }
