@@ -358,7 +358,7 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                MESSAGE_ID + " TEXT REFERENCES " + Conversation.TABLE + " (" + ConversationContent.ID + ")",
+                MESSAGE_ID + " TEXT REFERENCES " + ConversationContent.TABLE + " (" + ConversationContent.ID + ")",
                 PATH + " TEXT",
                 TYPE + " TEXT",
                 STATUS + " INTEGER"
