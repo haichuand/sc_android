@@ -51,7 +51,6 @@ import com.mono.util.Common;
 import com.mono.util.GoogleClient;
 import com.mono.util.OnBackPressedListener;
 import com.mono.util.SimpleTabLayout;
-import com.mono.web.WebActivity;
 
 import java.util.HashSet;
 import java.util.List;
@@ -643,23 +642,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     public void handleSettings(int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
 
-        }
-    }
-
-    /**
-     * Display the Google login activity primarily used for location tracking.
-     *
-     * @param fragment The fragment used to handle the result from the activity.
-     * @param requestCode The request code used to distinguish the result.
-     */
-    @Override
-    public void showWebActivity(Fragment fragment, int requestCode) {
-        Intent intent = new Intent(this, WebActivity.class);
-
-        if (fragment == null) {
-            startActivityForResult(intent, requestCode);
-        } else {
-            fragment.startActivityForResult(intent, requestCode);
         }
     }
 

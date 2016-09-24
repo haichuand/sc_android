@@ -57,6 +57,9 @@ public class Settings {
     public static final String PREF_DAY_ONE = "pref_day_one";
     public static final long DEFAULT_DAY_ONE = 0;
 
+    public static final String PREF_GOOGLE_HAS_COOKIE = "pref_google_has_cookie";
+    public static final boolean DEFAULT_GOOGLE_HAS_COOKIE = false;
+
     public static final String PREF_MAP_TYPE = "pref_map_type";
     public static final int DEFAULT_MAP_TYPE = 1;
 
@@ -314,6 +317,16 @@ public class Settings {
     public void setDayOne(long milliseconds) {
         Editor editor = getEditor();
         editor.putLong(PREF_DAY_ONE, milliseconds);
+        editor.apply();
+    }
+
+    public boolean getGoogleHasCookie() {
+        return preferences.getBoolean(PREF_GOOGLE_HAS_COOKIE, DEFAULT_GOOGLE_HAS_COOKIE);
+    }
+
+    public void setGoogleHasCookie(boolean value) {
+        Editor editor = getEditor();
+        editor.putBoolean(PREF_GOOGLE_HAS_COOKIE, value);
         editor.apply();
     }
 

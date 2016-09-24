@@ -3,8 +3,10 @@ package com.mono;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
+import android.webkit.CookieManager;
 
 import com.mono.model.Account;
+import com.mono.settings.Settings;
 import com.mono.util.Common;
 
 import java.util.ArrayList;
@@ -190,6 +192,9 @@ public class AccountManager {
         if (account == null) {
             return;
         }
+        // Remove Google Timeline Cookie
+        Settings.getInstance(context).setGoogleHasCookie(false);
+        CookieManager.getInstance().removeAllCookies(null);
 
         account.status = Account.STATUS_NONE;
         setAccount(account);

@@ -20,6 +20,8 @@ import com.mono.db.dao.AttendeeDataSource;
 import com.mono.model.Account;
 import com.mono.network.ChatServerManager;
 import com.mono.network.HttpServerManager;
+import com.mono.parser.KmlDownloadingService;
+import com.mono.parser.SupercalyAlarmManager;
 import com.mono.settings.Settings;
 import com.mono.util.Common;
 
@@ -158,6 +160,8 @@ public class LoginActivity extends AppCompatActivity {
 
                 getUserInfoAndSetAccount(emailOrPhone, httpServerManager);
                 resetUserTable(httpServerManager);
+
+                startKMLService();
                 Toast.makeText(this, "Login successful", Toast.LENGTH_LONG).show();
                 finish();
                 break;
@@ -208,6 +212,24 @@ public class LoginActivity extends AppCompatActivity {
         AttendeeDataSource attendeeDataSource = DatabaseHelper.getDataSource(this, AttendeeDataSource.class);
         attendeeDataSource.clearAttendeeTable();
         httpServerManager.addAllRegisteredUsersToUserTable(attendeeDataSource);
+    }
+
+    /**
+     * Start KML service to handle location data, if logged in with Google.
+     */
+    private void startKMLService() {
+        if (!Settings.getInstance(this).getGoogleHasCookie()) {
+            return;
+        }
+
+        Context context = getApplicationContext();
+
+        Intent intent = new Intent(context, KmlDownloadingService.class);
+        intent.putExtra(KmlDownloadingService.TYPE, KmlDownloadingService.FIRST_TIME);
+        context.startService(intent);
+
+        SupercalyAlarmManager manager = SupercalyAlarmManager.getInstance(context);
+        manager.scheduleAlarm(1); // schedule an alarm for every 1-hour
     }
 
     public void onLogin(Bundle data) {
