@@ -187,6 +187,9 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         chatUtil = new ChatUtil(this);
         conversationManager = ConversationManager.getInstance(this);
         conversationManager.addListener(chatUtil);
+
+        syncManager = ServerSyncManager.getInstance(this);
+
         start();
     }
 
@@ -203,6 +206,10 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         // Handle Reminders
         AlarmHelper.startAll(this);
         // Handle Intent Extras
+        handleIntentExtras();
+    }
+
+    protected void handleIntentExtras() {
         Intent intent = getIntent();
         if (intent == null) {
             return;
@@ -216,8 +223,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                 showEventDetails(event);
             }
         }
-
-        syncManager = ServerSyncManager.getInstance(this);
     }
 
     @Override
