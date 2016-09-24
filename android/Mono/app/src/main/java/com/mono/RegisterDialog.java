@@ -1,15 +1,12 @@
 package com.mono;
 
-import android.content.Context;
 import android.graphics.PorterDuff;
-import android.os.Bundle;
-import android.support.v4.app.Fragment;
+import android.support.v7.app.AlertDialog;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -18,48 +15,71 @@ import com.mono.util.Colors;
 import com.mono.util.Common;
 
 /**
- * A fragment that displays the register screen to input user credentials.
+ * A dialog used to handle the remaining registration process when used with Google Timeline login.
  *
  * @author Gary Ng
  */
-public class RegisterFragment extends Fragment {
+public class RegisterDialog {
 
-    private static final int INDEX_EMAIL = 0;
-    private static final int INDEX_PHONE = 1;
-    private static final int INDEX_FIRST_NAME = 2;
-    private static final int INDEX_LAST_NAME = 3;
-    private static final int INDEX_PASSWORD = 4;
-    private static final int INDEX_CONFIRM_PASSWORD = 5;
+    private static final int INDEX_FIRST_NAME = 0;
+    private static final int INDEX_LAST_NAME = 1;
+    private static final int INDEX_PASSWORD = 2;
+    private static final int INDEX_CONFIRM_PASSWORD = 3;
 
     private LoginActivity activity;
+    private AlertDialog dialog;
 
     private EditText[] fields;
     private Button submit;
 
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
+    private String email;
 
-        if (context instanceof LoginActivity) {
-            activity = (LoginActivity) context;
-        }
+    private RegisterDialog(LoginActivity activity, String email) {
+        this.activity = activity;
+        this.email = email;
     }
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    /**
+     * Create and display an instance of this dialog.
+     *
+     * @param activity Activity containing methods to handle login.
+     * @param email Email to be used to log in.
+     * @param firstName First name for this account.
+     * @param lastName Last name for this account.
+     * @return an instance of a dialog.
+     */
+    public static RegisterDialog create(LoginActivity activity, String email, String firstName,
+            String lastName) {
+        RegisterDialog dialog = new RegisterDialog(activity, email);
+
+        AlertDialog.Builder builder =
+                new AlertDialog.Builder(activity, R.style.AppTheme_Dialog_Alert);
+        builder.setView(dialog.onCreateView(firstName, lastName));
+        builder.setCancelable(false);
+
+        dialog.dialog = builder.create();
+        dialog.dialog.show();
+
+        return dialog;
     }
 
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_register, container, false);
+    /**
+     * Create the view of this dialog.
+     *
+     * @return an instance of the view.
+     */
+    protected View onCreateView(String firstName, String lastName) {
+        LayoutInflater inflater = LayoutInflater.from(activity);
+        View view = inflater.inflate(R.layout.dialog_register, null, false);
 
-        fields = new EditText[6];
-        fields[INDEX_EMAIL] = (EditText) view.findViewById(R.id.email);
-        fields[INDEX_PHONE] = (EditText) view.findViewById(R.id.phone);
+        fields = new EditText[4];
+
         fields[INDEX_FIRST_NAME] = (EditText) view.findViewById(R.id.first_name);
+        fields[INDEX_FIRST_NAME].setText(firstName);
+
         fields[INDEX_LAST_NAME] = (EditText) view.findViewById(R.id.last_name);
+        fields[INDEX_LAST_NAME].setText(lastName);
+
         fields[INDEX_PASSWORD] = (EditText) view.findViewById(R.id.password);
         fields[INDEX_CONFIRM_PASSWORD] = (EditText) view.findViewById(R.id.confirm_password);
 
@@ -80,7 +100,7 @@ public class RegisterFragment extends Fragment {
                 submit.setEnabled(isEnabled);
 
                 int colorId = isEnabled ? android.R.color.white : R.color.translucent_50;
-                submit.setTextColor(Colors.getColor(getContext(), colorId));
+                submit.setTextColor(Colors.getColor(activity, colorId));
             }
         };
 
@@ -98,8 +118,6 @@ public class RegisterFragment extends Fragment {
             }
         });
 
-        textWatcher.afterTextChanged(null);
-
         TextView cancel = (TextView) view.findViewById(R.id.cancel);
         cancel.setOnClickListener(new OnClickListener() {
             @Override
@@ -107,6 +125,8 @@ public class RegisterFragment extends Fragment {
                 onCancel();
             }
         });
+
+        textWatcher.afterTextChanged(null);
 
         return view;
     }
@@ -116,22 +136,15 @@ public class RegisterFragment extends Fragment {
      *
      * @return the status of the check.
      */
-    public boolean verify() {
+    private boolean verify() {
         boolean result = true;
 
-        String email = fields[INDEX_EMAIL].getText().toString().trim();
-        String phone = fields[INDEX_PHONE].getText().toString().trim();
+        int[] indexes = {INDEX_FIRST_NAME, INDEX_PASSWORD, INDEX_CONFIRM_PASSWORD};
 
-        if (email.isEmpty() && phone.isEmpty()) {
-            result = false;
-        } else {
-            int[] indexes = {INDEX_FIRST_NAME, INDEX_PASSWORD, INDEX_CONFIRM_PASSWORD};
-
-            for (int index : indexes) {
-                if (fields[index].getText().toString().trim().isEmpty()) {
-                    result = false;
-                    break;
-                }
+        for (int index : indexes) {
+            if (fields[index].getText().toString().trim().isEmpty()) {
+                result = false;
+                break;
             }
         }
 
@@ -139,16 +152,13 @@ public class RegisterFragment extends Fragment {
     }
 
     /**
-     * Handle the action of clicking on the submit button. Passwords will be hashed before being
-     * sent to the server.
+     * Handle the action of clicking on submit.
      */
     private void onSubmit() {
         if (!verify()) {
             return;
         }
 
-        String email = fields[INDEX_EMAIL].getText().toString().trim();
-        String phone = fields[INDEX_PHONE].getText().toString().trim();
         String firstName = fields[INDEX_FIRST_NAME].getText().toString().trim();
         String lastName = fields[INDEX_LAST_NAME].getText().toString().trim();
         String password = fields[INDEX_PASSWORD].getText().toString().trim();
@@ -156,7 +166,7 @@ public class RegisterFragment extends Fragment {
         String userName = (firstName + lastName).toLowerCase();
 
         if (!password.equals(confirmPassword)) {
-            int color = Colors.getColor(getContext(), R.color.red_1);
+            int color = Colors.getColor(activity, R.color.red_1);
 
             fields[INDEX_PASSWORD].getBackground().setColorFilter(color,
                 PorterDuff.Mode.SRC_ATOP);
@@ -166,13 +176,13 @@ public class RegisterFragment extends Fragment {
         }
 
         password = Common.md5(password);
-        activity.submitRegister(email, phone, firstName, lastName, userName, password);
+        activity.submitRegister(email, null, firstName, lastName, userName, password);
     }
 
     /**
      * Handle the action of clicking on cancel.
      */
     private void onCancel() {
-        activity.onBackPressed();
+        dialog.dismiss();
     }
 }

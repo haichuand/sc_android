@@ -279,75 +279,83 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         // Perform Drop Action
         switch (action) {
             case ACTION_MOVE:
-                event.startTime = startTime;
-                event.endTime = endTime;
-
-                if (event.source == Event.SOURCE_DATABASE) {
-                    // Update Existing Event
-                    eventManager.updateEvent(EventAction.ACTOR_SELF, id, event,
-                        new EventManager.EventActionCallback() {
-                            @Override
-                            public void onEventAction(EventAction data) {
-                                if (data.getStatus() == EventAction.STATUS_OK) {
-                                    calendarView.onCellClick(year, month, day);
-                                    mainInterface.showSnackBar(R.string.event_action_move,
-                                        R.string.undo, 0, new View.OnClickListener() {
-                                            @Override
-                                            public void onClick(View view) {
-
-                                            }
-                                        }
-                                    );
-                                }
-                            }
-                        }
-                    );
-                } else if (event.source == Event.SOURCE_PROVIDER) {
-
-                }
+                onEventMove(event, year, month, day, startTime, endTime);
                 break;
             case ACTION_COPY:
-                EventManager.EventActionCallback callback = new EventManager.EventActionCallback() {
-                    @Override
-                    public void onEventAction(EventAction data) {
-                        if (data.getStatus() == EventAction.STATUS_OK) {
-                            calendarView.onCellClick(year, month, day);
-                            mainInterface.showSnackBar(R.string.event_action_copy,
-                                R.string.undo, 0, new View.OnClickListener() {
-                                    @Override
-                                    public void onClick(View view) {
-
-                                    }
-                                }
-                            );
-                        }
-                    }
-                };
-
-                if (event.source == Event.SOURCE_DATABASE) {
-                    Event tempEvent = new Event(event);
-                    tempEvent.internalId = System.currentTimeMillis();
-                    tempEvent.startTime = startTime;
-                    tempEvent.endTime = endTime;
-                    // Create Event into the Database
-                    eventManager.createEvent(
-                        EventAction.ACTOR_SELF,
-                        tempEvent,
-                        callback
-                    );
-                } else if (event.source == Event.SOURCE_PROVIDER) {
-                    Event tempEvent = new Event(event);
-                    tempEvent.startTime = startTime;
-                    tempEvent.endTime = endTime;
-                    // Create Event into the Provider
-                    eventManager.createSyncEvent(
-                        EventAction.ACTOR_SELF,
-                        event,
-                        callback
-                    );
-                }
+                onEventCopy(event, year, month, day, startTime, endTime);
                 break;
         }
+    }
+
+    /**
+     * Handle the action of moving an event from one day to another.
+     *
+     * @param event Event to be moved.
+     * @param year Targeted year.
+     * @param month Targeted month.
+     * @param day Targeted day.
+     * @param startTime Targeted start time.
+     * @param endTime Targeted end time.
+     */
+    private void onEventMove(Event event, final int year, final int month, final int day,
+            long startTime, long endTime) {
+        event.startTime = startTime;
+        event.endTime = endTime;
+        // Update Existing Event
+        eventManager.updateEvent(EventAction.ACTOR_SELF, event.id, event,
+            new EventManager.EventActionCallback() {
+                @Override
+                public void onEventAction(EventAction data) {
+                    if (data.getStatus() == EventAction.STATUS_OK) {
+                        calendarView.onCellClick(year, month, day);
+                        mainInterface.showSnackBar(R.string.event_action_move, R.string.undo, 0,
+                            new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+
+                                }
+                            }
+                        );
+                    }
+                }
+            }
+        );
+    }
+
+    /**
+     * Handle the action of copying an event from one day to another.
+     *
+     * @param event Event to be moved.
+     * @param year Targeted year.
+     * @param month Targeted month.
+     * @param day Targeted day.
+     * @param startTime Targeted start time.
+     * @param endTime Targeted end time.
+     */
+    private void onEventCopy(Event event, final int year, final int month, final int day,
+            long startTime, long endTime) {
+        event = new Event(event);
+        event.startTime = startTime;
+        event.endTime = endTime;
+
+        eventManager.createEvent(EventAction.ACTOR_SELF, event,
+            new EventManager.EventActionCallback() {
+                @Override
+                public void onEventAction(EventAction data) {
+                    if (data.getStatus() == EventAction.STATUS_OK) {
+                        calendarView.onCellClick(year, month, day);
+                        mainInterface.showSnackBar(R.string.event_action_copy, R.string.undo, 0,
+                            new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+
+                                }
+                            }
+                        );
+                    }
+                }
+            }
+        );
     }
 
     /**

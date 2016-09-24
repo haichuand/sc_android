@@ -33,11 +33,28 @@ public class SettingsFragment extends PreferenceFragment {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.settings);
 
+        setLocationService();
         setCalendars();
         setCalendarWeekStart();
         setCalendarWeekNumber();
         setCrashReport();
         setVersion();
+    }
+
+    /**
+     * Initialize the current Location Service status.
+     */
+    public void setLocationService() {
+        String key = getString(R.string.pref_location_service_key);
+        SwitchPreference preference = (SwitchPreference) findPreference(key);
+
+        preference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+            @Override
+            public boolean onPreferenceChange(Preference preference, Object value) {
+                getActivity().setResult(Activity.RESULT_OK);
+                return true;
+            }
+        });
     }
 
     /**

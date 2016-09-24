@@ -108,6 +108,14 @@ public class AttachmentPanel {
                 onCameraClick();
             }
         });
+
+        ImageButton videoButton = (ImageButton) activity.findViewById(R.id.video_btn);
+        videoButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                onCameraVideoClick();
+            }
+        });
     }
 
     /**
@@ -305,6 +313,24 @@ public class AttachmentPanel {
             try {
                 cameraOutputURI = createCameraFile(CAMERA_TYPE_IMAGE);
                 intent.putExtra(MediaStore.EXTRA_OUTPUT, cameraOutputURI);
+                intent.putExtra(MediaStore.EXTRA_SIZE_LIMIT, 5);
+                activity.startActivityForResult(intent, ChatRoomActivity.REQUEST_CAMERA);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Handle camera video button click and display camera view.
+     */
+    public void onCameraVideoClick() {
+        Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+        if (intent.resolveActivity(activity.getPackageManager()) != null) {
+            try {
+                cameraOutputURI = createCameraFile(CAMERA_TYPE_VIDEO);
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, cameraOutputURI);
+                intent.putExtra(MediaStore.EXTRA_SIZE_LIMIT, SIZE_LIMIT);
                 activity.startActivityForResult(intent, ChatRoomActivity.REQUEST_CAMERA);
             } catch (IOException e) {
                 e.printStackTrace();

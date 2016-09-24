@@ -97,7 +97,7 @@ public class CalendarReminderProvider {
      *
      * @param eventId Event ID of the reminder.
      * @param minutes Time in minutes.
-     * @return the result status.
+     * @return the number of affected rows.
      * @throws SecurityException
      */
     public int removeReminder(long eventId, int minutes) throws SecurityException {
@@ -116,6 +116,23 @@ public class CalendarReminderProvider {
             Reminders.CONTENT_URI,
             selection,
             selectionArgs
+        );
+    }
+
+    /**
+     * Remove all reminders of a specific event.
+     *
+     * @param eventId Event ID of the reminders.
+     * @return the number of affected rows.
+     * @throws SecurityException
+     */
+    public int clearAll(long eventId) throws SecurityException {
+        return context.getContentResolver().delete(
+            Reminders.CONTENT_URI,
+            Reminders.EVENT_ID + " = ?",
+            new String[]{
+                String.valueOf(eventId)
+            }
         );
     }
 

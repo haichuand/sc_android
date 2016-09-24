@@ -52,7 +52,6 @@ import com.mono.util.Common;
 import com.mono.util.GoogleClient;
 import com.mono.util.OnBackPressedListener;
 import com.mono.util.SimpleTabLayout;
-import com.mono.web.WebActivity;
 
 import java.util.HashSet;
 import java.util.List;
@@ -652,23 +651,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     }
 
     /**
-     * Display the Google login activity primarily used for location tracking.
-     *
-     * @param fragment The fragment used to handle the result from the activity.
-     * @param requestCode The request code used to distinguish the result.
-     */
-    @Override
-    public void showWebActivity(Fragment fragment, int requestCode) {
-        Intent intent = new Intent(this, WebActivity.class);
-
-        if (fragment == null) {
-            startActivityForResult(intent, requestCode);
-        } else {
-            fragment.startActivityForResult(intent, requestCode);
-        }
-    }
-
-    /**
      * Display the event details screen activity.
      *
      * @param event The event to be displayed or edited.
@@ -701,33 +683,13 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
      */
     public void handleEventDetails(int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
+            EventManager manager = EventManager.getInstance(this);
             Event event = data.getParcelableExtra(EventDetailsActivity.EXTRA_EVENT);
 
             if (event.id != null) {
-                // Update Existing Event
-                EventManager.getInstance(this).updateEvent(
-                    EventManager.EventAction.ACTOR_SELF,
-                    event.id,
-                    event,
-                    null
-                );
+                manager.updateEvent(EventManager.EventAction.ACTOR_SELF, event.id, event, null);
             } else {
-                if (event.calendarId > 0) {
-                    // Create Event into the Provider
-                    EventManager.getInstance(this).createSyncEvent(
-                        EventManager.EventAction.ACTOR_SELF,
-                        event,
-                        null
-                    );
-                } else {
-                    event.internalId = System.currentTimeMillis();
-                    // Create Event into the Database
-                    EventManager.getInstance(this).createEvent(
-                        EventManager.EventAction.ACTOR_SELF,
-                        event,
-                        null
-                    );
-                }
+                manager.createEvent(EventManager.EventAction.ACTOR_SELF, event, null);
             }
         }
     }

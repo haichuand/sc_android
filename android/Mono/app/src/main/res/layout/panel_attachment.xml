@@ -44,5 +44,14 @@
             android:src="@drawable/ic_camera"
             android:tint="?attr/colorPrimary"
             style="?attr/borderlessButtonStyle"/>
+
+        <ImageButton
+            android:id="@+id/video_btn"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="10dp"
+            android:src="@drawable/ic_videocam"
+            android:tint="?attr/colorPrimary"
+            style="?attr/borderlessButtonStyle"/>
     </LinearLayout>
 </LinearLayout>

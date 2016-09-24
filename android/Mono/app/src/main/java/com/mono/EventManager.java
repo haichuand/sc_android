@@ -17,8 +17,10 @@ import com.mono.model.Event;
 import com.mono.model.Location;
 import com.mono.model.Media;
 import com.mono.model.Reminder;
+import com.mono.provider.CalendarAttendeeProvider;
 import com.mono.provider.CalendarEventProvider;
 import com.mono.provider.CalendarReminderProvider;
+import com.mono.provider.CalendarValues;
 import com.mono.util.Common;
 import com.mono.util.Constants;
 import com.mono.util.Log;
@@ -410,7 +412,7 @@ public class EventManager {
     }
 
     /**
-     * Create an event into the database.
+     * Create an event.
      *
      * @param actor The caller such as the user or system.
      * @param event The data describing the event.
@@ -418,6 +420,29 @@ public class EventManager {
      * @return the event ID.
      */
     public String createEvent(int actor, Event event, EventActionCallback callback) {
+        String id = null;
+
+        if (event.source == Event.SOURCE_DATABASE) {
+            event.internalId = System.currentTimeMillis();
+            // Create Event into the Database
+            id = createLocalEvent(actor, event, callback);
+        } else if (event.source == Event.SOURCE_PROVIDER) {
+            // Create Event into the Provider
+            id = createSyncEvent(actor, event, callback);
+        }
+
+        return id;
+    }
+
+    /**
+     * Create an event into the database.
+     *
+     * @param actor The caller such as the user or system.
+     * @param event The data describing the event.
+     * @param callback The callback used once completed.
+     * @return the event ID.
+     */
+    private String createLocalEvent(int actor, Event event, EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
@@ -506,7 +531,7 @@ public class EventManager {
      * @param callback The callback used once completed.
      * @return the event ID.
      */
-    public String createSyncEvent(int actor, Event event, EventActionCallback callback) {
+    private String createSyncEvent(int actor, Event event, EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
 
         CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
@@ -582,15 +607,35 @@ public class EventManager {
     }
 
     /**
-     * Update an existing event in the database.
+     * Update an existing event.
      *
-     * @param actor The caller such as user or system.
-     * @param id The value of the event ID.
-     * @param event The event information to update.
-     * @param callback The callback used once completed.
+     * @param actor Caller such as user or system.
+     * @param id Event of ID to be updated.
+     * @param event Event information to update.
+     * @param callback Callback used once completed.
      * @return a set of type of values updated.
      */
     public Set<String> updateEvent(int actor, String id, Event event,
+            EventActionCallback callback) {
+        if (event.source == Event.SOURCE_DATABASE) {
+            return updateLocalEvent(actor, id, event, callback);
+        } else if (event.source == Event.SOURCE_PROVIDER) {
+            return updateSyncEvent(actor, id, event, callback);
+        }
+
+        return null;
+    }
+
+    /**
+     * Update an existing event stored in the database.
+     *
+     * @param actor Caller such as user or system.
+     * @param id Event of ID to be updated.
+     * @param event Event information to update.
+     * @param callback Callback used once completed.
+     * @return a set of type of values updated.
+     */
+    private Set<String> updateLocalEvent(int actor, String id, Event event,
             EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
 
@@ -710,6 +755,134 @@ public class EventManager {
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
         if (values.size() == 0 || dataSource.updateValues(id, values) > 0) {
+            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE, id);
+        } else {
+            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE_FAILED, id);
+        }
+
+        EventAction data = new EventAction(EventAction.ACTION_UPDATE, actor, status, original);
+        if (!listeners.isEmpty()) {
+            sendToListeners(data);
+        }
+        if (callback != null) {
+            callback.onEventAction(data);
+        }
+
+        return values.keySet();
+    }
+
+    /**
+     * Update an existing event stored in the provider.
+     *
+     * @param actor Caller such as user or system.
+     * @param id Event of ID to be updated.
+     * @param event Event information to update.
+     * @param callback Callback used once completed.
+     * @return a set of type of values updated.
+     */
+    private Set<String> updateSyncEvent(int actor, String id, Event event,
+            EventActionCallback callback) {
+        int status = EventAction.STATUS_OK;
+
+        Event original = getEvent(id, true);
+        ContentValues values = new ContentValues();
+
+        if (event.calendarId != original.calendarId) {
+            values.put(CalendarValues.Event.CALENDAR_ID, event.calendarId);
+            original.calendarId = event.calendarId;
+        }
+
+        if (!Common.compareStrings(event.title, original.title)) {
+            values.put(CalendarValues.Event.TITLE, event.title);
+            original.title = event.title;
+        }
+
+        if (!Common.compareStrings(event.description, original.description)) {
+            values.put(CalendarValues.Event.DESC, event.description);
+            original.description = event.description;
+        }
+
+        if (event.location != null && !event.location.equals(original.location) ||
+                event.location == null && original.location != null) {
+            String location =  event.location != null ? event.location.name : null;
+            values.put(CalendarValues.Event.LOCATION, location);
+            original.location = event.location;
+        }
+
+        if (event.color != original.color) {
+            values.put(CalendarValues.Event.COLOR, event.color);
+            original.color = event.color;
+        }
+
+        if (event.startTime != original.startTime) {
+            values.put(CalendarValues.Event.START_TIME, event.startTime);
+            original.startTime = event.startTime;
+        }
+
+        if (event.endTime != original.endTime)  {
+            values.put(CalendarValues.Event.END_TIME, event.endTime);
+            original.endTime = event.endTime;
+        }
+
+        if (!Common.compareStrings(event.timeZone, original.timeZone)) {
+            values.put(CalendarValues.Event.TIMEZONE, event.timeZone);
+            original.timeZone = event.timeZone;
+        }
+
+        if (!Common.compareStrings(event.endTimeZone, original.endTimeZone)) {
+            values.put(CalendarValues.Event.END_TIMEZONE, event.endTimeZone);
+            original.endTimeZone = event.endTimeZone;
+        }
+
+        if (event.allDay != original.allDay) {
+            values.put(CalendarValues.Event.ALL_DAY, event.allDay ? 1 : 0);
+            original.allDay = event.allDay;
+        }
+
+        if (!event.attendees.equals(original.attendees)) {
+            CalendarAttendeeProvider provider = CalendarAttendeeProvider.getInstance(context);
+            provider.clearAll(event.internalId);
+
+            for (Attendee attendee : event.attendees) {
+                provider.createAttendee(event.internalId, attendee.userName, attendee.email,
+                    attendee.relationship, attendee.type, attendee.status);
+            }
+
+            original.attendees.clear();
+            original.attendees.addAll(event.attendees);
+        }
+
+        if (!event.reminders.equals(original.reminders)) {
+            CalendarReminderProvider provider = CalendarReminderProvider.getInstance(context);
+            provider.clearAll(event.internalId);
+
+            for (Reminder reminder : event.reminders) {
+                provider.createReminder(event.internalId, reminder.minutes, reminder.method);
+            }
+
+            original.reminders.clear();
+            original.reminders.addAll(event.reminders);
+
+            AlarmHelper.removeAlarms(context, id);
+            for (Reminder reminder : event.reminders) {
+                long alarmTime = event.startTime - reminder.minutes * Constants.MINUTE_MS;
+                AlarmHelper.createAlarm(context, id, alarmTime, event.title, event.startTime);
+            }
+        }
+
+        if (!event.photos.equals(original.photos)) {
+            EventMediaDataSource eventMediaDataSource =
+                DatabaseHelper.getDataSource(context, EventMediaDataSource.class);
+            eventMediaDataSource.clearAll(id);
+
+            updateEventPhotos(id, event.photos);
+
+            original.photos.clear();
+            original.photos.addAll(event.photos);
+        }
+
+        CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
+        if (values.size() == 0 || provider.updateValues(event.internalId, values) > 0) {
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE, id);
         } else {
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE_FAILED, id);

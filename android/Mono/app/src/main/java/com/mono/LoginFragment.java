@@ -1,6 +1,8 @@
 package com.mono;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.telephony.TelephonyManager;
@@ -10,6 +12,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.webkit.CookieManager;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -17,9 +20,14 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import com.mono.model.Account;
+import com.mono.network.HttpServerManager;
 import com.mono.settings.Settings;
 import com.mono.util.Colors;
 import com.mono.util.Common;
+import com.mono.web.WebActivity;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * A fragment that displays the login screen to input user credentials.
@@ -27,6 +35,8 @@ import com.mono.util.Common;
  * @author Gary Ng
  */
 public class LoginFragment extends Fragment {
+
+    public static final int REQUEST_GOOGLE_LOGIN = 1;
 
     private static final int INDEX_USERNAME = 0;
     private static final int INDEX_PASSWORD = 1;
@@ -104,6 +114,14 @@ public class LoginFragment extends Fragment {
             }
         });
 
+        Button google = (Button) view.findViewById(R.id.google);
+        google.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                onGoogleLogin();
+            }
+        });
+
         textWatcher.afterTextChanged(null);
 
         TextView register = (TextView) view.findViewById(R.id.register);
@@ -141,8 +159,17 @@ public class LoginFragment extends Fragment {
         }
     }
 
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case REQUEST_GOOGLE_LOGIN:
+                handleGoogleLogin(resultCode, data);
+                break;
+        }
+    }
+
     /**
-     * Check if the input fields are not empty.
+     * Check if all required fields are filled.
      *
      * @return the status of the check.
      */
@@ -173,6 +200,54 @@ public class LoginFragment extends Fragment {
 
         password = Common.md5(password);
         activity.submitLogin(username, password, remember.isChecked());
+    }
+
+    /**
+     * Handle the action of clicking on the Google login button.
+     */
+    public void onGoogleLogin() {
+        Intent intent = new Intent(getContext(), WebActivity.class);
+        startActivityForResult(intent, REQUEST_GOOGLE_LOGIN);
+    }
+
+    /**
+     * Handle the results returned from logging in with Google.
+     *
+     * @param resultCode Result code.
+     * @param data Data returned.
+     */
+    public void handleGoogleLogin(int resultCode, Intent data) {
+        if (resultCode == Activity.RESULT_OK) {
+            String email = data.getStringExtra(WebActivity.EXTRA_EMAIL);
+            String name = data.getStringExtra(WebActivity.EXTRA_NAME);
+
+            String firstName = null, lastName = null;
+            if (name != null) {
+                int index = name.indexOf(" ");
+
+                if (index > 0) {
+                    firstName = name.substring(0, index);
+                    lastName = name.substring(index + 1);
+                } else {
+                    firstName = name;
+                }
+            }
+
+            HttpServerManager manager = new HttpServerManager(getContext());
+            JSONObject json = manager.getUserByEmail(email);
+
+            try {
+                if (json.has(HttpServerManager.STATUS) &&
+                        json.getInt(HttpServerManager.STATUS) == HttpServerManager.STATUS_NO_USER) {
+                    CookieManager.getInstance().removeAllCookies(null);
+                    RegisterDialog.create(activity, email, firstName, lastName);
+                } else {
+                    LoginDialog.create(activity, email);
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     /**

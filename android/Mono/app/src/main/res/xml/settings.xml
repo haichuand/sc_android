@@ -19,6 +19,17 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        android:key="@string/settings_cat_location_key"
+        android:title="@string/settings_cat_location_title"
+        android:layout="@layout/settings_category">
+
+        <SwitchPreference
+            android:key="@string/pref_location_service_key"
+            android:title="@string/pref_location_service_title"
+            android:defaultValue="@string/pref_location_service_default"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:key="@string/settings_cat_calendars_key"
         android:title="@string/settings_cat_calendars_title"
         android:layout="@layout/settings_category"/>

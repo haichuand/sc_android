@@ -45,6 +45,8 @@
 
     <string name="settings_cat_general_key">category_general</string>
     <string name="settings_cat_general_title">General</string>
+    <string name="settings_cat_location_key">category_location</string>
+    <string name="settings_cat_location_title">Location</string>
     <string name="settings_cat_calendars_key">category_calendar</string>
     <string name="settings_cat_calendars_title">Calendars</string>
     <string name="settings_cat_notifications_key">category_notifications</string>
@@ -70,6 +72,10 @@
     <string name="pref_week_num_key">pref_calendar_week_number</string>
     <string name="pref_week_num_title">Show Week Numbers</string>
     <string name="pref_week_num_default">false</string>
+
+    <string name="pref_location_service_key">pref_location_service</string>
+    <string name="pref_location_service_title">Enable Location Service</string>
+    <string name="pref_location_service_default">true</string>
 
     <string name="pref_crash_report_key">pref_crash_report</string>
     <string name="pref_crash_report_title">Enable Crash Reporting</string>
@@ -113,6 +119,9 @@
     <string name="password">Password</string>
     <string name="confirm_password">Confirm Password</string>
     <string name="log_in">Log In</string>
+    <string name="google_log_in">Sign in with Google</string>
+    <string name="create_account">Create SuperCaly Account</string>
+    <string name="enter_password">Enter SuperCaly Password</string>
     <string name="sign_up">Sign Up?</string>
     <string name="register">Register</string>
     <string name="name">Name</string>
@@ -137,6 +146,7 @@
     <string name="remember_me">Remember Me</string>
     <string name="reminder_add">Add Reminder</string>
     <string name="no_subject">No Subject</string>
+    <string name="submit">Submit</string>
 
     <string name="contacts_search">Enter Name or Email</string>
     <string name="favorites_add">Add to Favorites</string>
