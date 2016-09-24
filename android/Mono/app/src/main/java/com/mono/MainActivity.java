@@ -43,6 +43,7 @@ import com.mono.model.Account;
 import com.mono.model.Calendar;
 import com.mono.model.Conversation;
 import com.mono.model.Event;
+import com.mono.network.ServerSyncManager;
 import com.mono.provider.CalendarProvider;
 import com.mono.settings.Settings;
 import com.mono.settings.SettingsActivity;
@@ -90,6 +91,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     private GoogleClient googleClient;
     private ChatUtil chatUtil;
     private ConversationManager conversationManager;
+    private ServerSyncManager syncManager;
 
 //    private Attendee selectedAttendee = null; //attendee selected in AutoCompleteTextView
 
@@ -215,6 +217,8 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                 showEventDetails(event);
             }
         }
+
+        syncManager = ServerSyncManager.getInstance(this);
     }
 
     @Override
@@ -229,6 +233,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
         navView.setCheckedItem(HOME);
         scheduler.run(this);
+        syncManager.processServerSyncItems();
 //        requestSync(false);
     }
 

@@ -84,9 +84,17 @@ public class HttpServerManager {
     public static final String CONVERSATION_ID = "cId";
 
     private Context context;
+    private static HttpServerManager instance;
 
-    public HttpServerManager(Context context) {
-        this.context = context;
+    private HttpServerManager(Context context) {
+        this.context = context.getApplicationContext();
+    }
+
+    public static HttpServerManager getInstance (Context context) {
+        if (instance == null) {
+            instance = new HttpServerManager(context);
+        }
+        return instance;
     }
 
     public int createUser(String email, String firstName, String gcmId, String lastName, String mediaId, String phoneNum, String userName, String password) {

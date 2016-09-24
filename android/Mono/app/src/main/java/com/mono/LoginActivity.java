@@ -150,7 +150,7 @@ public class LoginActivity extends AppCompatActivity {
         if (!hasToken) {
             return;
         }
-        HttpServerManager httpServerManager = new HttpServerManager(this);
+        HttpServerManager httpServerManager = HttpServerManager.getInstance(this);
         String toastMessage = null;
         switch (httpServerManager.loginUser(emailOrPhone, password)) {
             case 0:
@@ -197,7 +197,7 @@ public class LoginActivity extends AppCompatActivity {
             if (httpServerManager.updateUserGcmId((int) account.id, token) != 0) {
                 Toast.makeText(this, "Error updating GCM token on http server", Toast.LENGTH_LONG).show();
             }
-            new ChatServerManager(this).updateUserGcmId(account.id, token);
+            ChatServerManager.getInstance(this).updateUserGcmId(account.id, token);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -255,11 +255,11 @@ public class LoginActivity extends AppCompatActivity {
         }
 
         String token = AccountManager.getInstance(this).getGCMToken();
-        HttpServerManager httpServerManager = new HttpServerManager(this);
+        HttpServerManager httpServerManager = HttpServerManager.getInstance(this);
         String toastMessage;
         int uId = httpServerManager.createUser(email, firstName, token, lastName, null, phone, userName, password);
         if (uId > 0) {
-            ChatServerManager chatServerManager = new ChatServerManager(this);
+            ChatServerManager chatServerManager = ChatServerManager.getInstance(this);
             chatServerManager.sendRegister(uId, token);
             toastMessage = "Registration successful.";
             finish();

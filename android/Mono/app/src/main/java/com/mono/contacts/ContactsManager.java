@@ -214,7 +214,7 @@ public class ContactsManager {
             DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
 
         if (!dataSource.hasUsers()) {
-            HttpServerManager manager = new HttpServerManager(context);
+            HttpServerManager manager = HttpServerManager.getInstance(context);
             manager.addAllRegisteredUsersToUserTable(dataSource);
 
             for (Attendee user : dataSource.getUsers(null, 0)) {

@@ -27,6 +27,7 @@ import com.mono.model.Media;
 import com.mono.model.Message;
 import com.mono.network.GCMHelper;
 import com.mono.network.HttpServerManager;
+import com.mono.network.ServerSyncManager;
 import com.mono.util.Common;
 
 import org.json.JSONArray;
@@ -49,6 +50,7 @@ public class MyGcmListenerService extends GcmListenerService {
     private ConversationManager conversationManager;
     private EventManager eventManager;
     private HttpServerManager httpServerManager;
+    private ServerSyncManager serverSyncManager;
     private Handler handler;
 
     @Override
@@ -56,7 +58,8 @@ public class MyGcmListenerService extends GcmListenerService {
 //        broadcaster = LocalBroadcastManager.getInstance(this);
         conversationManager = ConversationManager.getInstance(this);
         eventManager = EventManager.getInstance(this);
-        httpServerManager = new HttpServerManager(this);
+        httpServerManager = HttpServerManager.getInstance(this);
+        serverSyncManager = ServerSyncManager.getInstance(this);
         handler = new Handler();
     }
 
@@ -103,6 +106,7 @@ public class MyGcmListenerService extends GcmListenerService {
         String senderId = data.getString(GCMHelper.SENDER_ID);
         String conversationId = data.getString(GCMHelper.CONVERSATION_ID);
         long timestamp = Long.valueOf(data.getString(GCMHelper.TIMESTAMP));
+        long messageId = Long.valueOf(data.getString(GCMHelper.MESSAGE_ID));
 
         boolean isAckMessage = String.valueOf(AccountManager.getInstance(this).getAccount().id).equals(senderId);
         Attendee sender = conversationManager.getAttendeeById(senderId);
@@ -110,7 +114,7 @@ public class MyGcmListenerService extends GcmListenerService {
             return;
         }
         final Message message = new Message(senderId, conversationId, msgText, timestamp);
-        message.setMessageId(Long.valueOf(data.getString(GCMHelper.MESSAGE_ID)));
+        message.setMessageId(messageId);
         if (data.containsKey(GCMHelper.ATTACHMENTS)) {
             List<Media> attachments = new ArrayList<>();
             String[] items = Common.explode(",", data.getString(GCMHelper.ATTACHMENTS));
@@ -125,10 +129,10 @@ public class MyGcmListenerService extends GcmListenerService {
             message.attachments = attachments;
         }
         if (isAckMessage) {
-            long messageId = Long.valueOf(data.getString(GCMHelper.MESSAGE_ID));
             if (!conversationManager.setConversationMessageAckAndTimestamp(messageId, true, timestamp)) {
                 Log.e(TAG, "Error changing ACK for messageId: " + messageId);
             }
+            serverSyncManager.handleAckConversationMessage(message);
         } else {
             conversationManager.saveChatMessageToDB(message);
         }

@@ -358,7 +358,7 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                MESSAGE_ID + " TEXT REFERENCES " + Conversation.TABLE + " (" + ConversationContent.ID + ")",
+                MESSAGE_ID + " TEXT REFERENCES " + ConversationContent.TABLE + " (" + ConversationContent.ID + ")",
                 PATH + " TEXT",
                 TYPE + " TEXT",
                 STATUS + " INTEGER"
@@ -627,6 +627,56 @@ public class DatabaseValues {
             String[] parameters = {
                 EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " (" + Event.ID + ") ON UPDATE CASCADE ON DELETE CASCADE",
                 LOC_ID + " INTEGER REFERENCES " + Location.TABLE + " (" + Location.ID + ")"
+            };
+
+            CREATE_TABLE = createTableQuery(TABLE, parameters);
+            DROP_TABLE = dropTableQuery(TABLE);
+        }
+    }
+
+    /**
+     * ServerSync table contains events, conversations and messages that need to be synced with http and/or chat servers
+     */
+    public static class ServerSync {
+        public static final String TABLE = "`server_sync`";
+
+        public static final String ID = "`id`";
+        public static final String ITEM_ID = "`item_id`"; //id of the item; use table primary key
+        public static final String ITEM_TYPE = "`item_type`"; //ITEM_TYPE must be one of the types in the item type section
+        public static final String SERVER = "`server`"; //server to be synced with; must be from one of the server section
+
+        //item type section
+        public static final String TYPE_EVENT = "E";
+        public static final String TYPE_CONVERSATION = "C";
+        public static final String TYPE_EVENT_CONVERSATION = "EC";
+        public static final String TYPE_MESSAGE = "M";
+
+        //server section
+        public static final short SERVER_HTTP = 1;
+        public static final short SERVER_CHAT = 2;
+        public static final short SERVER_BOTH = 3;
+
+        public static final String[] PROJECTION = {
+                ServerSync.ID,
+                ServerSync.ITEM_ID,
+                ServerSync.ITEM_TYPE,
+                ServerSync.SERVER
+        };
+
+        public static final int INDEX_ID = 0;
+        public static final int INDEX_ITEM_ID = 1; //id of the item; use table primary key
+        public static final int INDEX_ITEM_TYPE = 2; //ITEM_TYPE must be one of the types in the item type section
+        public static final int INDEXSERVER = 3;
+
+        public static final String CREATE_TABLE;
+        public static final String DROP_TABLE;
+
+        static {
+            String[] parameters = {
+                    ID + " INTEGER PRIMARY KEY AUTOINCREMENT",
+                    ITEM_ID + " TEXT NOT NULL",
+                    ITEM_TYPE + " TEXT NOT NULL",
+                    SERVER + " INTEGER NOT NULL"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);

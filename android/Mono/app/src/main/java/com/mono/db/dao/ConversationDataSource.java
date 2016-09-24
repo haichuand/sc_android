@@ -270,7 +270,8 @@ public class ConversationDataSource extends DataSource{
                 DatabaseValues.ConversationContent.C_ID + " =?",
                 new String[] {
                         String.valueOf(conversationId)
-                }
+                },
+                DatabaseValues.ConversationContent.TIMESTAMP
         );
 
         while(cursor.moveToNext()) {
@@ -289,6 +290,60 @@ public class ConversationDataSource extends DataSource{
 
         cursor.close();
         return messages;
+    }
+
+    /**
+     * Check if the message ack flag has been set to true.
+     * Also returns true if the message is not in ConversationContent table
+     * @param messageId
+     * @return
+     */
+    public boolean isMessageAcked (String messageId) {
+
+        Cursor cursor = database.select(
+                DatabaseValues.ConversationContent.TABLE,
+                new String[]{DatabaseValues.ConversationContent.ACK},
+                DatabaseValues.ConversationContent.ID + "=?",
+                new String[]{messageId}
+        );
+
+        if (!cursor.moveToFirst() || cursor.getInt(0) == 1) {
+            cursor.close();
+            return true;
+        }
+        cursor.close();
+        return false;
+    }
+
+    /**
+     * Get a Message by its database message id (primary key)
+     * @param messageId
+     * @return
+     */
+    public Message getMessageByMessageId (String messageId) {
+        Message message = null;
+
+        Cursor cursor = database.select(
+                DatabaseValues.ConversationContent.TABLE,
+                DatabaseValues.ConversationContent.PROJECTION,
+                DatabaseValues.ConversationContent.ID + "=?",
+                new String[] { messageId }
+        );
+
+        if (cursor.moveToFirst()) {
+            message = new Message(
+                    cursor.getString(DatabaseValues.ConversationContent.INDEX_SENDER_ID),
+                    cursor.getString(DatabaseValues.ConversationContent.INDEX_C_ID),
+                    cursor.getString(DatabaseValues.ConversationContent.INDEX_TEXT),
+                    cursor.getLong(DatabaseValues.ConversationContent.INDEX_TIMESTAMP)
+            );
+            message.setMessageId(cursor.getLong(DatabaseValues.ConversationContent.INDEX_ID));
+            message.ack = cursor.getInt(DatabaseValues.ConversationContent.INDEX_ACK) == 1;
+//            message.attachments = getMessageAttachments(message.getMessageId());
+        }
+
+        cursor.close();
+        return message;
     }
 
 //    public List<Message> getConversationMessages (String conversationId, long startTime) {

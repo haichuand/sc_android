@@ -17,14 +17,20 @@ public class ChatServerManager {
     public static final String SENDER_ID = "senderId";
     public static final String GCM_ID = "gcmId";
 
+    private static ChatServerManager instance;
     private GoogleCloudMessaging gcm;
     private GcmMessage gcmMessage;
-    private Context context;
 
-    public ChatServerManager(Context context) {
-        this.context = context;
+    private ChatServerManager(Context context) {
         gcm = GoogleCloudMessaging.getInstance(context);
         gcmMessage = GcmMessage.getInstance(context);
+    }
+
+    public static ChatServerManager getInstance (Context context) {
+        if (instance == null) {
+            instance = new ChatServerManager(context);
+        }
+        return instance;
     }
 
     public void sendRegister(long uId, String gcmToken) {

@@ -125,7 +125,7 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
     public List<Contact> checkSuggestions(Contact contact, List<Contact> exclude) {
         List<Contact> result = new ArrayList<>();
 
-        HttpServerManager manager = new HttpServerManager(context);
+        HttpServerManager manager = HttpServerManager.getInstance(context);
 
         // Cross-reference by Emails
         if (contact.emails != null) {

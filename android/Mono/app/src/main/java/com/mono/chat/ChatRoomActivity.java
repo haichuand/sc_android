@@ -2,6 +2,8 @@ package com.mono.chat;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.CountDownTimer;
+import android.support.v4.util.LongSparseArray;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
@@ -27,13 +29,18 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.mono.R;
+import com.mono.db.DatabaseHelper;
+import com.mono.db.DatabaseValues;
+import com.mono.db.dao.ServerSyncDataSource;
 import com.mono.model.Attendee;
 import com.mono.model.AttendeeUsernameComparator;
 import com.mono.model.Conversation;
 import com.mono.model.Media;
 import com.mono.model.Message;
+import com.mono.model.ServerSyncItem;
 import com.mono.network.ChatServerManager;
 import com.mono.network.HttpServerManager;
+import com.mono.network.ServerSyncManager;
 import com.mono.util.GestureActivity;
 
 import java.text.SimpleDateFormat;
@@ -41,8 +48,10 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class ChatRoomActivity extends GestureActivity implements ConversationManager.ConversationBroadcastListener{
 
@@ -98,6 +107,9 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     private HttpServerManager httpServerManager;
     private ChatServerManager chatServerManager;
     private CompoundButton.OnCheckedChangeListener checkedChangeListener;
+    private Map<Long, CountDownTimer> timerMap;
+    private static final long SERVER_TIMEOUT_MS = 2000;
+    private ServerSyncManager serverSyncManager;
 
     static {
         DATE_FORMAT = new SimpleDateFormat("M/d/yy", Locale.getDefault());
@@ -186,8 +198,10 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         sendMessageText = (TextView) findViewById(R.id.sendMessageText);
         sendButton = (ImageButton) findViewById(R.id.sendButton);
 //        sendProgressBar = (ProgressBar) findViewById(R.id.sendProgressBar);
-        httpServerManager = new HttpServerManager(this);
-        chatServerManager = new ChatServerManager(this);
+        httpServerManager = HttpServerManager.getInstance(this);
+        chatServerManager = ChatServerManager.getInstance(this);
+        timerMap = new HashMap<>();
+        serverSyncManager = ServerSyncManager.getInstance(this);
         initialize();
 
         attachmentPanel = new AttachmentPanel(this);
@@ -432,6 +446,25 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
 
     public void sendMessage(final Message message, List<String> attachments) {
         chatServerManager.sendConversationMessage(myId, conversationId, chatAttendeeIdList, message.getMessageText(), String.valueOf(message.getMessageId()), attachments);
+        CountDownTimer timer = new CountDownTimer(SERVER_TIMEOUT_MS, SERVER_TIMEOUT_MS) {
+            @Override
+            public void onTick(long l) {
+
+            }
+
+            @Override
+            public void onFinish() {
+                ServerSyncItem syncItem = new ServerSyncItem(
+                        String.valueOf(message.getMessageId()),
+                        DatabaseValues.ServerSync.TYPE_MESSAGE,
+                        DatabaseValues.ServerSync.SERVER_CHAT
+                );
+                serverSyncManager.addSyncItem(syncItem);
+                serverSyncManager.enableNetworkStateReceiver();
+            }
+        };
+        timerMap.put(message.getMessageId(), timer);
+        timer.start();
     }
 
 //    public void onAddAttendeeButtonClicked(View view) {
@@ -633,6 +666,13 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         }
 
         if (myId.equals(senderId)) { //self-sent ack message
+            //cancel timer: do not add message to server sync list
+            if (timerMap.containsKey(message.getMessageId())) {
+                CountDownTimer timer = timerMap.remove(message.getMessageId());
+                timer.cancel();
+            }
+
+            //find message and remove sending icon
             for (int i = chatMessages.size() - 1; i >= 0; i--) {
                 Message chatMessage = chatMessages.get(i);
                 if (chatMessage.getMessageId() == message.getMessageId()) {

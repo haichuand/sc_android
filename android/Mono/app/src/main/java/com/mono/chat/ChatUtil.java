@@ -43,7 +43,7 @@ import java.util.TimeZone;
  */
 public class ChatUtil implements ConversationManager.ConversationBroadcastListener {
     private static final char[] randomIdCharPool = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890".toCharArray();
-    private static final long TIMER_TIMEOUT_MS = 1000000;
+    private static final long TIMER_TIMEOUT_MS = 5000;
     private static Random random = new Random();
     private static final int randomIdLength = 8;
 
@@ -71,8 +71,8 @@ public class ChatUtil implements ConversationManager.ConversationBroadcastListen
                 Toast.makeText(ChatUtil.this.context, "Chat server error. Please try later.", Toast.LENGTH_LONG).show();
             }
         };
-        httpServerManager = new HttpServerManager(context);
-        chatServerManager = new ChatServerManager(context);
+        httpServerManager = HttpServerManager.getInstance(context);
+        chatServerManager = ChatServerManager.getInstance(context);
     }
 
     public void showCreateChatDialog (final Account account, final Event event, final ConversationManager conversationManager) {

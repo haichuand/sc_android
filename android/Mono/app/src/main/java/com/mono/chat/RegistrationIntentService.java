@@ -60,12 +60,12 @@ public class RegistrationIntentService extends IntentService {
     private void sendRegistrationToServer(String token) {
         AccountManager.getInstance(getApplicationContext()).setGCMToken(token);
         //TODO: send token to server and chatserver
-        HttpServerManager httpServerManager = new HttpServerManager(this);
+        HttpServerManager httpServerManager = HttpServerManager.getInstance(this);
         Account account = AccountManager.getInstance(this).getAccount();
         if (account != null) {
             int accountId = (int) (account.id);
             httpServerManager.updateUserGcmId(accountId, token);
-            ChatServerManager chatServerManager = new ChatServerManager(this);
+            ChatServerManager chatServerManager = ChatServerManager.getInstance(this);
             chatServerManager.updateUserGcmId(accountId, token);
         }
     }

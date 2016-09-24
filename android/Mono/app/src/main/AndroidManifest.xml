@@ -13,6 +13,7 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
     <permission
         android:name="com.mono.permission.C2D_MESSAGE"
@@ -107,6 +108,12 @@
         <service
             android:name=".parser.KmlLocationService"
             android:exported="false"/>
+
+        <receiver android:name=".network.NetworkStateReceiver">
+            <intent-filter>
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
+            </intent-filter>
+        </receiver>
 
         <receiver
             android:name=".alarm.AlarmNotificationReceiver">
