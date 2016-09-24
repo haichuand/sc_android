@@ -30,6 +30,9 @@ public class ServerSyncManager {
     private ChatServerManager chatServerManager;
     private ConversationDataSource conversationDataSource;
     private ConcurrentLinkedQueue<ServerSyncItem> syncQueue;
+    private ServerSyncItem lastSyncItem;
+    private long lastSyncTime;
+    private static final long SYNC_WAIT_TIME = 10000; //time to wait before syncing the same item
 
     private ServerSyncManager () {}
 
@@ -94,6 +97,11 @@ public class ServerSyncManager {
         }
 
         ServerSyncItem syncItem = syncQueue.peek();
+
+        //prevent same message sent multiple times because of frequent network state changes
+        if (lastSyncItem == syncItem && System.currentTimeMillis() - lastSyncTime < SYNC_WAIT_TIME) {
+            return;
+        }
         switch (syncItem.itemType) {
             case DatabaseValues.ServerSync.TYPE_CONVERSATION:
                 break;
@@ -148,6 +156,8 @@ public class ServerSyncManager {
                 String.valueOf(message.getMessageId()),
                 null
         );
+        lastSyncItem = syncItem;
+        lastSyncTime = System.currentTimeMillis();
     }
 
     /**

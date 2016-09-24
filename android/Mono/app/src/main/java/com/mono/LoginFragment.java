@@ -233,7 +233,7 @@ public class LoginFragment extends Fragment {
                 }
             }
 
-            HttpServerManager manager = new HttpServerManager(getContext());
+            HttpServerManager manager = HttpServerManager.getInstance(getContext());
             JSONObject json = manager.getUserByEmail(email);
 
             try {
