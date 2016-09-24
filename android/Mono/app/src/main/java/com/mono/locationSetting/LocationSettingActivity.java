@@ -20,11 +20,11 @@ import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResult;
 import com.google.android.gms.location.LocationSettingsStates;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
+import com.mono.GoogleLoginActivity;
 import com.mono.LoginActivity;
 import com.mono.R;
 import com.mono.RequestCodes;
 import com.mono.settings.Settings;
-import com.mono.web.WebActivity;
 
 /**
  * Created by xuejing on 4/30/16.
@@ -61,7 +61,7 @@ public class LocationSettingActivity extends AppCompatActivity {
         webViewButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 if (!Settings.getInstance(v.getContext()).getGoogleHasCookie()) {
-                    Intent intent = new Intent(LocationSettingActivity.this, WebActivity.class);
+                    Intent intent = new Intent(LocationSettingActivity.this, GoogleLoginActivity.class);
                     startActivityForResult(intent, RequestCodes.Activity.DUMMY_WEB);
                 } else {
                     Toast.makeText(getApplicationContext(), "Connection has been established already!", Toast.LENGTH_LONG).show();

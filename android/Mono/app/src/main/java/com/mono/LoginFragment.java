@@ -24,7 +24,6 @@ import com.mono.network.HttpServerManager;
 import com.mono.settings.Settings;
 import com.mono.util.Colors;
 import com.mono.util.Common;
-import com.mono.web.WebActivity;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -206,7 +205,7 @@ public class LoginFragment extends Fragment {
      * Handle the action of clicking on the Google login button.
      */
     public void onGoogleLogin() {
-        Intent intent = new Intent(getContext(), WebActivity.class);
+        Intent intent = new Intent(getContext(), GoogleLoginActivity.class);
         startActivityForResult(intent, REQUEST_GOOGLE_LOGIN);
     }
 
@@ -218,8 +217,8 @@ public class LoginFragment extends Fragment {
      */
     public void handleGoogleLogin(int resultCode, Intent data) {
         if (resultCode == Activity.RESULT_OK) {
-            String email = data.getStringExtra(WebActivity.EXTRA_EMAIL);
-            String name = data.getStringExtra(WebActivity.EXTRA_NAME);
+            String email = data.getStringExtra(GoogleLoginActivity.EXTRA_EMAIL);
+            String name = data.getStringExtra(GoogleLoginActivity.EXTRA_NAME);
 
             String firstName = null, lastName = null;
             if (name != null) {
