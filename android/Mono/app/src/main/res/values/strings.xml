@@ -75,7 +75,7 @@
 
     <string name="pref_location_service_key">pref_location_service</string>
     <string name="pref_location_service_title">Enable Location Service</string>
-    <string name="pref_location_service_default">false</string>
+    <string name="pref_location_service_default">true</string>
 
     <string name="pref_crash_report_key">pref_crash_report</string>
     <string name="pref_crash_report_title">Enable Crash Reporting</string>

@@ -161,7 +161,7 @@ public class LoginActivity extends AppCompatActivity {
                 getUserInfoAndSetAccount(emailOrPhone, httpServerManager);
                 resetUserTable(httpServerManager);
 
-                startKMLService();
+                startKMLService(this);
                 Toast.makeText(this, "Login successful", Toast.LENGTH_LONG).show();
                 finish();
                 break;
@@ -217,12 +217,10 @@ public class LoginActivity extends AppCompatActivity {
     /**
      * Start KML service to handle location data, if logged in with Google.
      */
-    private void startKMLService() {
-        if (!Settings.getInstance(this).getGoogleHasCookie()) {
+    public static void startKMLService(Context context) {
+        if (!Settings.getInstance(context).getGoogleHasCookie()) {
             return;
         }
-
-        Context context = getApplicationContext();
 
         Intent intent = new Intent(context, KmlDownloadingService.class);
         intent.putExtra(KmlDownloadingService.TYPE, KmlDownloadingService.FIRST_TIME);
