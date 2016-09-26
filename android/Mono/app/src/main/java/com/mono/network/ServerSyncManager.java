@@ -34,7 +34,7 @@ public class ServerSyncManager {
     private ConcurrentLinkedQueue<ServerSyncItem> syncQueue;
     private ServerSyncItem lastSyncItem;
     private long lastSyncTime;
-    private static final long SYNC_WAIT_TIME = 10000; //time to wait before syncing the same item
+    private static final long SYNC_WAIT_TIME = 20000; //time to wait before syncing the same item
 
     private ServerSyncManager () {}
 

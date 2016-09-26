@@ -107,7 +107,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     private ChatServerManager chatServerManager;
     private CompoundButton.OnCheckedChangeListener checkedChangeListener;
     private Map<Long, CountDownTimer> timerMap;
-    private static final long SERVER_TIMEOUT_MS = 2000;
+    private static final long SERVER_TIMEOUT_MS = 5000;
     private ServerSyncManager serverSyncManager;
 
     static {
