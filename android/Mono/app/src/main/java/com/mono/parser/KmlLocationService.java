@@ -259,6 +259,9 @@ public class KmlLocationService extends IntentService {
         //make changes to all the events
         String eventid = "";
         for (int i = 0; i < events.size(); i++) {
+            if (events.get(i).source == Event.SOURCE_PROVIDER) {
+                continue;
+            }
 
             if ((events.get(i).startTime >= kmlevent.getStartTime()) && (events.get(i).endTime <= kmlevent.getEndTime()))// if event lies in between userstay period
             {
