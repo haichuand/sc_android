@@ -103,7 +103,6 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
 //    private List<String> newlyAddedAttendeeIds = new ArrayList<>();
 //    private Attendee mostRecentAddedAttendee = null;
     private ConversationManager conversationManager;
-//    private BroadcastReceiver receiver;
     private HttpServerManager httpServerManager;
     private ChatServerManager chatServerManager;
     private CompoundButton.OnCheckedChangeListener checkedChangeListener;
@@ -298,26 +297,6 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
             }
         });
 
-//        receiver = new BroadcastReceiver() {
-//            @Override
-//            public void onReceive(Context context, Intent intent) {
-//                Bundle data = intent.getBundleExtra(MyGcmListenerService.GCM_MESSAGE_DATA);
-//                String conversation_id = data.getString(GCMHelper.CONVERSATION_ID);
-//                //only continue if conversationId matches
-//                if (conversation_id==null || !conversation_id.equals(conversationId))
-//                    return;
-//                String message = data.getString(GCMHelper.MESSAGE);
-//                String sender_id = data.getString(GCMHelper.SENDER_ID);
-//
-//                if (Common.compareStrings(sender_id, myId)) {
-//                    // Sent Confirmation
-//                } else {
-//                    chatMessages.add(new Message(sender_id, conversationId, message, new Date().getTime()));
-//                    chatRoomAdapter.notifyItemInserted(chatMessages.size() - 1);
-//                }
-//            }
-//        };
-
         final LinearLayout messagesLayout = (LinearLayout) findViewById(R.id.all_messages_linearlayout);
         if (messagesLayout != null) {
             messagesLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -339,7 +318,6 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     @Override
     protected void onStart() {
         super.onStart();
-//        LocalBroadcastManager.getInstance(this).registerReceiver(receiver, new IntentFilter(MyGcmListenerService.GCM_INCOMING_INTENT));
     }
 
     @Override
@@ -359,7 +337,6 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
 
     @Override
     protected void onStop() {
-//        LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver);
         super.onStop();
     }
 

@@ -60,6 +60,9 @@ public class Settings {
     public static final String PREF_DAY_ONE = "pref_day_one";
     public static final long DEFAULT_DAY_ONE = 0;
 
+    public static final String PREF_FCM_TOKEN_SENT = "pref_fcm_token_sent";
+    public static final boolean DEFAULT_FCM_TOKEN_SENT = false;
+
     public static final String PREF_GOOGLE_HAS_COOKIE = "pref_google_has_cookie";
     public static final boolean DEFAULT_GOOGLE_HAS_COOKIE = false;
 
@@ -330,6 +333,16 @@ public class Settings {
     public void setDayOne(long milliseconds) {
         Editor editor = getEditor();
         editor.putLong(PREF_DAY_ONE, milliseconds);
+        editor.apply();
+    }
+
+    public boolean getFcmTokenSent() {
+        return preferences.getBoolean(PREF_FCM_TOKEN_SENT, DEFAULT_FCM_TOKEN_SENT);
+    }
+
+    public void setFcmTokenSent(boolean value) {
+        Editor editor = getEditor();
+        editor.putBoolean(PREF_FCM_TOKEN_SENT, value);
         editor.apply();
     }
 

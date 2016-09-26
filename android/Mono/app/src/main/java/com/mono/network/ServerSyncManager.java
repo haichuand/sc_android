@@ -182,7 +182,7 @@ public class ServerSyncManager {
     }
 
     /**
-     * Call back method when an ack message is receive by MyGcmListenerService. Check if the message
+     * Call back method when an ack message is receive by MyFcmListenerService. Check if the message
      * matches the head item of sync queue. If so, remove the head item and continue processing the next item.
      * @param message
      */

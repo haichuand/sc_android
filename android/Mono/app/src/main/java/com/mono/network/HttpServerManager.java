@@ -39,7 +39,7 @@ public class HttpServerManager {
     public static final String CREATE_EVENT_URL = REST_URL + "event/createEvent";
     public static final String GET_EVENT_URL = REST_URL + "event/getEvent/";
     public static final String CREATE_EVENT_CONVERSATION_URL = REST_URL + "event/addConversation/";
-    public static final String UPDATE_GCM_ID_URL = REST_URL + "user/updateUserGcmId/";
+    public static final String UPDATE_FCM_ID_URL = REST_URL + "user/updateUserFcmId/";
     public static final String GET_ALL_USER_ID_URL = REST_URL + "user/getAllUserId";
     public static final String CREATE_CONVERSATION_URL = REST_URL + "conversation/createConversation";
     public static final String GET_CONVERSATION_URL = REST_URL + "conversation/getConversation/";
@@ -64,7 +64,7 @@ public class HttpServerManager {
     //JSON key names
     public static final String EMAIL = "email";
     public static final String FIRST_NAME = "firstName";
-    public static final String GCM_ID = "gcmId";
+    public static final String FCM_ID = "fcmId";
     public static final String LAST_NAME = "lastName";
     public static final String MEDIA_ID = "mediaId";
     public static final String PHONE_NUMBER = "phoneNumber";
@@ -97,11 +97,11 @@ public class HttpServerManager {
         return instance;
     }
 
-    public int createUser(String email, String firstName, String gcmId, String lastName, String mediaId, String phoneNum, String userName, String password) {
+    public int createUser(String email, String firstName, String fcmId, String lastName, String mediaId, String phoneNum, String userName, String password) {
         try {
             JSONObject userInfo = getJSONObject(
-                    new String[]{EMAIL, FIRST_NAME, GCM_ID, LAST_NAME, MEDIA_ID, PHONE_NUMBER, USER_NAME, PASSWORD},
-                    new String[]{email, firstName, gcmId, lastName, mediaId, phoneNum, userName, password}
+                    new String[]{EMAIL, FIRST_NAME, FCM_ID, LAST_NAME, MEDIA_ID, PHONE_NUMBER, USER_NAME, PASSWORD},
+                    new String[]{email, firstName, fcmId, lastName, mediaId, phoneNum, userName, password}
             );
             JSONObject responseJson = queryServer(userInfo, CREATE_USER_URL, POST);
             if (responseJson.has(UID)) {
@@ -152,9 +152,9 @@ public class HttpServerManager {
         return -1;
     }
 
-    public int updateUserGcmId(int userId, String gcmId) {
+    public int updateUserFcmId(int userId, String fcmId) {
         try {
-            JSONObject responseJson = queryServer(null, UPDATE_GCM_ID_URL + userId + "/" + gcmId, POST);
+            JSONObject responseJson = queryServer(null, UPDATE_FCM_ID_URL + userId + "/" + fcmId, POST);
             if (responseJson != null && responseJson.has(STATUS)) {
                 return responseJson.getInt(STATUS);
             }
@@ -203,11 +203,11 @@ public class HttpServerManager {
         return null;
     }
 
-    public int editUser(int uId, String userName, String email, String firstName, String gcmId, String lastName, String mediaId, String phoneNumber, String password) {
+    public int editUser(int uId, String userName, String email, String firstName, String fcmId, String lastName, String mediaId, String phoneNumber, String password) {
         try {
             JSONObject userInfo = getJSONObject(
-                    new String[]{UID, USER_NAME, EMAIL, FIRST_NAME, GCM_ID, LAST_NAME, MEDIA_ID, PHONE_NUMBER, PASSWORD},
-                    new Object[]{uId, userName, email, firstName, gcmId, lastName, mediaId, phoneNumber, password}
+                    new String[]{UID, USER_NAME, EMAIL, FIRST_NAME, FCM_ID, LAST_NAME, MEDIA_ID, PHONE_NUMBER, PASSWORD},
+                    new Object[]{uId, userName, email, firstName, fcmId, lastName, mediaId, phoneNumber, password}
             );
             JSONObject responseJson = queryServer(userInfo, EDIT_USER_URL, POST);
             if (responseJson != null)

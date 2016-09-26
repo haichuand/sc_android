@@ -1,29 +1,37 @@
 package com.mono.network;
 
 import android.content.Context;
-import android.os.Bundle;
+import android.os.AsyncTask;
+import android.util.Log;
 
-import com.google.android.gms.gcm.GoogleCloudMessaging;
-import com.mono.chat.GcmMessage;
-import com.mono.model.Conversation;
-import com.mono.model.Event;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.RemoteMessage;
 import com.mono.util.Common;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
+/**
+ * This manager class is used to send FCM upstream messages.
+ *
+ * @author Haichuan Duan, Xuejing Dong, Gary Ng
+ */
 public class ChatServerManager {
 
-    public static final String ACTION = "action";
-    public static final String SENDER_ID = "senderId";
-    public static final String GCM_ID = "gcmId";
+    private static final String TAG = ChatServerManager.class.getSimpleName();
+
+    private static final String SERVER_ID = "1076145801492";
 
     private static ChatServerManager instance;
-    private GoogleCloudMessaging gcm;
-    private GcmMessage gcmMessage;
+
+    private Context context;
+
+    private AsyncTask sendTask;
+    private Random random = new Random();
 
     private ChatServerManager(Context context) {
-        gcm = GoogleCloudMessaging.getInstance(context);
-        gcmMessage = GcmMessage.getInstance(context);
+        this.context = context;
     }
 
     public static ChatServerManager getInstance (Context context) {
@@ -33,48 +41,87 @@ public class ChatServerManager {
         return instance;
     }
 
-    public void sendRegister(long uId, String gcmToken) {
-        Bundle bundle = GCMHelper.getRegisterPayload(uId + "", gcmToken);
-        gcmMessage.sendMessage(bundle, gcm);
+    public void sendMessage(Map<String, String> data) {
+        sendTask = new AsyncTask<Object, Object, String>() {
+            @Override
+            protected String doInBackground(Object... params) {
+                @SuppressWarnings("unchecked")
+                Map<String, String> data = (Map<String, String>) params[0];
+
+                String id = "SuperCalyMessage" + (System.currentTimeMillis()) +
+                    Long.toString(random.nextLong());
+                Log.d(TAG, "messageid: " + id);
+
+                RemoteMessage.Builder builder =
+                    new RemoteMessage.Builder(SERVER_ID + "@gcm.googleapis.com");
+                builder.setMessageId(id);
+                builder.addData("time_to_live", "0");
+
+                for (Map.Entry<String, String> entry : data.entrySet()) {
+                    builder.addData(entry.getKey(), entry.getValue());
+                }
+
+                FirebaseMessaging.getInstance().send(builder.build());
+
+                return "Message ID: " + id + " Sent.";
+            }
+
+            @Override
+            protected void onPostExecute(String result) {
+                sendTask = null;
+                Log.d(TAG, "onPostExecute: result: " + result);
+            }
+        }.execute(data);
     }
 
-    public void updateUserGcmId(long userId, String gcmToken) {
-        Bundle bundle = GCMHelper.getUpdateGcmIdPayload(userId + "", gcmToken);
-        gcmMessage.sendMessage(bundle, gcm);
+    public void sendRegister(long uId, String fcmToken) {
+        Map<String, String> data = FCMHelper.getRegisterPayload(uId + "", fcmToken);
+        sendMessage(data);
     }
 
-    public void startConversation(String creatorId, String conversationId, List<String> recipients) {
-        String recipientsString = Common.implode(",", recipients);
-        Bundle bundle = GCMHelper.getStartConversationPayload(creatorId, conversationId, recipientsString);
-        gcmMessage.sendMessage(bundle, gcm);
+    public void updateUserFcmId(long userId, String fcmToken) {
+        Map<String, String> data = FCMHelper.getUpdateFcmIdPayload(userId + "", fcmToken);
+        sendMessage(data);
     }
 
-    public void startEventConversation (String creatorId, String eventId, List<String> recipients) {
-//        Bundle bundle = GCMHelper.getStartEventConversationPayload(creatorId, convId, convTitle, Common.implode(",", recipients),
-//                eventStartTime, eventEndTime, eventTitle, Common.implode(",", eventAttendees));
-        Bundle bundle = GCMHelper.getStartEventConversationPayload(creatorId, eventId, Common.implode(",", recipients));
-        gcmMessage.sendMessage(bundle, gcm);
+    public void startConversation(String creatorId, String conversationId,
+            List<String> recipients) {
+        Map<String, String> data = FCMHelper.getStartConversationPayload(creatorId, conversationId,
+            Common.implode(",", recipients));
+        sendMessage(data);
     }
 
-    public void addConversationAttendees(String senderId, String conversationId, List<String> userIds, List<String> recipientIds) {
-        Bundle bundle = GCMHelper.getAddConversationAttendeesPayload(
-                senderId, conversationId, Common.implode(",", userIds), Common.implode(",", recipientIds));
-        gcmMessage.sendMessage(bundle, gcm);
+    public void startEventConversation(String creatorId, String eventId, List<String> recipients) {
+        Map<String, String> data = FCMHelper.getStartEventConversationPayload(creatorId, eventId,
+            Common.implode(",", recipients));
+        sendMessage(data);
     }
 
-    public void dropConversationAttendees(String senderId, String conversationId, List<String> userIds, List<String> recipientIds) {
-        Bundle bundle = GCMHelper.getDropConversationAttendeesPayload(
-                senderId, conversationId, Common.implode(",", userIds), Common.implode(",", recipientIds));
-        gcmMessage.sendMessage(bundle, gcm);
+    public void addConversationAttendees(String senderId, String conversationId,
+            List<String> userIds, List<String> recipientIds) {
+        Map<String, String> data = FCMHelper.getAddConversationAttendeesPayload(senderId,
+            conversationId, Common.implode(",", userIds), Common.implode(",", recipientIds));
+        sendMessage(data);
     }
 
-    public void updateConversationTitle(String senderId, String conversationId, String newTitle, List<String> recipients) {
-        Bundle bundle = GCMHelper.getUpdateConversationTitlePayload(senderId, conversationId, newTitle, Common.implode(",", recipients));
-        gcmMessage.sendMessage(bundle, gcm);
+    public void dropConversationAttendees(String senderId, String conversationId,
+            List<String> userIds, List<String> recipientIds) {
+        Map<String, String> data = FCMHelper.getDropConversationAttendeesPayload(senderId,
+            conversationId, Common.implode(",", userIds), Common.implode(",", recipientIds));
+        sendMessage(data);
     }
 
-    public void sendConversationMessage(String senderId, String conversationId, List<String> recipients, String msg, String msgId, List<String> attachments) {
-        Bundle bundle = GCMHelper.getConversationMessagePayload(senderId, conversationId, recipients, msg, msgId, attachments);
-        gcmMessage.sendMessage(bundle, gcm);
+    public void updateConversationTitle(String senderId, String conversationId, String newTitle,
+            List<String> recipients) {
+        Map<String, String> data = FCMHelper.getUpdateConversationTitlePayload(senderId,
+            conversationId, newTitle, Common.implode(",", recipients));
+        sendMessage(data);
+    }
+
+    public void sendConversationMessage(String senderId, String conversationId,
+            List<String> recipients, String msg, String msgId, List<String> attachments) {
+        Map<String, String> data = FCMHelper.getConversationMessagePayload(senderId,
+            conversationId, recipients, msg, msgId, attachments);
+        sendMessage(data);
     }
 }

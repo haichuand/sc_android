@@ -13,12 +13,6 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
-
-    <permission
-        android:name="com.mono.permission.C2D_MESSAGE"
-        android:protectionLevel="signature"/>
-    <uses-permission android:name="com.mono.permission.C2D_MESSAGE"/>
 
     <application
         android:name=".MainApplication"
@@ -137,37 +131,19 @@
             </intent-filter>
         </receiver>
 
-        <receiver
-            android:name="com.google.android.gms.gcm.GcmReceiver"
-            android:exported="true"
-            android:permission="com.google.android.c2dm.permission.SEND">
+        <service
+            android:name=".network.MyFcmListenerService">
 
             <intent-filter>
-                <action android:name="com.google.android.c2dm.intent.RECEIVE"/>
-                <action android:name="com.google.android.c2dm.intent.REGISTRATION" />
-                <!--<category android:name="com.mono.chat"/>-->
-            </intent-filter>
-        </receiver>
-
-        <service
-            android:name=".chat.RegistrationIntentService"
-            android:exported="false"/>
-
-        <service
-            android:name=".chat.MyGcmListenerService"
-            android:exported="false">
-
-            <intent-filter>
-                <action android:name="com.google.android.c2dm.intent.RECEIVE"/>
+                <action android:name="com.google.firebase.MESSAGING_EVENT"/>
             </intent-filter>
         </service>
 
         <service
-            android:name=".chat.MyInstanceIDListenerService"
-            android:exported="false">
+            android:name=".network.MyInstanceIDListenerService">
 
             <intent-filter>
-                <action android:name="com.google.android.gms.iid.InstanceID"/>
+                <action android:name="com.google.firebase.INSTANCE_ID_EVENT"/>
             </intent-filter>
         </service>
 

@@ -24,7 +24,7 @@ import java.util.Map;
 public class AccountManager {
 
     public static final String PREF_ACCOUNT = "pref_account";
-    public static final String PREF_GCM_TOKEN = "pref_gcm_token";
+    public static final String PREF_FCM_TOKEN = "pref_fcm_token";
 
     private static final String ACCOUNT_ID_KEY = "id";
     private static final String ACCOUNT_USERNAME_KEY = "username";
@@ -148,22 +148,22 @@ public class AccountManager {
     }
 
     /**
-     * Retrieve the GCM token used by this account.
+     * Retrieve the FCM registration token used by this account.
      *
-     * @return the value of the GCM token.
+     * @return the FCM registration token.
      */
-    public String getGCMToken() {
-        return preferences.getString(PREF_GCM_TOKEN, null);
+    public String getFcmToken() {
+        return preferences.getString(PREF_FCM_TOKEN, null);
     }
 
     /**
-     * Store the GCM token to be used by this account in the shared preferences.
+     * Store the FCM registration token to be used by this account in the shared preferences.
      *
-     * @param value The value of the GCM token.
+     * @param value FCM registration token.
      */
-    public void setGCMToken(String value) {
+    public void setFcmToken(String value) {
         SharedPreferences.Editor editor = preferences.edit();
-        editor.putString(PREF_GCM_TOKEN, value);
+        editor.putString(PREF_FCM_TOKEN, value);
         editor.apply();
     }
 

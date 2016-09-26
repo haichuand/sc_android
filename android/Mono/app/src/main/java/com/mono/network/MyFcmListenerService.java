@@ -1,4 +1,4 @@
-package com.mono.chat;
+package com.mono.network;
 
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -6,16 +6,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 
-import com.google.android.gms.gcm.GcmListenerService;
+import com.google.firebase.messaging.FirebaseMessagingService;
+import com.google.firebase.messaging.RemoteMessage;
 import com.mono.AccountManager;
 import com.mono.EventManager;
 import com.mono.MainActivity;
 import com.mono.R;
+import com.mono.chat.ChatRoomActivity;
+import com.mono.chat.ConversationManager;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.AttendeeDataSource;
 import com.mono.db.dao.ConversationDataSource;
@@ -25,9 +27,6 @@ import com.mono.model.Conversation;
 import com.mono.model.Event;
 import com.mono.model.Media;
 import com.mono.model.Message;
-import com.mono.network.GCMHelper;
-import com.mono.network.HttpServerManager;
-import com.mono.network.ServerSyncManager;
 import com.mono.util.Common;
 
 import org.json.JSONArray;
@@ -37,16 +36,17 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Created by xuejing on 2/25/16.
+ * This service is used to handle downstream messages received from FCM.
+ *
+ * @author Xuejing Dong, Haichuan Duan, Gary Ng
  */
-public class MyGcmListenerService extends GcmListenerService {
-    public static final String GCM_INCOMING_INTENT = "com.mono.chat.MyGcmListenerService.INCOMING_INTENT";
-    public static final String GCM_MESSAGE_DATA = "com.mono.chat.MyGcmListenerService.MESSAGE_DATA";
+public class MyFcmListenerService extends FirebaseMessagingService {
 
-    private static final String TAG = "MyGcmListenerService";
-    //    private LocalBroadcastManager broadcaster;
+    private static final String TAG = MyFcmListenerService.class.getSimpleName();
+
     private ConversationManager conversationManager;
     private EventManager eventManager;
     private HttpServerManager httpServerManager;
@@ -55,7 +55,6 @@ public class MyGcmListenerService extends GcmListenerService {
 
     @Override
     public void onCreate() {
-//        broadcaster = LocalBroadcastManager.getInstance(this);
         conversationManager = ConversationManager.getInstance(this);
         eventManager = EventManager.getInstance(this);
         httpServerManager = HttpServerManager.getInstance(this);
@@ -64,49 +63,36 @@ public class MyGcmListenerService extends GcmListenerService {
     }
 
     @Override
-    public void onMessageReceived(String from, Bundle data) {
-        String action = data.getString(GCMHelper.ACTION);
+    public void onMessageReceived(RemoteMessage message) {
+        String from = message.getFrom();
+        Map<String, String> data = message.getData();
+
+        String action = data.get(FCMHelper.ACTION);
         if (action == null)
             return;
 
         switch (action) {
-            case GCMHelper.ACTION_CONVERSATION_MESSAGE:
+            case FCMHelper.ACTION_CONVERSATION_MESSAGE:
                 onNewConversationMessage(from, data);
                 break;
-            case GCMHelper.ACTION_START_EVENT_CONVERSATION:
+            case FCMHelper.ACTION_START_EVENT_CONVERSATION:
                 onNewEventConversation(from, data);
                 break;
-            case GCMHelper.ACTION_ADD_CONVERSATION_ATTENDEES:
+            case FCMHelper.ACTION_ADD_CONVERSATION_ATTENDEES:
                 addConversationAttendees(from, data);
                 break;
-            case GCMHelper.ACTION_DROP_CONVERSATION_ATTENDEES:
+            case FCMHelper.ACTION_DROP_CONVERSATION_ATTENDEES:
                 dropConversationAttendees(from, data);
                 break;
         }
-
-
-        // [START_EXCLUDE]
-        /**
-         * applications would process the message here.
-         * Eg: - Syncing with server.
-         *     - Store message in local database.
-         *     - Update UI.
-         */
-
-        /**
-         * In some cases it may be useful to show a notification indicating to the user
-         * that a message was received.
-         */
-
-        // [END_EXCLUDE]
     }
 
-    private void onNewConversationMessage(String from, Bundle data) {
-        String msgText = data.getString(GCMHelper.MESSAGE);
-        String senderId = data.getString(GCMHelper.SENDER_ID);
-        String conversationId = data.getString(GCMHelper.CONVERSATION_ID);
-        long timestamp = Long.valueOf(data.getString(GCMHelper.TIMESTAMP));
-        long messageId = Long.valueOf(data.getString(GCMHelper.MESSAGE_ID));
+    private void onNewConversationMessage(String from, Map<String, String> data) {
+        String msgText = data.get(FCMHelper.MESSAGE);
+        String senderId = data.get(FCMHelper.SENDER_ID);
+        String conversationId = data.get(FCMHelper.CONVERSATION_ID);
+        long timestamp = Long.valueOf(data.get(FCMHelper.TIMESTAMP));
+        long messageId = Long.valueOf(data.get(FCMHelper.MESSAGE_ID));
 
         boolean isAckMessage = String.valueOf(AccountManager.getInstance(this).getAccount().id).equals(senderId);
         Attendee sender = conversationManager.getAttendeeById(senderId);
@@ -115,9 +101,9 @@ public class MyGcmListenerService extends GcmListenerService {
         }
         final Message message = new Message(senderId, conversationId, msgText, timestamp);
         message.setMessageId(messageId);
-        if (data.containsKey(GCMHelper.ATTACHMENTS)) {
+        if (data.containsKey(FCMHelper.ATTACHMENTS)) {
             List<Media> attachments = new ArrayList<>();
-            String[] items = Common.explode(",", data.getString(GCMHelper.ATTACHMENTS));
+            String[] items = Common.explode(",", data.get(FCMHelper.ATTACHMENTS));
             for (String item : items) {
                 if (item.isEmpty()) {
                     continue;
@@ -148,8 +134,8 @@ public class MyGcmListenerService extends GcmListenerService {
         }
     }
 
-    private boolean onNewEventConversation(String from, Bundle data) {
-        String eventId = data.getString(GCMHelper.EVENT_ID);
+    private boolean onNewEventConversation(String from, Map<String, String> data) {
+        String eventId = data.get(FCMHelper.EVENT_ID);
         if (eventId == null || eventId.isEmpty()) {
             Log.e(TAG, "Error: no eventId");
             return false;
@@ -169,12 +155,12 @@ public class MyGcmListenerService extends GcmListenerService {
         String conversationId;
         int eventCreatorId;
         try {
-            startTime = eventObj.getLong(GCMHelper.START_TIME);
-            endTime = eventObj.getLong(GCMHelper.END_TIME);
-            eventTitle = eventObj.getString(GCMHelper.TITLE);
-            conversationId = eventObj.getString(GCMHelper.CONVERSATION_ID);
-            eventCreatorId = eventObj.getInt(GCMHelper.CREATOR_ID);
-            JSONArray attendeesId = eventObj.getJSONArray(GCMHelper.ATTENDEES_ID);
+            startTime = eventObj.getLong(FCMHelper.START_TIME);
+            endTime = eventObj.getLong(FCMHelper.END_TIME);
+            eventTitle = eventObj.getString(FCMHelper.TITLE);
+            conversationId = eventObj.getString(FCMHelper.CONVERSATION_ID);
+            eventCreatorId = eventObj.getInt(FCMHelper.CREATOR_ID);
+            JSONArray attendeesId = eventObj.getJSONArray(FCMHelper.ATTENDEES_ID);
             for (int i = 0; i < attendeesId.length(); i++) {
                 eventAttendeesId.add(attendeesId.get(i).toString());
             }
@@ -248,10 +234,10 @@ public class MyGcmListenerService extends GcmListenerService {
         return true;
     }
 
-    private void addConversationAttendees(String from, Bundle data) {
-        String senderId = data.getString(GCMHelper.SENDER_ID);
-        final String conversationId = data.getString(GCMHelper.CONVERSATION_ID);
-        String[] userIds = Common.explode(",", data.getString(GCMHelper.USER_IDS));
+    private void addConversationAttendees(String from, Map<String, String> data) {
+        String senderId = data.get(FCMHelper.SENDER_ID);
+        final String conversationId = data.get(FCMHelper.CONVERSATION_ID);
+        String[] userIds = Common.explode(",", data.get(FCMHelper.USER_IDS));
         ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
         final List<String> newAttendeeIds = Arrays.asList(userIds);
         conversationDataSource.addAttendeesToConversation(conversationId, newAttendeeIds);
@@ -273,10 +259,10 @@ public class MyGcmListenerService extends GcmListenerService {
         Log.d(TAG, "Error while sending: " + error);
     }
 
-    private void dropConversationAttendees(String from, Bundle data) {
-        String senderId = data.getString(GCMHelper.SENDER_ID);
-        String conversationId = data.getString(GCMHelper.CONVERSATION_ID);
-        String[] userIds = Common.explode(",", data.getString(GCMHelper.USER_IDS));
+    private void dropConversationAttendees(String from, Map<String, String> data) {
+        String senderId = data.get(FCMHelper.SENDER_ID);
+        String conversationId = data.get(FCMHelper.CONVERSATION_ID);
+        String[] userIds = Common.explode(",", data.get(FCMHelper.USER_IDS));
         List<String> userList = Arrays.asList(userIds);
         ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
         String myId = String.valueOf(AccountManager.getInstance(this).getAccount().id);
@@ -290,9 +276,9 @@ public class MyGcmListenerService extends GcmListenerService {
     }
 
     /**
-     * Create and show a simple notification containing the received GCM message.
+     * Create and show a simple notification containing the received FCM message.
      *
-     * @param message GCM message received.
+     * @param message FCM message received.
      */
     private void sendNotification(String message) {
         Intent intent = new Intent(this, MainActivity.class);

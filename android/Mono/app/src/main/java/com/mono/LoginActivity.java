@@ -1,20 +1,16 @@
 package com.mono;
 
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
-import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.mono.chat.RegistrationIntentService;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.AttendeeDataSource;
 import com.mono.model.Account;
@@ -39,74 +35,12 @@ public class LoginActivity extends AppCompatActivity {
 
     private static final int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
 
-    private BroadcastReceiver registrationReceiver;
-//    private BroadcastReceiver gcmReceiver;
-    private boolean hasToken;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        registrationReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                hasToken = true;
-
-                String token = AccountManager.getInstance(context).getGCMToken();
-                System.out.println("New GCM Token: " + token);
-            }
-        };
-
-//        gcmReceiver = new BroadcastReceiver() {
-//            @Override
-//            public void onReceive(Context context, Intent intent) {
-//                Bundle data = intent.getBundleExtra(MyGcmListenerService.GCM_MESSAGE_DATA);
-//
-//                String action = data.getString("action");
-//                if (action != null) {
-//                    switch (action) {
-//                        case GCMHelper.ACTION_LOGIN:
-//                            onLogin(data);
-//                            break;
-//                    }
-//                }
-//            }
-//        };
-
-        String token = AccountManager.getInstance(this).getGCMToken();
-        hasToken = token != null;
-
-        if (!hasToken) {
-            if (checkPlayServices()) {
-                // Start IntentService to register this application with GCM.
-                Intent intent = new Intent(this, RegistrationIntentService.class);
-                startService(intent);
-            }
-        } else {
-            System.out.println("Current GCM Token: " + token);
-        }
-
         showLogin();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-
-        LocalBroadcastManager.getInstance(this).registerReceiver(registrationReceiver,
-                new IntentFilter(SuperCalyPreferences.REGISTRATION_COMPLETE));
-
-//        LocalBroadcastManager.getInstance(this).registerReceiver(gcmReceiver,
-//                new IntentFilter(MyGcmListenerService.GCM_INCOMING_INTENT));
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(registrationReceiver);
-//        LocalBroadcastManager.getInstance(this).unregisterReceiver(gcmReceiver);
     }
 
     /**
@@ -149,9 +83,7 @@ public class LoginActivity extends AppCompatActivity {
             Toast.makeText(this, "No network connection. Cannot log in", Toast.LENGTH_SHORT).show();
             return;
         }
-        if (!hasToken) {
-            return;
-        }
+
         HttpServerManager httpServerManager = HttpServerManager.getInstance(this);
         String toastMessage = null;
         switch (httpServerManager.loginUser(emailOrPhone, password)) {
@@ -196,12 +128,12 @@ public class LoginActivity extends AppCompatActivity {
             AccountManager accountManager = AccountManager.getInstance(this);
             accountManager.login(account);
 
-            //refresh GCM tokens on http and chat servers
-            String token = accountManager.getGCMToken();
-            if (httpServerManager.updateUserGcmId((int) account.id, token) != 0) {
-                Toast.makeText(this, "Error updating GCM token on http server", Toast.LENGTH_LONG).show();
+            //refresh FCM tokens on http and chat servers
+            String token = accountManager.getFcmToken();
+            if (httpServerManager.updateUserFcmId((int) account.id, token) != 0) {
+                Toast.makeText(this, "Error updating FCM token on http server", Toast.LENGTH_LONG).show();
             }
-            ChatServerManager.getInstance(this).updateUserGcmId(account.id, token);
+            ChatServerManager.getInstance(this).updateUserFcmId(account.id, token);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -270,11 +202,7 @@ public class LoginActivity extends AppCompatActivity {
      */
     public void submitRegister(String email, String phone, String firstName, String lastName,
             String userName, String password) {
-        if (!hasToken) {
-            return;
-        }
-
-        String token = AccountManager.getInstance(this).getGCMToken();
+        String token = AccountManager.getInstance(this).getFcmToken();
         HttpServerManager httpServerManager = HttpServerManager.getInstance(this);
         String toastMessage;
         int uId = httpServerManager.createUser(email, firstName, token, lastName, null, phone, userName, password);
