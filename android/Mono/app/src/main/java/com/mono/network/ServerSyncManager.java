@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 
+import com.mono.chat.AttachmentPanel;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
 import com.mono.db.dao.ConversationDataSource;
@@ -12,6 +13,7 @@ import com.mono.model.Message;
 import com.mono.model.ServerSyncItem;
 import com.mono.util.Common;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -138,23 +140,42 @@ public class ServerSyncManager {
      * Send a conversation message to chat server
      * @param syncItem
      */
-    private void sendConversationMessage (ServerSyncItem syncItem) {
+    private void sendConversationMessage (final ServerSyncItem syncItem) {
         Message message = conversationDataSource.getMessageByMessageId(syncItem.itemId);
         if (message == null) {
             return;
         }
 
-        //TODO: handle attachment media
-//        if ( !message.attachments.isEmpty()) {
-//        }
+        if (message.attachments == null || message.attachments.isEmpty()) {
+            sendConversationMessage(message, null, syncItem);
+        } else {
+            AttachmentPanel.sendAttachments(
+                appContext,
+                message,
+                new AttachmentPanel.AttachmentsListener() {
+                    @Override
+                    public void onFinish(Message message, List<String> result) {
+                        if (result != null) {
+                            sendConversationMessage(message, result, syncItem);
+                        } else {
+                            lastSyncItem = syncItem;
+                            lastSyncTime = System.currentTimeMillis();
+                        }
+                    }
+                }
+            );
+        }
+    }
 
+    private void sendConversationMessage(Message message, List<String> attachments,
+            ServerSyncItem syncItem) {
         chatServerManager.sendConversationMessage(
                 message.getSenderId(),
                 message.getConversationId(),
                 conversationDataSource.getConversationAttendeesIds(message.getConversationId()),
                 message.getMessageText(),
                 String.valueOf(message.getMessageId()),
-                null
+                attachments
         );
         lastSyncItem = syncItem;
         lastSyncTime = System.currentTimeMillis();

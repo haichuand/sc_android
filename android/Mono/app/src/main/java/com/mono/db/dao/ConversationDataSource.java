@@ -339,7 +339,7 @@ public class ConversationDataSource extends DataSource{
             );
             message.setMessageId(cursor.getLong(DatabaseValues.ConversationContent.INDEX_ID));
             message.ack = cursor.getInt(DatabaseValues.ConversationContent.INDEX_ACK) == 1;
-//            message.attachments = getMessageAttachments(message.getMessageId());
+            message.attachments = getMessageAttachments(message.getMessageId());
         }
 
         cursor.close();

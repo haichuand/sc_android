@@ -2,6 +2,7 @@ package com.mono.chat;
 
 import android.app.Activity;
 import android.content.ClipData;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.media.MediaScannerConnection;
@@ -412,16 +413,21 @@ public class AttachmentPanel {
      * @param message Reference to message object.
      * @param listener Callback for upload progress.
      */
-    public void sendAttachments(final Message message, final AttachmentsListener listener) {
+    public static void sendAttachments(Context context, final Message message,
+            final AttachmentsListener listener) {
         final int[] counter = {0};
         final int size = message.attachments.size();
         final List<String> result = new ArrayList<>();
 
-        NetworkManager manager = NetworkManager.getInstance(activity);
+        NetworkManager manager = NetworkManager.getInstance(context);
 
         for (Media media : message.attachments) {
             String url = null;
             String path = media.uri.toString();
+
+            if (!Common.fileExists(path)) {
+                continue;
+            }
 
             switch (media.type) {
                 case Media.IMAGE:
@@ -431,7 +437,7 @@ public class AttachmentPanel {
                         Bitmap bitmap = BitmapHelper.createBitmap(path, MAX_DIMENSION, MAX_DIMENSION);
 
                         String storage = Environment.getExternalStorageDirectory().getPath() + "/";
-                        String filename = String.format("%s_temp", activity.getString(R.string.app_name));
+                        String filename = String.format("%s_temp", context.getString(R.string.app_name));
                         path = storage + MainActivity.APP_DIR + filename + ".jpg";
 
                         OutputStream outputStream = new FileOutputStream(path);
@@ -455,7 +461,7 @@ public class AttachmentPanel {
             manager.post(url, path, new NetworkManager.ResponseListener() {
                 @Override
                 public void onErrorResponse(VolleyError error) {
-
+                    listener.onFinish(message, null);
                 }
 
                 @Override

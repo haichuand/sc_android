@@ -429,15 +429,29 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         message.setMessageId(conversationManager.saveChatMessageToDB(message));
         addMessageToUI(message);
 
-        if (message.attachments.isEmpty()) {
+        if (message.attachments == null || message.attachments.isEmpty()) {
             sendMessage(message, null);
         } else {
-            attachmentPanel.sendAttachments(message, new AttachmentPanel.AttachmentsListener() {
-                @Override
-                public void onFinish(Message message, List<String> result) {
-                    sendMessage(message, result);
+            AttachmentPanel.sendAttachments(
+                this,
+                message,
+                new AttachmentPanel.AttachmentsListener() {
+                    @Override
+                    public void onFinish(Message message, List<String> result) {
+                        if (result != null) {
+                            sendMessage(message, result);
+                        } else {
+                            ServerSyncItem syncItem = new ServerSyncItem(
+                                    String.valueOf(message.getMessageId()),
+                                    DatabaseValues.ServerSync.TYPE_MESSAGE,
+                                    DatabaseValues.ServerSync.SERVER_CHAT
+                            );
+                            serverSyncManager.addSyncItem(syncItem);
+                            serverSyncManager.enableNetworkStateReceiver();
+                        }
+                    }
                 }
-            });
+            );
         }
 
         sendMessageText.setText("");
