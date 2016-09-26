@@ -592,6 +592,7 @@ public class EventManager {
 
     public boolean saveEventToDatabase (Event event, String eventId) {
         Event tempEvent = new Event(event);
+        tempEvent.source = Event.SOURCE_DATABASE;
         tempEvent.color = R.color.green;
 
         String id = createEvent(EventAction.ACTOR_NONE, tempEvent, null);
