@@ -840,16 +840,16 @@ public class EventManager {
         }
 
         if (!event.attendees.equals(original.attendees)) {
-            CalendarAttendeeProvider provider = CalendarAttendeeProvider.getInstance(context);
-            provider.clearAll(event.internalId);
-
-            for (Attendee attendee : event.attendees) {
-                provider.createAttendee(event.internalId, attendee.userName, attendee.email,
-                    attendee.relationship, attendee.type, attendee.status);
-            }
-
-            original.attendees.clear();
-            original.attendees.addAll(event.attendees);
+//            CalendarAttendeeProvider provider = CalendarAttendeeProvider.getInstance(context);
+//            provider.clearAll(event.internalId);
+//
+//            for (Attendee attendee : event.attendees) {
+//                provider.createAttendee(event.internalId, attendee.userName, attendee.email,
+//                    attendee.relationship, attendee.type, attendee.status);
+//            }
+//
+//            original.attendees.clear();
+//            original.attendees.addAll(event.attendees);
         }
 
         if (!event.reminders.equals(original.reminders)) {
