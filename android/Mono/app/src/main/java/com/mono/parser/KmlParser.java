@@ -21,7 +21,9 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.TimeZone;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -73,7 +75,7 @@ public class KmlParser {
                                 if(placemarkNode.getNodeType() == Node.ELEMENT_NODE)
                                 {
                                     String address = "";
-                                    String gxTrackTo = "";
+
                                     String name = placemarkNode.getChildNodes().item(0).getChildNodes().item(0).getNodeValue();
 
                                     if (!((i == 0)&&(name.equalsIgnoreCase("Driving")))) // ignore days when only event is driving
@@ -82,13 +84,6 @@ public class KmlParser {
                                          {
                                                      address = placemarkNode.getChildNodes().item(1).getChildNodes().item(0).getNodeValue();
                                          }
-                                        else
-                                          {
-                                              // if Driving get destination lat long
-                                              gxTrackTo = placemarkNode.getChildNodes().item(5).getLastChild().getChildNodes().item(0).getNodeValue();
-
-                                          }
-
 
                                     String description = placemarkNode.getChildNodes().item(3).getChildNodes().item(0).getNodeValue();
                                     String gxTrackFrom = placemarkNode.getChildNodes().item(5).getChildNodes().item(1).getChildNodes().item(0).getNodeValue();
@@ -120,13 +115,6 @@ public class KmlParser {
                                     double lng = Double.valueOf(split[0]);
                                     double lat = Double.valueOf(split[1]);
 
-                                        if(gxTrackTo != "")
-                                        {
-                                            String[] split2 = gxTrackTo.split(" ");
-                                            double lng2 = Double.valueOf(split2[0]);
-                                            double lat2 = Double.valueOf(split2[1]);
-                                            notes += lng2 + " " +lat2 + " ";
-                                        }
                                         notes += descriptionArray[1].trim();
                                         if((descriptionArray[1].trim().equalsIgnoreCase("0m")) && (name.equalsIgnoreCase("Driving"))) {
                                             continue;
@@ -169,10 +157,10 @@ public class KmlParser {
             ArrayList<KmlEvents> resultList = new ArrayList<>();
             for(int i = 0; i < result.size(); i++) {
                 for(KmlEvents llt: userstaySlicing(result.get(i))) {
-                    resultList.add(llt);
+                    resultList.add(userstaySlicing(result.get(i)).get(0));
                 }
             }
-            return resultList;
+            return result;
     }
 
     private ArrayList<KmlEvents> userstaySlicing(KmlEvents kmlevent) {

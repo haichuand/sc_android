@@ -136,18 +136,10 @@ public class KmlLocationService extends IntentService {
             kmlevent = (KmlEvents) params[0];
             String latitude = String.valueOf(kmlevent.getLat());
             String longitude = String.valueOf(kmlevent.getLng());
+
             Log.d(TAG, "LatLong in the detailedAddress: " + latitude + ", " + longitude);
             String url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + latitude + "," + longitude + "&location_type=ROOFTOP&result_type=street_address" + "&key=" + GOOGLE_API_KEY;
             requestResult = makeCall(url);
-            //Driving events additions
-            if (kmlevent.getName().equalsIgnoreCase("Driving")) {
-                String[] arr = kmlevent.getNotes().split(" ");
-                if (arr.length == 3) {
-                    String url2 = "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + arr[1] + "," + arr[0] + "&location_type=ROOFTOP&result_type=street_address" + "&key=" + GOOGLE_API_KEY;
-                    requestResult2 = makeCall(url2);
-                    distance = arr[2];
-                }
-            }
             return "";
         }
 
@@ -155,42 +147,27 @@ public class KmlLocationService extends IntentService {
             if (requestResult != null) {
 
                 String[] detailResult = getAddressByLatLong(requestResult);
-                String[] detailResult2 = null;
-                if (requestResult2 != null) {
-                    detailResult2 = getAddressByLatLong(requestResult2);
-                }
                 long locationId;
                 if (detailResult != null) {
 
                     String placeId = detailResult[1];
                     String address[] = kmlevent.getAddress().split(",");
+                    distance = kmlevent.getNotes().trim();
                     Location location = new Location(kmlevent.getName(), placeId, kmlevent.getLat(), kmlevent.getLng(), address);
-
-                    if (detailResult2 != null) {
-                        if (detailResult2[0] != null) {
-                            if ((detailResult[0] != null) && (detailResult2[0] != null)) {
-                                notes = "Driving from : " + detailResult[0] + " To " + detailResult2[0] + "\n";
-                            }
-                        }
                         if (distance != "") {
                             double disinMiles = Math.round(Integer.parseInt(distance.split("m")[0]) * 0.00062);
-                            notes += "Distance Travelled : " + disinMiles + "miles";
+                            if (disinMiles != 0.0) {
+                                notes = "Distance Travelled : " + disinMiles + "miles";
+                            } else {
+                                notes = kmlevent.getAddress();
+                            }
                         }
-
-                    } else {
-                        notes = kmlevent.getAddress();
-                    }
 
                     if (locationDataSource.getLocationByGooglePlaceId(placeId) == null) {
                         locationId = locationDataSource.createLocation(kmlevent.getName(), placeId, kmlevent.getLat(), kmlevent.getLng(), kmlevent.getAddress());
                         //todo:this id would be used to map a location record to a event in eventLocationTable
                         location.id = locationId;
                     }
-                    else
-                    {
-                        location.id = locationDataSource.getLocationByGooglePlaceId(placeId).id;
-                    }
-
 
                     //get location info from shared pref to check any user defined address present
                     sharedPreferences = getSharedPreferences(SuperCalyPreferences.USER_DEFINED_LOCATION, MODE_PRIVATE);
@@ -215,6 +192,7 @@ public class KmlLocationService extends IntentService {
                                 Log.i("testtoast", toastString.name);
                                 event.location = toastString;
                                 location = toastString;
+                                event.title = toastString.name;
                             } else {
                                 event.location = location;
                             }
@@ -237,7 +215,7 @@ public class KmlLocationService extends IntentService {
                             Log.d(TAG, "event with id: " + event_id + " created");
 
                     }
-                    checkEventOverlap(kmlevent, location, notes);
+                  //  checkEventOverlap(kmlevent, location, notes);
                 }
 
             }
@@ -318,13 +296,14 @@ public class KmlLocationService extends IntentService {
             JSONObject jsonObject = new JSONObject(detailedAddressJson);
             if (jsonObject.has("results")) {
                 JSONArray jsonArray = jsonObject.getJSONArray("results");
-                if (jsonArray.getJSONObject(0).has("formatted_address")) {
-                    addressInfo[0] = jsonArray.getJSONObject(0).optString("formatted_address");
+                if (jsonArray.length() != 0){
+                    if (jsonArray.getJSONObject(0).has("formatted_address")) {
+                        addressInfo[0] = jsonArray.getJSONObject(0).optString("formatted_address");
+                    }
+                    if (jsonArray.getJSONObject(0).has("place_id")) {
+                        addressInfo[1] = jsonArray.getJSONObject(0).optString("place_id");
+                    }
                 }
-                if (jsonArray.getJSONObject(0).has("place_id")) {
-                    addressInfo[1] = jsonArray.getJSONObject(0).optString("place_id");
-                }
-
             }
         } catch (JSONException e) {
             e.printStackTrace();
