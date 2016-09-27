@@ -34,6 +34,7 @@ import com.mono.util.Common;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.TimeZone;
@@ -166,6 +167,7 @@ public class ChatUtil implements ConversationManager.ConversationBroadcastListen
                     Toast.makeText(context, "Conversation title cannot be empty", Toast.LENGTH_LONG).show();
                     return;
                 }
+                removeNonFriendAttendees(event.attendees);
                 //create event on http server
                 String eventServerId = httpServerManager.createEvent(event.id, event.type, event.title,
                         event.location == null ? null : event.location.name, event.startTime, event.endTime, Integer.valueOf(myId), event.createTime, event.getAttendeeIdList());
@@ -280,6 +282,15 @@ public class ChatUtil implements ConversationManager.ConversationBroadcastListen
             Attendee dbAttendee = dataSource.getAttendeeByEmail(attendeeList.get(i).email);
             if (dbAttendee != null) {
                 attendeeList.set(i, dbAttendee);
+            }
+        }
+    }
+
+    private void removeNonFriendAttendees (List<Attendee> attendeeList) {
+        Iterator<Attendee> iterator = attendeeList.iterator();
+        while (iterator.hasNext()) {
+            if (!iterator.next().isFriend) {
+                iterator.remove();
             }
         }
     }
