@@ -10,7 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.mono.calendar.CalendarFragment;
-import com.mono.events.EventsFragment;
+import com.mono.dashboard.EventsFragment;
 import com.mono.map.MapFragment;
 import com.mono.social.SocialFragment;
 import com.mono.util.OnBackPressedListener;

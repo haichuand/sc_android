@@ -1,4 +1,4 @@
-package com.mono.events;
+package com.mono.dashboard;
 
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -14,8 +14,8 @@ import com.mono.EventManager;
 import com.mono.EventManager.EventAction;
 import com.mono.EventManager.EventBroadcastListener;
 import com.mono.R;
-import com.mono.events.ListAdapter.ListItem;
-import com.mono.events.ListAdapter.PhotoItem;
+import com.mono.dashboard.ListAdapter.ListItem;
+import com.mono.dashboard.ListAdapter.PhotoItem;
 import com.mono.model.Event;
 import com.mono.util.Colors;
 import com.mono.util.Common;

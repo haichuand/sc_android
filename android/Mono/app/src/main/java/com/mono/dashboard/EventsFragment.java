@@ -1,4 +1,4 @@
-package com.mono.events;
+package com.mono.dashboard;
 
 import android.content.Context;
 import android.content.DialogInterface;
@@ -22,7 +22,7 @@ import com.mono.EventManager.EventAction;
 import com.mono.EventManager.EventBroadcastListener;
 import com.mono.MainInterface;
 import com.mono.R;
-import com.mono.events.ListFragment.ListListener;
+import com.mono.dashboard.ListFragment.ListListener;
 import com.mono.model.Calendar;
 import com.mono.model.Event;
 import com.mono.provider.CalendarProvider;
