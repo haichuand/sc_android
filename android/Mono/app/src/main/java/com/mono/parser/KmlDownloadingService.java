@@ -62,7 +62,7 @@ public class KmlDownloadingService extends IntentService {
 
     protected void onHandleIntent (Intent intent) {
         String downloadType = intent.getExtras().getString(TYPE);
-        Log.i(TAG, "downloadType: "+downloadType);
+     //   Log.i(TAG, "downloadType: "+downloadType);
         if(KML.isSignedIn()) {
             if(downloadType.equals(REGULAR)) {
                 downloadKML(KML_URL + "&pb=" + getPbValue(0));

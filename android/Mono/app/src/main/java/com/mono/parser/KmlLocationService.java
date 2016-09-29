@@ -78,7 +78,7 @@ public class KmlLocationService extends IntentService {
     public void getNewUserstaysForOneDay(String data) {
         newuserStays = parser.newKmlParse(data);
         if (newuserStays == null) {
-            Log.d(TAG, "No userStay data parsed");
+           // Log.d(TAG, "No userStay data parsed");
             return;
         }
         saveNewUserStayKMLEvents();
@@ -88,7 +88,7 @@ public class KmlLocationService extends IntentService {
 
         for (KmlEvents kmlevent : newuserStays) {
             if (eventManager == null) {
-                Log.d(TAG, "eventManager is null");
+              //  Log.d(TAG, "eventManager is null");
                 return;
             }
 
@@ -125,7 +125,6 @@ public class KmlLocationService extends IntentService {
 
     private class detailedEvent extends AsyncTask<Object, Void, String> {
         String requestResult;
-        String requestResult2;
         String notes = "";
         String distance = "";
         KmlEvents kmlevent = null;
@@ -137,7 +136,7 @@ public class KmlLocationService extends IntentService {
             String latitude = String.valueOf(kmlevent.getLat());
             String longitude = String.valueOf(kmlevent.getLng());
 
-            Log.d(TAG, "LatLong in the detailedAddress: " + latitude + ", " + longitude);
+           // Log.d(TAG, "LatLong in the detailedAddress: " + latitude + ", " + longitude);
             String url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + latitude + "," + longitude + "&location_type=ROOFTOP&result_type=street_address" + "&key=" + GOOGLE_API_KEY;
             requestResult = makeCall(url);
             return "";
@@ -189,7 +188,7 @@ public class KmlLocationService extends IntentService {
                             event.endTime = kmlevent.getEndTime();
 
                             if (toastString != null) {
-                                Log.i("testtoast", toastString.name);
+                             //   Log.i("testtoast", toastString.name);
                                 event.location = toastString;
                                 location = toastString;
                                 event.title = toastString.name;
@@ -198,7 +197,7 @@ public class KmlLocationService extends IntentService {
                             }
 
                             event_id = eventManager.createEvent(EventManager.EventAction.ACTOR_NONE, event, null);
-                            Log.d(TAG, "event with id: " + event_id + " created");
+                         //   Log.d(TAG, "event with id: " + event_id + " created");
 
                     } else {
 
@@ -212,7 +211,7 @@ public class KmlLocationService extends IntentService {
                             event.endTime = kmlevent.getEndTime();
 
                             event_id = eventManager.createEvent(EventManager.EventAction.ACTOR_NONE, event, null);
-                            Log.d(TAG, "event with id: " + event_id + " created");
+                           // Log.d(TAG, "event with id: " + event_id + " created");
 
                     }
                   //  checkEventOverlap(kmlevent, location, notes);
@@ -308,7 +307,7 @@ public class KmlLocationService extends IntentService {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        Log.d(TAG, "detailed address: " + addressInfo[0]);
+       // Log.d(TAG, "detailed address: " + addressInfo[0]);
         return addressInfo;
     }
 }

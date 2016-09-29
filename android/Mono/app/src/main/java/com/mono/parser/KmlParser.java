@@ -52,6 +52,7 @@ public class KmlParser {
 
             factory.setNamespaceAware(true);
             ArrayList<KmlEvents> result = new ArrayList<>();
+            DateTime kmlDate = null;
             try {
                 builder = factory.newDocumentBuilder();
                 InputStream inputStream = new ByteArrayInputStream(data.getBytes("UTF-8"));
@@ -59,6 +60,9 @@ public class KmlParser {
 
                 NodeList nodeList = document.getDocumentElement().getChildNodes();
                 Node node = nodeList.item(0);
+
+                String dateStr = node.getChildNodes().item(0).getChildNodes().item(0).getNodeValue().split("to")[2].trim();
+                kmlDate = DateTime.parse(dateStr);
 
                 if(node.getNodeType() == Node.ELEMENT_NODE) {
                     Element elem = (Element) node;
@@ -133,7 +137,7 @@ public class KmlParser {
                             }
                             catch(Exception ex)
                             {
-                                Log.d("kmlParser", ex.getMessage());
+                               // Log.d("kmlParser", ex.getMessage());
                             }
 
                         }
@@ -141,48 +145,43 @@ public class KmlParser {
                 }
             }
             catch (ParserConfigurationException e) {
-                Log.d("kmlParser", e.getMessage());
+              //  Log.d("kmlParser", e.getMessage());
             }
             catch (IOException e) {
-                Log.d("kmlParser", e.getMessage());
+              //  Log.d("kmlParser", e.getMessage());
             }
             catch (SAXException e) {
-                Log.d("kmlParser", e.getMessage());
+             //   Log.d("kmlParser", e.getMessage());
             }
             catch (Exception e) {
-                Log.d("kmlParser", e.getMessage());
+               // Log.d("kmlParser", e.getMessage());
             }
 
             //if any userstay is crossing few days, slice it into multiple userstays per 24 hours
             ArrayList<KmlEvents> resultList = new ArrayList<>();
             for(int i = 0; i < result.size(); i++) {
-                for(KmlEvents llt: userstaySlicing(result.get(i))) {
-                    resultList.add(userstaySlicing(result.get(i)).get(0));
-                }
+               // for(KmlEvents llt: userstaySlicing(result.get(i))) {
+                    resultList.add(userstaySlicing(result.get(i), kmlDate));
+                //}
             }
             return result;
     }
 
-    private ArrayList<KmlEvents> userstaySlicing(KmlEvents kmlevent) {
-        ArrayList<KmlEvents> slices = new ArrayList<>();
-        long endTime = kmlevent.getEndTime();
-        long curTime = kmlevent.getStartTime();
-        while(curTime < endTime) {
-            KmlEvents slice = new KmlEvents();
-            slice.setLat(kmlevent.getLat());
-            slice.setLng(kmlevent.getLng());
-            slice.setStartTime(curTime);
-            //get the nextend time(the end of current day) as per pacific time zone, GMT is 7 hours ahead Pacific time
-            long nextend = ((curTime-7*3600*1000) /(24*3600*1000)+1)*24*3600*1000 + 7*3600*1000 - 60*1000;
-            long sliceEnd = nextend > endTime ? endTime : nextend;
-            slice.setEndTime(sliceEnd);
-            slice.setName(kmlevent.getName());
-            slice.setAddress(kmlevent.getAddress());
-            slice.setNotes(kmlevent.getNotes());
-            slices.add(slice);
-            curTime = sliceEnd + 60*1000;
+    private KmlEvents userstaySlicing(KmlEvents kmlevent, DateTime kmlDate) {
+        if(kmlDate !=null)
+        {
+            DateTime todayStart = kmlDate.withTimeAtStartOfDay();
+            DateTime tomorrowStart = kmlDate.plusDays( 1 ).withTimeAtStartOfDay();
+            if(kmlevent.getStartTime() < todayStart.getMillis())
+            {
+                kmlevent.setStartTime(todayStart.getMillis());
+            }
+            if(kmlevent.getEndTime() > (tomorrowStart.getMillis() - 60000))
+            {
+                kmlevent.setEndTime(tomorrowStart.getMillis() - 60000);
+            }
         }
-        return slices;
+        return kmlevent;
     }
 
     /*
