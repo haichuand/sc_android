@@ -218,7 +218,7 @@ public class SearchHandler implements OnQueryTextListener {
             Conversation conversation = conversations.get(conversationId);
 
             if (conversation == null) {
-                conversation = manager.getConversationById(conversationId);
+                conversation = manager.getCompleteConversation(conversationId);
                 conversations.put(conversationId, conversation);
             }
 

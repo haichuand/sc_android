@@ -91,7 +91,8 @@ public class DatabaseValues {
                 TYPE + " TEXT",
                 TITLE + " TEXT",
                 DESC + " TEXT",
-                LOCATION_ID + " INTEGER REFERENCES " + Location.TABLE + " (" + Location.ID + ")",
+                    LOCATION_ID,
+//                LOCATION_ID + " INTEGER REFERENCES " + Location.TABLE + " (" + Location.ID + ")",
                 COLOR + " INTEGER",
                 START_TIME + " INTEGER",
                 END_TIME + " INTEGER",
@@ -241,7 +242,8 @@ public class DatabaseValues {
         static {
             String[] parameters = {
                 EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " (" + Event.ID + ") ON UPDATE CASCADE ON DELETE CASCADE",
-                LOC_ID + " INTEGER REFERENCES " + Location.TABLE + " (" + Location.ID + ")"
+                    LOC_ID
+//                LOC_ID + " INTEGER REFERENCES " + Location.TABLE + " (" + Location.ID + ")"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);
@@ -626,7 +628,8 @@ public class DatabaseValues {
         static {
             String[] parameters = {
                 EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " (" + Event.ID + ") ON UPDATE CASCADE ON DELETE CASCADE",
-                LOC_ID + " INTEGER REFERENCES " + Location.TABLE + " (" + Location.ID + ")"
+                    LOC_ID
+//                LOC_ID + " INTEGER REFERENCES " + Location.TABLE + " (" + Location.ID + ")"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);

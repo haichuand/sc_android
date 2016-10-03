@@ -4,6 +4,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.os.CountDownTimer;
+import android.provider.CalendarContract;
 import android.text.InputType;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,26 +19,32 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.mono.EventManager;
 import com.mono.R;
 import com.mono.db.DatabaseHelper;
+import com.mono.db.DatabaseValues;
 import com.mono.db.dao.AttendeeDataSource;
+import com.mono.db.dao.ConversationDataSource;
+import com.mono.db.dao.DataSource;
+import com.mono.db.dao.EventDataSource;
 import com.mono.model.Account;
 import com.mono.model.Attendee;
 import com.mono.model.AttendeeUsernameComparator;
 import com.mono.model.Conversation;
 import com.mono.model.Event;
 import com.mono.model.Message;
+import com.mono.model.ServerSyncItem;
 import com.mono.network.ChatServerManager;
 import com.mono.network.HttpServerManager;
+import com.mono.network.ServerSyncManager;
+import com.mono.util.Colors;
 import com.mono.util.Common;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
-import java.util.TimeZone;
 
 /**
  * Created by haichuand on 6/21/2016.
@@ -50,13 +57,18 @@ public class ChatUtil implements ConversationManager.ConversationBroadcastListen
 
     private Context context;
     private CountDownTimer timer;
-    private boolean isRunning = false;
+    private boolean isRunning = false; //timer running flag
     private Dialog dialog;
     private String conversationId;
     private Event event;
+    private String eventServerId;
     private String myId;
+    private List<String> checkedChatAttendeeIds;
     private HttpServerManager httpServerManager;
     private ChatServerManager chatServerManager;
+    private ServerSyncManager serverSyncManager;
+    private EventManager eventManager;
+    private ConversationManager conversationManager;
 
     public ChatUtil(Context context) {
         this.context = context;
@@ -66,17 +78,21 @@ public class ChatUtil implements ConversationManager.ConversationBroadcastListen
 
             @Override
             public void onFinish() {
-                //TODO: delete events and conversations from server because they have not been broadcast successfully
-
                 isRunning = false;
-                Toast.makeText(ChatUtil.this.context, "Chat server error. Please try later.", Toast.LENGTH_LONG).show();
+                //save to sync queue
+                ServerSyncItem syncItem = new ServerSyncItem(eventServerId, DatabaseValues.ServerSync.TYPE_EVENT_CONVERSATION, DatabaseValues.ServerSync.SERVER_CHAT);
+                serverSyncManager.addSyncItem(syncItem);
+                Toast.makeText(ChatUtil.this.context, "Network error. The chat has been saved on your device and will be sent later", Toast.LENGTH_LONG).show();
             }
         };
         httpServerManager = HttpServerManager.getInstance(context);
         chatServerManager = ChatServerManager.getInstance(context);
+        serverSyncManager = ServerSyncManager.getInstance(context);
+        eventManager = EventManager.getInstance(context);
+        conversationManager = ConversationManager.getInstance(context);
     }
 
-    public void showCreateChatDialog (final Account account, final Event event, final ConversationManager conversationManager) {
+    public void showCreateChatDialog (final Account account, final Event event) {
         if ("UTC".equals(event.timeZone)) { //holiday, all day event
             event.startTime = Common.convertHolidayMillis(event.startTime);
             event.endTime = event.startTime;
@@ -92,7 +108,7 @@ public class ChatUtil implements ConversationManager.ConversationBroadcastListen
         titleInput.setText(event.title, TextView.BufferType.EDITABLE);
         final LinearLayout checkBoxLayout = (LinearLayout) dialog.findViewById(R.id.create_chat_attendees);
 
-        final List<String> checkedChatAttendeeIds = new ArrayList<>(); //attendees with checkbox checked
+        checkedChatAttendeeIds = new ArrayList<>(); //attendees with checkbox checked
         final List<String> listChatAttendeeIds = new ArrayList<>(); //all attendees in the checkbox list
 
         final CompoundButton.OnCheckedChangeListener checkedChangeListener = new CompoundButton.OnCheckedChangeListener() {
@@ -169,19 +185,28 @@ public class ChatUtil implements ConversationManager.ConversationBroadcastListen
                 }
                 removeNonFriendAttendees(event.attendees);
                 //create event on http server
-                String eventServerId = httpServerManager.createEvent(event.id, event.type, event.title,
+                eventServerId = httpServerManager.createEvent(event.id, event.type, event.title,
                         event.location == null ? null : event.location.name, event.startTime, event.endTime, Integer.valueOf(myId), event.createTime, event.getAttendeeIdList());
+
+                //handle when http server did not create event: save event and conversation and put them in server sync queue
                 if (eventServerId == null) {
-                    Toast.makeText(context, "Cannot add event on server. Please try later.", Toast.LENGTH_LONG).show();
+                    //save event and add to sync queue
+                    String eventDBId = saveEventAndAddToSyncQueue(event);
+                    if (eventDBId == null) {
+                        return;
+                    }
+                    //save event_conversation and add to sync queue
+                    saveEventConversationAndAddToSyncQueue(eventDBId, conversationTitle, event);
                     return;
                 }
 
                 conversationId = conversationManager.getUniqueConversationId();
-                //add conversation to event on http server; checkedChatAttendeeIds should contain myId
+                //handle when http server did not create event_conversation: save event_conversation to database and add to sync queue
                 if (!httpServerManager.createEventConversation(eventServerId, conversationId, conversationTitle, Integer.valueOf(myId), checkedChatAttendeeIds)) {
-                    Toast.makeText(context, "Cannot add conversation on server. Please try later.", Toast.LENGTH_LONG).show();
+                    saveEventConversationAndAddToSyncQueue(eventServerId, conversationTitle, event);
                     return;
                 }
+
                 chatServerManager.startEventConversation(myId, eventServerId, checkedChatAttendeeIds);
                 timer.start();
                 isRunning = true;
@@ -198,6 +223,45 @@ public class ChatUtil implements ConversationManager.ConversationBroadcastListen
             }
         });
         dialog.show();
+    }
+
+    private String saveEventAndAddToSyncQueue (Event event) {
+        String eventDBId = saveProviderEventToLocalDB(event);
+        if (eventDBId == null) {
+            Toast.makeText(context, "Error creating event on device", Toast.LENGTH_LONG).show();
+            return null;
+        }
+        ServerSyncItem syncItem = new ServerSyncItem(
+                eventDBId, DatabaseValues.ServerSync.TYPE_EVENT, DatabaseValues.ServerSync.SERVER_HTTP);
+        serverSyncManager.addSyncItem(syncItem);
+        return eventDBId;
+    }
+
+    private void saveEventConversationAndAddToSyncQueue (String eventId, String conversationTitle, Event event) {
+        ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(context, ConversationDataSource.class);
+        conversationId = conversationManager.getUniqueConversationId();
+        if (conversationDataSource.createEventConversation(
+                eventId,
+                conversationId,
+                conversationTitle,
+                myId,
+                checkedChatAttendeeIds,
+                true
+        )) {
+            ServerSyncItem syncItem = new ServerSyncItem(
+                    conversationId, DatabaseValues.ServerSync.TYPE_EVENT_CONVERSATION, DatabaseValues.ServerSync.SERVER_HTTP);
+            serverSyncManager.addSyncItem(syncItem);
+            syncItem = new ServerSyncItem(
+                    eventId, DatabaseValues.ServerSync.TYPE_EVENT_CONVERSATION, DatabaseValues.ServerSync.SERVER_CHAT);
+            serverSyncManager.addSyncItem(syncItem);
+            Conversation conversation = conversationDataSource.getConversation(conversationId, false, false);
+            conversationManager.notifyListenersNewConversation(conversation, 0);
+            Toast.makeText(context, "Network error. The chat will be saved on your device and sent out later.", Toast.LENGTH_LONG).show();
+            dialog.dismiss();
+            startChatRoomActivity(eventId, event.startTime, event.endTime, event.allDay, conversationId, myId);
+        } else {
+            Toast.makeText(context, "Error creating chat on device", Toast.LENGTH_LONG).show();
+        }
     }
 
     private void addCheckBoxFromAttendee (LinearLayout checkBoxLayout, Attendee attendee, CompoundButton.OnCheckedChangeListener checkedChangeListener, List<String> attendeeIdList, List<String> checkedAttendeeIdList, String myId, AttendeeDataSource attendeeDataSource) {
@@ -293,6 +357,38 @@ public class ChatUtil implements ConversationManager.ConversationBroadcastListen
                 iterator.remove();
             }
         }
+    }
+
+    private String saveProviderEventToLocalDB(final Event event) {
+        if (event.source == Event.SOURCE_DATABASE) {
+            return event.id;
+        }
+        Event eventCopy = new Event(event);
+        eventCopy.id = null;
+        eventCopy.externalId = null;
+        eventCopy.internalId = 0;
+        eventCopy.reminders.clear();
+        eventCopy.source = Event.SOURCE_DATABASE;
+        eventCopy.color = Colors.getColor(context, R.color.green);
+        EventDataSource eventDataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+        List<Event> dbEvents = eventDataSource.getEvents(eventCopy.startTime, eventCopy.endTime);
+        if (dbEvents.isEmpty()) {
+            return eventManager.createEvent(EventManager.EventAction.ACTOR_NONE, eventCopy, null);
+        } else {
+            Event localEvent = null;
+            for (Event dbEvent : dbEvents) {
+                if (eventCopy.startTime == dbEvent.startTime && eventCopy.endTime == dbEvent.endTime && eventCopy.title.equals(dbEvent.title)) {
+                    localEvent = dbEvent;
+                    break;
+                }
+            }
+            if (localEvent == null) {
+                return eventManager.createEvent(EventManager.EventAction.ACTOR_NONE, eventCopy, null);
+            } else {
+                return localEvent.id;
+            }
+        }
+
     }
 
     @Override

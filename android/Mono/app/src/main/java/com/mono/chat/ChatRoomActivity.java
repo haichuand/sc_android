@@ -3,7 +3,6 @@ package com.mono.chat;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
-import android.support.v4.util.LongSparseArray;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
@@ -29,9 +28,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.mono.R;
-import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
-import com.mono.db.dao.ServerSyncDataSource;
 import com.mono.model.Attendee;
 import com.mono.model.AttendeeUsernameComparator;
 import com.mono.model.Conversation;
@@ -139,7 +136,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         }
 
         conversationManager = ConversationManager.getInstance(this);
-        Conversation conversation = conversationManager.getConversationById(conversationId);
+        Conversation conversation = conversationManager.getCompleteConversation(conversationId);
 
         setContentView(R.layout.activity_chat_room);
 

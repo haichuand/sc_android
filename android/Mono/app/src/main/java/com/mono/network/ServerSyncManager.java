@@ -4,11 +4,17 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 
+import com.mono.AccountManager;
+import com.mono.EventManager;
 import com.mono.chat.AttachmentPanel;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
 import com.mono.db.dao.ConversationDataSource;
+import com.mono.db.dao.EventAttendeeDataSource;
 import com.mono.db.dao.ServerSyncDataSource;
+import com.mono.model.Account;
+import com.mono.model.Conversation;
+import com.mono.model.Event;
 import com.mono.model.Message;
 import com.mono.model.ServerSyncItem;
 import com.mono.util.Common;
@@ -30,6 +36,7 @@ public class ServerSyncManager {
     private ServerSyncDataSource syncDataSource;
     private HttpServerManager httpServerManager;
     private ChatServerManager chatServerManager;
+    private EventManager eventManager;
     private ConversationDataSource conversationDataSource;
     private ConcurrentLinkedQueue<ServerSyncItem> syncQueue;
     private ServerSyncItem lastSyncItem;
@@ -44,6 +51,7 @@ public class ServerSyncManager {
         syncDataSource = DatabaseHelper.getDataSource(appContext, ServerSyncDataSource.class);
         httpServerManager = HttpServerManager.getInstance(appContext);
         chatServerManager = ChatServerManager.getInstance(appContext);
+        eventManager = EventManager.getInstance(appContext);
         conversationDataSource = DatabaseHelper.getDataSource(appContext, ConversationDataSource.class);
         syncQueue = new ConcurrentLinkedQueue<>(syncDataSource.getAllSyncItems());
     }
@@ -108,8 +116,10 @@ public class ServerSyncManager {
             case DatabaseValues.ServerSync.TYPE_CONVERSATION:
                 break;
             case DatabaseValues.ServerSync.TYPE_EVENT:
+                sendEvent(syncItem);
                 break;
             case DatabaseValues.ServerSync.TYPE_EVENT_CONVERSATION:
+                sendEventConversation(syncItem);
                 break;
             case DatabaseValues.ServerSync.TYPE_MESSAGE:
                 sendConversationMessage (syncItem);
@@ -181,6 +191,73 @@ public class ServerSyncManager {
         lastSyncTime = System.currentTimeMillis();
     }
 
+    private void sendEvent (ServerSyncItem syncItem) {
+        Account account = AccountManager.getInstance(appContext).getAccount();
+        if (account == null) {
+            return;
+        }
+        if (syncItem.server == DatabaseValues.ServerSync.SERVER_HTTP) {
+            Event event = eventManager.getEvent(syncItem.itemId, true);
+            EventAttendeeDataSource eventAttendeeDataSource = DatabaseHelper.getDataSource(appContext, EventAttendeeDataSource.class);
+            List<String> attendeesId = eventAttendeeDataSource.getAttendeeIds(syncItem.itemId);
+            String eventServerId = httpServerManager.createEvent(
+                    syncItem.itemId,
+                    event.type,
+                    event.title,
+                    event.location == null ? null : event.location.name,
+                    event.startTime,
+                    event.endTime,
+                    (int) account.id,
+                    System.currentTimeMillis(),
+                    attendeesId
+            );
+            if (eventServerId != null) {
+                eventManager.updateEventId(syncItem.itemId, eventServerId);
+                updateSyncItem(syncItem.itemId, eventServerId);
+                removeSyncItem();
+                processServerSyncItems();
+            }
+        } else {
+            //TODO: send event through chat server
+        }
+    }
+
+    private void sendEventConversation (ServerSyncItem syncItem) {
+        Account account = AccountManager.getInstance(appContext).getAccount();
+        if (account == null) {
+            return;
+        }
+        Integer myId = (int) account.id;
+        //for http server, syncItem.itemId = conversationId; for chat server, syncItem.itemId = eventId
+        if (syncItem.server == DatabaseValues.ServerSync.SERVER_HTTP) { //sync with http server
+            List<String> attendeeIds = conversationDataSource.getConversationAttendeesIds(syncItem.itemId);
+            Conversation conversation = conversationDataSource.getConversation(syncItem.itemId, false, false);
+            if (httpServerManager.createEventConversation(
+                    conversation.eventId,
+                    syncItem.itemId,
+                    conversation.name,
+                    myId,
+                    attendeeIds
+            )) {
+                removeSyncItem();
+                processServerSyncItems();
+            }
+        } else { //send through chat server
+            Conversation conversation = conversationDataSource.getConversations(syncItem.itemId).get(0);
+            List<String> attendeesId = conversationDataSource.getConversationAttendeesIds(conversation.id);
+            chatServerManager.startEventConversation(String.valueOf(myId), syncItem.itemId, attendeesId);
+        }
+    }
+
+    private void updateSyncItem (String originalId, String newId) {
+        syncDataSource.updateSyncItem(originalId, newId);
+        for (ServerSyncItem syncItem : syncQueue) {
+            if (syncItem.itemId.equals(originalId)) {
+                syncItem.itemId = newId;
+            }
+        }
+    }
+
     /**
      * Call back method when an ack message is receive by MyFcmListenerService. Check if the message
      * matches the head item of sync queue. If so, remove the head item and continue processing the next item.
@@ -191,6 +268,16 @@ public class ServerSyncManager {
 
         if (headItem != null && headItem.itemType.equals(DatabaseValues.ServerSync.TYPE_MESSAGE)
                 && headItem.itemId.equals(String.valueOf(message.getMessageId()))) {
+            removeSyncItem();
+            processServerSyncItems();
+        }
+    }
+
+    public void handleAckEventConversation (String eventId) {
+        ServerSyncItem headItem = syncQueue.peek();
+
+        if (headItem != null && headItem.itemType.equals(DatabaseValues.ServerSync.TYPE_EVENT_CONVERSATION)
+                && headItem.itemId.equals(eventId)) {
             removeSyncItem();
             processServerSyncItems();
         }

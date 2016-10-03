@@ -7,6 +7,7 @@ import com.mono.alarm.AlarmHelper;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
 import com.mono.db.dao.AttendeeDataSource;
+import com.mono.db.dao.ConversationDataSource;
 import com.mono.db.dao.EventAttendeeDataSource;
 import com.mono.db.dao.EventDataSource;
 import com.mono.db.dao.EventMediaDataSource;
@@ -465,23 +466,46 @@ public class EventManager {
                 }
             }
             // Create Event into Database
-            id = dataSource.createEvent(
-                event.calendarId,
-                event.internalId,
-                event.externalId,
-                event.type,
-                event.title,
-                event.description,
-                event.location != null ? event.location.id : null,
-                event.color,
-                event.startTime,
-                event.endTime,
-                event.timeZone,
-                event.endTimeZone,
-                event.allDay ? 1 : 0,
-                reminders,
-                System.currentTimeMillis()
-            );
+            if (event.id == null || event.id.isEmpty()) {
+                id = dataSource.createEvent(
+                        event.calendarId,
+                        event.internalId,
+                        event.externalId,
+                        event.type,
+                        event.title,
+                        event.description,
+                        event.location != null ? event.location.id : null,
+                        event.color,
+                        event.startTime,
+                        event.endTime,
+                        event.timeZone,
+                        event.endTimeZone,
+                        event.allDay ? 1 : 0,
+                        reminders,
+                        System.currentTimeMillis()
+                );
+            } else {
+                dataSource.createEvent(
+                        event.id,
+                        event.calendarId,
+                        event.internalId,
+                        event.externalId,
+                        event.type,
+                        event.title,
+                        event.description,
+                        event.location != null ? event.location.id : null,
+                        event.color,
+                        event.startTime,
+                        event.endTime,
+                        event.timeZone,
+                        event.endTimeZone,
+                        event.allDay ? 1 : 0,
+                        reminders,
+                        System.currentTimeMillis()
+                );
+                id = event.id;
+            }
+
         }
 
         if (id != null) {
@@ -512,12 +536,14 @@ public class EventManager {
             status = EventAction.STATUS_FAILED;
         }
 
-        EventAction data = new EventAction(EventAction.ACTION_CREATE, actor, status, event);
-        if (!listeners.isEmpty()) {
-            sendToListeners(data);
-        }
-        if (callback != null) {
-            callback.onEventAction(data);
+        if (event != null) {
+            EventAction data = new EventAction(EventAction.ACTION_CREATE, actor, status, event);
+            if (!listeners.isEmpty()) {
+                sendToListeners(data);
+            }
+            if (callback != null) {
+                callback.onEventAction(data);
+            }
         }
 
         return id;
@@ -591,20 +617,25 @@ public class EventManager {
     }
 
     public boolean saveEventToDatabase (Event event, String eventId) {
-        Event tempEvent = new Event(event);
-        tempEvent.source = Event.SOURCE_DATABASE;
-        tempEvent.color = R.color.green;
+        event.source = Event.SOURCE_DATABASE;
+        event.color = R.color.green;
+        event.id = eventId;
 
-        String id = createEvent(EventAction.ACTOR_NONE, tempEvent, null);
-        if (id == null) {
-            return false;
-        }
-        return updateEventId(id, eventId);
+        String id = createEvent(EventAction.ACTOR_NONE, event, null);
+        return id != null;
     }
 
     public boolean updateEventId (String originalId, String newId) {
-        EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-        return dataSource.updateEventId(originalId, newId) == 1;
+        EventDataSource eventDataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+        if (eventDataSource.updateEventId(originalId, newId) != 1) {
+            return false;
+        }
+        Event event = cache.get(originalId);
+        if (event != null) {
+            cache.remove(originalId);
+            cache.put(newId, event);
+        }
+        return true;
     }
 
     /**

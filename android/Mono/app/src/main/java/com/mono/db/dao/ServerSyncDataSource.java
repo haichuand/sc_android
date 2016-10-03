@@ -78,4 +78,15 @@ public class ServerSyncDataSource extends DataSource {
 
         return itemList;
     }
+
+    public int updateSyncItem (String originalId, String newId) {
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.ServerSync.ITEM_ID, newId);
+        return database.update(
+                DatabaseValues.ServerSync.TABLE,
+                values,
+                DatabaseValues.ServerSync.ITEM_ID + "=?",
+                new String[] { originalId }
+        );
+    }
 }

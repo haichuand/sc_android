@@ -107,8 +107,8 @@ public class EventAttendeeDataSource extends DataSource {
         Cursor cursor = database.rawQuery(
                 " SELECT " + DatabaseValues.EventAttendee.ATTENDEE_ID +
                         " FROM " + DatabaseValues.EventAttendee.TABLE +
-                        " WHERE " + DatabaseValues.EventAttendee.EVENT_ID + " = " + eventId +
-                        " ORDER BY " + DatabaseValues.EventAttendee.ATTENDEE_ID
+                        " WHERE " + DatabaseValues.EventAttendee.EVENT_ID + " = '" + eventId +
+                        "' ORDER BY " + DatabaseValues.EventAttendee.ATTENDEE_ID
         );
 
         while (cursor.moveToNext()) {

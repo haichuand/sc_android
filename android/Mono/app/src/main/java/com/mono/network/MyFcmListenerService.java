@@ -27,6 +27,7 @@ import com.mono.model.Conversation;
 import com.mono.model.Event;
 import com.mono.model.Media;
 import com.mono.model.Message;
+import com.mono.util.Colors;
 import com.mono.util.Common;
 
 import org.json.JSONArray;
@@ -224,13 +225,14 @@ public class MyFcmListenerService extends FirebaseMessagingService {
         if (!creatorId.equals(myId)) {
             sendNotification("Added new conversation with title: " + conversationTitle + "; attendees: " + attendeesList);
         }
-        final Conversation conversation = conversationDataSource.getConversation(conversationId);
+        final Conversation conversation = conversationDataSource.getConversation(conversationId, false, false);
         handler.post(new Runnable() {
             @Override
             public void run() {
                 conversationManager.notifyListenersNewConversation(conversation, 0);
             }
         });
+        serverSyncManager.handleAckEventConversation(eventId);
         return true;
     }
 
@@ -343,16 +345,18 @@ public class MyFcmListenerService extends FirebaseMessagingService {
         boolean isAllDay = (startTime == endTime);
 
         Event event = new Event();
+        event.id = eventId;
+        event.source = Event.SOURCE_DATABASE;
         event.type = Event.TYPE_CALENDAR;
         event.title = title;
-        event.color = R.color.green;
+        event.color = Colors.getColor(this, R.color.green);
         event.startTime = startTime;
         event.endTime = endTime;
         event.allDay = isAllDay;
         event.attendees = attendees;
 
         String id = eventManager.createEvent(EventManager.EventAction.ACTOR_SELF, event, null);
-        return eventManager.updateEventId(id, eventId);
+        return id != null;
     }
 
     private Attendee getAttendeeFromServer(String attendeeId) {

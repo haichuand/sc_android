@@ -373,7 +373,7 @@ public class ConversationDataSource extends DataSource{
 //
 //    }
 
-    public Conversation getConversation (String conversationId) {
+    public Conversation getConversation(String conversationId, boolean getAttendees, boolean getMessages) {
         String conversationName = "", creatorId = "", eventId = "";
         boolean syncNeeded = false;
         Cursor cursor = database.select(
@@ -410,8 +410,15 @@ public class ConversationDataSource extends DataSource{
         }
         cursor.close();
 
-        List<Attendee> attendees = getConversationAttendees(conversationId);
-        List<Message> messages = getConversationMessages(conversationId);
+        List<Attendee> attendees = null;
+        if (getAttendees) {
+            attendees = getConversationAttendees(conversationId);
+        }
+
+        List<Message> messages = null;
+        if (getMessages) {
+            messages = getConversationMessages(conversationId);
+        }
 
         return new Conversation(conversationId, eventId, creatorId, conversationName, attendees, messages, syncNeeded);
     }

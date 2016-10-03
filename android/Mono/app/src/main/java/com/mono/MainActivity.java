@@ -718,12 +718,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         List<Conversation> conversations = conversationManager.getConversations(eventId);
         String conversationId;
         if (conversations.isEmpty()) { //create new chat
-            if (!Common.isConnectedToInternet(this)) {
-                Toast.makeText(this, "No network connection. Cannot create new event", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            chatUtil.showCreateChatDialog(account, event, conversationManager);
+            chatUtil.showCreateChatDialog(account, event);
         } else {
             Conversation conversation = conversations.get(0);
             chatUtil.startChatRoomActivity(event.id, event.startTime, event.endTime, event.allDay, conversation.id, account.id+"");
@@ -732,7 +727,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
     @Override
     public void showExistingChat(String conversationId) {
-        Conversation conversation = conversationManager.getConversationById(conversationId);
+        Conversation conversation = conversationManager.getCompleteConversation(conversationId);
         if (conversation == null) {
             Toast.makeText(this, "Cannot find conversation with id: " + conversationId, Toast.LENGTH_SHORT).show();
             return;
@@ -740,7 +735,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         EventManager eventManager = EventManager.getInstance(this);
         Event event = null;
         if (conversation.eventId != null) {
-            event = eventManager.getEvent(conversation.eventId, true);
+            event = eventManager.getEvent(conversation.eventId, false);
         }
 
         String myId = String.valueOf(AccountManager.getInstance(this).getAccount().id);

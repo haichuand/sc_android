@@ -87,7 +87,8 @@ public class EventDataSource extends DataSource {
 
     public boolean createEvent(String eventId, long calendarId, long internalId, String externalId, String type,
                               String title, String description, Long locationId, int color, long startTime,
-                              long endTime, String timeZone, String endTimeZone, int allDay, long createTime) {
+                              long endTime, String timeZone, String endTimeZone, int allDay, String reminders,
+                               long createTime) {
 
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.Event.ID, eventId);
@@ -104,6 +105,7 @@ public class EventDataSource extends DataSource {
         values.put(DatabaseValues.Event.TIMEZONE, timeZone);
         values.put(DatabaseValues.Event.END_TIMEZONE, endTimeZone);
         values.put(DatabaseValues.Event.ALL_DAY, allDay);
+        values.put(DatabaseValues.Event.REMINDERS, reminders);
         values.put(DatabaseValues.Event.CREATE_TIME, createTime);
 
         try {
@@ -140,7 +142,7 @@ public class EventDataSource extends DataSource {
             DatabaseValues.Event.PROJECTION,
             DatabaseValues.Event.ID + " = ?",
             new String[]{
-                String.valueOf(id)
+                id
             }
         );
 
@@ -310,7 +312,7 @@ public class EventDataSource extends DataSource {
             values,
             DatabaseValues.Event.ID + " = ?",
             new String[]{
-                String.valueOf(id)
+                id
             }
         );
     }

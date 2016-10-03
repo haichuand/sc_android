@@ -62,8 +62,13 @@ public class ConversationManager {
         return conversationDataSource.getAllConversationsOrderByLastMessageTime();
     }
 
-    public Conversation getConversationById(String conversationId) {
-        return conversationDataSource.getConversation(conversationId);
+    /**
+     * Get conversation including attendees and messages
+     * @param conversationId
+     * @return
+     */
+    public Conversation getCompleteConversation (String conversationId) {
+        return conversationDataSource.getConversation(conversationId, true, true);
     }
 
     public List<Conversation> getConversations(String eventId) {

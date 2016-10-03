@@ -488,6 +488,9 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
             @Override
             public void run() {
                 Event event = data.getEvent();
+                if (event == null) {
+                    return;
+                }
 
                 LocalDate startDate, endDate;
                 // Special Handling of All Day Events
