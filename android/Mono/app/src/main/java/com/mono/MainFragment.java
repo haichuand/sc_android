@@ -10,7 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.mono.calendar.CalendarFragment;
-import com.mono.dashboard.EventsFragment;
+import com.mono.dashboard.DashboardFragment;
 import com.mono.map.MapFragment;
 import com.mono.social.SocialFragment;
 import com.mono.util.OnBackPressedListener;
@@ -53,7 +53,7 @@ public class MainFragment extends Fragment implements OnBackPressedListener, OnP
         Drawable drawable = CalendarFragment.createCalendarIcon(getContext(), String.valueOf(day));
         tabPagerAdapter.add(drawable, null, new CalendarFragment());
 
-        tabPagerAdapter.add(R.drawable.ic_list, null, new EventsFragment());
+        tabPagerAdapter.add(R.drawable.ic_list, null, new DashboardFragment());
         tabPagerAdapter.add(R.drawable.ic_chat, null, new SocialFragment());
         tabPagerAdapter.add(R.drawable.ic_place, null, new MapFragment());
     }

@@ -53,7 +53,7 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
     private static final SimpleDateFormat TIME_FORMAT;
 
     private int position;
-    private ListFragment.ListListener listener;
+    private EventsFragment.ListListener listener;
 
     private RecyclerView recyclerView;
     private SimpleLinearLayoutManager layoutManager;
@@ -81,8 +81,8 @@ public class FavoritesFragment extends Fragment implements SimpleDataSource<List
         }
 
         Fragment fragment = getParentFragment();
-        if (fragment != null && fragment instanceof ListFragment.ListListener) {
-            listener = (ListFragment.ListListener) fragment;
+        if (fragment != null && fragment instanceof EventsFragment.ListListener) {
+            listener = (EventsFragment.ListListener) fragment;
         }
     }
 
