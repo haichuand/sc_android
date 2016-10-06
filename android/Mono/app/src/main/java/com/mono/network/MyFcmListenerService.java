@@ -17,6 +17,7 @@ import com.mono.EventManager;
 import com.mono.MainActivity;
 import com.mono.R;
 import com.mono.chat.ChatRoomActivity;
+import com.mono.chat.ChatUtil;
 import com.mono.chat.ConversationManager;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.AttendeeDataSource;
@@ -52,6 +53,7 @@ public class MyFcmListenerService extends FirebaseMessagingService {
     private EventManager eventManager;
     private HttpServerManager httpServerManager;
     private ServerSyncManager serverSyncManager;
+    private ChatUtil chatUtil;
     private Handler handler;
 
     @Override
@@ -60,6 +62,7 @@ public class MyFcmListenerService extends FirebaseMessagingService {
         eventManager = EventManager.getInstance(this);
         httpServerManager = HttpServerManager.getInstance(this);
         serverSyncManager = ServerSyncManager.getInstance(this);
+        chatUtil = ChatUtil.getInstance(this);
         handler = new Handler();
     }
 
@@ -170,33 +173,33 @@ public class MyFcmListenerService extends FirebaseMessagingService {
             return false;
         }
 
-//        if (AccountManager.getInstance(this).getAccount().id != eventCreatorId) { //skip if it's user's self-confirmation
-            List<Event> events = eventManager.getEvents(startTime, endTime);
-            if (events.isEmpty()) {  //create new event
+        //self-sent ack message
+        if (((int) AccountManager.getInstance(this).getAccount().id) == eventCreatorId) {
+            chatUtil.handleEventConversationAck(eventId);
+            serverSyncManager.handleAckEventConversation(eventId);
+            return true;
+        }
+
+        //create event on local database
+        List<Event> events = eventManager.getLocalEvents(startTime, endTime);
+        if (events.isEmpty()) {  //create new event
+            if (!createEvent(eventId, startTime, endTime, eventTitle, eventAttendeesId)) {
+                return false;
+            }
+        } else {  //find matching event, if any
+            Event localEvent = null;
+            for (Event event : events) {
+                if (event.startTime == startTime && event.endTime == endTime && eventTitle.equals(event.title)) {
+                    localEvent = event;
+                    break;
+                }
+            }
+            if (localEvent == null) {
                 if (!createEvent(eventId, startTime, endTime, eventTitle, eventAttendeesId)) {
                     return false;
                 }
-            } else {  //find matching event, if any
-                Event localEvent = null;
-                for (Event event : events) {
-                    if (event.startTime == startTime && event.endTime == endTime && eventTitle.equals(event.title)) {
-                        localEvent = event;
-                        break;
-                    }
-                }
-                if (localEvent == null) {
-                    if (!createEvent(eventId, startTime, endTime, eventTitle, eventAttendeesId)) {
-                        return false;
-                    }
-                } else { //copy event to local database if it's a calendar provider event
-                    if (localEvent.source == Event.SOURCE_PROVIDER) {
-                        if (!eventManager.saveEventToDatabase(localEvent, eventId)) {
-                            return false;
-                        }
-                    }
-                }
             }
-//        }
+        }
 
         //get conversation details from server
         JSONObject conversationObj = httpServerManager.getConversation(conversationId);
@@ -217,14 +220,11 @@ public class MyFcmListenerService extends FirebaseMessagingService {
             return false;
         }
 
-        //create conversation in local database, even for creator's self-confirmation
+        //create conversation in local database
         ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
         conversationDataSource.createEventConversation(eventId, conversationId, conversationTitle, creatorId, attendeesList, false);
         //do not send notification if conversation's creator is user self because it's for self-confirmation
-        String myId = String.valueOf(AccountManager.getInstance(this).getAccount().id);
-        if (!creatorId.equals(myId)) {
-            sendNotification("Added new conversation with title: " + conversationTitle + "; attendees: " + attendeesList);
-        }
+        sendNotification("Added new conversation with title: " + conversationTitle + "; attendees: " + attendeesList);
         final Conversation conversation = conversationDataSource.getConversation(conversationId, false, false);
         handler.post(new Runnable() {
             @Override
@@ -232,7 +232,7 @@ public class MyFcmListenerService extends FirebaseMessagingService {
                 conversationManager.notifyListenersNewConversation(conversation, 0);
             }
         });
-        serverSyncManager.handleAckEventConversation(eventId);
+
         return true;
     }
 

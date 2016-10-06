@@ -79,7 +79,7 @@ public class ServerSyncDataSource extends DataSource {
         return itemList;
     }
 
-    public int updateSyncItem (String originalId, String newId) {
+    public int updateSyncItems(String originalId, String newId) {
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.ServerSync.ITEM_ID, newId);
         return database.update(

@@ -185,4 +185,9 @@
     <string name="crash_report_comment">Comments (Optional):</string>
     <string name="crash_report_sent">Thank you for your feedback!</string>
     <string name="send_report">Send Report</string>
+
+    <string name="error_chat_participant">Chat must have at least two participants</string>
+    <string name="network_error_sync_text">Network error. The chat has been saved on your device and will be sent later</string>
+    <string name="error_chat_title">Chat title cannot be empty</string>
+    <string name="error_saving_chat">Error saving chat to your device. Please try again</string>
 </resources>

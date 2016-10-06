@@ -27,11 +27,13 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.mono.EventManager;
 import com.mono.R;
 import com.mono.db.DatabaseValues;
 import com.mono.model.Attendee;
 import com.mono.model.AttendeeUsernameComparator;
 import com.mono.model.Conversation;
+import com.mono.model.Event;
 import com.mono.model.Media;
 import com.mono.model.Message;
 import com.mono.model.ServerSyncItem;
@@ -137,6 +139,14 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
 
         conversationManager = ConversationManager.getInstance(this);
         Conversation conversation = conversationManager.getCompleteConversation(conversationId);
+        if (conversation.eventId != null && eventStartTime == 0) {
+            EventManager eventManager = EventManager.getInstance(this);
+            Event event = eventManager.getEvent(conversation.eventId, false);
+            if (event != null) {
+                eventStartTime = event.startTime;
+                eventEndTime = event.endTime;
+            }
+        }
 
         setContentView(R.layout.activity_chat_room);
 

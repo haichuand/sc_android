@@ -108,10 +108,13 @@ public class ServerSyncManager {
 
         ServerSyncItem syncItem = syncQueue.peek();
 
-        //prevent same message sent multiple times because of frequent network state changes
+        //prevent same item from being sent multiple times because of frequent network state changes and/or onResume() calls
         if (lastSyncItem == syncItem && System.currentTimeMillis() - lastSyncTime < SYNC_WAIT_TIME) {
             return;
         }
+        lastSyncItem = syncItem;
+        lastSyncTime = System.currentTimeMillis();
+
         switch (syncItem.itemType) {
             case DatabaseValues.ServerSync.TYPE_CONVERSATION:
                 break;
@@ -167,9 +170,6 @@ public class ServerSyncManager {
                     public void onFinish(Message message, List<String> result) {
                         if (result != null) {
                             sendConversationMessage(message, result, syncItem);
-                        } else {
-                            lastSyncItem = syncItem;
-                            lastSyncTime = System.currentTimeMillis();
                         }
                     }
                 }
@@ -187,8 +187,6 @@ public class ServerSyncManager {
                 String.valueOf(message.getMessageId()),
                 attachments
         );
-        lastSyncItem = syncItem;
-        lastSyncTime = System.currentTimeMillis();
     }
 
     private void sendEvent (ServerSyncItem syncItem) {
@@ -213,7 +211,7 @@ public class ServerSyncManager {
             );
             if (eventServerId != null) {
                 eventManager.updateEventId(syncItem.itemId, eventServerId);
-                updateSyncItem(syncItem.itemId, eventServerId);
+                updateSyncItems(syncItem.itemId, eventServerId);
                 removeSyncItem();
                 processServerSyncItems();
             }
@@ -243,14 +241,20 @@ public class ServerSyncManager {
                 processServerSyncItems();
             }
         } else { //send through chat server
-            Conversation conversation = conversationDataSource.getConversations(syncItem.itemId).get(0);
+            List<Conversation> conversations = conversationDataSource.getConversations(syncItem.itemId);
+            if (conversations.isEmpty()) {
+                removeSyncItem();
+                processServerSyncItems();
+                return;
+            }
+            Conversation conversation = conversations.get(0);
             List<String> attendeesId = conversationDataSource.getConversationAttendeesIds(conversation.id);
             chatServerManager.startEventConversation(String.valueOf(myId), syncItem.itemId, attendeesId);
         }
     }
 
-    private void updateSyncItem (String originalId, String newId) {
-        syncDataSource.updateSyncItem(originalId, newId);
+    private void updateSyncItems(String originalId, String newId) {
+        syncDataSource.updateSyncItems(originalId, newId);
         for (ServerSyncItem syncItem : syncQueue) {
             if (syncItem.itemId.equals(originalId)) {
                 syncItem.itemId = newId;
@@ -273,6 +277,10 @@ public class ServerSyncManager {
         }
     }
 
+    /**
+     * Callback to handle EventConversation ack message
+     * @param eventId
+     */
     public void handleAckEventConversation (String eventId) {
         ServerSyncItem headItem = syncQueue.peek();
 

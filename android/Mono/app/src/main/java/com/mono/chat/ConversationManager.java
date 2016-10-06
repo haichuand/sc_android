@@ -2,11 +2,14 @@ package com.mono.chat;
 
 import android.content.Context;
 
+import com.mono.EventManager;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.AttendeeDataSource;
 import com.mono.db.dao.ConversationDataSource;
+import com.mono.db.dao.EventDataSource;
 import com.mono.model.Attendee;
 import com.mono.model.Conversation;
+import com.mono.model.Event;
 import com.mono.model.Message;
 
 import java.util.ArrayList;
@@ -22,6 +25,8 @@ public class ConversationManager {
     private Context context;
     private ConversationDataSource conversationDataSource;
     private AttendeeDataSource attendeeDataSource;
+    private EventDataSource eventDataSource;
+    private EventManager eventManager;
     private final List<ConversationBroadcastListener> listeners = new LinkedList<>();
     private String activeConversationId = null;
 
@@ -29,6 +34,8 @@ public class ConversationManager {
         this.context = context;
         conversationDataSource = DatabaseHelper.getDataSource(context, ConversationDataSource.class);
         attendeeDataSource = DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
+        eventDataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+        eventManager = EventManager.getInstance(context);
     }
 
     public static ConversationManager getInstance(Context context) {
@@ -73,6 +80,30 @@ public class ConversationManager {
 
     public List<Conversation> getConversations(String eventId) {
         return conversationDataSource.getConversations(eventId);
+    }
+
+    public List<Conversation> getConversationsDBFirst(Event event) {
+        if (event.source == Event.SOURCE_DATABASE) { //local database event
+            return conversationDataSource.getConversations(event.id);
+        } else { //provider event, match by time and title
+            List<Event> dbEvents = eventDataSource.getEvents(event.startTime, event.endTime);
+            if (dbEvents.isEmpty()) {
+                return new ArrayList<>();
+            } else {
+                Event localEvent = null;
+                for (Event dbEvent : dbEvents) {
+                    if (event.startTime == dbEvent.startTime && event.endTime == dbEvent.endTime && event.title.equals(dbEvent.title)) {
+                        localEvent = dbEvent;
+                        break;
+                    }
+                }
+                if (localEvent == null) {
+                    return new ArrayList<>();
+                } else {
+                    return conversationDataSource.getConversations(localEvent.id);
+                }
+            }
+        }
     }
 
     public List<Message> getChatMessages(String conversationId) {

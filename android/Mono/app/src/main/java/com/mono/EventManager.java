@@ -7,7 +7,6 @@ import com.mono.alarm.AlarmHelper;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
 import com.mono.db.dao.AttendeeDataSource;
-import com.mono.db.dao.ConversationDataSource;
 import com.mono.db.dao.EventAttendeeDataSource;
 import com.mono.db.dao.EventDataSource;
 import com.mono.db.dao.EventMediaDataSource;
@@ -244,6 +243,30 @@ public class EventManager {
         // Events from Calendar Provider
         CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
         result.addAll(provider.getEvents(startTime, endTime, calendarIds));
+        // Events from Database
+        EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+        List<Event> events = dataSource.getEvents(startTime, endTime, calendarIds);
+
+        for (Event event : events) {
+            add(event);
+
+            if (!result.contains(event)) {
+                result.add(event);
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Get only events from local database
+     * @param startTime
+     * @param endTime
+     * @param calendarIds
+     * @return
+     */
+    public List<Event> getLocalEvents(long startTime, long endTime, long... calendarIds) {
+        List<Event> result = new ArrayList<>();
         // Events from Database
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
         List<Event> events = dataSource.getEvents(startTime, endTime, calendarIds);
@@ -616,22 +639,24 @@ public class EventManager {
         return id;
     }
 
-    public boolean saveEventToDatabase (Event event, String eventId) {
+    public boolean saveProviderEventToDatabase(Event event, String eventId) {
         event.source = Event.SOURCE_DATABASE;
         event.color = R.color.green;
         event.id = eventId;
+        event.externalId = event.id;
 
         String id = createEvent(EventAction.ACTOR_NONE, event, null);
         return id != null;
     }
 
-    public boolean updateEventId (String originalId, String newId) {
+    public boolean updateEventId(String originalId, String newId) {
         EventDataSource eventDataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
         if (eventDataSource.updateEventId(originalId, newId) != 1) {
             return false;
         }
         Event event = cache.get(originalId);
         if (event != null) {
+            event.id = newId;
             cache.remove(originalId);
             cache.put(newId, event);
         }

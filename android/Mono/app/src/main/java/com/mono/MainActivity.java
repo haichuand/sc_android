@@ -184,9 +184,8 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         googleClient = new GoogleClient(this);
         googleClient.initialize();
 
-        chatUtil = new ChatUtil(this);
+        chatUtil = ChatUtil.getInstance(this);
         conversationManager = ConversationManager.getInstance(this);
-        conversationManager.addListener(chatUtil);
 
         syncManager = ServerSyncManager.getInstance(this);
 
@@ -255,7 +254,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        conversationManager.removeListener(chatUtil);
     }
 
     @Override
@@ -715,8 +713,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             return;
         }
 
-        List<Conversation> conversations = conversationManager.getConversations(eventId);
-        String conversationId;
+        List<Conversation> conversations = conversationManager.getConversationsDBFirst(event);
         if (conversations.isEmpty()) { //create new chat
             chatUtil.showCreateChatDialog(account, event);
         } else {

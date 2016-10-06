@@ -117,7 +117,7 @@ public class EventDataSource extends DataSource {
         return true;
     }
 
-    public int updateEventId (String originalId, String newId) {
+    public int updateEventId(String originalId, String newId) {
         try {
             ContentValues values = new ContentValues();
             values.put(DatabaseValues.Event.ID, newId);
