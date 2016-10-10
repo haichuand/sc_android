@@ -36,11 +36,19 @@ import com.mono.util.SimpleViewPager;
 
 import java.util.List;
 
+/**
+ * This fragment class is used to serve as the parent container of all views used to display a
+ * list of events. Common methods used by these other views are placed here primarily to have
+ * access to the MainActivity.
+ *
+ * @author Gary Ng
+ */
 public class DashboardFragment extends Fragment implements OnBackPressedListener,
         OnPageChangeListener, ListListener, EventBroadcastListener, TabPagerCallback, Scrollable {
 
-    public static final int TAB_ALL = 0;
-    public static final int TAB_FAVORITE = 1;
+    public static final int TAB_EVENTS = 0;
+    public static final int TAB_UPCOMING = 1;
+    public static final int TAB_FAVORITE = 2;
 
     private MainInterface mainInterface;
     private EventManager eventManager;
@@ -68,20 +76,9 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
         eventManager.addEventBroadcastListener(this);
 
         tabPagerAdapter = new SimpleTabPagerAdapter(getChildFragmentManager(), getContext());
-
-        Bundle args = new Bundle();
-        args.putInt(EventsFragment.EXTRA_POSITION, TAB_ALL);
-
-        Fragment fragment = new EventsFragment();
-        fragment.setArguments(args);
-        tabPagerAdapter.add(0, getString(R.string.all), fragment);
-
-        args = new Bundle();
-        args.putInt(EventsFragment.EXTRA_POSITION, TAB_FAVORITE);
-
-        fragment = new FavoritesFragment();
-        fragment.setArguments(args);
-        tabPagerAdapter.add(0, getString(R.string.favorite), fragment);
+        tabPagerAdapter.add(0, getString(R.string.events), new EventsFragment());
+        tabPagerAdapter.add(0, getString(R.string.upcoming), new UpcomingFragment());
+        tabPagerAdapter.add(0, getString(R.string.favorite), new FavoritesFragment());
     }
 
     @Override
@@ -91,6 +88,7 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
 
         viewPager = (SimpleViewPager) view.findViewById(R.id.container);
         viewPager.setAdapter(tabPagerAdapter);
+        viewPager.setOffscreenPageLimit(tabPagerAdapter.getCount() - 1);
         viewPager.addOnPageChangeListener(this);
 
         return view;
@@ -137,10 +135,6 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
 
                 mainInterface.showEventDetails(event);
                 return true;
-            case R.id.action_search:
-                return true;
-            case R.id.action_today:
-                return true;
         }
 
         return super.onOptionsItemSelected(item);
@@ -179,44 +173,82 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
     }
 
     @Override
-    public void onClick(int position, String id, View view) {
+    public void onClick(int tab, String id, View view) {
         Event event = eventManager.getEvent(id, false);
         mainInterface.showEventDetails(event);
     }
 
     @Override
-    public void onLongClick(int position, String id, View view) {
+    public void onLongClick(int tab, String id, View view) {
 
     }
 
     @Override
-    public void onChatClick(int position, String id) {
+    public void onChatClick(int tab, String id) {
         mainInterface.showChat(id);
     }
 
+    /**
+     * Handle the action of clicking on the favorite button for an event.
+     *
+     * @param tab Tab where the event as clicked.
+     * @param id ID of the event.
+     */
     @Override
-    public void onFavoriteClick(int position, String id) {
-        FavoritesFragment fragment = (FavoritesFragment) tabPagerAdapter.getItem(TAB_FAVORITE);
+    public void onFavoriteClick(int tab, String id) {
+        Event event = eventManager.getEvent(id, false);
 
-        switch (position) {
-            case TAB_ALL:
-                fragment.insert(eventManager.getEvent(id, false), false);
-
-                mainInterface.setTabLayoutBadge(TAB_FAVORITE, 0,
-                    String.valueOf(fragment.getCount()));
+        switch (tab) {
+            case TAB_EVENTS:
+            case TAB_UPCOMING:
+                if (!event.favorite) {
+                    onFavoriteInsert(event);
+                } else {
+                    onFavoriteRemove(event);
+                }
                 break;
             case TAB_FAVORITE:
-                fragment.remove(eventManager.getEvent(id, false));
-
-                int count = fragment.getCount();
-                mainInterface.setTabLayoutBadge(TAB_FAVORITE, 0,
-                    count > 0 ? String.valueOf(count) : null);
+                onFavoriteRemove(event);
                 break;
         }
     }
 
+    /**
+     * Handle the action of setting an event as favorite.
+     *
+     * @param event Event to be used.
+     */
+    private void onFavoriteInsert(Event event) {
+        eventManager.updateEventFavorite(event.id, true);
+
+        FavoritesFragment fragment = (FavoritesFragment) tabPagerAdapter.getItem(TAB_FAVORITE);
+        fragment.insert(event, false);
+
+        mainInterface.showSnackBar(R.string.favorites_added, 0, 0, null);
+    }
+
+    /**
+     * Handle the action of no longer setting an event as favorite.
+     *
+     * @param event Event to be used.
+     */
+    private void onFavoriteRemove(Event event) {
+        eventManager.updateEventFavorite(event.id, false);
+
+        FavoritesFragment fragment = (FavoritesFragment) tabPagerAdapter.getItem(TAB_FAVORITE);
+        fragment.remove(event);
+
+        mainInterface.showSnackBar(R.string.favorites_removed, 0, 0, null);
+    }
+
+    /**
+     * Handle the action of clicking on the delete button for an event.
+     *
+     * @param tab Tab where the event as clicked.
+     * @param id ID of the event.
+     */
     @Override
-    public void onDeleteClick(int position, final String id) {
+    public void onDeleteClick(int tab, final String id) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext(),
             R.style.AppTheme_Dialog_Alert);
         builder.setMessage(R.string.confirm_event_delete);
@@ -259,13 +291,22 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
         dialog.show();
     }
 
+    /**
+     * Handle all event changes being reported by the Event Manager and forward it to the correct
+     * fragment to respond to these changes.
+     *
+     * @param data Event action data.
+     */
     @Override
     public void onEventBroadcast(final EventAction data) {
         getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 EventBroadcastListener listener =
-                    (EventBroadcastListener) tabPagerAdapter.getItem(TAB_ALL);
+                    (EventBroadcastListener) tabPagerAdapter.getItem(TAB_EVENTS);
+                listener.onEventBroadcast(data);
+
+                listener = (EventBroadcastListener) tabPagerAdapter.getItem(TAB_UPCOMING);
                 listener.onEventBroadcast(data);
 
                 listener = (EventBroadcastListener) tabPagerAdapter.getItem(TAB_FAVORITE);

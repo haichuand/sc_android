@@ -3,6 +3,12 @@ package com.mono.util;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 
+/**
+ * This holder class is used to provide an abstract class representing a view holder with
+ * additional data commonly used by their implementations.
+ *
+ * @author Gary Ng
+ */
 public abstract class SimpleViewHolder extends RecyclerView.ViewHolder {
 
     public SimpleViewHolder(View itemView) {
@@ -19,6 +25,7 @@ public abstract class SimpleViewHolder extends RecyclerView.ViewHolder {
 
         public String id;
         public String sortValue;
+        public boolean selected;
 
         @Override
         public boolean equals(Object object) {

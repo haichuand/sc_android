@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.RingtoneManager;
 import android.os.Build;
+import android.support.v7.app.NotificationCompat;
 
 import com.mono.EventManager;
 import com.mono.MainActivity;
@@ -14,6 +15,7 @@ import com.mono.R;
 import com.mono.model.Event;
 import com.mono.model.Reminder;
 import com.mono.settings.Settings;
+import com.mono.util.Colors;
 import com.mono.util.Constants;
 
 import java.text.SimpleDateFormat;
@@ -52,9 +54,9 @@ public class AlarmHelper {
      *
      * @param context Context of the application.
      * @param eventId Event ID for notification to reference event.
-     * @param alarmTime The time in milliseconds for the alarm to go off.
+     * @param alarmTime Time in milliseconds for the alarm to go off.
      * @param title Title displayed in the notification.
-     * @param eventTime The actual time in milliseconds of the event.
+     * @param eventTime Actual time in milliseconds of the event.
      */
     public static void createAlarm(Context context, String eventId, long alarmTime,
             String title, long eventTime) {
@@ -160,7 +162,7 @@ public class AlarmHelper {
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent,
             PendingIntent.FLAG_UPDATE_CURRENT);
         // Create Notification
-        Notification.Builder builder = new Notification.Builder(context);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
         builder.setSmallIcon(R.drawable.ic_calendar);
         builder.setContentTitle(title);
 
@@ -170,7 +172,7 @@ public class AlarmHelper {
         builder.setShowWhen(false);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            builder.setColor(context.getResources().getColor(R.color.colorPrimary));
+            builder.setColor(Colors.getColor(context, R.color.colorPrimary));
         }
         // Notification Vibration
         if (Settings.getInstance(context).getNotificationVibrate()) {

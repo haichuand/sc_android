@@ -19,6 +19,56 @@ public class DatabaseValues {
         return "DROP TABLE IF EXISTS " + table + ";";
     }
 
+    public static class EventBase {
+
+        public static final String TABLE = "`event_base`";
+
+        public static final String ID = "`id`";
+        public static final String SOURCE = "`source`";
+        public static final String EVENT_ID = "`event_id`";
+        public static final String SYNC_ID = "`sync_id`";
+        public static final String FAVORITE = "`favorite`";
+        public static final String CREATE_TIME = "`create_time`";
+        public static final String MODIFY_TIME = "`modify_time`";
+        public static final String VIEW_TIME = "`view_time`";
+        public static final String SYNC_TIME = "`sync_time`";
+
+        public static final String[] PROJECTION = {
+            ID, SOURCE, EVENT_ID, SYNC_ID, CREATE_TIME, MODIFY_TIME, VIEW_TIME, SYNC_TIME
+        };
+
+        public static final int INDEX_ID = 0;
+        public static final int INDEX_SOURCE = 1;
+        public static final int INDEX_EVENT_ID = 2;
+        public static final int INDEX_SYNC_ID = 3;
+        public static final int INDEX_FAVORITE = 4;
+        public static final int INDEX_CREATE_TIME = 5;
+        public static final int INDEX_MODIFY_TIME = 6;
+        public static final int INDEX_VIEW_TIME = 7;
+        public static final int INDEX_SYNC_TIME = 8;
+
+        public static final String CREATE_TABLE;
+        public static final String DROP_TABLE;
+
+        static {
+            String[] parameters = {
+                ID + " INTEGER PRIMARY KEY AUTOINCREMENT",
+                SOURCE + " INTEGER NOT NULL",
+                EVENT_ID + " TEXT NOT NULL",
+                SYNC_ID + " TEXT DEFAULT NULL",
+                FAVORITE + " INTEGER NOT NULL DEFAULT 0",
+                CREATE_TIME + " INTEGER NOT NULL",
+                MODIFY_TIME + " INTEGER NOT NULL DEFAULT 0",
+                VIEW_TIME + " INTEGER NOT NULL DEFAULT 0",
+                SYNC_TIME + " INTEGER NOT NULL DEFAULT 0",
+                "UNIQUE (" + SOURCE + ", " + EVENT_ID + ")"
+            };
+
+            CREATE_TABLE = createTableQuery(TABLE, parameters);
+            DROP_TABLE = dropTableQuery(TABLE);
+        }
+    }
+
     public static class Event {
 
         public static final String TABLE = "`event`";
@@ -38,27 +88,11 @@ public class DatabaseValues {
         public static final String END_TIMEZONE = "`end_timezone`";
         public static final String ALL_DAY = "`all_day`";
         public static final String REMINDERS = "`reminders`";
-        public static final String CREATE_TIME = "`create_time`";
         public static final String ACK = "`ack`"; //flag for ack from server; 1: acked; 0: non-acked
 
         public static final String[] PROJECTION = {
-            Event.ID,
-            Event.CALENDAR_ID,
-            Event.INTERNAL_ID,
-            Event.EXTERNAL_ID,
-            Event.TYPE,
-            Event.TITLE,
-            Event.DESC,
-            Event.LOCATION_ID,
-            Event.COLOR,
-            Event.START_TIME,
-            Event.END_TIME,
-            Event.TIMEZONE,
-            Event.END_TIMEZONE,
-            Event.ALL_DAY,
-            Event.REMINDERS,
-            Event.CREATE_TIME,
-            Event.ACK
+            ID, CALENDAR_ID, INTERNAL_ID, EXTERNAL_ID, TYPE, TITLE, DESC, LOCATION_ID, COLOR,
+            START_TIME, END_TIME, TIMEZONE, END_TIMEZONE, ALL_DAY, REMINDERS, ACK
         };
 
         public static final int INDEX_ID = 0;
@@ -76,8 +110,7 @@ public class DatabaseValues {
         public static final int INDEX_END_TIMEZONE = 12;
         public static final int INDEX_ALL_DAY = 13;
         public static final int INDEX_REMINDERS = 14;
-        public static final int INDEX_CREATE_TIME = 15;
-        public static final int INDEX_ACK = 16;
+        public static final int INDEX_ACK = 15;
 
         public static final String CREATE_TABLE;
         public static final String DROP_TABLE;
@@ -100,7 +133,6 @@ public class DatabaseValues {
                 END_TIMEZONE + " TEXT",
                 ALL_DAY + " INTEGER",
                 REMINDERS + " TEXT",
-                CREATE_TIME + " INTEGER",
                 ACK + " INTEGER DEFAULT 1"
             };
 

@@ -2,10 +2,13 @@ package com.mono.dashboard;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Typeface;
 import android.os.AsyncTask;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -43,10 +46,20 @@ public class ListAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
     private static final int ITEM_HEIGHT_DP = 60;
     private static final int ITEM_PHOTO_HEIGHT_DP = 120;
 
-    private SimpleDataSource<ListItem> dataSource;
-    private SimpleSlideViewListener listener;
+    private static final Typeface TYPEFACE;
+    private static final Typeface TYPEFACE_BOLD;
 
-    public ListAdapter(SimpleSlideViewListener listener) {
+    private SimpleDataSource<ListItem> dataSource;
+    private DashboardListListener listener;
+
+    private boolean isSelectable;
+
+    static {
+        TYPEFACE = Typeface.create("sans-serif", Typeface.NORMAL);
+        TYPEFACE_BOLD = Typeface.create("sans-serif-medium", Typeface.NORMAL);
+    }
+
+    public ListAdapter(DashboardListListener listener) {
         this.listener = listener;
     }
 
@@ -114,8 +127,18 @@ public class ListAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
         notifyDataSetChanged();
     }
 
+    /**
+     * Enable the display of checkboxes for item selection during Edit Mode.
+     *
+     * @param selectable Whether to display checkboxes.
+     */
+    public void setSelectable(boolean selectable) {
+        this.isSelectable = selectable;
+    }
+
     public class Holder extends SimpleViewHolder {
 
+        private CheckBox checkbox;
         private ImageView icon;
         private TextView title;
         private TextView description;
@@ -124,6 +147,7 @@ public class ListAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
         public Holder(View itemView) {
             super(itemView);
 
+            checkbox = (CheckBox) itemView.findViewById(R.id.checkbox);
             icon = (ImageView) itemView.findViewById(R.id.icon);
             title = (TextView) itemView.findViewById(R.id.title);
             description = (TextView) itemView.findViewById(R.id.description);
@@ -132,7 +156,7 @@ public class ListAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
 
         @Override
         public void onBind(HolderItem holderItem) {
-            ListItem item = (ListItem) holderItem;
+            final ListItem item = (ListItem) holderItem;
 
             SimpleSlideView tempView = (SimpleSlideView) itemView;
             tempView.clear();
@@ -146,25 +170,29 @@ public class ListAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
             tempView.addRightButton(Colors.getColor(context, R.color.red),
                 R.drawable.ic_trash);
 
+            checkbox.setOnCheckedChangeListener(null);
+            checkbox.setChecked(item.selected);
+            checkbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    listener.onSelectClick(itemView, isChecked);
+                }
+            });
+
+            checkbox.setVisibility(isSelectable ? View.VISIBLE : View.GONE);
+
             icon.setImageResource(item.iconResId);
             icon.setColorFilter(item.iconColor | 0xFF000000);
 
-            if (item.title != null && !item.title.isEmpty()) {
-                title.setText(item.title);
-                title.setTextColor(Colors.getColor(context, R.color.gray_dark));
-            } else {
-                title.setText(R.string.untitled);
-                title.setTextColor(Colors.getColor(context, R.color.gray_light_3));
-            }
+            title.setText(item.title);
+            title.setTextColor(item.titleColor);
+//            title.setTypeface(item.titleBold ? TYPEFACE_BOLD : TYPEFACE);
 
             description.setText(item.description);
-            date.setText(item.dateTime);
 
-            if (item.dateTimeColor != 0) {
-                date.setTextColor(item.dateTimeColor);
-            } else {
-                date.setTextColor(Colors.getColor(context, R.color.gray_light_3));
-            }
+            date.setText(item.dateTime);
+            date.setTextColor(item.dateTimeColor);
+//            date.setTypeface(item.dateTimeBold ? TYPEFACE_BOLD : TYPEFACE);
         }
     }
 
@@ -176,8 +204,11 @@ public class ListAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
         public int iconResId;
         public int iconColor;
         public String title;
+        public int titleColor;
+        public boolean titleBold;
         public String description;
         public String dateTime;
+        public boolean dateTimeBold;
         public int dateTimeColor;
 
         public ListItem(String id) {
@@ -293,5 +324,10 @@ public class ListAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
         public PhotoItem(String id) {
             super(id);
         }
+    }
+
+    public interface DashboardListListener extends SimpleSlideViewListener {
+
+        void onSelectClick(View view, boolean value);
     }
 }

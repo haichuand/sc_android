@@ -71,7 +71,7 @@ public class EventManager {
     /**
      * Add listener to observe changes in new and existing events.
      *
-     * @param listener The callback listener.
+     * @param listener Callback listener.
      */
     public void addEventBroadcastListener(EventBroadcastListener listener) {
         listeners.add(listener);
@@ -80,7 +80,7 @@ public class EventManager {
     /**
      * Remove listener from observing any future changes in new and existing events.
      *
-     * @param listener The callback listener.
+     * @param listener Callback listener.
      */
     public void removeEventBroadcastListener(EventBroadcastListener listener) {
         Iterator<EventBroadcastListener> iterator = listeners.iterator();
@@ -95,7 +95,7 @@ public class EventManager {
     /**
      * Passes event changes to all listeners.
      *
-     * @param data The event action data.
+     * @param data Event action data.
      */
     private void sendToListeners(EventAction data) {
         for (EventBroadcastListener listener : listeners) {
@@ -106,7 +106,7 @@ public class EventManager {
     /**
      * Insert an event into the cache and retrieve any additional event information.
      *
-     * @param event The instance of an event.
+     * @param event Event to be added to cache.
      */
     private void add(Event event) {
         if (event.source == Event.SOURCE_DATABASE) {
@@ -135,9 +135,9 @@ public class EventManager {
     /**
      * Retrieve an event using the ID.
      *
-     * @param id The value of the event ID.
-     * @param refresh The value to trigger a new retrieval from its original source.
-     * @return an instance of the event.
+     * @param id ID of event to be retrieved.
+     * @param refresh Trigger a new retrieval from its original source.
+     * @return instance of the event.
      */
     public Event getEvent(String id, boolean refresh) {
         Event event = null;
@@ -173,12 +173,12 @@ public class EventManager {
     /**
      * Retrieve all events from the database that starts at a given time.
      *
-     * @param startTime The start time of events to return.
-     * @param offset The value of the offset.
-     * @param limit The value of the limit.
-     * @param direction The value of ascending or descending.
-     * @param calendarIds The calendars to retrieve events from.
-     * @return a list of events.
+     * @param startTime Start time of events to return.
+     * @param offset Offset of events to start with.
+     * @param limit Maximum number of events to return.
+     * @param direction Results returned in ascending or descending.
+     * @param calendarIds Calendars to retrieve events from.
+     * @return list of events.
      */
     public List<Event> getEventsByOffset(long startTime, int offset, int limit, int direction,
             long... calendarIds) {
@@ -198,12 +198,12 @@ public class EventManager {
     /**
      * Retrieve all events from the Calendar Provider that starts at a given time.
      *
-     * @param startTime The start time of events to return.
-     * @param offset The value of the offset.
-     * @param limit The value of the limit.
-     * @param direction The value of ascending or descending.
-     * @param calendarIds The calendars to retrieve events from.
-     * @return a list of events.
+     * @param startTime Start time of events to return.
+     * @param offset Offset of events to start with.
+     * @param limit Maximum number of events to return.
+     * @param direction Results returned in ascending or descending.
+     * @param calendarIds Calendars to retrieve events from.
+     * @return list of events.
      */
     public List<Event> getEventsFromProviderByOffset(long startTime, int offset, int limit,
             int direction, long... calendarIds) {
@@ -233,10 +233,10 @@ public class EventManager {
     /**
      * Retrieve all events belonging within a time range.
      *
-     * @param startTime The start time of events to return.
-     * @param endTime The end time of events to return.
-     * @param calendarIds The calendars to retrieve events from.
-     * @return a list of events.
+     * @param startTime Start time of events to return.
+     * @param endTime End time of events to return.
+     * @param calendarIds Calendars to retrieve events from.
+     * @return list of events.
      */
     public List<Event> getEvents(long startTime, long endTime, long... calendarIds) {
         List<Event> result = new ArrayList<>();
@@ -378,6 +378,18 @@ public class EventManager {
     }
 
     /**
+     * Retrieve events set as favorites by the user.
+     *
+     * @param calendarIds Restrict events to these calendars.
+     * @return list of events.
+     */
+    public List<Event> getFavoriteEvents(long... calendarIds) {
+        List<Event> result = new ArrayList<>();
+
+        return result;
+    }
+
+    /**
      * Retrieve all color markers for the specific month.
      *
      * @param year The value of the year.
@@ -438,10 +450,10 @@ public class EventManager {
     /**
      * Create an event.
      *
-     * @param actor The caller such as the user or system.
-     * @param event The data describing the event.
-     * @param callback The callback used once completed.
-     * @return the event ID.
+     * @param actor Caller such as the user or system.
+     * @param event Data describing the event.
+     * @param callback Callback used once completed.
+     * @return event ID.
      */
     public String createEvent(int actor, Event event, EventActionCallback callback) {
         String id = null;
@@ -461,10 +473,10 @@ public class EventManager {
     /**
      * Create an event into the database.
      *
-     * @param actor The caller such as the user or system.
-     * @param event The data describing the event.
-     * @param callback The callback used once completed.
-     * @return the event ID.
+     * @param actor Caller such as the user or system.
+     * @param event Data describing the event.
+     * @param callback Callback used once completed.
+     * @return event ID.
      */
     private String createLocalEvent(int actor, Event event, EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
@@ -504,8 +516,7 @@ public class EventManager {
                         event.timeZone,
                         event.endTimeZone,
                         event.allDay ? 1 : 0,
-                        reminders,
-                        System.currentTimeMillis()
+                        reminders
                 );
             } else {
                 dataSource.createEvent(
@@ -523,8 +534,7 @@ public class EventManager {
                         event.timeZone,
                         event.endTimeZone,
                         event.allDay ? 1 : 0,
-                        reminders,
-                        System.currentTimeMillis()
+                        reminders
                 );
                 id = event.id;
             }
@@ -575,10 +585,10 @@ public class EventManager {
     /**
      * Create an event into the Calendar Provider.
      *
-     * @param actor The caller such as the user or system.
-     * @param event The data describing the event.
-     * @param callback The callback used once completed.
-     * @return the event ID.
+     * @param actor Caller such as the user or system.
+     * @param event Data describing the event.
+     * @param callback Callback used once completed.
+     * @return event ID.
      */
     private String createSyncEvent(int actor, Event event, EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
@@ -1086,6 +1096,44 @@ public class EventManager {
     public void onProviderChange() {
         System.out.format("Calendar Provider has %d changes.\n", -1);
         AlarmHelper.startAll(context);
+    }
+
+    /**
+     * Update event as a favorite event.
+     *
+     * @param id ID of the event.
+     * @param favorite Whether event is a favorite.
+     */
+    public void updateEventFavorite(String id, boolean favorite) {
+        int actor = EventAction.ACTOR_SELF;
+        int status = EventAction.STATUS_OK;
+
+        Event event = getEvent(id, false);
+        event.favorite = favorite;
+
+        EventAction data = new EventAction(EventAction.ACTION_UPDATE, actor, status, event);
+        if (!listeners.isEmpty()) {
+            sendToListeners(data);
+        }
+    }
+
+    /**
+     * Update event when it was last viewed.
+     *
+     * @param id ID of the event.
+     * @param milliseconds Time last viewed.
+     */
+    public void updateEventViewTime(String id, long milliseconds) {
+        int actor = EventAction.ACTOR_SELF;
+        int status = EventAction.STATUS_OK;
+
+        Event event = getEvent(id, false);
+        event.viewTime = milliseconds;
+
+        EventAction data = new EventAction(EventAction.ACTION_UPDATE, actor, status, event);
+        if (!listeners.isEmpty()) {
+            sendToListeners(data);
+        }
     }
 
     public static class EventAction {

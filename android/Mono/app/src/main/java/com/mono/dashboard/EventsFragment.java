@@ -1,11 +1,16 @@
 package com.mono.dashboard;
 
+import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.RecyclerView.OnScrollListener;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -13,17 +18,18 @@ import android.widget.TextView;
 import com.mono.EventManager;
 import com.mono.EventManager.EventAction;
 import com.mono.EventManager.EventBroadcastListener;
+import com.mono.MainInterface;
 import com.mono.R;
+import com.mono.dashboard.ListAdapter.DashboardListListener;
 import com.mono.dashboard.ListAdapter.ListItem;
 import com.mono.dashboard.ListAdapter.PhotoItem;
 import com.mono.model.Event;
 import com.mono.util.Colors;
-import com.mono.util.Common;
 import com.mono.util.SimpleDataSource;
 import com.mono.util.SimpleLinearLayoutManager;
-import com.mono.util.SimpleSlideView.SimpleSlideViewListener;
 import com.mono.util.SimpleTabLayout.Scrollable;
 
+import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDate;
 import org.joda.time.LocalDateTime;
 
@@ -32,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -45,34 +52,35 @@ import java.util.TimeZone;
  * @author Gary Ng
  */
 public class EventsFragment extends Fragment implements SimpleDataSource<ListItem>,
-        SimpleSlideViewListener, EventBroadcastListener, Scrollable {
+        DashboardListListener, EventBroadcastListener, Scrollable {
 
-    private static final int PRECACHE_AMOUNT = 20;
-    private static final int PRECACHE_OFFSET = 10;
+    protected static final int PRECACHE_AMOUNT = 20;
+    protected static final int PRECACHE_OFFSET = 10;
 
-    public static final String EXTRA_POSITION = "position";
+    protected static final SimpleDateFormat DATE_FORMAT;
+    protected static final SimpleDateFormat DATE_FORMAT_2;
+    protected static final SimpleDateFormat TIME_FORMAT;
 
-    private static final SimpleDateFormat DATE_FORMAT;
-    private static final SimpleDateFormat DATE_FORMAT_2;
-    private static final SimpleDateFormat TIME_FORMAT;
+    protected int position;
+    protected ListListener listener;
 
-    private int position;
-    private ListListener listener;
+    protected RecyclerView recyclerView;
+    protected SimpleLinearLayoutManager layoutManager;
+    protected ListAdapter adapter;
+    protected TextView text;
 
-    private RecyclerView recyclerView;
-    private SimpleLinearLayoutManager layoutManager;
-    private ListAdapter adapter;
-    private TextView text;
+    protected final Map<String, ListItem> items = new HashMap<>();
+    protected final List<Event> events = new ArrayList<>();
 
-    private final Map<String, ListItem> items = new HashMap<>();
-    private final List<Event> events = new ArrayList<>();
+    protected Comparator<Event> comparator;
 
-    private AsyncTask<Void, Void, List<Event>> task;
-    private long startTime;
-    private int futureOffset;
-    private int futureOffsetProvider;
-    private int pastOffset;
-    private int pastOffsetProvider;
+    protected AsyncTask<Void, Void, List<Event>> task;
+    protected long startTime;
+    protected int offset;
+    protected int offsetProvider;
+
+    protected boolean isEditModeEnabled;
+    protected List<String> eventSelections = new LinkedList<>();
 
     static {
         DATE_FORMAT = new SimpleDateFormat("MMM d", Locale.getDefault());
@@ -83,16 +91,21 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
 
-        Bundle bundle = getArguments();
-        if (bundle != null) {
-            position = bundle.getInt(EXTRA_POSITION);
-        }
+        position = DashboardFragment.TAB_EVENTS;
 
         Fragment fragment = getParentFragment();
         if (fragment != null && fragment instanceof ListListener) {
             listener = (ListListener) fragment;
         }
+
+        comparator = new Comparator<Event>() {
+            @Override
+            public int compare(Event e1, Event e2) {
+                return Long.compare(e2.startTime, e1.startTime);
+            }
+        };
     }
 
     @Override
@@ -116,17 +129,77 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
         text = (TextView) view.findViewById(R.id.text);
         text.setVisibility(events.isEmpty() ? View.VISIBLE : View.INVISIBLE);
 
-        today();
+        LocalDate date = new LocalDate().plusDays(1);
+        startTime = date.toDateTimeAtStartOfDay().minusMillis(1).getMillis();
+        append();
 
         return view;
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        if (isEditModeEnabled) {
+            menu.clear();
+
+            if (!eventSelections.isEmpty()) {
+                inflater.inflate(R.menu.dashboard_edit, menu);
+            }
+        }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        switch (id) {
+            case R.id.action_delete:
+                if (eventSelections.isEmpty()) {
+                    return true;
+                }
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(getContext(),
+                        R.style.AppTheme_Dialog_Alert);
+                builder.setMessage(R.string.confirm_event_delete_multiple);
+
+                DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        switch (which) {
+                            case DialogInterface.BUTTON_POSITIVE:
+                                EventManager eventManager = EventManager.getInstance(getContext());
+                                for (String id : eventSelections) {
+                                    eventManager.removeEvent(EventAction.ACTOR_SELF, id, null);
+                                }
+
+                                getActivity().onBackPressed();
+                                break;
+                            case DialogInterface.BUTTON_NEGATIVE:
+                                break;
+                        }
+                    }
+                };
+
+                builder.setPositiveButton(R.string.yes, listener);
+                builder.setNegativeButton(R.string.no, listener);
+
+                AlertDialog dialog = builder.create();
+                dialog.show();
+
+                return true;
+            case R.id.action_edit:
+                setEditMode(true);
+                return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     /**
      * Retrieve events as items to be displayed by the adapter. Special case events such as one
      * with photos will return as a different type of item to be displayed differently.
      *
-     * @param position The position of the event.
-     * @return an item to display event information.
+     * @param position Position of the event.
+     * @return item to display event information.
      */
     @Override
     public ListItem getItem(int position) {
@@ -151,30 +224,52 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
             item.iconResId = R.drawable.circle;
             item.iconColor = event.color;
 
-            item.title = event.title;
+            if (event.title != null && !event.title.isEmpty()) {
+                item.title = event.title;
+            } else {
+                item.title = "(" + getString(R.string.no_subject) + ")";
+            }
+
             item.description = event.description;
 
             items.put(id, item);
         }
         // Date Display
         if (item != null) {
-            TimeZone timeZone = event.allDay ? TimeZone.getTimeZone("UTC") : TimeZone.getDefault();
-            item.dateTime = getDateString(event.startTime, timeZone);
-
-            LocalDate currentDate = new LocalDate();
-            LocalDate startDate = new LocalDate(event.startTime);
-            LocalDate endDate = new LocalDate(event.endTime);
-
             int colorId;
+            boolean bold;
 
-            if (Common.between(currentDate, startDate, endDate)) {
+            if (event.viewTime == 0) {
                 colorId = R.color.gray_dark;
-            } else if (event.startTime > System.currentTimeMillis()) {
-                colorId = R.color.green;
+                bold = true;
             } else {
                 colorId = R.color.gray_light_3;
+                bold = false;
             }
+
+            item.titleColor = Colors.getColor(getContext(), colorId);
+            item.titleBold = bold;
+
+            TimeZone timeZone = event.allDay ? TimeZone.getTimeZone("UTC") : TimeZone.getDefault();
+            item.dateTime = getDateString(event.startTime, timeZone, event.allDay);
+
+            if (event.viewTime == 0) {
+                long currentTime = System.currentTimeMillis();
+
+                if (event.startTime > currentTime || event.endTime > currentTime) {
+                    colorId = R.color.green;
+                } else {
+                    colorId = R.color.gray_dark;
+                }
+
+                bold = true;
+            } else {
+                colorId = R.color.gray_light_3;
+                bold = false;
+            }
+
             item.dateTimeColor = Colors.getColor(getContext(), colorId);
+            item.dateTimeBold = bold;
         }
 
         return item;
@@ -184,11 +279,12 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
      * Helper function to convert milliseconds into a readable date string that takes time zone
      * into account.
      *
-     * @param time The time in milliseconds.
-     * @param timeZone The time zone to be used.
-     * @return a date string.
+     * @param time Time in milliseconds.
+     * @param timeZone Time zone to be used.
+     * @param allDay Whether is an all day event.
+     * @return date string.
      */
-    private String getDateString(long time, TimeZone timeZone) {
+    protected String getDateString(long time, TimeZone timeZone, boolean allDay) {
         LocalDate currentDate = new LocalDate();
 
         LocalDateTime dateTime = new LocalDateTime(time);
@@ -197,7 +293,11 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
         SimpleDateFormat dateFormat;
 
         if (date.isEqual(currentDate)) {
-            dateFormat = TIME_FORMAT;
+            if (allDay) {
+                return getString(R.string.today);
+            } else {
+                dateFormat = TIME_FORMAT;
+            }
         } else if (date.getYear() == currentDate.getYear()) {
             dateFormat = DATE_FORMAT;
         } else {
@@ -212,7 +312,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
     /**
      * Retrieve the number of events to be used by the adapter.
      *
-     * @return the number of events.
+     * @return number of events.
      */
     @Override
     public int getCount() {
@@ -222,52 +322,145 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
     /**
      * Handle the action of clicking an event and notify any listeners.
      *
-     * @param view The view of the event.
+     * @param view View of the event.
      */
     @Override
     public void onClick(View view) {
         int position = recyclerView.getChildAdapterPosition(view);
         ListItem item = getItem(position);
+        if (item == null) {
+            return;
+        }
 
-        if (item != null) {
-            if (listener != null) {
-                listener.onClick(this.position, item.id, view);
-            }
+        if (listener != null) {
+            listener.onClick(this.position, item.id, view);
         }
     }
 
     /**
      * Handle the action of long clicking an event.
      *
-     * @param view The view of the event.
-     * @return the value of whether the action has been consumed.
+     * @param view View of the event.
+     * @return value of whether the action has been consumed.
      */
     @Override
     public boolean onLongClick(View view) {
-        return false;
+        if (isEditModeEnabled) {
+            return false;
+        }
+
+        setEditMode(true);
+
+        int position = recyclerView.getChildAdapterPosition(view);
+        ListItem item = getItem(position);
+        if (item == null) {
+            return false;
+        }
+
+        onSelectClick(view, true);
+
+        return true;
+    }
+
+    /**
+     * Enable edit mode to allow multiple item selection.
+     *
+     * @param value State of edit mode
+     */
+    public void setEditMode(boolean value) {
+        isEditModeEnabled = value;
+        // Clear Selections
+        for (ListItem item : items.values()) {
+            item.selected = false;
+        }
+        eventSelections.clear();
+
+        adapter.setSelectable(isEditModeEnabled);
+        adapter.notifyItemRangeChanged(0, adapter.getItemCount());
+
+        if (isEditModeEnabled) {
+            refreshActionBar();
+            // Switch Activity to Edit Mode
+            final MainInterface mainInterface = (MainInterface) getActivity();
+            mainInterface.setEditMode(new MainInterface.EditModeListener() {
+                @Override
+                public void onFinish() {
+                    mainInterface.setToolbarTitle(R.string.dashboard);
+                    setEditMode(false);
+                }
+            });
+        }
+    }
+
+    /**
+     * Handle the action of selecting an item from the list during Edit Mode.
+     *
+     * @param view View of the event.
+     * @param value Whether event is selected or unselected.
+     */
+    @Override
+    public void onSelectClick(View view, boolean value) {
+        int position = recyclerView.getChildAdapterPosition(view);
+        ListItem item = getItem(position);
+        if (item == null) {
+            return;
+        }
+
+        item.selected = value;
+
+        if (value) {
+            if (!eventSelections.contains(item.id)) {
+                eventSelections.add(item.id);
+            }
+        } else {
+            eventSelections.remove(item.id);
+        }
+
+        refreshActionBar();
+    }
+
+    /**
+     * Display the number of events selected in the action bar during Edit Mode.
+     */
+    private void refreshActionBar() {
+        MainInterface mainInterface = (MainInterface) getActivity();
+
+        if (eventSelections.isEmpty()) {
+            mainInterface.setToolbarTitle(R.string.select_items);
+        } else {
+            mainInterface.setToolbarTitle(getString(R.string.value_selected, eventSelections.size()));
+        }
+
+        if (eventSelections.size() <= 1) {
+            getActivity().invalidateOptionsMenu();
+        }
     }
 
     /**
      * Handle the action of clicking on a hidden option on the left side of the event.
      *
-     * @param view The view of the event.
-     * @param index The index of the action.
+     * @param view View of the event.
+     * @param index Index of the action.
      */
     @Override
     public void onLeftButtonClick(View view, int index) {
         int position = recyclerView.getChildAdapterPosition(view);
         ListItem item = getItem(position);
+        if (item == null) {
+            return;
+        }
 
-        if (item != null) {
-            if (listener != null) {
-                switch (index) {
-                    case ListAdapter.BUTTON_CHAT_INDEX:
-                        listener.onChatClick(this.position, item.id);
-                        break;
-                    case ListAdapter.BUTTON_FAVORITE_INDEX:
-                        listener.onFavoriteClick(this.position, item.id);
-                        break;
-                }
+        if (listener != null) {
+            switch (index) {
+                case ListAdapter.BUTTON_CHAT_INDEX:
+                    listener.onChatClick(this.position, item.id);
+                    break;
+                case ListAdapter.BUTTON_FAVORITE_INDEX:
+                    listener.onFavoriteClick(this.position, item.id);
+
+                    items.remove(item.id);
+                    adapter.notifyItemChanged(position);
+                    break;
             }
         }
     }
@@ -275,21 +468,22 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
     /**
      * Handle the action of clicking on a hidden option on the right side of the event.
      *
-     * @param view The view of the event.
-     * @param index The index of the action.
+     * @param view View of the event.
+     * @param index Index of the action.
      */
     @Override
     public void onRightButtonClick(View view, int index) {
         int position = recyclerView.getChildAdapterPosition(view);
         ListItem item = getItem(position);
+        if (item == null) {
+            return;
+        }
 
-        if (item != null) {
-            if (listener != null) {
-                switch (index) {
-                    case ListAdapter.BUTTON_DELETE_INDEX:
-                        listener.onDeleteClick(this.position, item.id);
-                        break;
-                }
+        if (listener != null) {
+            switch (index) {
+                case ListAdapter.BUTTON_DELETE_INDEX:
+                    listener.onDeleteClick(this.position, item.id);
+                    break;
             }
         }
     }
@@ -297,8 +491,8 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
     /**
      * Used to disable any vertical scrolling if event sliding gestures are active.
      *
-     * @param view The view of the event.
-     * @param state The value of the state.
+     * @param view View of the event.
+     * @param state Whether scrolling should be enabled.
      */
     @Override
     public void onGesture(View view, boolean state) {
@@ -308,7 +502,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
     /**
      * Handle all event changes being reported by the Event Manager.
      *
-     * @param data The event action data.
+     * @param data Event action data.
      */
     @Override
     public void onEventBroadcast(EventAction data) {
@@ -334,24 +528,42 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
     }
 
     /**
+     * Check if event is valid to be displayed within this fragment.
+     *
+     * @param event Event to check.
+     * @return whether event is valid.
+     */
+    protected boolean checkEvent(Event event) {
+        if (events.contains(event)) {
+            return false;
+        }
+
+        LocalDateTime currentTime = new LocalDateTime();
+
+        DateTimeZone timeZone = event.allDay ? DateTimeZone.UTC : DateTimeZone.getDefault();
+        LocalDateTime dateTime = new LocalDateTime(event.startTime, timeZone);
+
+        if (dateTime.isAfter(currentTime)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Handle the insertion of an event to be displayed.
      *
-     * @param event The instance of the event.
-     * @param scrollTo The value of whether to scroll to the event after insertion.
+     * @param event Instance of the event.
+     * @param scrollTo Whether to scroll to the event after insertion.
      */
     public void insert(Event event, boolean scrollTo) {
-        if (events.contains(event)) {
+        if (!checkEvent(event)) {
             return;
         }
 
         events.add(event);
 
-        Collections.sort(events, new Comparator<Event>() {
-            @Override
-            public int compare(Event e1, Event e2) {
-                return Long.compare(e2.startTime, e1.startTime);
-            }
-        });
+        Collections.sort(events, comparator);
 
         int index = events.indexOf(event);
         adapter.notifyItemInserted(index);
@@ -366,14 +578,14 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
     /**
      * Handle the insertion of multiple events at a starting index.
      *
-     * @param index The index to insert.
-     * @param items The events to be inserted.
+     * @param index Index to insert.
+     * @param items Events to be inserted.
      */
     public void insert(int index, List<Event> items) {
         int size = 0;
 
         for (Event event : items) {
-            if (events.contains(event)) {
+            if (!checkEvent(event)) {
                 continue;
             }
 
@@ -388,8 +600,8 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
     /**
      * Handle the refresh of an event if it was updated.
      *
-     * @param event The instance of the event.
-     * @param scrollTo The value of whether to scroll to the event after refresh.
+     * @param event Instance of the event.
+     * @param scrollTo Whether to scroll to the event after refresh.
      */
     public void update(Event event, boolean scrollTo) {
         int index = events.indexOf(event);
@@ -402,12 +614,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
 
         events.add(event);
 
-        Collections.sort(events, new Comparator<Event>() {
-            @Override
-            public int compare(Event e1, Event e2) {
-                return Long.compare(e2.startTime, e1.startTime);
-            }
-        });
+        Collections.sort(events, comparator);
 
         adapter.notifyItemChanged(index);
 
@@ -424,7 +631,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
     /**
      * Handle the removal of an event.
      *
-     * @param event The instance of the event.
+     * @param event Instance of the event.
      */
     public void remove(Event event) {
         int index = events.indexOf(event);
@@ -444,21 +651,16 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
      * Allows the list view to scroll infinitely in both directions depending on the available
      * events.
      *
-     * @param deltaY The direction of the vertical scrolling.
+     * @param deltaY Direction of the vertical scrolling.
      */
-    private void handleInfiniteScroll(int deltaY) {
+    protected void handleInfiniteScroll(int deltaY) {
         if (task != null) {
             return;
         }
 
         int position;
 
-        if (deltaY < 0) {
-            position = layoutManager.findFirstVisibleItemPosition();
-            if (position <= PRECACHE_OFFSET) {
-                prepend();
-            }
-        } else if (deltaY > 0) {
+        if (deltaY > 0) {
             position = layoutManager.findLastVisibleItemPosition();
             if (position >= Math.max(events.size() - 1 - PRECACHE_OFFSET, 0)) {
                 append();
@@ -467,47 +669,9 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
     }
 
     /**
-     * Retrieve and prepend events at the top of the list.
-     */
-    private void prepend() {
-        if (task != null) {
-            task.cancel(true);
-            task = null;
-        }
-
-        task = new AsyncTask<Void, Void, List<Event>>() {
-            @Override
-            protected List<Event> doInBackground(Void... params) {
-                EventManager manager = EventManager.getInstance(getContext());
-
-                List<Event> result = manager.getEventsFromProviderByOffset(startTime,
-                    futureOffsetProvider, PRECACHE_AMOUNT, 1);
-                futureOffsetProvider += result.size();
-
-                List<Event> events = manager.getEventsByOffset(startTime, futureOffset,
-                    PRECACHE_AMOUNT, 1);
-                futureOffset += events.size();
-
-                combine(result, events);
-
-                return result;
-            }
-
-            @Override
-            protected void onPostExecute(List<Event> result) {
-                if (!result.isEmpty()) {
-                    insert(0, result);
-                }
-
-                task = null;
-            }
-        }.execute();
-    }
-
-    /**
      * Retrieve and append events at the bottom of the list.
      */
-    private void append() {
+    protected void append() {
         if (task != null) {
             task.cancel(true);
             task = null;
@@ -519,12 +683,12 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
                 EventManager manager = EventManager.getInstance(getContext());
 
                 List<Event> result = manager.getEventsFromProviderByOffset(startTime,
-                    pastOffsetProvider, PRECACHE_AMOUNT, -1);
-                pastOffsetProvider += result.size();
+                    offsetProvider, PRECACHE_AMOUNT, -1);
+                offsetProvider += result.size();
 
-                List<Event> events = manager.getEventsByOffset(startTime, pastOffset,
+                List<Event> events = manager.getEventsByOffset(startTime, offset,
                     PRECACHE_AMOUNT, -1);
-                pastOffset += events.size();
+                offset += events.size();
 
                 combine(result, events);
 
@@ -545,10 +709,10 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
     /**
      * Used to combine two list of events into one sorted list.
      *
-     * @param result The list for events to be added.
-     * @param events The events to be added.
+     * @param result List for events to be added.
+     * @param events Events to be added.
      */
-    private void combine(List<Event> result, List<Event> events) {
+    protected void combine(List<Event> result, List<Event> events) {
         for (Event event : events) {
             if (result.contains(event)) {
                 int index = result.indexOf(event);
@@ -559,18 +723,13 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
             }
         }
 
-        Collections.sort(result, new Comparator<Event>() {
-            @Override
-            public int compare(Event e1, Event e2) {
-                return Long.compare(e2.startTime, e1.startTime);
-            }
-        });
+        Collections.sort(result, comparator);
     }
 
     /**
      * Scroll to a specific event.
      *
-     * @param event The instance of the event.
+     * @param event Instance of the event.
      */
     public void scrollTo(Event event) {
         int index = events.indexOf(event);
@@ -580,41 +739,21 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
         }
     }
 
-    /**
-     * Resets the list to the starting position.
-     */
-    public void today() {
-        recyclerView.stopScroll();
-
-        events.clear();
-
-        futureOffset = 0;
-        futureOffsetProvider = 0;
-        pastOffset = 0;
-        pastOffsetProvider = 0;
-
-        adapter.notifyDataSetChanged();
-
-        LocalDate date = new LocalDate().plusDays(1);
-        startTime = date.toDateTimeAtStartOfDay().minusMillis(1).getMillis();
-        append();
-    }
-
     @Override
     public void scrollToTop() {
-        today();
+        recyclerView.scrollToPosition(0);
     }
 
     public interface ListListener {
 
-        void onClick(int position, String id, View view);
+        void onClick(int tab, String id, View view);
 
-        void onLongClick(int position, String id, View view);
+        void onLongClick(int tab, String id, View view);
 
-        void onChatClick(int position, String id);
+        void onChatClick(int tab, String id);
 
-        void onFavoriteClick(int position, String id);
+        void onFavoriteClick(int tab, String id);
 
-        void onDeleteClick(int position, String id);
+        void onDeleteClick(int tab, String id);
     }
 }

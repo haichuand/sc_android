@@ -42,6 +42,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         executeQueries(db, new String[]{
+            DatabaseValues.EventBase.CREATE_TABLE,
             DatabaseValues.Event.CREATE_TABLE,
             DatabaseValues.User.CREATE_TABLE,
             DatabaseValues.Conversation.CREATE_TABLE,
@@ -69,6 +70,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         executeQueries(db, new String[]{
+            DatabaseValues.EventBase.DROP_TABLE,
             DatabaseValues.Event.DROP_TABLE,
             DatabaseValues.User.DROP_TABLE,
             DatabaseValues.Conversation.DROP_TABLE,

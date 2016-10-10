@@ -80,6 +80,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     private Toolbar toolbar;
     private Spinner toolbarSpinner;
     private DrawerLayout drawer;
+    private ActionBarDrawerToggle drawerToggle;
     private SimpleTabLayout tabLayout;
     private SimpleTabLayout dockLayout;
     private FloatingActionButton actionButton;
@@ -92,7 +93,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     private ConversationManager conversationManager;
     private ServerSyncManager syncManager;
 
-//    private Attendee selectedAttendee = null; //attendee selected in AutoCompleteTextView
+    private EditModeListener editModeListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,7 +107,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
         drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
 
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawer, toolbar,
+        drawerToggle = new ActionBarDrawerToggle(this, drawer, toolbar,
                 R.string.navigation_drawer_open, R.string.navigation_drawer_close) {
             @Override
             public void onDrawerSlide(View drawerView, float slideOffset) {
@@ -169,8 +170,8 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             }
         };
 
-        drawer.addDrawerListener(toggle);
-        toggle.syncState();
+        drawer.addDrawerListener(drawerToggle);
+        drawerToggle.syncState();
 
         tabLayout = (SimpleTabLayout) findViewById(R.id.tab_layout);
         dockLayout = (SimpleTabLayout) findViewById(R.id.dock_layout);
@@ -265,6 +266,9 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             // Close Hidden Side Menu
             drawer.closeDrawer(GravityCompat.START);
+        } else if (editModeListener != null) {
+            // Exit Edit Mode
+            setEditMode(null);
         } else if (fragment.onBackPressed()) {
             // Enable Back Button Handling (if any) within Fragments
         } else if (tabLayout.isVisible() && tabLayout.getSelectedTabPosition() > 0) {
@@ -366,16 +370,26 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     /**
      * Set the action bar title using a string resource.
      *
-     * @param resId The string resource containing the title.
+     * @param resId String resource containing the title.
      */
     @Override
     public void setToolbarTitle(int resId) {
+        setToolbarTitle(getString(resId));
+    }
+
+    /**
+     * Set the action bar title using a string.
+     *
+     * @param title String containing the title.
+     */
+    @Override
+    public void setToolbarTitle(CharSequence title) {
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setDisplayShowTitleEnabled(true);
         }
 
-        toolbar.setTitle(resId);
+        toolbar.setTitle(title);
         toolbarSpinner.setVisibility(View.GONE);
     }
 
@@ -489,15 +503,15 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     /**
      * Display the notification popup (Snackbar) at the bottom of the screen.
      *
-     * @param resId The string resource containing the message.
-     * @param actionResId The string resource to be used as the clickable text.
-     * @param actionColor The color of the clickable text.
-     * @param listener The listener used to respond to the clickable text.
+     * @param resId String resource containing the message.
+     * @param actionResId String resource to be used as the clickable text.
+     * @param actionColor Color of the clickable text.
+     * @param listener Listener used to respond to the clickable text.
      */
     @Override
     public void showSnackBar(int resId, int actionResId, int actionColor,
             OnClickListener listener) {
-        View view = findViewById(android.R.id.content);
+        View view = findViewById(R.id.snackbar);
 
         snackBar = Snackbar.make(view, resId, Snackbar.LENGTH_LONG);
 //        snackBar.setAction(actionResId, listener);
@@ -516,7 +530,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     /**
      * Trigger the syncing action primarily used for calendar events.
      *
-     * @param force The value used to bypass the sync delay.
+     * @param force Value used to bypass the sync delay.
      */
     @Override
     public void requestSync(boolean force) {
@@ -656,7 +670,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     /**
      * Display the event details screen activity.
      *
-     * @param event The event to be displayed or edited.
+     * @param event Event to be displayed or edited.
      */
     @Override
     public void showEventDetails(Event event) {
@@ -675,6 +689,11 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         intent.putExtra(EventDetailsActivity.EXTRA_EVENT, event);
 
         startActivityForResult(intent, RequestCodes.Activity.EVENT_DETAILS);
+
+        if (event.id != null) {
+            EventManager manager = EventManager.getInstance(this);
+            manager.updateEventViewTime(event.id, System.currentTimeMillis());
+        }
     }
 
     /**
@@ -743,9 +762,59 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         }
     }
 
+    @Override
     public void showLocationSetting() {
         Intent intent = new Intent(this, LocationSettingActivity.class);
         startActivityForResult(intent, RequestCodes.Activity.LOCATION_SETTING);
+    }
+
+    /**
+     * Switch the current activity to Edit Mode by limiting certain functionality and maximizing
+     * viewing space to improve item selection.
+     *
+     * @param listener Listener to handle action when switching modes.
+     */
+    @Override
+    public void setEditMode(EditModeListener listener) {
+        if (editModeListener != null) {
+            editModeListener.onFinish();
+        }
+
+        boolean isEditEnabled = listener != null;
+
+        if (isEditEnabled) {
+            drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+            drawerToggle.setDrawerIndicatorEnabled(false);
+            // Show Back Arrow
+            ActionBar actionBar = getSupportActionBar();
+            if (actionBar != null) {
+                actionBar.setDisplayHomeAsUpEnabled(true);
+            }
+            // Handle Back Arrow
+            drawerToggle.setToolbarNavigationClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    onBackPressed();
+                }
+            });
+        } else {
+            drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+            // Hide Back Arrow
+            ActionBar actionBar = getSupportActionBar();
+            if (actionBar != null) {
+                actionBar.setDisplayHomeAsUpEnabled(false);
+            }
+
+            drawerToggle.setDrawerIndicatorEnabled(true);
+            drawerToggle.setToolbarNavigationClickListener(null);
+        }
+        // Disable Tabs
+        tabLayout.setEnabled(!isEditEnabled);
+        dockLayout.setEnabled(!isEditEnabled);
+
+        invalidateOptionsMenu();
+
+        editModeListener = listener;
     }
 
     /**

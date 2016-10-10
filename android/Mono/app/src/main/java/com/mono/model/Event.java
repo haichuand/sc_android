@@ -1,7 +1,6 @@
 package com.mono.model;
 
 import android.os.Parcel;
-import android.os.Parcelable;
 
 import com.mono.util.Common;
 
@@ -14,7 +13,7 @@ import java.util.List;
  *
  * @author Gary Ng
  */
-public class Event implements Parcelable {
+public class Event extends EventBase {
 
     public static final String TYPE_CALENDAR = "calendar";
     public static final String TYPE_USERSTAY = "userstay";
@@ -24,7 +23,6 @@ public class Event implements Parcelable {
 
     public String id;
     public String parentId;
-    public int source;
     public long calendarId;
     public long internalId; // Calendar Provider ID
     public String externalId; // Google Calendar Sync ID
@@ -39,22 +37,24 @@ public class Event implements Parcelable {
     public String endTimeZone;
     public boolean allDay;
     public long lastRepeatTime;
-    public long createTime;
     public long updateTime;
     public List<Attendee> attendees = new ArrayList<>();
     public List<Reminder> reminders = new ArrayList<>();
-    public List<Media> photos = new ArrayList<>();
     public boolean syncNeeded;
 
     public Event() {
+        super(-1, 0, null, null);
         id = null;
     }
 
     public Event(String id) {
+        super(-1, 0, id, null);
         this.id = id;
     }
 
     public Event(Event event) {
+        super(event);
+
         id = event.id;
         parentId = event.parentId;
         source = event.source;
@@ -92,9 +92,10 @@ public class Event implements Parcelable {
     }
 
     protected Event(Parcel in) {
+        super(in);
+
         id = in.readString();
         parentId = in.readString();
-        source = in.readInt();
         calendarId = in.readLong();
         internalId = in.readLong();
         externalId = in.readString();
@@ -112,7 +113,6 @@ public class Event implements Parcelable {
         updateTime = in.readLong();
         in.readTypedList(attendees, Attendee.CREATOR);
         in.readTypedList(reminders, Reminder.CREATOR);
-        in.readTypedList(photos, Media.CREATOR);
     }
 
     public static final Creator<Event> CREATOR = new Creator<Event>() {
@@ -129,6 +129,10 @@ public class Event implements Parcelable {
 
     @Override
     public boolean equals(Object object) {
+        if (!super.equals(object)) {
+            return false;
+        }
+
         if (!(object instanceof Event)) {
             return false;
         }
@@ -143,6 +147,10 @@ public class Event implements Parcelable {
     }
 
     public boolean equals(Event event) {
+        if (!super.equals(event)) {
+            return false;
+        }
+
         if (!Common.compareStrings(id, event.id)) {
             return false;
         }
@@ -212,23 +220,15 @@ public class Event implements Parcelable {
             return false;
         }
 
-        if (!photos.equals(event.photos)) {
-            return false;
-        }
-
         return true;
     }
 
     @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    @Override
     public void writeToParcel(Parcel dest, int flags) {
+        super.writeToParcel(dest, flags);
+
         dest.writeString(id);
         dest.writeString(parentId);
-        dest.writeInt(source);
         dest.writeLong(calendarId);
         dest.writeLong(internalId);
         dest.writeString(externalId);
@@ -246,7 +246,6 @@ public class Event implements Parcelable {
         dest.writeLong(updateTime);
         dest.writeTypedList(attendees);
         dest.writeTypedList(reminders);
-        dest.writeTypedList(photos);
     }
 
     public long getDuration() {

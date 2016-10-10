@@ -26,6 +26,7 @@
     <string name="action_logout">Sign Out</string>
     <string name="action_delete">Delete</string>
     <string name="action_save">Save</string>
+    <string name="action_edit">Edit</string>
 
     <string name="fragment_main">MainFragment</string>
     <string name="fragment_login">LoginFragment</string>
@@ -94,8 +95,9 @@
 
     <string name="yes">Yes</string>
     <string name="no">No</string>
-    <string name="all">All</string>
+    <string name="events">Events</string>
     <string name="favorite">Favorite</string>
+    <string name="upcoming">Upcoming</string>
     <string name="empty">Empty</string>
     <string name="calendar">Calendar</string>
     <string name="title">Title</string>
@@ -147,10 +149,15 @@
     <string name="reminder_add">Add Reminder</string>
     <string name="no_subject">No Subject</string>
     <string name="submit">Submit</string>
+    <string name="select_items">Select Items</string>
+    <string name="value_selected">%d Selected</string>
+    <string name="today">Today</string>
 
     <string name="contacts_search">Enter Name or Email</string>
     <string name="favorites_add">Add to Favorites</string>
+    <string name="favorites_added">Added to Favorites</string>
     <string name="favorites_remove">Remove from Favorites</string>
+    <string name="favorites_removed">Removed from Favorites</string>
     <string name="friends_add">Add to Friends</string>
     <string name="friends_remove">Remove from Friends</string>
     <string name="skip">Skip</string>
@@ -164,6 +171,7 @@
 
     <string name="confirm_event_save">Do you want to save your changes?</string>
     <string name="confirm_event_delete">Are you sure you want to delete this event?</string>
+    <string name="confirm_event_delete_multiple">Are you sure you want to delete these events?</string>
     <string name="confirm_logout">Are you sure you want to sign out?</string>
     <string name="confirm_chat_leave">Are you sure you want to leave this chat?</string>
     <string name="confirm_friend_delete">Are you sure you want to remove this friend?</string>

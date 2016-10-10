@@ -49,13 +49,11 @@ public class EventDataSource extends DataSource {
      * @param endTimeZone The time zone used for the end time.
      * @param allDay The value of whether this is an all day event.
      * @param reminders Format: minutes,method;minutes,method;...
-     * @param createTime The current time event was created.
      * @return the event ID.
      */
     public String createEvent(long calendarId, long internalId, String externalId, String type,
             String title, String description, Long locationId, int color, long startTime,
-            long endTime, String timeZone, String endTimeZone, int allDay, String reminders,
-            long createTime) {
+            long endTime, String timeZone, String endTimeZone, int allDay, String reminders) {
         String id = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
 
         ContentValues values = new ContentValues();
@@ -74,7 +72,6 @@ public class EventDataSource extends DataSource {
         values.put(DatabaseValues.Event.END_TIMEZONE, endTimeZone);
         values.put(DatabaseValues.Event.ALL_DAY, allDay);
         values.put(DatabaseValues.Event.REMINDERS, reminders);
-        values.put(DatabaseValues.Event.CREATE_TIME, createTime);
 
         try {
             database.insert(DatabaseValues.Event.TABLE, values);
@@ -87,8 +84,7 @@ public class EventDataSource extends DataSource {
 
     public boolean createEvent(String eventId, long calendarId, long internalId, String externalId, String type,
                               String title, String description, Long locationId, int color, long startTime,
-                              long endTime, String timeZone, String endTimeZone, int allDay, String reminders,
-                               long createTime) {
+                              long endTime, String timeZone, String endTimeZone, int allDay, String reminders) {
 
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.Event.ID, eventId);
@@ -106,7 +102,6 @@ public class EventDataSource extends DataSource {
         values.put(DatabaseValues.Event.END_TIMEZONE, endTimeZone);
         values.put(DatabaseValues.Event.ALL_DAY, allDay);
         values.put(DatabaseValues.Event.REMINDERS, reminders);
-        values.put(DatabaseValues.Event.CREATE_TIME, createTime);
 
         try {
             database.insert(DatabaseValues.Event.TABLE, values);
@@ -985,8 +980,6 @@ public class EventDataSource extends DataSource {
                 event.reminders.add(reminder);
             }
         }
-
-        event.createTime = cursor.getLong(DatabaseValues.Event.INDEX_CREATE_TIME);
 
         return event;
     }

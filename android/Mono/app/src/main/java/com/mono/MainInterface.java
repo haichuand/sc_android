@@ -17,6 +17,8 @@ public interface MainInterface {
 
     void setToolbarTitle(int resId);
 
+    void setToolbarTitle(CharSequence resId);
+
     void setToolbarSpinner(CharSequence[] items, int position, OnItemSelectedListener listener);
 
     void setTabLayoutViewPager(ViewPager viewPager);
@@ -51,4 +53,11 @@ public interface MainInterface {
     void showExistingChat(String conversationId);
 
     void showLocationSetting();
+
+    void setEditMode(EditModeListener listener);
+
+    interface EditModeListener {
+
+        void onFinish();
+    }
 }

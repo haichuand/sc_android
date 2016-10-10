@@ -13,6 +13,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
 import android.util.AttributeSet;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -20,12 +21,19 @@ import android.widget.TextView;
 import com.mono.R;
 import com.mono.util.SimpleTabPagerAdapter.TabPagerItem;
 
+/**
+ * This layout class is used to display a list of horizontal tabs by adding additional
+ * functionality to the existing TabLayout class.
+ *
+ * @author Gary Ng
+ */
 public class SimpleTabLayout extends LinearLayout {
 
     private TabLayout tabLayout;
     private View lineView;
 
     private SimpleTabPagerAdapter adapter;
+    private OnTabSelectedListener listener;
 
     private int tabIconColor;
     private int tabSelectedIconColor;
@@ -85,6 +93,16 @@ public class SimpleTabLayout extends LinearLayout {
         array.recycle();
     }
 
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+        // Disable Tabs
+        ViewGroup layout = (ViewGroup) tabLayout.getChildAt(0);
+        for (int i = 0; i < layout.getChildCount(); i++) {
+            layout.getChildAt(i).setClickable(enabled);
+        }
+    }
+
     public boolean isVisible() {
         return getVisibility() == View.VISIBLE;
     }
@@ -100,7 +118,12 @@ public class SimpleTabLayout extends LinearLayout {
     public void setupWithViewPager(@NonNull final ViewPager viewPager,
             final boolean smoothScroll) {
         tabLayout.setupWithViewPager(viewPager);
-        tabLayout.setOnTabSelectedListener(new OnTabSelectedListener() {
+
+        if (listener != null) {
+            tabLayout.removeOnTabSelectedListener(listener);
+        }
+
+        tabLayout.addOnTabSelectedListener(listener = new OnTabSelectedListener() {
             private int position;
 
             @Override
