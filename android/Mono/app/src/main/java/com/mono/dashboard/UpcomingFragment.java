@@ -4,6 +4,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 
 import com.mono.EventManager;
+import com.mono.R;
 import com.mono.model.Event;
 
 import org.joda.time.DateTimeZone;
@@ -33,6 +34,8 @@ public class UpcomingFragment extends EventsFragment {
                 return Long.compare(e1.startTime, e2.startTime);
             }
         };
+
+        defaultDateTimeColorId = R.color.green;
     }
 
     /**

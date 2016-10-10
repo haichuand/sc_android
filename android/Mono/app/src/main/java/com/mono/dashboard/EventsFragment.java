@@ -73,6 +73,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
     protected final List<Event> events = new ArrayList<>();
 
     protected Comparator<Event> comparator;
+    protected int defaultDateTimeColorId;
 
     protected AsyncTask<Void, Void, List<Event>> task;
     protected long startTime;
@@ -106,6 +107,8 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
                 return Long.compare(e2.startTime, e1.startTime);
             }
         };
+
+        defaultDateTimeColorId = R.color.gray_dark;;
     }
 
     @Override
@@ -220,6 +223,8 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
                 item = new ListItem(id);
             }
 
+            item.selected = eventSelections.contains(id);
+
             item.type = ListItem.TYPE_EVENT;
             item.iconResId = R.drawable.circle;
             item.iconColor = event.color;
@@ -254,14 +259,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
             item.dateTime = getDateString(event.startTime, timeZone, event.allDay);
 
             if (event.viewTime == 0) {
-                long currentTime = System.currentTimeMillis();
-
-                if (event.startTime > currentTime || event.endTime > currentTime) {
-                    colorId = R.color.green;
-                } else {
-                    colorId = R.color.gray_dark;
-                }
-
+                colorId = defaultDateTimeColorId;
                 bold = true;
             } else {
                 colorId = R.color.gray_light_3;
@@ -281,7 +279,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
      *
      * @param time Time in milliseconds.
      * @param timeZone Time zone to be used.
-     * @param allDay Whether is an all day event.
+     * @param allDay All day event.
      * @return date string.
      */
     protected String getDateString(long time, TimeZone timeZone, boolean allDay) {
@@ -341,7 +339,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
      * Handle the action of long clicking an event.
      *
      * @param view View of the event.
-     * @return value of whether the action has been consumed.
+     * @return whether the action has been consumed.
      */
     @Override
     public boolean onLongClick(View view) {
@@ -396,7 +394,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
      * Handle the action of selecting an item from the list during Edit Mode.
      *
      * @param view View of the event.
-     * @param value Whether event is selected or unselected.
+     * @param value Event is selected or unselected.
      */
     @Override
     public void onSelectClick(View view, boolean value) {
@@ -492,7 +490,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
      * Used to disable any vertical scrolling if event sliding gestures are active.
      *
      * @param view View of the event.
-     * @param state Whether scrolling should be enabled.
+     * @param state Scrolling should be enabled.
      */
     @Override
     public void onGesture(View view, boolean state) {
@@ -554,7 +552,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
      * Handle the insertion of an event to be displayed.
      *
      * @param event Instance of the event.
-     * @param scrollTo Whether to scroll to the event after insertion.
+     * @param scrollTo Scroll to the event after insertion.
      */
     public void insert(Event event, boolean scrollTo) {
         if (!checkEvent(event)) {
@@ -601,7 +599,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
      * Handle the refresh of an event if it was updated.
      *
      * @param event Instance of the event.
-     * @param scrollTo Whether to scroll to the event after refresh.
+     * @param scrollTo Scroll to the event after refresh.
      */
     public void update(Event event, boolean scrollTo) {
         int index = events.indexOf(event);
