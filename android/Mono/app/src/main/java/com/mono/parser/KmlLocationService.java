@@ -51,6 +51,7 @@ public class KmlLocationService extends IntentService {
     private static final String TYPE = "userstay";
     private EventManager eventManager;
     private LocationDataSource locationDataSource;
+    private int loopNumber =0;
 
     private KmlParser parser;
     ArrayList<LatLngTime> userStays;
@@ -70,6 +71,7 @@ public class KmlLocationService extends IntentService {
     public void onHandleIntent(Intent intent) {
         if (intent != null) {
             String data = intent.getStringExtra("dataString");
+            loopNumber = intent.getIntExtra("loopNumber", 0);
             parser = new KmlParser();
             getNewUserstaysForOneDay(data);
         }
@@ -128,7 +130,7 @@ public class KmlLocationService extends IntentService {
         String notes = "";
         String distance = "";
         KmlEvents kmlevent = null;
-        String event_id;
+       // String event_id;
 
 
         protected String doInBackground(Object... params) {
@@ -143,6 +145,7 @@ public class KmlLocationService extends IntentService {
         }
 
         protected void onPostExecute(String result) {
+            Event event = new Event();
             if (requestResult != null) {
 
                 String[] detailResult = getAddressByLatLong(requestResult);
@@ -180,7 +183,7 @@ public class KmlLocationService extends IntentService {
                         Location toastString = testHashMap.get(kmlevent.getName());
 
 
-                            Event event = new Event();
+
                             event.type = Event.TYPE_USERSTAY;
                             event.title = location.name;
                             event.description = notes;
@@ -195,14 +198,12 @@ public class KmlLocationService extends IntentService {
                             } else {
                                 event.location = location;
                             }
-
-                            event_id = eventManager.createEvent(EventManager.EventAction.ACTOR_NONE, event, null);
+                          //  event_id = eventManager.createEvent(EventManager.EventAction.ACTOR_NONE, event, null);
                          //   Log.d(TAG, "event with id: " + event_id + " created");
 
                     } else {
 
                             //create a userstay event
-                            Event event = new Event();
                             event.type = Event.TYPE_USERSTAY;
                             event.title = location.name;
                             event.description = notes;
@@ -210,9 +211,19 @@ public class KmlLocationService extends IntentService {
                             event.startTime = kmlevent.getStartTime();
                             event.endTime = kmlevent.getEndTime();
 
-                            event_id = eventManager.createEvent(EventManager.EventAction.ACTOR_NONE, event, null);
+                         //   event_id = eventManager.createEvent(EventManager.EventAction.ACTOR_NONE, event, null);
                            // Log.d(TAG, "event with id: " + event_id + " created");
 
+                    }
+                    if((loopNumber%30 == 0)||( loopNumber == 365))
+                    {
+                        GlobalEventList.getInstance().monthList.add(event);
+                        eventManager.createEvents(EventManager.EventAction.ACTOR_NONE, GlobalEventList.getInstance().monthList, null);
+                        GlobalEventList.getInstance().monthList.clear();
+                    }
+                    else
+                    {
+                        GlobalEventList.getInstance().monthList.add(event);
                     }
                   //  checkEventOverlap(kmlevent, location, notes);
                 }

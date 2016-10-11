@@ -4,9 +4,14 @@ import android.app.IntentService;
 import android.content.Intent;
 
 
+import android.os.Bundle;
+import android.os.Parcelable;
 import android.util.Log;
 import android.webkit.CookieManager;
 
+
+import com.mono.db.DatabaseValues;
+import com.mono.model.Event;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -14,9 +19,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * Created by xuejing on 3/13/16.
@@ -50,8 +57,6 @@ public class KmlDownloadingService extends IntentService {
     public static final String COOKIE_URL = "https://www.google.com/maps/timeline";
     public static final String KML_URL = "https://www.google.com/maps/timeline/kml?authuser=0";
 
-
-
     public KmlDownloadingService() {
         super(TAG);
     }
@@ -65,17 +70,17 @@ public class KmlDownloadingService extends IntentService {
      //   Log.i(TAG, "downloadType: "+downloadType);
         if(KML.isSignedIn()) {
             if(downloadType.equals(REGULAR)) {
-                downloadKML(KML_URL + "&pb=" + getPbValue(0));
+                downloadKML(KML_URL + "&pb=" + getPbValue(0), 0);
             }
             else {
                 for(int i = 0; i <= 365; i++) {
-                    downloadKML(KML_URL + "&pb=" + getPbValue(i));
+                    downloadKML(KML_URL + "&pb=" + getPbValue(i), i);
                 }
             }
         }
     }
 
-    private void downloadKML (String url) {
+    private void downloadKML (String url, int day) {
 
         try {
             // Request + Response
@@ -97,6 +102,7 @@ public class KmlDownloadingService extends IntentService {
 
             Intent i = new Intent(getApplicationContext(), KmlLocationService.class);
             i.putExtra("dataString", builder.toString());
+            i.putExtra("loopNumber", day);
             getApplicationContext().startService(i);
 
         } catch (IOException e) {
