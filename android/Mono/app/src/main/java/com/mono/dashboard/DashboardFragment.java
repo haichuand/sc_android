@@ -261,8 +261,8 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
                         eventManager.removeEvent(EventAction.ACTOR_SELF, id,
                             new EventManager.EventActionCallback() {
                                 @Override
-                                public void onEventAction(EventAction data) {
-                                    if (data.getStatus() == EventAction.STATUS_OK) {
+                                public void onEventAction(EventAction... data) {
+                                    if (data[0].getStatus() == EventAction.STATUS_OK) {
                                         mainInterface.showSnackBar(R.string.event_action_delete,
                                             R.string.undo, 0, new View.OnClickListener() {
                                                 @Override
@@ -298,7 +298,7 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
      * @param data Event action data.
      */
     @Override
-    public void onEventBroadcast(final EventAction data) {
+    public void onEventBroadcast(final EventAction... data) {
         getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {

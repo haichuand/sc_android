@@ -20,6 +20,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * This class is used to import calendar events from the Calendar Provider to the local database.
+ *
+ * @author Gary Ng
+ */
 public class CalendarTask extends AsyncTask<Object, Event, Object> {
 
     private Context context;
@@ -108,8 +113,8 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
         final Event event = values[0];
         commit(event, new EventManager.EventActionCallback() {
             @Override
-            public void onEventAction(EventAction data) {
-                if (data.getStatus() == EventAction.STATUS_OK) {
+            public void onEventAction(EventAction... data) {
+                if (data[0].getStatus() == EventAction.STATUS_OK) {
                     AttendeeDataSource dataSource =
                         DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
                     EventAttendeeDataSource eventAttendeeDataSource =
@@ -127,10 +132,10 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
                             attendee.isFriend
                         );
 
-                        eventAttendeeDataSource.setAttendee(data.getEvent().id, id);
+                        eventAttendeeDataSource.setAttendee(data[0].getEvent().id, id);
                     }
 
-                    data.getEvent().attendees = event.attendees;
+                    data[0].getEvent().attendees = event.attendees;
                 }
             }
         });

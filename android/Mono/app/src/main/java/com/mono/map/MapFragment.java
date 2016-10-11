@@ -296,8 +296,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
     }
 
     @Override
-    public void onEventBroadcast(EventAction data) {
-        switch (data.getAction()) {
+    public void onEventBroadcast(EventAction... data) {
+        switch (data[0].getAction()) {
             case EventAction.ACTION_CREATE:
                 break;
             case EventAction.ACTION_UPDATE:

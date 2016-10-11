@@ -386,8 +386,8 @@ public class EventDetailsActivity extends GestureActivity {
                         manager.removeEvent(EventManager.EventAction.ACTOR_SELF, event.id,
                             new EventManager.EventActionCallback() {
                                 @Override
-                                public void onEventAction(EventManager.EventAction data) {
-                                    if (data.getStatus() == EventManager.EventAction.STATUS_OK) {
+                                public void onEventAction(EventManager.EventAction... data) {
+                                    if (data[0].getStatus() == EventManager.EventAction.STATUS_OK) {
                                         finish();
                                     }
                                 }

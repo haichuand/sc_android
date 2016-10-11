@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -367,16 +368,25 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
     /**
      * Handle the insertion of an event to be displayed.
      *
-     * @param event The instance of the event.
-     * @param scrollTo The value of whether to scroll to the event after insertion.
-     * @param notify The value of whether to notify the adapter.
+     * @param items Events to be inserted.
+     * @param scrollToPosition Scroll to the event after insertion.
+     * @param notify Notify the adapter.
      */
-    public void insert(Event event, boolean scrollTo, boolean notify) {
-        if (events.contains(event)) {
+    public void insert(List<Event> items, int scrollToPosition, boolean notify) {
+        Event scrollToEvent = scrollToPosition >= 0 ? items.get(scrollToPosition) : null;
+
+        Iterator<Event> iterator = items.iterator();
+        while (iterator.hasNext()) {
+            if (events.contains(iterator.next())) {
+                iterator.remove();
+            }
+        }
+
+        if (items.isEmpty()) {
             return;
         }
 
-        events.add(event);
+        events.addAll(items);
 
         Collections.sort(events, new Comparator<Event>() {
             @Override
@@ -386,11 +396,16 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
         });
 
         if (notify) {
-            int index = events.indexOf(event);
-            adapter.notifyItemInserted(index);
+            for (Event event : items) {
+                int index = events.indexOf(event);
+                adapter.notifyItemInserted(index);
+            }
 
-            if (scrollTo) {
-                recyclerView.smoothScrollToPosition(index);
+            if (scrollToEvent != null) {
+                scrollToPosition = events.indexOf(scrollToEvent);
+                if (scrollToPosition >= 0) {
+                    recyclerView.smoothScrollToPosition(scrollToPosition);
+                }
             }
         }
     }
@@ -398,20 +413,24 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
     /**
      * Handle the refresh of an event if it was updated.
      *
-     * @param event The instance of the event.
-     * @param scrollTo The value of whether to scroll to the event after refresh.
-     * @param notify The value of whether to notify the adapter.
+     * @param items Events to be refreshed.
+     * @param scrollToPosition Scroll to the event after refresh.
+     * @param notify Notify the adapter.
      */
-    public void refresh(Event event, boolean scrollTo, boolean notify) {
-        int index = events.indexOf(event);
-        if (index < 0) {
-            return;
+    public void refresh(List<Event> items, int scrollToPosition, boolean notify) {
+        Event scrollToEvent = scrollToPosition >= 0 ? items.get(scrollToPosition) : null;
+
+        for (Event event : items) {
+            int index = events.indexOf(event);
+            if (index < 0) {
+                continue;
+            }
+
+            events.remove(index);
+            this.items.remove(event.id);
+
+            events.add(event);
         }
-
-        events.remove(index);
-        items.remove(event.id);
-
-        events.add(event);
 
         Collections.sort(events, new Comparator<Event>() {
             @Override
@@ -421,15 +440,21 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
         });
 
         if (notify) {
-            adapter.notifyItemChanged(index);
+            for (Event event : items) {
+                int index = events.indexOf(event);
+                adapter.notifyItemChanged(index);
 
-            int currentIndex = events.indexOf(event);
-            if (currentIndex != index) {
-                adapter.notifyItemMoved(index, currentIndex);
+                int currentIndex = events.indexOf(event);
+                if (currentIndex != index) {
+                    adapter.notifyItemMoved(index, currentIndex);
+                }
             }
 
-            if (scrollTo) {
-                recyclerView.smoothScrollToPosition(currentIndex);
+            if (scrollToEvent != null) {
+                scrollToPosition = events.indexOf(scrollToEvent);
+                if (scrollToPosition >= 0) {
+                    recyclerView.smoothScrollToPosition(scrollToPosition);
+                }
             }
         }
     }
@@ -437,19 +462,21 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
     /**
      * Handle the removal of an event.
      *
-     * @param event The instance of the event.
-     * @param notify The value of whether to notify the adapter.
+     * @param items Events to be removed.
+     * @param notify Notify the adapter.
      */
-    public void remove(Event event, boolean notify) {
-        int index = events.indexOf(event);
-        if (index < 0) {
-            return;
-        }
+    public void remove(List<Event> items, boolean notify) {
+        for (Event event : items) {
+            int index = events.indexOf(event);
+            if (index < 0) {
+                continue;
+            }
 
-        events.remove(index);
+            events.remove(index);
 
-        if (notify) {
-            adapter.notifyItemRemoved(index);
+            if (notify) {
+                adapter.notifyItemRemoved(index);
+            }
         }
 
         if (events.isEmpty()) {

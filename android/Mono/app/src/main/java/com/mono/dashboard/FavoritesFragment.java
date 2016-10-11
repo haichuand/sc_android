@@ -7,6 +7,10 @@ import android.view.ViewGroup;
 
 import com.mono.EventManager;
 import com.mono.EventManager.EventAction;
+import com.mono.model.Event;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A fragment that displays a list of favorite events. Events selected can be viewed or edited.
@@ -45,20 +49,42 @@ public class FavoritesFragment extends EventsFragment {
      * @param data Event action data.
      */
     @Override
-    public void onEventBroadcast(EventAction data) {
-        boolean scrollTo = data.getActor() == EventAction.ACTOR_SELF;
+    public void onEventBroadcast(EventAction... data) {
+        for (int i = 0; i < data.length; i++) {
+            int action = -1;
+            int scrollToPosition = -1;
 
-        switch (data.getAction()) {
-            case EventAction.ACTION_UPDATE:
-                if (data.getStatus() == EventAction.STATUS_OK) {
-                    update(data.getEvent(), scrollTo);
+            List<Event> events = new ArrayList<>();
+            for (; i < data.length; i++) {
+                EventAction item = data[i];
+
+                if (action != -1 && action != item.getAction()) {
+                    break;
                 }
-                break;
-            case EventAction.ACTION_REMOVE:
-                if (data.getStatus() == EventAction.STATUS_OK) {
-                    remove(data.getEvent());
+
+                action = item.getAction();
+
+                if (item.getStatus() == EventAction.STATUS_OK) {
+                    if (scrollToPosition == -1 && item.getActor() == EventAction.ACTOR_SELF) {
+                        scrollToPosition = events.size();
+                    }
+
+                    events.add(item.getEvent());
                 }
-                break;
+            }
+
+            if (events.isEmpty()) {
+                continue;
+            }
+
+            switch (action) {
+                case EventAction.ACTION_UPDATE:
+                    update(events, scrollToPosition);
+                    break;
+                case EventAction.ACTION_REMOVE:
+                    remove(events);
+                    break;
+            }
         }
     }
 

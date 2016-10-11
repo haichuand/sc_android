@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -503,25 +504,45 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
      * @param data Event action data.
      */
     @Override
-    public void onEventBroadcast(EventAction data) {
-        boolean scrollTo = data.getActor() == EventAction.ACTOR_SELF;
+    public void onEventBroadcast(EventAction... data) {
+        for (int i = 0; i < data.length; i++) {
+            int action = -1;
+            int scrollToPosition = -1;
 
-        switch (data.getAction()) {
-            case EventAction.ACTION_CREATE:
-                if (data.getStatus() == EventAction.STATUS_OK) {
-                    insert(data.getEvent(), scrollTo);
+            List<Event> events = new ArrayList<>();
+            for (; i < data.length; i++) {
+                EventAction item = data[i];
+
+                if (action != -1 && action != item.getAction()) {
+                    break;
                 }
-                break;
-            case EventAction.ACTION_UPDATE:
-                if (data.getStatus() == EventAction.STATUS_OK) {
-                    update(data.getEvent(), scrollTo);
+
+                action = item.getAction();
+
+                if (item.getStatus() == EventAction.STATUS_OK) {
+                    if (scrollToPosition == -1 && item.getActor() == EventAction.ACTOR_SELF) {
+                        scrollToPosition = events.size();
+                    }
+
+                    events.add(item.getEvent());
                 }
-                break;
-            case EventAction.ACTION_REMOVE:
-                if (data.getStatus() == EventAction.STATUS_OK) {
-                    remove(data.getEvent());
-                }
-                break;
+            }
+
+            if (events.isEmpty()) {
+                continue;
+            }
+
+            switch (action) {
+                case EventAction.ACTION_CREATE:
+                    insert(events, scrollToPosition);
+                    break;
+                case EventAction.ACTION_UPDATE:
+                    update(events, scrollToPosition);
+                    break;
+                case EventAction.ACTION_REMOVE:
+                    remove(events);
+                    break;
+            }
         }
     }
 
@@ -549,28 +570,53 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
     }
 
     /**
-     * Handle the insertion of an event to be displayed.
+     * Handle the insertion of multiple events to be displayed.
      *
-     * @param event Instance of the event.
-     * @param scrollTo Scroll to the event after insertion.
+     * @param items Events to be inserted.
+     * @param scrollToPosition Scroll to the event after insertion.
      */
-    public void insert(Event event, boolean scrollTo) {
-        if (!checkEvent(event)) {
+    public void insert(List<Event> items, int scrollToPosition) {
+        Event scrollToEvent = scrollToPosition >= 0 ? items.get(scrollToPosition) : null;
+
+        Iterator<Event> iterator = items.iterator();
+        while (iterator.hasNext()) {
+            if (!checkEvent(iterator.next())) {
+                iterator.remove();
+            }
+        }
+
+        if (items.isEmpty()) {
             return;
         }
 
-        events.add(event);
-
+        events.addAll(items);
         Collections.sort(events, comparator);
 
-        int index = events.indexOf(event);
-        adapter.notifyItemInserted(index);
+        for (Event event : items) {
+            adapter.notifyItemInserted(events.indexOf(event));
+        }
 
-        if (scrollTo) {
-            recyclerView.smoothScrollToPosition(index);
+        if (scrollToEvent != null) {
+            scrollToPosition = events.indexOf(scrollToEvent);
+            if (scrollToPosition >= 0) {
+                recyclerView.smoothScrollToPosition(scrollToPosition);
+            }
         }
 
         text.setVisibility(View.INVISIBLE);
+    }
+
+    /**
+     * Handle the insertion of an event to be displayed.
+     *
+     * @param event Event to be inserted.
+     * @param scrollTo Scroll to the event after insertion.
+     */
+    public void insert(Event event, boolean scrollTo) {
+        List<Event> events = new ArrayList<>(1);
+        events.add(event);
+
+        insert(events, scrollTo ? 0 : -1);
     }
 
     /**
@@ -596,53 +642,74 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
     }
 
     /**
-     * Handle the refresh of an event if it was updated.
+     * Handle the refresh of events if it was updated.
      *
-     * @param event Instance of the event.
-     * @param scrollTo Scroll to the event after refresh.
+     * @param items Events to be updated.
+     * @param scrollToPosition Scroll to the event after refresh.
      */
-    public void update(Event event, boolean scrollTo) {
-        int index = events.indexOf(event);
-        if (index < 0) {
-            return;
+    public void update(List<Event> items, int scrollToPosition) {
+        Event scrollToEvent = scrollToPosition >= 0 ? items.get(scrollToPosition) : null;
+
+        for (Event event : items) {
+            int index = events.indexOf(event);
+            if (index < 0) {
+                continue;
+            }
+
+            events.remove(index);
+            this.items.remove(event.id);
+
+            events.add(event);
+
+            Collections.sort(events, comparator);
+
+            adapter.notifyItemChanged(index);
+
+            int currentIndex = events.indexOf(event);
+            if (currentIndex != index) {
+                adapter.notifyItemMoved(index, currentIndex);
+            }
         }
 
-        events.remove(index);
-        items.remove(event.id);
+        if (scrollToEvent != null) {
+            scrollToPosition = events.indexOf(scrollToEvent);
+            if (scrollToPosition >= 0) {
+                recyclerView.smoothScrollToPosition(scrollToPosition);
+            }
+        }
+    }
 
-        events.add(event);
+    /**
+     * Handle the removal of events.
+     *
+     * @param items Events to be removed.
+     */
+    public void remove(List<Event> items) {
+        for (Event event : items) {
+            int index = events.indexOf(event);
+            if (index < 0) {
+                continue;
+            }
 
-        Collections.sort(events, comparator);
-
-        adapter.notifyItemChanged(index);
-
-        int currentIndex = events.indexOf(event);
-        if (currentIndex != index) {
-            adapter.notifyItemMoved(index, currentIndex);
+            events.remove(index);
+            adapter.notifyItemRemoved(index);
         }
 
-        if (scrollTo) {
-            recyclerView.smoothScrollToPosition(currentIndex);
+        if (events.isEmpty()) {
+            text.setVisibility(View.VISIBLE);
         }
     }
 
     /**
      * Handle the removal of an event.
      *
-     * @param event Instance of the event.
+     * @param event Event to be removed.
      */
     public void remove(Event event) {
-        int index = events.indexOf(event);
-        if (index < 0) {
-            return;
-        }
+        List<Event> events = new ArrayList<>(1);
+        events.add(event);
 
-        events.remove(index);
-        adapter.notifyItemRemoved(index);
-
-        if (events.isEmpty()) {
-            text.setVisibility(View.VISIBLE);
-        }
+        remove(events);
     }
 
     /**

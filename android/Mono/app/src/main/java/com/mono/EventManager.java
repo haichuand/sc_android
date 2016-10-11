@@ -34,7 +34,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.TimeZone;
 
 /**
@@ -97,7 +96,7 @@ public class EventManager {
      *
      * @param data Event action data.
      */
-    private void sendToListeners(EventAction data) {
+    private void sendToListeners(EventAction... data) {
         for (EventBroadcastListener listener : listeners) {
             listener.onEventBroadcast(data);
         }
@@ -458,16 +457,72 @@ public class EventManager {
     public String createEvent(int actor, Event event, EventActionCallback callback) {
         String id = null;
 
-        if (event.source == Event.SOURCE_DATABASE) {
-            event.internalId = System.currentTimeMillis();
-            // Create Event into the Database
-            id = createLocalEvent(actor, event, callback);
-        } else if (event.source == Event.SOURCE_PROVIDER) {
-            // Create Event into the Provider
-            id = createSyncEvent(actor, event, callback);
+        EventAction data = createEvent(actor, event);
+
+        if (data != null) {
+            id = data.getEvent().id;
+
+            if (!listeners.isEmpty()) {
+                sendToListeners(data);
+            }
+
+            if (callback != null) {
+                callback.onEventAction(data);
+            }
         }
 
         return id;
+    }
+
+    /**
+     * Create multiple events.
+     *
+     * @param actor Caller such as the user or system.
+     * @param events Data describing the events.
+     * @param callback Callback used once completed.
+     */
+    public void createEvents(int actor, List<Event> events, EventActionCallback callback) {
+        List<EventAction> result = new ArrayList<>(events.size());
+
+        for (Event event : events) {
+            EventAction data = createEvent(actor, event);
+
+            if (data != null) {
+                result.add(data);
+            }
+        }
+
+        if (!result.isEmpty()) {
+            EventAction[] data = result.toArray(new EventAction[result.size()]);
+
+            if (!listeners.isEmpty()) {
+                sendToListeners(data);
+            }
+
+            if (callback != null) {
+                callback.onEventAction(data);
+            }
+        }
+    }
+
+    /**
+     * Create an event.
+     *
+     * @param actor Caller such as the user or system.
+     * @param event Data describing the event.
+     * @return event result.
+     */
+    private EventAction createEvent(int actor, Event event) {
+        if (event.source == Event.SOURCE_DATABASE) {
+            event.internalId = System.currentTimeMillis();
+            // Create Database Event
+            return createLocalEvent(actor, event);
+        } else if (event.source == Event.SOURCE_PROVIDER) {
+            // Create Provider Event
+            return createSyncEvent(actor, event);
+        }
+
+        return null;
     }
 
     /**
@@ -475,10 +530,9 @@ public class EventManager {
      *
      * @param actor Caller such as the user or system.
      * @param event Data describing the event.
-     * @param callback Callback used once completed.
-     * @return event ID.
+     * @return event result.
      */
-    private String createLocalEvent(int actor, Event event, EventActionCallback callback) {
+    private EventAction createLocalEvent(int actor, Event event) {
         int status = EventAction.STATUS_OK;
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
@@ -503,42 +557,41 @@ public class EventManager {
             // Create Event into Database
             if (event.id == null || event.id.isEmpty()) {
                 id = dataSource.createEvent(
-                        event.calendarId,
-                        event.internalId,
-                        event.externalId,
-                        event.type,
-                        event.title,
-                        event.description,
-                        event.location != null ? event.location.id : null,
-                        event.color,
-                        event.startTime,
-                        event.endTime,
-                        event.timeZone,
-                        event.endTimeZone,
-                        event.allDay ? 1 : 0,
-                        reminders
+                    event.calendarId,
+                    event.internalId,
+                    event.externalId,
+                    event.type,
+                    event.title,
+                    event.description,
+                    event.location != null ? event.location.id : null,
+                    event.color,
+                    event.startTime,
+                    event.endTime,
+                    event.timeZone,
+                    event.endTimeZone,
+                    event.allDay ? 1 : 0,
+                    reminders
                 );
             } else {
                 dataSource.createEvent(
-                        event.id,
-                        event.calendarId,
-                        event.internalId,
-                        event.externalId,
-                        event.type,
-                        event.title,
-                        event.description,
-                        event.location != null ? event.location.id : null,
-                        event.color,
-                        event.startTime,
-                        event.endTime,
-                        event.timeZone,
-                        event.endTimeZone,
-                        event.allDay ? 1 : 0,
-                        reminders
+                    event.id,
+                    event.calendarId,
+                    event.internalId,
+                    event.externalId,
+                    event.type,
+                    event.title,
+                    event.description,
+                    event.location != null ? event.location.id : null,
+                    event.color,
+                    event.startTime,
+                    event.endTime,
+                    event.timeZone,
+                    event.endTimeZone,
+                    event.allDay ? 1 : 0,
+                    reminders
                 );
                 id = event.id;
             }
-
         }
 
         if (id != null) {
@@ -569,17 +622,7 @@ public class EventManager {
             status = EventAction.STATUS_FAILED;
         }
 
-        if (event != null) {
-            EventAction data = new EventAction(EventAction.ACTION_CREATE, actor, status, event);
-            if (!listeners.isEmpty()) {
-                sendToListeners(data);
-            }
-            if (callback != null) {
-                callback.onEventAction(data);
-            }
-        }
-
-        return id;
+        return new EventAction(EventAction.ACTION_CREATE, actor, status, event);
     }
 
     /**
@@ -587,10 +630,9 @@ public class EventManager {
      *
      * @param actor Caller such as the user or system.
      * @param event Data describing the event.
-     * @param callback Callback used once completed.
-     * @return event ID.
+     * @return event result.
      */
-    private String createSyncEvent(int actor, Event event, EventActionCallback callback) {
+    private EventAction createSyncEvent(int actor, Event event) {
         int status = EventAction.STATUS_OK;
 
         CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
@@ -638,15 +680,7 @@ public class EventManager {
             status = EventAction.STATUS_FAILED;
         }
 
-        EventAction data = new EventAction(EventAction.ACTION_CREATE, actor, status, event);
-        if (!listeners.isEmpty()) {
-            sendToListeners(data);
-        }
-        if (callback != null) {
-            callback.onEventAction(data);
-        }
-
-        return id;
+        return new EventAction(EventAction.ACTION_CREATE, actor, status, event);
     }
 
     public boolean saveProviderEventToDatabase(Event event, String eventId) {
@@ -680,14 +714,64 @@ public class EventManager {
      * @param id Event of ID to be updated.
      * @param event Event information to update.
      * @param callback Callback used once completed.
-     * @return a set of type of values updated.
      */
-    public Set<String> updateEvent(int actor, String id, Event event,
-            EventActionCallback callback) {
+    public void updateEvent(int actor, String id, Event event, EventActionCallback callback) {
+        EventAction data = updateEvent(actor, event);
+
+        if (data != null) {
+            if (!listeners.isEmpty()) {
+                sendToListeners(data);
+            }
+
+            if (callback != null) {
+                callback.onEventAction(data);
+            }
+        }
+    }
+
+    /**
+     * Update multiple existing events.
+     *
+     * @param actor Caller such as user or system.
+     * @param events Event information to update.
+     * @param callback Callback used once completed.
+     */
+    public void updateEvents(int actor, List<Event> events, EventActionCallback callback) {
+        List<EventAction> result = new ArrayList<>(events.size());
+
+        for (Event event : events) {
+            EventAction data = updateEvent(actor, event);
+
+            if (data != null) {
+                result.add(data);
+            }
+        }
+
+        if (!result.isEmpty()) {
+            EventAction[] data = result.toArray(new EventAction[result.size()]);
+
+            if (!listeners.isEmpty()) {
+                sendToListeners(data);
+            }
+
+            if (callback != null) {
+                callback.onEventAction(data);
+            }
+        }
+    }
+
+    /**
+     * Update an existing event.
+     *
+     * @param actor Caller such as user or system.
+     * @param event Event information to update.
+     * @return event result.
+     */
+    private EventAction updateEvent(int actor, Event event) {
         if (event.source == Event.SOURCE_DATABASE) {
-            return updateLocalEvent(actor, id, event, callback);
+            return updateLocalEvent(actor, event);
         } else if (event.source == Event.SOURCE_PROVIDER) {
-            return updateSyncEvent(actor, id, event, callback);
+            return updateSyncEvent(actor, event);
         }
 
         return null;
@@ -697,15 +781,13 @@ public class EventManager {
      * Update an existing event stored in the database.
      *
      * @param actor Caller such as user or system.
-     * @param id Event of ID to be updated.
      * @param event Event information to update.
-     * @param callback Callback used once completed.
-     * @return a set of type of values updated.
+     * @return event result.
      */
-    private Set<String> updateLocalEvent(int actor, String id, Event event,
-            EventActionCallback callback) {
+    private EventAction updateLocalEvent(int actor, Event event) {
         int status = EventAction.STATUS_OK;
 
+        String id = event.id;
         Event original = getEvent(id, true);
         ContentValues values = new ContentValues();
 
@@ -827,30 +909,20 @@ public class EventManager {
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE_FAILED, id);
         }
 
-        EventAction data = new EventAction(EventAction.ACTION_UPDATE, actor, status, original);
-        if (!listeners.isEmpty()) {
-            sendToListeners(data);
-        }
-        if (callback != null) {
-            callback.onEventAction(data);
-        }
-
-        return values.keySet();
+        return new EventAction(EventAction.ACTION_UPDATE, actor, status, original);
     }
 
     /**
      * Update an existing event stored in the provider.
      *
      * @param actor Caller such as user or system.
-     * @param id Event of ID to be updated.
      * @param event Event information to update.
-     * @param callback Callback used once completed.
-     * @return a set of type of values updated.
+     * @return event result.
      */
-    private Set<String> updateSyncEvent(int actor, String id, Event event,
-            EventActionCallback callback) {
+    private EventAction updateSyncEvent(int actor, Event event) {
         int status = EventAction.STATUS_OK;
 
+        String id = event.id;
         Event original = getEvent(id, true);
         ContentValues values = new ContentValues();
 
@@ -955,15 +1027,7 @@ public class EventManager {
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE_FAILED, id);
         }
 
-        EventAction data = new EventAction(EventAction.ACTION_UPDATE, actor, status, original);
-        if (!listeners.isEmpty()) {
-            sendToListeners(data);
-        }
-        if (callback != null) {
-            callback.onEventAction(data);
-        }
-
-        return values.keySet();
+        return new EventAction(EventAction.ACTION_UPDATE, actor, status, original);
     }
 
     /**
@@ -1179,11 +1243,11 @@ public class EventManager {
 
     public interface EventActionCallback {
 
-        void onEventAction(EventAction data);
+        void onEventAction(EventAction... data);
     }
 
     public interface EventBroadcastListener {
 
-        void onEventBroadcast(EventAction data);
+        void onEventBroadcast(EventAction... data);
     }
 }

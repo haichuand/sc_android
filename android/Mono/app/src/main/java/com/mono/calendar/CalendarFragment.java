@@ -48,6 +48,7 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDate;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -305,8 +306,8 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         eventManager.updateEvent(EventAction.ACTOR_SELF, event.id, event,
             new EventManager.EventActionCallback() {
                 @Override
-                public void onEventAction(EventAction data) {
-                    if (data.getStatus() == EventAction.STATUS_OK) {
+                public void onEventAction(EventAction... data) {
+                    if (data[0].getStatus() == EventAction.STATUS_OK) {
                         calendarView.onCellClick(year, month, day);
                         mainInterface.showSnackBar(R.string.event_action_move, R.string.undo, 0,
                             new View.OnClickListener() {
@@ -341,8 +342,8 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         eventManager.createEvent(EventAction.ACTOR_SELF, event,
             new EventManager.EventActionCallback() {
                 @Override
-                public void onEventAction(EventAction data) {
-                    if (data.getStatus() == EventAction.STATUS_OK) {
+                public void onEventAction(EventAction... data) {
+                    if (data[0].getStatus() == EventAction.STATUS_OK) {
                         calendarView.onCellClick(year, month, day);
                         mainInterface.showSnackBar(R.string.event_action_copy, R.string.undo, 0,
                             new View.OnClickListener() {
@@ -375,8 +376,8 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
     /**
      * Handle the action of performing a click on an event from the events listing.
      *
-     * @param id The value of the event ID.
-     * @param view The value of the view.
+     * @param id ID of event.
+     * @param view View of the event.
      */
     @Override
     public void onClick(String id, View view) {
@@ -390,8 +391,8 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
      * Handle the action of performing a long click on an event from the events listing to
      * trigger drag and drop action.
      *
-     * @param id The value of the event ID.
-     * @param view The value of the view.
+     * @param id ID of event.
+     * @param view View of the event.
      */
     @Override
     public void onLongClick(String id, View view) {
@@ -407,7 +408,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
     /**
      * Handle the action of clicking on the chat option.
      *
-     * @param id The value of the event ID.
+     * @param id ID of event.
      */
     @Override
     public void onChatClick(String id) {
@@ -417,7 +418,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
     /**
      * Handle the action of clicking on the favorite option.
      *
-     * @param id The value of the event ID.
+     * @param id ID of event.
      */
     @Override
     public void onFavoriteClick(String id) {
@@ -427,7 +428,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
     /**
      * Handle the action of clicking on the deleting an event option.
      *
-     * @param id
+     * @param id ID of event.
      */
     @Override
     public void onDeleteClick(final String id) {
@@ -443,8 +444,8 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
                         eventManager.removeEvent(EventAction.ACTOR_SELF, id,
                             new EventManager.EventActionCallback() {
                                 @Override
-                                public void onEventAction(EventAction data) {
-                                    if (data.getStatus() == EventAction.STATUS_OK) {
+                                public void onEventAction(EventAction... data) {
+                                    if (data[0].getStatus() == EventAction.STATUS_OK) {
                                         mainInterface.showSnackBar(R.string.event_action_delete,
                                             R.string.undo, 0, new View.OnClickListener() {
                                                 @Override
@@ -476,59 +477,89 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
     /**
      * Handle all event changes being reported by the Event Manager.
      *
-     * @param data The event action data.
+     * @param data Event action data.
      */
     @Override
-    public void onEventBroadcast(final EventAction data) {
-        if (data.getStatus() != EventAction.STATUS_OK) {
-            return;
-        }
-
+    public void onEventBroadcast(final EventAction... data) {
         getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Event event = data.getEvent();
-                if (event == null) {
-                    return;
-                }
-
-                LocalDate startDate, endDate;
-                // Special Handling of All Day Events
-                if (!event.allDay) {
-                    startDate = new LocalDate(event.startTime);
-                    endDate = new LocalDate(event.endTime);
-                } else {
-                    startDate = new LocalDate(event.startTime, DateTimeZone.UTC);
-                    endDate = new LocalDate(event.endTime - 1, DateTimeZone.UTC);
-                }
-                // Handle Multi-Day Events
-                LocalDate date = startDate;
-                while (date.isBefore(endDate) || date.isEqual(endDate)) {
-                    calendarView.refresh(date.getYear(), date.getMonthOfYear() - 1);
-                    date = date.plusDays(1);
-                }
+                List<Integer[]> months = new ArrayList<>();
 
                 LocalDate selectedDate = calendarView.getCurrentSelected();
 
-                if (selectedDate != null && Common.between(selectedDate, startDate, endDate)) {
-                    boolean scrollTo = data.getActor() == EventAction.ACTOR_SELF;
+                for (int i = 0; i < data.length; i++) {
+                    int action = -1;
+                    int scrollToPosition = -1;
 
-                    switch (data.getAction()) {
+                    List<Event> events = new ArrayList<>();
+                    for (; i < data.length; i++) {
+                        EventAction item = data[i];
+
+                        if (action != -1 && action != item.getAction()) {
+                            break;
+                        }
+
+                        action = item.getAction();
+
+                        if (item.getStatus() == EventAction.STATUS_OK) {
+                            Event event = item.getEvent();
+
+                            LocalDate startDate, endDate;
+                            // Special Handling of All Day Events
+                            if (!event.allDay) {
+                                startDate = new LocalDate(event.startTime);
+                                endDate = new LocalDate(event.endTime);
+                            } else {
+                                startDate = new LocalDate(event.startTime, DateTimeZone.UTC);
+                                endDate = new LocalDate(event.endTime - 1, DateTimeZone.UTC);
+                            }
+                            // Handle Multi-Day Events
+                            LocalDate date = startDate;
+                            while (date.isBefore(endDate) || date.isEqual(endDate)) {
+                                months.add(new Integer[]{date.getYear(), date.getMonthOfYear() - 1});
+                                date = date.plusDays(1);
+                            }
+
+                            if (selectedDate == null || !Common.between(selectedDate, startDate, endDate)) {
+                                continue;
+                            }
+
+                            if (scrollToPosition == -1 && item.getActor() == EventAction.ACTOR_SELF) {
+                                scrollToPosition = events.size();
+                            }
+
+                            events.add(event);
+                        }
+                    }
+
+                    if (events.isEmpty()) {
+                        continue;
+                    }
+
+                    switch (action) {
                         case EventAction.ACTION_CREATE:
                             if (eventsFragment.getState() != CalendarEventsFragment.STATE_NONE) {
-                                eventsFragment.insert(event, scrollTo, true);
+                                eventsFragment.insert(events, scrollToPosition, true);
                             } else {
-                                showEventsFragment(startDate.getYear(),
-                                    startDate.getMonthOfYear() - 1, startDate.getDayOfMonth());
+                                Event event = events.get(0);
+                                LocalDate date = new LocalDate(event.startTime,
+                                    event.allDay ? DateTimeZone.UTC : DateTimeZone.getDefault());
+                                showEventsFragment(date.getYear(),
+                                    date.getMonthOfYear() - 1, date.getDayOfMonth());
                             }
                             break;
                         case EventAction.ACTION_UPDATE:
-                            eventsFragment.refresh(event, scrollTo, true);
+                            eventsFragment.refresh(events, scrollToPosition, true);
                             break;
                         case EventAction.ACTION_REMOVE:
-                            eventsFragment.remove(event, true);
+                            eventsFragment.remove(events, true);
                             break;
                     }
+                }
+
+                for (Integer[] month : months) {
+                    calendarView.refresh(month[0], month[1]);
                 }
             }
         });
