@@ -31,7 +31,12 @@ public class UpcomingFragment extends EventsFragment {
         comparator = new Comparator<Event>() {
             @Override
             public int compare(Event e1, Event e2) {
-                return Long.compare(e1.startTime, e2.startTime);
+                int value = Long.compare(e1.startTime, e2.startTime);
+                if (value != 0) {
+                    return value;
+                }
+
+                return e2.id.compareToIgnoreCase(e1.id);
             }
         };
 

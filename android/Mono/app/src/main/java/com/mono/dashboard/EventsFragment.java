@@ -105,7 +105,12 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
         comparator = new Comparator<Event>() {
             @Override
             public int compare(Event e1, Event e2) {
-                return Long.compare(e2.startTime, e1.startTime);
+                int value = Long.compare(e2.startTime, e1.startTime);
+                if (value != 0) {
+                    return value;
+                }
+
+                return e2.id.compareToIgnoreCase(e1.id);
             }
         };
 
@@ -133,8 +138,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
         text = (TextView) view.findViewById(R.id.text);
         text.setVisibility(events.isEmpty() ? View.VISIBLE : View.INVISIBLE);
 
-        LocalDate date = new LocalDate().plusDays(1);
-        startTime = date.toDateTimeAtStartOfDay().minusMillis(1).getMillis();
+        startTime = System.currentTimeMillis();
         append();
 
         return view;
