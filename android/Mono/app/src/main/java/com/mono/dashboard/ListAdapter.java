@@ -55,8 +55,8 @@ public class ListAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
     private boolean isSelectable;
 
     static {
-        TYPEFACE = Typeface.create("sans-serif", Typeface.NORMAL);
-        TYPEFACE_BOLD = Typeface.create("sans-serif-medium", Typeface.NORMAL);
+        TYPEFACE = Typeface.create("sans-serif-light", Typeface.NORMAL);
+        TYPEFACE_BOLD = Typeface.create("sans-serif", Typeface.NORMAL);
     }
 
     public ListAdapter(DashboardListListener listener) {
@@ -186,13 +186,13 @@ public class ListAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
 
             title.setText(item.title);
             title.setTextColor(item.titleColor);
-//            title.setTypeface(item.titleBold ? TYPEFACE_BOLD : TYPEFACE);
+            title.setTypeface(item.titleBold ? TYPEFACE_BOLD : TYPEFACE);
 
             description.setText(item.description);
 
             date.setText(item.dateTime);
             date.setTextColor(item.dateTimeColor);
-//            date.setTypeface(item.dateTimeBold ? TYPEFACE_BOLD : TYPEFACE);
+            date.setTypeface(item.dateTimeBold ? TYPEFACE_BOLD : TYPEFACE);
         }
     }
 

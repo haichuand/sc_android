@@ -253,7 +253,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
                 colorId = R.color.gray_dark;
                 bold = true;
             } else {
-                colorId = R.color.gray_light_3;
+                colorId = R.color.gray_dark;
                 bold = false;
             }
 
