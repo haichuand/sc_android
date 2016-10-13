@@ -173,14 +173,11 @@ public class EventDetailsActivity extends GestureActivity {
                                             sharedPreferences.edit().putString(SuperCalyPreferences.USER_DEFINED_LOCATION, hashMapString).apply();
 
                                             //make changes to all the events
-                                            String eventid = "";
                                             for (int i = 0; i < events.size(); i++) {
-                                                eventid = events.get(i).id;
                                                 events.get(i).location.name = locationPanel.location.getText().toString().trim();
                                                 events.get(i).title = locationPanel.location.getText().toString().trim();
                                                 manager.updateEvent(
                                                         EventManager.EventAction.ACTOR_SELF,
-                                                        eventid,
                                                         events.get(i),
                                                         null
                                                 );
@@ -300,7 +297,7 @@ public class EventDetailsActivity extends GestureActivity {
      */
     public void initialize(Calendar calendar, Event original) {
         if (original == null) {
-            original = new Event();
+            original = new Event(Event.TYPE_CALENDAR);
         }
 
         this.original = original;

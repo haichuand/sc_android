@@ -145,7 +145,7 @@ public class KmlLocationService extends IntentService {
         }
 
         protected void onPostExecute(String result) {
-            Event event = new Event();
+            Event event;
             if (requestResult != null) {
 
                 String[] detailResult = getAddressByLatLong(requestResult);
@@ -183,8 +183,7 @@ public class KmlLocationService extends IntentService {
                         Location toastString = testHashMap.get(kmlevent.getName());
 
 
-
-                            event.type = Event.TYPE_USERSTAY;
+                            event = new Event(Event.TYPE_USERSTAY);
                             event.title = location.name;
                             event.description = notes;
                             event.startTime = kmlevent.getStartTime();
@@ -204,7 +203,7 @@ public class KmlLocationService extends IntentService {
                     } else {
 
                             //create a userstay event
-                            event.type = Event.TYPE_USERSTAY;
+                            event = new Event(Event.TYPE_USERSTAY);
                             event.title = location.name;
                             event.description = notes;
                             event.location = location;
@@ -245,7 +244,6 @@ public class KmlLocationService extends IntentService {
         List<Event> events = eventManager.getEvents(mYear, mMonth, mDay, calendarIds);
 
         //make changes to all the events
-        String eventid = "";
         for (int i = 0; i < events.size(); i++) {
             if (events.get(i).source == Event.SOURCE_PROVIDER) {
                 continue;
@@ -253,14 +251,12 @@ public class KmlLocationService extends IntentService {
 
             if ((events.get(i).startTime >= kmlevent.getStartTime()) && (events.get(i).endTime <= kmlevent.getEndTime()))// if event lies in between userstay period
             {
-                eventid = events.get(i).id;
                 if(location != null)
                 {
                     events.get(i).description = notes;
                     events.get(i).location = location;
                     eventManager.updateEvent(
                             EventManager.EventAction.ACTOR_SELF,
-                            eventid,
                             events.get(i),
                             null
                     );

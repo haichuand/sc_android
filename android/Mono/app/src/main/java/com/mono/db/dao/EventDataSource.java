@@ -35,32 +35,37 @@ public class EventDataSource extends DataSource {
     /**
      * Create an event into the database.
      *
-     * @param calendarId The value of the calendar ID.
-     * @param internalId The event ID being used in the Calendar Provider.
-     * @param externalId The event ID being used by Google Calendar.
-     * @param type The type of event.
-     * @param title The title of the event.
-     * @param description The description of the event.
-     * @param locationId The location ID of the event.
-     * @param color The color of the event.
-     * @param startTime The start time of the event.
-     * @param endTime The end time of th event.
-     * @param timeZone The time zone used for the start time.
-     * @param endTimeZone The time zone used for the end time.
-     * @param allDay The value of whether this is an all day event.
+     * @param providerId Event ID used in the Calendar Provider.
+     * @param syncId Event ID generated from SuperCaly network.
+     * @param calendarId Calendar ID.
+     * @param type Type of event.
+     * @param title Title of event.
+     * @param description Short description.
+     * @param locationId Location ID.
+     * @param color Color used for tagging.
+     * @param startTime Start time of the event.
+     * @param endTime End time of the event.
+     * @param timeZone Time zone used for the start time.
+     * @param endTimeZone Time zone used for the end time.
+     * @param allDay All day event.
      * @param reminders Format: minutes,method;minutes,method;...
-     * @return the event ID.
+     * @param favorite Event is a favorite.
+     * @param createTime Current time event was created
+     * @return event ID.
      */
-    public String createEvent(long calendarId, long internalId, String externalId, String type,
-            String title, String description, Long locationId, int color, long startTime,
-            long endTime, String timeZone, String endTimeZone, int allDay, String reminders) {
-        String id = DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
+    public String createEvent(String id, long providerId, String syncId, long calendarId,
+            String type, String title, String description, Long locationId, int color,
+            long startTime, long endTime, String timeZone, String endTimeZone, int allDay,
+            String reminders, int favorite, long createTime) {
+        if (id == null || id.isEmpty()) {
+            id = DataSource.UniqueIdGenerator(getClass().getSimpleName());
+        }
 
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.Event.ID, id);
+        values.put(DatabaseValues.Event.PROVIDER_ID, providerId);
+        values.put(DatabaseValues.Event.SYNC_ID, syncId);
         values.put(DatabaseValues.Event.CALENDAR_ID, calendarId);
-        values.put(DatabaseValues.Event.INTERNAL_ID, internalId);
-        values.put(DatabaseValues.Event.EXTERNAL_ID, externalId);
         values.put(DatabaseValues.Event.TYPE, type);
         values.put(DatabaseValues.Event.TITLE, title);
         values.put(DatabaseValues.Event.DESC, description);
@@ -72,6 +77,8 @@ public class EventDataSource extends DataSource {
         values.put(DatabaseValues.Event.END_TIMEZONE, endTimeZone);
         values.put(DatabaseValues.Event.ALL_DAY, allDay);
         values.put(DatabaseValues.Event.REMINDERS, reminders);
+        values.put(DatabaseValues.Event.FAVORITE, favorite);
+        values.put(DatabaseValues.Event.CREATE_TIME, createTime);
 
         try {
             database.insert(DatabaseValues.Event.TABLE, values);
@@ -80,36 +87,6 @@ public class EventDataSource extends DataSource {
         }
 
         return id;
-    }
-
-    public boolean createEvent(String eventId, long calendarId, long internalId, String externalId, String type,
-                              String title, String description, Long locationId, int color, long startTime,
-                              long endTime, String timeZone, String endTimeZone, int allDay, String reminders) {
-
-        ContentValues values = new ContentValues();
-        values.put(DatabaseValues.Event.ID, eventId);
-        values.put(DatabaseValues.Event.CALENDAR_ID, calendarId);
-        values.put(DatabaseValues.Event.INTERNAL_ID, internalId);
-        values.put(DatabaseValues.Event.EXTERNAL_ID, externalId);
-        values.put(DatabaseValues.Event.TYPE, type);
-        values.put(DatabaseValues.Event.TITLE, title);
-        values.put(DatabaseValues.Event.DESC, description);
-        values.put(DatabaseValues.Event.LOCATION_ID, locationId);
-        values.put(DatabaseValues.Event.COLOR, color);
-        values.put(DatabaseValues.Event.START_TIME, startTime);
-        values.put(DatabaseValues.Event.END_TIME, endTime);
-        values.put(DatabaseValues.Event.TIMEZONE, timeZone);
-        values.put(DatabaseValues.Event.END_TIMEZONE, endTimeZone);
-        values.put(DatabaseValues.Event.ALL_DAY, allDay);
-        values.put(DatabaseValues.Event.REMINDERS, reminders);
-
-        try {
-            database.insert(DatabaseValues.Event.TABLE, values);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-        return true;
     }
 
     public int updateEventId(String originalId, String newId) {
@@ -153,23 +130,23 @@ public class EventDataSource extends DataSource {
     /**
      * Retrieve an event using the given time signature.
      *
-     * @param internalId The event ID being used in the Calendar Provider.
-     * @param startTime The start time of the event.
-     * @param endTime The end time of th event.
+     * @param providerId Event ID being used in the Calendar Provider.
+     * @param startTime Start time of the event.
+     * @param endTime End time of the event.
      * @return an instance of the event.
      */
-    public Event getEvent(long internalId, long startTime, long endTime) {
+    public Event getEvent(long providerId, long startTime, long endTime) {
         Event event = null;
 
         String selection = String.format(
             "%s = ? AND %s = ? AND %s = ?",
-            DatabaseValues.Event.INTERNAL_ID,
+            DatabaseValues.Event.PROVIDER_ID,
             DatabaseValues.Event.START_TIME,
             DatabaseValues.Event.END_TIME
         );
 
         String[] selectionArgs = new String[]{
-            String.valueOf(internalId),
+            String.valueOf(providerId),
             String.valueOf(startTime),
             String.valueOf(endTime)
         };
@@ -227,23 +204,23 @@ public class EventDataSource extends DataSource {
     /**
      * Check if an event exists using the given time signature.
      *
-     * @param internalId The event ID being used in the Calendar Provider.
-     * @param startTime The start time of the event.
-     * @param endTime The end time of th event.
-     * @return the value whether there exists an event.
+     * @param providerId Event ID being used in the Calendar Provider.
+     * @param startTime Start time of the event.
+     * @param endTime End time of the event.
+     * @return whether there exists an event.
      */
-    public boolean containsEvent(long internalId, long startTime, long endTime) {
+    public boolean containsEvent(long providerId, long startTime, long endTime) {
         boolean status = false;
 
         String selection = String.format(
             "%s = ? AND %s = ? AND %s = ?",
-            DatabaseValues.Event.INTERNAL_ID,
+            DatabaseValues.Event.PROVIDER_ID,
             DatabaseValues.Event.START_TIME,
             DatabaseValues.Event.END_TIME
         );
 
         String[] selectionArgs = new String[]{
-            String.valueOf(internalId),
+            String.valueOf(providerId),
             String.valueOf(startTime),
             String.valueOf(endTime)
         };
@@ -267,20 +244,20 @@ public class EventDataSource extends DataSource {
     }
 
     /**
-     * Retrieve events using the internal ID.
+     * Retrieve events using the provider ID.
      *
-     * @param internalId The value of the internal ID.
+     * @param providerId Provider ID.
      * @return a list of events.
      */
-    public List<Event> getEventsByInternalId(long internalId) {
+    public List<Event> getEventsByProviderId(long providerId) {
         List<Event> events = new ArrayList<>();
 
         Cursor cursor = database.select(
             DatabaseValues.Event.TABLE,
             DatabaseValues.Event.PROJECTION,
-            DatabaseValues.Event.INTERNAL_ID + " = ?",
+            DatabaseValues.Event.PROVIDER_ID + " = ?",
             new String[]{
-                String.valueOf(internalId)
+                String.valueOf(providerId)
             }
         );
 
@@ -693,6 +670,44 @@ public class EventDataSource extends DataSource {
     }
 
     /**
+     * Retrieve events set as favorites.
+     *
+     * @param calendarIds Restrict events to these calendars.
+     * @return
+     */
+    public List<Event> getFavoriteEvents(long... calendarIds) {
+        List<Event> events = new ArrayList<>();
+
+        List<String> args = new ArrayList<>();
+
+        String selection = "";
+        if (calendarIds != null && calendarIds.length > 0) {
+            selection = getCalendarSelection(args, calendarIds) + " AND ";
+        }
+
+        selection += DatabaseValues.Event.FAVORITE + " != 0";
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
+
+        Cursor cursor = database.select(
+            DatabaseValues.Event.TABLE,
+            DatabaseValues.Event.PROJECTION,
+            selection,
+            selectionArgs,
+            DatabaseValues.Event.START_TIME
+        );
+
+        while (cursor.moveToNext()) {
+            Event event = cursorToEvent(cursor);
+            events.add(event);
+        }
+
+        cursor.close();
+
+        return events;
+    }
+
+    /**
      * Retrieve event IDs belonging within a time range as well as within a latitude and longitude
      * bounding box.
      *
@@ -944,11 +959,14 @@ public class EventDataSource extends DataSource {
      * For PROJECTION only.
      */
     private Event cursorToEvent(Cursor cursor) {
-        Event event = new Event(cursor.getString(DatabaseValues.Event.INDEX_ID));
-        event.source = Event.SOURCE_DATABASE;
-        event.internalId = cursor.getLong(DatabaseValues.Event.INDEX_INTERNAL_ID);
-        event.externalId = cursor.getString(DatabaseValues.Event.INDEX_EXTERNAL_ID);
-        event.type = cursor.getString(DatabaseValues.Event.INDEX_TYPE);
+        Event event = new Event(
+            cursor.getString(DatabaseValues.Event.INDEX_ID),
+            cursor.getLong(DatabaseValues.Event.INDEX_PROVIDER_ID),
+            cursor.getString(DatabaseValues.Event.INDEX_SYNC_ID),
+            cursor.getString(DatabaseValues.Event.INDEX_TYPE)
+        );
+
+        event.calendarId = cursor.getLong(DatabaseValues.Event.INDEX_CALENDAR_ID);
         event.title = cursor.getString(DatabaseValues.Event.INDEX_TITLE);
         event.description = cursor.getString(DatabaseValues.Event.INDEX_DESC);
 
@@ -980,6 +998,12 @@ public class EventDataSource extends DataSource {
                 event.reminders.add(reminder);
             }
         }
+
+        event.favorite = cursor.getInt(DatabaseValues.Event.INDEX_FAVORITE) != 0;
+        event.createTime = cursor.getLong(DatabaseValues.Event.INDEX_CREATE_TIME);
+        event.modifyTime = cursor.getLong(DatabaseValues.Event.INDEX_MODIFY_TIME);
+        event.viewTime = cursor.getLong(DatabaseValues.Event.INDEX_VIEW_TIME);
+        event.syncTime = cursor.getLong(DatabaseValues.Event.INDEX_SYNC_TIME);
 
         return event;
     }

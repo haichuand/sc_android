@@ -121,8 +121,7 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
 
         switch (id) {
             case R.id.action_add:
-                Event event = new Event();
-                event.type = Event.TYPE_CALENDAR;
+                Event event = new Event(Event.TYPE_CALENDAR);
 
                 List<Calendar> calendars =
                     CalendarProvider.getInstance(getContext()).getCalendars();
@@ -219,7 +218,9 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
      * @param event Event to be used.
      */
     private void onFavoriteInsert(Event event) {
-        eventManager.updateEventFavorite(event.id, true);
+        event.favorite = true;
+
+        eventManager.updateEvent(EventAction.ACTOR_SELF, event, null);
 
         FavoritesFragment fragment = (FavoritesFragment) tabPagerAdapter.getItem(TAB_FAVORITE);
         fragment.insert(event, false);
@@ -233,7 +234,9 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
      * @param event Event to be used.
      */
     private void onFavoriteRemove(Event event) {
-        eventManager.updateEventFavorite(event.id, false);
+        event.favorite = false;
+
+        eventManager.updateEvent(EventAction.ACTOR_SELF, event, null);
 
         FavoritesFragment fragment = (FavoritesFragment) tabPagerAdapter.getItem(TAB_FAVORITE);
         fragment.remove(event);

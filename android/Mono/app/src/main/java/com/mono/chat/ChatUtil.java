@@ -375,7 +375,7 @@ public class ChatUtil {
         }
         Event eventCopy = new Event(event);
         eventCopy.id = null;
-        eventCopy.internalId = 0;
+        eventCopy.providerId = 0;
         eventCopy.reminders.clear();
         eventCopy.source = Event.SOURCE_DATABASE;
         eventCopy.color = Colors.getColor(context, R.color.green);

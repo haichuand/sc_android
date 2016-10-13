@@ -689,7 +689,7 @@ public class CalendarEventProvider {
 
             while (cursor.moveToNext()) {
                 Event event = cursorToEvent(cursor);
-                eventIds.add(event.internalId);
+                eventIds.add(event.providerId);
             }
 
             cursor.close();
@@ -797,12 +797,10 @@ public class CalendarEventProvider {
             cursor.getLong(CalendarValues.Event.INDEX_END_TIME)
         );
 
-        Event event = new Event(id);
-        event.source = Event.SOURCE_PROVIDER;
+        long providerId = cursor.getLong(CalendarValues.Event.INDEX_ID);
+
+        Event event = new Event(id, providerId, null, Event.TYPE_CALENDAR);
         event.calendarId = cursor.getLong(CalendarValues.Event.INDEX_CALENDAR_ID);
-        event.internalId = cursor.getLong(CalendarValues.Event.INDEX_ID);
-        event.externalId = cursor.getString(CalendarValues.Event.INDEX_REMOTE_ID);
-        event.type = Event.TYPE_CALENDAR;
 
         event.title = cursor.getString(CalendarValues.Event.INDEX_TITLE);
         if (event.title != null && event.title.isEmpty()) {

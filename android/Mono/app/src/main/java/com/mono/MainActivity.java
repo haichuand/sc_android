@@ -691,8 +691,10 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         startActivityForResult(intent, RequestCodes.Activity.EVENT_DETAILS);
 
         if (event.id != null) {
+            event.viewTime = System.currentTimeMillis();
+
             EventManager manager = EventManager.getInstance(this);
-            manager.updateEventViewTime(event.id, System.currentTimeMillis());
+            manager.updateEvent(EventManager.EventAction.ACTOR_SELF, event, null);
         }
     }
 
@@ -709,7 +711,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             Event event = data.getParcelableExtra(EventDetailsActivity.EXTRA_EVENT);
 
             if (event.id != null) {
-                manager.updateEvent(EventManager.EventAction.ACTOR_SELF, event.id, event, null);
+                manager.updateEvent(EventManager.EventAction.ACTOR_SELF, event, null);
             } else {
                 manager.createEvent(EventManager.EventAction.ACTOR_SELF, event, null);
             }

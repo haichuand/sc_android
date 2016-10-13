@@ -385,6 +385,17 @@ public class EventManager {
     public List<Event> getFavoriteEvents(long... calendarIds) {
         List<Event> result = new ArrayList<>();
 
+        EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+        List<Event> events = dataSource.getFavoriteEvents(calendarIds);
+
+        for (Event event : events) {
+            add(event);
+
+            if (!result.contains(event)) {
+                result.add(event);
+            }
+        }
+
         return result;
     }
 
@@ -514,7 +525,6 @@ public class EventManager {
      */
     private EventAction createEvent(int actor, Event event) {
         if (event.source == Event.SOURCE_DATABASE) {
-            event.internalId = System.currentTimeMillis();
             // Create Database Event
             return createLocalEvent(actor, event);
         } else if (event.source == Event.SOURCE_PROVIDER) {
@@ -541,58 +551,38 @@ public class EventManager {
             event.timeZone = TimeZone.getDefault().getID();
         }
 
-        String id = null;
-        if (!dataSource.containsEvent(event.internalId, event.startTime, event.endTime)) {
-            // Convert Reminders
-            String reminders = null;
-            if (!event.reminders.isEmpty()) {
-                reminders = "";
+        // Convert Reminders
+        String reminders = null;
+        if (!event.reminders.isEmpty()) {
+            reminders = "";
 
-                for (int i = 0; i < event.reminders.size(); i++) {
-                    if (i > 0) reminders += ";";
-                    Reminder reminder = event.reminders.get(i);
-                    reminders += reminder.minutes + "," + reminder.method;
-                }
-            }
-            // Create Event into Database
-            if (event.id == null || event.id.isEmpty()) {
-                id = dataSource.createEvent(
-                    event.calendarId,
-                    event.internalId,
-                    event.externalId,
-                    event.type,
-                    event.title,
-                    event.description,
-                    event.location != null ? event.location.id : null,
-                    event.color,
-                    event.startTime,
-                    event.endTime,
-                    event.timeZone,
-                    event.endTimeZone,
-                    event.allDay ? 1 : 0,
-                    reminders
-                );
-            } else {
-                dataSource.createEvent(
-                    event.id,
-                    event.calendarId,
-                    event.internalId,
-                    event.externalId,
-                    event.type,
-                    event.title,
-                    event.description,
-                    event.location != null ? event.location.id : null,
-                    event.color,
-                    event.startTime,
-                    event.endTime,
-                    event.timeZone,
-                    event.endTimeZone,
-                    event.allDay ? 1 : 0,
-                    reminders
-                );
-                id = event.id;
+            for (int i = 0; i < event.reminders.size(); i++) {
+                if (i > 0) reminders += ";";
+                Reminder reminder = event.reminders.get(i);
+                reminders += reminder.minutes + "," + reminder.method;
             }
         }
+
+        // Create Event into Database
+        String id = dataSource.createEvent(
+            event.id,
+            event.providerId,
+            event.syncId,
+            event.calendarId,
+            event.type,
+            event.title,
+            event.description,
+            event.location != null ? event.location.id : null,
+            event.color,
+            event.startTime,
+            event.endTime,
+            event.timeZone,
+            event.endTimeZone,
+            event.allDay ? 1 : 0,
+            reminders,
+            event.favorite ? 1 : 0,
+            System.currentTimeMillis()
+        );
 
         if (id != null) {
             // Handle Reminders
@@ -683,16 +673,6 @@ public class EventManager {
         return new EventAction(EventAction.ACTION_CREATE, actor, status, event);
     }
 
-    public boolean saveProviderEventToDatabase(Event event, String eventId) {
-        event.source = Event.SOURCE_DATABASE;
-        event.color = R.color.green;
-        event.id = eventId;
-        event.externalId = event.id;
-
-        String id = createEvent(EventAction.ACTOR_NONE, event, null);
-        return id != null;
-    }
-
     public boolean updateEventId(String originalId, String newId) {
         EventDataSource eventDataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
         if (eventDataSource.updateEventId(originalId, newId) != 1) {
@@ -711,11 +691,10 @@ public class EventManager {
      * Update an existing event.
      *
      * @param actor Caller such as user or system.
-     * @param id Event of ID to be updated.
      * @param event Event information to update.
      * @param callback Callback used once completed.
      */
-    public void updateEvent(int actor, String id, Event event, EventActionCallback callback) {
+    public void updateEvent(int actor, Event event, EventActionCallback callback) {
         EventAction data = updateEvent(actor, event);
 
         if (data != null) {
@@ -768,13 +747,11 @@ public class EventManager {
      * @return event result.
      */
     private EventAction updateEvent(int actor, Event event) {
-        if (event.source == Event.SOURCE_DATABASE) {
+        if (event.providerId == 0) {
             return updateLocalEvent(actor, event);
-        } else if (event.source == Event.SOURCE_PROVIDER) {
+        } else {
             return updateSyncEvent(actor, event);
         }
-
-        return null;
     }
 
     /**
@@ -791,19 +768,19 @@ public class EventManager {
         Event original = getEvent(id, true);
         ContentValues values = new ContentValues();
 
+        if (event.providerId != original.providerId) {
+            values.put(DatabaseValues.Event.PROVIDER_ID, event.providerId);
+            original.providerId = event.providerId;
+        }
+
+        if (!Common.compareStrings(event.syncId, original.syncId)) {
+            values.put(DatabaseValues.Event.SYNC_ID, event.syncId);
+            original.syncId = event.syncId;
+        }
+
         if (event.calendarId != original.calendarId) {
             values.put(DatabaseValues.Event.CALENDAR_ID, event.calendarId);
             original.calendarId = event.calendarId;
-        }
-
-        if (event.internalId != original.internalId) {
-            values.put(DatabaseValues.Event.INTERNAL_ID, event.internalId);
-            original.internalId = event.internalId;
-        }
-
-        if (!Common.compareStrings(event.externalId, original.externalId)) {
-            values.put(DatabaseValues.Event.EXTERNAL_ID, event.externalId);
-            original.externalId = event.externalId;
         }
 
         if (!Common.compareStrings(event.type, original.type)) {
@@ -855,6 +832,26 @@ public class EventManager {
         if (event.allDay != original.allDay) {
             values.put(DatabaseValues.Event.ALL_DAY, event.allDay);
             original.allDay = event.allDay;
+        }
+
+        if (event.favorite != original.favorite) {
+            values.put(DatabaseValues.Event.FAVORITE, event.favorite);
+            original.favorite = event.favorite;
+        }
+
+        if (event.modifyTime != original.modifyTime) {
+            values.put(DatabaseValues.Event.MODIFY_TIME, event.modifyTime);
+            original.modifyTime = event.modifyTime;
+        }
+
+        if (event.viewTime != original.viewTime) {
+            values.put(DatabaseValues.Event.VIEW_TIME, event.viewTime);
+            original.viewTime = event.viewTime;
+        }
+
+        if (event.syncTime != original.syncTime) {
+            values.put(DatabaseValues.Event.SYNC_TIME, event.syncTime);
+            original.syncTime = event.syncTime;
         }
 
         if (!event.attendees.equals(original.attendees)) {
@@ -980,10 +977,10 @@ public class EventManager {
 
         if (!event.attendees.equals(original.attendees)) {
             CalendarAttendeeProvider provider = CalendarAttendeeProvider.getInstance(context);
-            provider.clearAll(event.internalId);
+            provider.clearAll(event.providerId);
 
             for (Attendee attendee : event.attendees) {
-                provider.createAttendee(event.internalId, attendee.userName, attendee.email,
+                provider.createAttendee(event.providerId, attendee.userName, attendee.email,
                     attendee.relationship, attendee.type, attendee.status);
             }
 
@@ -993,10 +990,10 @@ public class EventManager {
 
         if (!event.reminders.equals(original.reminders)) {
             CalendarReminderProvider provider = CalendarReminderProvider.getInstance(context);
-            provider.clearAll(event.internalId);
+            provider.clearAll(event.providerId);
 
             for (Reminder reminder : event.reminders) {
-                provider.createReminder(event.internalId, reminder.minutes, reminder.method);
+                provider.createReminder(event.providerId, reminder.minutes, reminder.method);
             }
 
             original.reminders.clear();
@@ -1021,7 +1018,7 @@ public class EventManager {
         }
 
         CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
-        if (values.size() == 0 || provider.updateValues(event.internalId, values) > 0) {
+        if (values.size() == 0 || provider.updateValues(event.providerId, values) > 0) {
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE, id);
         } else {
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE_FAILED, id);
@@ -1050,7 +1047,7 @@ public class EventManager {
             result = dataSource.removeEvent(id) > 0;
         } else if (event.source == Event.SOURCE_PROVIDER) {
             CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
-            result = provider.removeEvent(event.internalId) > 0;
+            result = provider.removeEvent(event.providerId) > 0;
         }
 
         if (result) {
@@ -1122,8 +1119,8 @@ public class EventManager {
     /**
      * Update event with the following photos.
      *
-     * @param id The value of the event ID.
-     * @param photos The list of photos.
+     * @param id ID of the event.
+     * @param photos Photos to be updated.
      */
     private void updateEventPhotos(String id, List<Media> photos) {
         MediaDataSource mediaDataSource =
@@ -1160,44 +1157,6 @@ public class EventManager {
     public void onProviderChange() {
         System.out.format("Calendar Provider has %d changes.\n", -1);
         AlarmHelper.startAll(context);
-    }
-
-    /**
-     * Update event as a favorite event.
-     *
-     * @param id ID of the event.
-     * @param favorite Whether event is a favorite.
-     */
-    public void updateEventFavorite(String id, boolean favorite) {
-        int actor = EventAction.ACTOR_SELF;
-        int status = EventAction.STATUS_OK;
-
-        Event event = getEvent(id, false);
-        event.favorite = favorite;
-
-        EventAction data = new EventAction(EventAction.ACTION_UPDATE, actor, status, event);
-        if (!listeners.isEmpty()) {
-            sendToListeners(data);
-        }
-    }
-
-    /**
-     * Update event when it was last viewed.
-     *
-     * @param id ID of the event.
-     * @param milliseconds Time last viewed.
-     */
-    public void updateEventViewTime(String id, long milliseconds) {
-        int actor = EventAction.ACTOR_SELF;
-        int status = EventAction.STATUS_OK;
-
-        Event event = getEvent(id, false);
-        event.viewTime = milliseconds;
-
-        EventAction data = new EventAction(EventAction.ACTION_UPDATE, actor, status, event);
-        if (!listeners.isEmpty()) {
-            sendToListeners(data);
-        }
     }
 
     public static class EventAction {

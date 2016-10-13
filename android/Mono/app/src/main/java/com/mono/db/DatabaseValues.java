@@ -19,64 +19,14 @@ public class DatabaseValues {
         return "DROP TABLE IF EXISTS " + table + ";";
     }
 
-    public static class EventBase {
-
-        public static final String TABLE = "`event_base`";
-
-        public static final String ID = "`id`";
-        public static final String SOURCE = "`source`";
-        public static final String EVENT_ID = "`event_id`";
-        public static final String SYNC_ID = "`sync_id`";
-        public static final String FAVORITE = "`favorite`";
-        public static final String CREATE_TIME = "`create_time`";
-        public static final String MODIFY_TIME = "`modify_time`";
-        public static final String VIEW_TIME = "`view_time`";
-        public static final String SYNC_TIME = "`sync_time`";
-
-        public static final String[] PROJECTION = {
-            ID, SOURCE, EVENT_ID, SYNC_ID, CREATE_TIME, MODIFY_TIME, VIEW_TIME, SYNC_TIME
-        };
-
-        public static final int INDEX_ID = 0;
-        public static final int INDEX_SOURCE = 1;
-        public static final int INDEX_EVENT_ID = 2;
-        public static final int INDEX_SYNC_ID = 3;
-        public static final int INDEX_FAVORITE = 4;
-        public static final int INDEX_CREATE_TIME = 5;
-        public static final int INDEX_MODIFY_TIME = 6;
-        public static final int INDEX_VIEW_TIME = 7;
-        public static final int INDEX_SYNC_TIME = 8;
-
-        public static final String CREATE_TABLE;
-        public static final String DROP_TABLE;
-
-        static {
-            String[] parameters = {
-                ID + " INTEGER PRIMARY KEY AUTOINCREMENT",
-                SOURCE + " INTEGER NOT NULL",
-                EVENT_ID + " TEXT NOT NULL",
-                SYNC_ID + " TEXT DEFAULT NULL",
-                FAVORITE + " INTEGER NOT NULL DEFAULT 0",
-                CREATE_TIME + " INTEGER NOT NULL",
-                MODIFY_TIME + " INTEGER NOT NULL DEFAULT 0",
-                VIEW_TIME + " INTEGER NOT NULL DEFAULT 0",
-                SYNC_TIME + " INTEGER NOT NULL DEFAULT 0",
-                "UNIQUE (" + SOURCE + ", " + EVENT_ID + ")"
-            };
-
-            CREATE_TABLE = createTableQuery(TABLE, parameters);
-            DROP_TABLE = dropTableQuery(TABLE);
-        }
-    }
-
     public static class Event {
 
         public static final String TABLE = "`event`";
 
         public static final String ID = "`id`";
+        public static final String PROVIDER_ID = "`provider_id`";
+        public static final String SYNC_ID = "`sync_id`";
         public static final String CALENDAR_ID = "`calendar_id`";
-        public static final String INTERNAL_ID = "`internal_id`";
-        public static final String EXTERNAL_ID = "`external_id`";
         public static final String TYPE = "`type`";
         public static final String TITLE = "`title`";
         public static final String DESC = "`description`";
@@ -88,17 +38,23 @@ public class DatabaseValues {
         public static final String END_TIMEZONE = "`end_timezone`";
         public static final String ALL_DAY = "`all_day`";
         public static final String REMINDERS = "`reminders`";
+        public static final String FAVORITE = "`favorite`";
+        public static final String CREATE_TIME = "`create_time`";
+        public static final String MODIFY_TIME = "`modify_time`";
+        public static final String VIEW_TIME = "`view_time`";
+        public static final String SYNC_TIME = "`sync_time`";
         public static final String ACK = "`ack`"; //flag for ack from server; 1: acked; 0: non-acked
 
         public static final String[] PROJECTION = {
-            ID, CALENDAR_ID, INTERNAL_ID, EXTERNAL_ID, TYPE, TITLE, DESC, LOCATION_ID, COLOR,
-            START_TIME, END_TIME, TIMEZONE, END_TIMEZONE, ALL_DAY, REMINDERS, ACK
+            ID, PROVIDER_ID, SYNC_ID, CALENDAR_ID, TYPE, TITLE, DESC, LOCATION_ID, COLOR,
+            START_TIME, END_TIME, TIMEZONE, END_TIMEZONE, ALL_DAY, REMINDERS, FAVORITE,
+            CREATE_TIME, MODIFY_TIME, VIEW_TIME, SYNC_TIME, ACK
         };
 
         public static final int INDEX_ID = 0;
-        public static final int INDEX_CALENDAR_ID = 1;
-        public static final int INDEX_INTERNAL_ID = 2;
-        public static final int INDEX_EXTERNAL_ID = 3;
+        public static final int INDEX_PROVIDER_ID = 1;
+        public static final int INDEX_SYNC_ID = 2;
+        public static final int INDEX_CALENDAR_ID = 3;
         public static final int INDEX_TYPE = 4;
         public static final int INDEX_TITLE = 5;
         public static final int INDEX_DESC = 6;
@@ -110,7 +66,12 @@ public class DatabaseValues {
         public static final int INDEX_END_TIMEZONE = 12;
         public static final int INDEX_ALL_DAY = 13;
         public static final int INDEX_REMINDERS = 14;
-        public static final int INDEX_ACK = 15;
+        public static final int INDEX_FAVORITE = 15;
+        public static final int INDEX_CREATE_TIME = 16;
+        public static final int INDEX_MODIFY_TIME = 17;
+        public static final int INDEX_VIEW_TIME = 18;
+        public static final int INDEX_SYNC_TIME = 19;
+        public static final int INDEX_ACK = 20;
 
         public static final String CREATE_TABLE;
         public static final String DROP_TABLE;
@@ -118,13 +79,13 @@ public class DatabaseValues {
         static {
             String[] parameters = {
                 ID + " TEXT PRIMARY KEY",
+                PROVIDER_ID + " INTEGER",
+                SYNC_ID + " TEXT",
                 CALENDAR_ID + " INTEGER",
-                INTERNAL_ID + " INTEGER",
-                EXTERNAL_ID + " TEXT",
                 TYPE + " TEXT",
                 TITLE + " TEXT",
                 DESC + " TEXT",
-                    LOCATION_ID,
+                LOCATION_ID + " INTEGER",
 //                LOCATION_ID + " INTEGER REFERENCES " + Location.TABLE + " (" + Location.ID + ")",
                 COLOR + " INTEGER",
                 START_TIME + " INTEGER",
@@ -133,6 +94,11 @@ public class DatabaseValues {
                 END_TIMEZONE + " TEXT",
                 ALL_DAY + " INTEGER",
                 REMINDERS + " TEXT",
+                FAVORITE + " INTEGER",
+                CREATE_TIME + " INTEGER",
+                MODIFY_TIME + " INTEGER",
+                VIEW_TIME + " INTEGER",
+                SYNC_TIME + " INTEGER",
                 ACK + " INTEGER DEFAULT 1"
             };
 
@@ -514,8 +480,7 @@ public class DatabaseValues {
         public static final String MEDIA_ID = "`media_id`";
 
         public static final String[] PROJECTION = {
-            EventMedia.EVENT_ID,
-            EventMedia.MEDIA_ID
+            EVENT_ID, MEDIA_ID
         };
 
         public static final int INDEX_EVENT_ID = 0;
@@ -526,8 +491,8 @@ public class DatabaseValues {
 
         static {
             String[] parameters = {
-                EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " (" + Event.ID + ") ON UPDATE CASCADE ON DELETE CASCADE",
-                MEDIA_ID + " INTEGER REFERENCES " + Media.TABLE + " (" + Media.ID + ")"
+                EVENT_ID + " TEXT REFERENCES " + Event.TABLE + " (" + Event.ID + ") ON UPDATE CASCADE ON DELETE CASCADE",
+                MEDIA_ID + " INTEGER REFERENCES " + Media.TABLE + " (" + Media.ID + ") ON UPDATE CASCADE ON DELETE CASCADE"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);

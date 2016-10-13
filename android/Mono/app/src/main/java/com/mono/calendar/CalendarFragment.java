@@ -157,8 +157,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
             case R.id.action_search:
                 return true;
             case R.id.action_add:
-                Event event = new Event();
-                event.type = Event.TYPE_CALENDAR;
+                Event event = new Event(Event.TYPE_CALENDAR);
                 // Create Event Using the Selected Date
                 LocalDate date = calendarView.getCurrentSelected();
                 if (date != null) {
@@ -303,7 +302,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
         event.startTime = startTime;
         event.endTime = endTime;
         // Update Existing Event
-        eventManager.updateEvent(EventAction.ACTOR_SELF, event.id, event,
+        eventManager.updateEvent(EventAction.ACTOR_SELF, event,
             new EventManager.EventActionCallback() {
                 @Override
                 public void onEventAction(EventAction... data) {

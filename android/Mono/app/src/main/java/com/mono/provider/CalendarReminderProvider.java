@@ -144,7 +144,7 @@ public class CalendarReminderProvider {
     public void resolveReminders(List<Event> events) {
         List<Long> eventIds = new ArrayList<>();
         for (Event event : events) {
-            eventIds.add(event.internalId);
+            eventIds.add(event.providerId);
         }
 
         Cursor cursor = createReminderCursor(eventIds);
@@ -166,8 +166,8 @@ public class CalendarReminderProvider {
             cursor.close();
 
             for (Event event : events) {
-                if (reminders.containsKey(event.internalId)) {
-                    event.reminders = reminders.get(event.internalId);
+                if (reminders.containsKey(event.providerId)) {
+                    event.reminders = reminders.get(event.providerId);
                 }
             }
         }

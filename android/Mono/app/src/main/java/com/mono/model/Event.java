@@ -1,6 +1,7 @@
 package com.mono.model;
 
 import android.os.Parcel;
+import android.os.Parcelable;
 
 import com.mono.util.Common;
 
@@ -13,7 +14,7 @@ import java.util.List;
  *
  * @author Gary Ng
  */
-public class Event extends EventBase {
+public class Event implements Parcelable {
 
     public static final String TYPE_CALENDAR = "calendar";
     public static final String TYPE_USERSTAY = "userstay";
@@ -23,9 +24,10 @@ public class Event extends EventBase {
 
     public String id;
     public String parentId;
+    public int source;
+    public long providerId;
+    public String syncId;
     public long calendarId;
-    public long internalId; // Calendar Provider ID
-    public String externalId; // Google Calendar Sync ID
     public String type;
     public String title;
     public String description;
@@ -37,30 +39,39 @@ public class Event extends EventBase {
     public String endTimeZone;
     public boolean allDay;
     public long lastRepeatTime;
-    public long updateTime;
+    public boolean favorite;
+    public long createTime;
+    public long modifyTime;
+    public long viewTime;
+    public long syncTime;
+
+    public long updateTime; // Provider Event Only
+
     public List<Attendee> attendees = new ArrayList<>();
     public List<Reminder> reminders = new ArrayList<>();
+    public List<Media> photos = new ArrayList<>();
     public boolean syncNeeded;
 
-    public Event() {
-        super(-1, 0, null, null);
-        id = null;
+    public Event(String type) {
+        this(null, 0, null, type);
     }
 
-    public Event(String id) {
-        super(-1, 0, id, null);
+    public Event(String id, long providerId, String syncId, String type) {
         this.id = id;
+        this.providerId = providerId;
+        this.syncId = syncId;
+        this.type = type;
+
+        source = providerId == 0 ? SOURCE_DATABASE : SOURCE_PROVIDER;
     }
 
     public Event(Event event) {
-        super(event);
-
         id = event.id;
         parentId = event.parentId;
         source = event.source;
+        providerId = event.providerId;
+        syncId = event.syncId;
         calendarId = event.calendarId;
-        internalId = event.internalId;
-        externalId = event.externalId;
         type = event.type;
         title = event.title;
         description = event.description;
@@ -75,7 +86,13 @@ public class Event extends EventBase {
         timeZone = event.timeZone;
         endTimeZone = event.endTimeZone;
         allDay = event.allDay;
+        lastRepeatTime = event.lastRepeatTime;
+        favorite = event.favorite;
         createTime = event.createTime;
+        modifyTime = event.modifyTime;
+        viewTime = event.viewTime;
+        syncTime = event.syncTime;
+
         updateTime = event.updateTime;
 
         for (Attendee attendee : event.attendees) {
@@ -92,13 +109,12 @@ public class Event extends EventBase {
     }
 
     protected Event(Parcel in) {
-        super(in);
-
         id = in.readString();
         parentId = in.readString();
+        source = in.readInt();
+        providerId = in.readLong();
+        syncId = in.readString();
         calendarId = in.readLong();
-        internalId = in.readLong();
-        externalId = in.readString();
         type = in.readString();
         title = in.readString();
         description = in.readString();
@@ -109,10 +125,18 @@ public class Event extends EventBase {
         timeZone = in.readString();
         endTimeZone = in.readString();
         allDay = in.readByte() != 0;
+        lastRepeatTime = in.readLong();
+        favorite = in.readByte() != 0;
         createTime = in.readLong();
+        modifyTime = in.readLong();
+        viewTime = in.readLong();
+        syncTime = in.readLong();
+
         updateTime = in.readLong();
+
         in.readTypedList(attendees, Attendee.CREATOR);
         in.readTypedList(reminders, Reminder.CREATOR);
+        in.readTypedList(photos, Media.CREATOR);
     }
 
     public static final Creator<Event> CREATOR = new Creator<Event>() {
@@ -129,10 +153,6 @@ public class Event extends EventBase {
 
     @Override
     public boolean equals(Object object) {
-        if (!super.equals(object)) {
-            return false;
-        }
-
         if (!(object instanceof Event)) {
             return false;
         }
@@ -147,23 +167,19 @@ public class Event extends EventBase {
     }
 
     public boolean equals(Event event) {
-        if (!super.equals(event)) {
-            return false;
-        }
-
         if (!Common.compareStrings(id, event.id)) {
             return false;
         }
 
+        if (providerId != event.providerId) {
+            return false;
+        }
+
+        if (!Common.compareStrings(syncId, event.syncId)) {
+            return false;
+        }
+
         if (calendarId != event.calendarId) {
-            return false;
-        }
-
-        if (internalId != event.internalId) {
-            return false;
-        }
-
-        if (!Common.compareStrings(externalId, event.externalId)) {
             return false;
         }
 
@@ -208,7 +224,7 @@ public class Event extends EventBase {
             return false;
         }
 
-        if (createTime != event.createTime) {
+        if (lastRepeatTime != event.lastRepeatTime) {
             return false;
         }
 
@@ -220,18 +236,26 @@ public class Event extends EventBase {
             return false;
         }
 
+        if (!photos.equals(event.photos)) {
+            return false;
+        }
+
         return true;
     }
 
     @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        super.writeToParcel(dest, flags);
+    public int describeContents() {
+        return 0;
+    }
 
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(id);
         dest.writeString(parentId);
+        dest.writeInt(source);
+        dest.writeLong(providerId);
+        dest.writeString(syncId);
         dest.writeLong(calendarId);
-        dest.writeLong(internalId);
-        dest.writeString(externalId);
         dest.writeString(type);
         dest.writeString(title);
         dest.writeString(description);
@@ -242,10 +266,18 @@ public class Event extends EventBase {
         dest.writeString(timeZone);
         dest.writeString(endTimeZone);
         dest.writeInt(allDay ? 1 : 0);
+        dest.writeLong(lastRepeatTime);
+        dest.writeInt(favorite ? 1 : 0);
         dest.writeLong(createTime);
+        dest.writeLong(modifyTime);
+        dest.writeLong(viewTime);
+        dest.writeLong(syncTime);
+
         dest.writeLong(updateTime);
+
         dest.writeTypedList(attendees);
         dest.writeTypedList(reminders);
+        dest.writeTypedList(photos);
     }
 
     public long getDuration() {

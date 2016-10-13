@@ -144,30 +144,13 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
     private void commit(Event event, EventManager.EventActionCallback callback) {
         EventDataSource dataSource =
             DatabaseHelper.getDataSource(context, EventDataSource.class);
-        Event original = dataSource.getEvent(event.internalId, event.startTime, event.endTime);
+        Event original = dataSource.getEvent(event.providerId, event.startTime, event.endTime);
 
         if (original == null) {
-//            EventManager.getInstance(context).createEvent(
-//                EventAction.ACTOR_NONE,
-//                event.calendarId,
-//                event.internalId,
-//                event.externalId,
-//                Event.TYPE_CALENDAR,
-//                event.title,
-//                event.description,
-//                event.location != null ? event.location.name : null,
-//                event.color,
-//                event.startTime,
-//                event.endTime,
-//                event.timeZone,
-//                event.endTimeZone,
-//                event.allDay,
-//                callback
-//            );
+
         } else {
             EventManager.getInstance(context).updateEvent(
                 EventAction.ACTOR_NONE,
-                original.id,
                 event,
                 callback
             );
@@ -215,13 +198,13 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
             if (!events.isEmpty() && !remoteEvents.isEmpty()) {
                 List<EventComparable> tempEvents = new ArrayList<>(events.size());
                 for (Event event : events) {
-                    tempEvents.add(new EventComparable(event.id, event.internalId, event.startTime,
+                    tempEvents.add(new EventComparable(event.id, event.providerId, event.startTime,
                         event.endTime));
                 }
 
                 List<EventComparable> tempRemoteEvents = new ArrayList<>(remoteEvents.size());
                 for (Event event : remoteEvents) {
-                    tempRemoteEvents.add(new EventComparable(event.id, event.internalId,
+                    tempRemoteEvents.add(new EventComparable(event.id, event.providerId,
                         event.startTime, event.endTime));
                 }
 

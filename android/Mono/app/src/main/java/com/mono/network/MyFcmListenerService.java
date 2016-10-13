@@ -344,10 +344,7 @@ public class MyFcmListenerService extends FirebaseMessagingService {
         }
         boolean isAllDay = (startTime == endTime);
 
-        Event event = new Event();
-        event.id = eventId;
-        event.source = Event.SOURCE_DATABASE;
-        event.type = Event.TYPE_CALENDAR;
+        Event event = new Event(eventId, 0, null, Event.TYPE_CALENDAR);
         event.title = title;
         event.color = Colors.getColor(this, R.color.green);
         event.startTime = startTime;

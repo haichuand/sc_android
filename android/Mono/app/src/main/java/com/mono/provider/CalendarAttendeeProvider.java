@@ -151,7 +151,7 @@ public class CalendarAttendeeProvider {
     public void resolveAttendees(List<Event> events) {
         List<Long> eventIds = new ArrayList<>();
         for (Event event : events) {
-            eventIds.add(event.internalId);
+            eventIds.add(event.providerId);
         }
 
         Cursor cursor = createAttendeeCursor(eventIds);
@@ -173,8 +173,8 @@ public class CalendarAttendeeProvider {
             cursor.close();
 
             for (Event event : events) {
-                if (attendees.containsKey(event.internalId)) {
-                    event.attendees = attendees.get(event.internalId);
+                if (attendees.containsKey(event.providerId)) {
+                    event.attendees = attendees.get(event.providerId);
                 }
             }
         }
