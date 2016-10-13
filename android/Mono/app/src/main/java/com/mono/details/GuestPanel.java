@@ -57,7 +57,7 @@ public class GuestPanel {
     /**
      * Initialize this panel using the given event.
      *
-     * @param event The instance of the event.
+     * @param event Event for initialization.
      */
     public void setEvent(Event event) {
         this.event = event;
@@ -69,7 +69,12 @@ public class GuestPanel {
             ContactsManager manager = ContactsManager.getInstance(activity);
 
             for (Attendee user : event.attendees) {
-                Contact contact = manager.getContact(user.email, user.phoneNumber);
+                Contact contact = null;
+
+                if (!Common.isEmpty(user.email) || !Common.isEmpty(user.phoneNumber)) {
+                    contact = manager.getContact(user.email, user.phoneNumber);
+                }
+
                 if (contact == null) {
                     contact = ContactsManager.userToContact(user);
                 }

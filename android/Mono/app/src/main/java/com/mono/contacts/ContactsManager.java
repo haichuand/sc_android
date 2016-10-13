@@ -349,8 +349,8 @@ public class ContactsManager {
     /**
      * Helper function to convert a user to a contact.
      *
-     * @param user The instance of the user.
-     * @return an instance of the contact.
+     * @param user User to be converted.
+     * @return instance of contact.
      */
     public static Contact userToContact(Attendee user) {
         Contact contact = new Contact(Long.parseLong(user.id), Contact.TYPE_USER);
@@ -369,7 +369,7 @@ public class ContactsManager {
 
         if (!Common.isEmpty(user.mediaId)) {
             contact.photo = null;
-        } else {
+        } else if (!Common.isEmpty(contact.getEmail()) || !Common.isEmpty(contact.getPhone())) {
             // Use Existing Photo from Contact
             ContactsProvider provider = ContactsProvider.getInstance(instance.context);
             long id = provider.getContactId(contact.getEmail(), contact.getPhone());
