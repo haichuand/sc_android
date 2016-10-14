@@ -62,36 +62,33 @@
                 android:id="@+id/create_chat_attendees"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
                 android:orientation="vertical">
-                <!--<CheckBox android:id="@+id/checkbox_meat"-->
-                    <!--android:layout_width="wrap_content"-->
-                    <!--android:layout_height="wrap_content"-->
-                    <!--android:text="John Smith" />-->
-                <!--<CheckBox android:id="@+id/checkbox_cheese"-->
-                    <!--android:layout_width="wrap_content"-->
-                    <!--android:layout_height="wrap_content"-->
-                    <!--android:text="Jane Doe" />-->
+
             </LinearLayout>
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="16dp" >
+            <include layout="@layout/contacts_tag_input"/>
 
-                <AutoCompleteTextView
-                    android:id="@+id/create_chat_add_attendees"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:hint="Invite more..."
-                    android:layout_gravity="center_vertical"
-                    android:completionThreshold="1"
-                    android:dropDownWidth="match_parent" />
-                <Space
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"/>
+            <!--<LinearLayout-->
+                <!--android:layout_width="match_parent"-->
+                <!--android:layout_height="wrap_content"-->
+                <!--android:orientation="horizontal"-->
+                <!--android:layout_marginTop="16dp" >-->
+
+                <!--<AutoCompleteTextView-->
+                    <!--android:id="@+id/create_chat_add_attendees"-->
+                    <!--android:layout_width="0dp"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:layout_weight="1"-->
+                    <!--android:hint="Invite more..."-->
+                    <!--android:layout_gravity="center_vertical"-->
+                    <!--android:completionThreshold="1"-->
+                    <!--android:dropDownWidth="match_parent" />-->
+
+                <!--<Space-->
+                    <!--android:layout_width="0dp"-->
+                    <!--android:layout_height="match_parent"-->
+                    <!--android:layout_weight="1"/>-->
 
                 <!--<ImageView-->
                     <!--android:id="@+id/create_chat_add_button"-->
@@ -99,7 +96,7 @@
                     <!--android:layout_height="32dp"-->
                     <!--android:src="@drawable/ic_add_white"-->
                     <!--android:tint="@color/gray_1" />-->
-            </LinearLayout>
+            <!--</LinearLayout>-->
         </LinearLayout>
 
     </ScrollView>

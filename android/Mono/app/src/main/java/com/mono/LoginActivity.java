@@ -205,7 +205,7 @@ public class LoginActivity extends AppCompatActivity {
         String token = AccountManager.getInstance(this).getFcmToken();
         HttpServerManager httpServerManager = HttpServerManager.getInstance(this);
         String toastMessage;
-        int uId = httpServerManager.createUser(email, firstName, token, lastName, null, phone, userName, password);
+        int uId = httpServerManager.registerMe(email, firstName, token, lastName, null, phone, userName, password);
         if (uId > 0) {
             ChatServerManager chatServerManager = ChatServerManager.getInstance(this);
             chatServerManager.sendRegister(uId, token);

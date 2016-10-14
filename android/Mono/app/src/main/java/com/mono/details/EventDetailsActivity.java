@@ -44,9 +44,9 @@ public class EventDetailsActivity extends GestureActivity {
     public static final String EXTRA_CALENDAR = "calendar";
     public static final String EXTRA_EVENT = "event";
 
-    public static final int REQUEST_PLACE_PICKER = 1;
-    public static final int REQUEST_CONTACT_PICKER = 2;
-    public static final int REQUEST_PHOTO_PICKER = 3;
+    public static final int REQUEST_PLACE_PICKER = 100;
+    public static final int REQUEST_CONTACT_PICKER = 200;
+    public static final int REQUEST_PHOTO_PICKER = 300;
 
     private TextView calendar;
     private EditText title;

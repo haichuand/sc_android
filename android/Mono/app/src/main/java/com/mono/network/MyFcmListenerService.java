@@ -17,7 +17,7 @@ import com.mono.EventManager;
 import com.mono.MainActivity;
 import com.mono.R;
 import com.mono.chat.ChatRoomActivity;
-import com.mono.chat.ChatUtil;
+import com.mono.chat.CreateChat;
 import com.mono.chat.ConversationManager;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.AttendeeDataSource;
@@ -53,7 +53,6 @@ public class MyFcmListenerService extends FirebaseMessagingService {
     private EventManager eventManager;
     private HttpServerManager httpServerManager;
     private ServerSyncManager serverSyncManager;
-    private ChatUtil chatUtil;
     private Handler handler;
 
     @Override
@@ -62,7 +61,6 @@ public class MyFcmListenerService extends FirebaseMessagingService {
         eventManager = EventManager.getInstance(this);
         httpServerManager = HttpServerManager.getInstance(this);
         serverSyncManager = ServerSyncManager.getInstance(this);
-        chatUtil = ChatUtil.getInstance(this);
         handler = new Handler();
     }
 
@@ -99,7 +97,7 @@ public class MyFcmListenerService extends FirebaseMessagingService {
         long messageId = Long.valueOf(data.get(FCMHelper.MESSAGE_ID));
 
         boolean isAckMessage = String.valueOf(AccountManager.getInstance(this).getAccount().id).equals(senderId);
-        Attendee sender = conversationManager.getAttendeeById(senderId);
+        Attendee sender = conversationManager.getUserById(senderId);
         if (senderId == null || conversationId == null) {
             return;
         }
@@ -175,7 +173,7 @@ public class MyFcmListenerService extends FirebaseMessagingService {
 
         //self-sent ack message
         if (((int) AccountManager.getInstance(this).getAccount().id) == eventCreatorId) {
-            chatUtil.handleEventConversationAck(eventId);
+            CreateChat.handleEventConversationAck(eventId);
             serverSyncManager.handleAckEventConversation(eventId);
             return true;
         }
@@ -198,6 +196,8 @@ public class MyFcmListenerService extends FirebaseMessagingService {
                 if (!createEvent(eventId, startTime, endTime, eventTitle, eventAttendeesId)) {
                     return false;
                 }
+            } else { //update eventId
+                eventManager.updateEventId(localEvent.id, eventId);
             }
         }
 
@@ -212,7 +212,13 @@ public class MyFcmListenerService extends FirebaseMessagingService {
             JSONArray attendeesArray = conversationObj.getJSONArray(HttpServerManager.ATTENDEES_ID);
             if (attendeesArray != null) {
                 for (int i = 0; i < attendeesArray.length(); i++) {
-                    attendeesList.add(attendeesArray.get(i).toString());
+                    String id = attendeesArray.get(i).toString();
+                    //get user from server and save user if not in local database
+                    if (!conversationManager.hasUser(id)) {
+                        Attendee attendee = getAttendeeFromServer(id);
+                        conversationManager.saveUserToDB(attendee);
+                    }
+                    attendeesList.add(id);
                 }
             }
         } catch (JSONException e) {
@@ -331,12 +337,14 @@ public class MyFcmListenerService extends FirebaseMessagingService {
 
     private boolean createEvent(String eventId, long startTime, long endTime, String title, List<String> attendeeIds) {
         List<Attendee> attendees = new ArrayList<>();
-        AttendeeDataSource attendeeDataSource = DatabaseHelper.getDataSource(this, AttendeeDataSource.class);
         for (String id : attendeeIds) {
-            Attendee attendee = attendeeDataSource.getAttendeeById(id);
+            Attendee attendee = conversationManager.getUserById(id);
             if (attendee == null) {
                 attendee = getAttendeeFromServer(id);
                 if (attendee == null) {
+                    return false;
+                }
+                if (!conversationManager.saveUserToDB(attendee)) {
                     return false;
                 }
             }

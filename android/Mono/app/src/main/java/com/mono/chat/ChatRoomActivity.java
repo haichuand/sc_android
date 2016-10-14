@@ -270,7 +270,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         addAttendeeTextView = (AutoCompleteTextView) findViewById(R.id.edit_text_invite);
         final List<Attendee> allUsersList = conversationManager.getAllUserList();
         Collections.sort(allUsersList, new AttendeeUsernameComparator());
-        List<String> allUserStringList = ChatUtil.getAttendeeStringtWithNameAndEmail(allUsersList);
+        List<String> allUserStringList = CreateChat.getAttendeeStringtWithNameAndEmail(allUsersList);
         ArrayAdapter<String> addAttendeeAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, allUserStringList);
         addAttendeeTextView.setAdapter(addAttendeeAdapter);
         addAttendeeTextView.setInputType(InputType.TYPE_NULL);
@@ -514,7 +514,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
 //        conversationManager.addAttendees(conversationId, newlyAddedAttendeeIds);
 //
 //        for (String id : newlyAddedAttendeeIds) {
-//            chatAttendeeMap.addAttendee(conversationManager.getAttendeeById(id));
+//            chatAttendeeMap.addAttendee(conversationManager.getUserById(id));
 //            chatAttendeeIdList.add(id);
 //        }
 //        newlyAddedAttendeeIds.clear();
@@ -600,7 +600,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         chatAttendeeMap.clear();
         chatAttendeeIdList.clear();
         for (String id : updateChatAttendeeIdList) {
-            chatAttendeeMap.addAttendee(conversationManager.getAttendeeById(id));
+            chatAttendeeMap.addAttendee(conversationManager.getUserById(id));
             chatAttendeeIdList.add(id);
         }
 
@@ -643,7 +643,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     public void onNewConversationAttendees(String incomingConversationId, List<String> newAttendeeIds) {
         if (conversationId.equals(incomingConversationId)) {
             for (String id : newAttendeeIds) {
-                Attendee attendee = conversationManager.getAttendeeById(id);
+                Attendee attendee = conversationManager.getUserById(id);
                 chatAttendeeMap.addAttendee(attendee);
                 chatAttendeeIdList.add(attendee.id);
                 updateChatAttendeeIdList.add(attendee.id);

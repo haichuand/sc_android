@@ -198,4 +198,7 @@
     <string name="network_error_sync_text">Network error. The chat has been saved on your device and will be sent later</string>
     <string name="error_chat_title">Chat title cannot be empty</string>
     <string name="error_saving_chat">Error saving chat to your device. Please try again</string>
+    <string name="error_no_email">Chat attendee must have a valid email address</string>
+    <string name="error_duplicate_attendee">Chat attendee already in list</string>
+    <string name="error_create_attendee">Error creating attendee in database</string>
 </resources>

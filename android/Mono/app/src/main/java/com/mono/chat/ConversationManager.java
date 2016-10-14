@@ -13,8 +13,10 @@ import com.mono.model.Event;
 import com.mono.model.Message;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by hduan on 3/28/2016.
@@ -26,16 +28,15 @@ public class ConversationManager {
     private ConversationDataSource conversationDataSource;
     private AttendeeDataSource attendeeDataSource;
     private EventDataSource eventDataSource;
-    private EventManager eventManager;
     private final List<ConversationBroadcastListener> listeners = new LinkedList<>();
     private String activeConversationId = null;
+    private final Map<String, Attendee> allUserMap = new HashMap<>(); //id->Attendee map of all SuperCaly users in local database
 
     private ConversationManager(Context context) {
         this.context = context;
         conversationDataSource = DatabaseHelper.getDataSource(context, ConversationDataSource.class);
         attendeeDataSource = DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
         eventDataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-        eventManager = EventManager.getInstance(context);
     }
 
     public static ConversationManager getInstance(Context context) {
@@ -150,12 +151,40 @@ public class ConversationManager {
         return attendeeIdList;
     }
 
-    public Attendee getAttendeeById(String id) {
-        return attendeeDataSource.getAttendeeById(id);
+    public boolean hasUser (String id) {
+        if (allUserMap.isEmpty()) {
+            initAllUserMap();
+        }
+        return allUserMap.containsKey(id);
+    }
+
+    public Attendee getUserById(String id) {
+        if (allUserMap.isEmpty()) {
+            initAllUserMap();
+        }
+        return allUserMap.get(id);
     }
 
     public List<Attendee> getAllUserList() {
-        return attendeeDataSource.getAttendees();
+        if (allUserMap.isEmpty()) {
+            initAllUserMap();
+        }
+        return new ArrayList<>(allUserMap.values());
+    }
+
+    public boolean saveUserToDB(Attendee attendee) {
+        if (attendeeDataSource.createAttendee(attendee)) {
+            allUserMap.put(attendee.id, attendee);
+            return true;
+        }
+        return false;
+    }
+
+    private void initAllUserMap() {
+        List<Attendee> allUserList = attendeeDataSource.getAttendees();
+        for (Attendee user : allUserList) {
+            allUserMap.put(user.id, user);
+        }
     }
 
     public void addListener (ConversationBroadcastListener listener) {

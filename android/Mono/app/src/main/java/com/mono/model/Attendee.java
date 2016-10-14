@@ -12,7 +12,7 @@ import com.mono.util.Common;
  */
 public class Attendee implements Parcelable {
 
-    public final String id;
+    public String id;
     public String mediaId;
     public String email;
     public String phoneNumber;

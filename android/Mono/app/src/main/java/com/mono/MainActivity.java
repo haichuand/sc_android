@@ -33,7 +33,7 @@ import android.widget.Toast;
 
 import com.google.android.gms.maps.SupportMapFragment;
 import com.mono.alarm.AlarmHelper;
-import com.mono.chat.ChatUtil;
+import com.mono.chat.CreateChat;
 import com.mono.chat.ConversationManager;
 import com.mono.contacts.ContactsActivity;
 import com.mono.details.EventDetailsActivity;
@@ -89,7 +89,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
     private ServiceScheduler scheduler;
     private GoogleClient googleClient;
-    private ChatUtil chatUtil;
+    private CreateChat createChat;
     private ConversationManager conversationManager;
     private ServerSyncManager syncManager;
 
@@ -185,7 +185,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         googleClient = new GoogleClient(this);
         googleClient.initialize();
 
-        chatUtil = ChatUtil.getInstance(this);
+        createChat = CreateChat.getInstance(this);
         conversationManager = ConversationManager.getInstance(this);
 
         syncManager = ServerSyncManager.getInstance(this);
@@ -323,6 +323,9 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                 handleIntro(resultCode, data);
                 break;
             case RequestCodes.Activity.LOCATION_SETTING:
+                break;
+            case EventDetailsActivity.REQUEST_CONTACT_PICKER:
+                createChat.handleContactPickerResult(resultCode, data);
                 break;
         }
     }
@@ -736,10 +739,10 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
         List<Conversation> conversations = conversationManager.getConversationsDBFirst(event);
         if (conversations.isEmpty()) { //create new chat
-            chatUtil.showCreateChatDialog(account, event);
+            createChat.showCreateChatDialog(account, event);
         } else {
             Conversation conversation = conversations.get(0);
-            chatUtil.startChatRoomActivity(event.id, event.startTime, event.endTime, event.allDay, conversation.id, account.id+"");
+            createChat.startChatRoomActivity(event.id, event.startTime, event.endTime, event.allDay, conversation.id, account.id+"");
         }
     }
 
@@ -758,9 +761,9 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
         String myId = String.valueOf(AccountManager.getInstance(this).getAccount().id);
         if (event == null) {
-            chatUtil.startChatRoomActivity(null, 0, 0, false, conversationId, myId);
+            createChat.startChatRoomActivity(null, 0, 0, false, conversationId, myId);
         } else {
-            chatUtil.startChatRoomActivity(event.id, event.startTime, event.endTime, event.allDay, conversationId, myId);
+            createChat.startChatRoomActivity(event.id, event.startTime, event.endTime, event.allDay, conversationId, myId);
         }
     }
 

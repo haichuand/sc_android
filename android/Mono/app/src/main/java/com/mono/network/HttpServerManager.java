@@ -57,6 +57,8 @@ public class HttpServerManager {
     public static final int STATUS_ERROR = 3;
     public static final int STATUS_NO_CONVERSATION = 4;
     public static final int STATUS_NO_EVENT = 5;
+    public static final int STATUS_EXCEPTION = -1;
+
     //server methods
     public static final String POST = "POST";
     public static final String GET = "GET";
@@ -97,7 +99,7 @@ public class HttpServerManager {
         return instance;
     }
 
-    public int createUser(String email, String firstName, String fcmId, String lastName, String mediaId, String phoneNum, String userName, String password) {
+    public int registerMe(String email, String firstName, String fcmId, String lastName, String mediaId, String phoneNum, String userName, String password) {
         try {
             JSONObject userInfo = getJSONObject(
                     new String[]{EMAIL, FIRST_NAME, FCM_ID, LAST_NAME, MEDIA_ID, PHONE_NUMBER, USER_NAME, PASSWORD},
@@ -114,13 +116,28 @@ public class HttpServerManager {
                 account.phone = phoneNum;
                 AccountManager.getInstance(context).login(account);
                 return uId;
-            } else if (responseJson.getInt(STATUS) == STATUS_ERROR) {
-                return 0;
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return -1;
+        return STATUS_EXCEPTION;
+    }
+
+    public int createUser (String email, String firstName, String fcmId, String lastName, String mediaId, String phoneNum, String userName, String password) {
+        try {
+            JSONObject userInfo = getJSONObject(
+                    new String[]{EMAIL, FIRST_NAME, FCM_ID, LAST_NAME, MEDIA_ID, PHONE_NUMBER, USER_NAME, PASSWORD},
+                    new String[]{email, firstName, fcmId, lastName, mediaId, phoneNum, userName, password}
+            );
+            JSONObject responseJson = queryServer(userInfo, CREATE_USER_URL, POST);
+            if (responseJson.has(UID)) {
+                return responseJson.getInt(UID);
+            }
+            return responseJson.getInt(STATUS);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return STATUS_EXCEPTION;
     }
 
     public int loginUser(String emailOrPhone, String password) {
@@ -149,7 +166,7 @@ public class HttpServerManager {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return -1;
+        return STATUS_EXCEPTION;
     }
 
     public int updateUserFcmId(int userId, String fcmId) {
@@ -161,7 +178,7 @@ public class HttpServerManager {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return -1;
+        return STATUS_EXCEPTION;
     }
 
     public int addAllRegisteredUsersToUserTable(AttendeeDataSource attendeeDataSource) {
@@ -215,7 +232,7 @@ public class HttpServerManager {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return -1;
+        return STATUS_EXCEPTION;
     }
 
     public JSONObject getUserEvents(int userId) {
@@ -348,7 +365,7 @@ public class HttpServerManager {
      *
      * @param conversationId
      * @param newAttendeesId
-     * @return NO_CONVERSATION = 4, OK=3, NO_USER=1, Error=-1
+     * @return NO_CONVERSATION = 4, OK=3, NO_USER=1, Error=STATUS_EXCEPTION
      */
     public int addConversationAttendees(String conversationId, List<String> newAttendeesId) {
         try {
@@ -363,14 +380,14 @@ public class HttpServerManager {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-        return -1;
+        return STATUS_EXCEPTION;
     }
 
     /**
      *
      * @param conversationId
      * @param attendeesId
-     * @return NO_CONVERSATION = 4, OK=3, NO_USER=1, Error=-1
+     * @return NO_CONVERSATION = 4, OK=3, NO_USER=1, EXCEPTION=STATUS_EXCEPTION
      */
     public int dropConversationAttendees(String conversationId, List<String> attendeesId) {
         try {
@@ -385,14 +402,14 @@ public class HttpServerManager {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-        return -1;
+        return STATUS_EXCEPTION;
     }
 
     /**
      *
      * @param conversationId
      * @param newTitle
-     * @return NO_CONVERSATION = 4, OK=3, Error=-1
+     * @return NO_CONVERSATION = 4, OK=3, EXCEPTION=STATUS_EXCEPTION
      */
     public int updateConversationTitle(String conversationId, String newTitle) {
         try {
@@ -407,7 +424,7 @@ public class HttpServerManager {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-        return -1;
+        return STATUS_EXCEPTION;
     }
 
     public JSONObject getJSONObject(String[] keys, Object[] values) throws JSONException {
