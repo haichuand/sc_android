@@ -50,6 +50,8 @@ public class Event implements Parcelable {
     public List<Attendee> attendees = new ArrayList<>();
     public List<Reminder> reminders = new ArrayList<>();
     public List<Media> photos = new ArrayList<>();
+
+    public String oldId;
     public boolean syncNeeded;
 
     public Event(String type) {
@@ -106,6 +108,8 @@ public class Event implements Parcelable {
         for (Media photo : event.photos) {
             photos.add(photo);
         }
+
+        oldId = event.oldId;
     }
 
     protected Event(Parcel in) {
@@ -137,6 +141,8 @@ public class Event implements Parcelable {
         in.readTypedList(attendees, Attendee.CREATOR);
         in.readTypedList(reminders, Reminder.CREATOR);
         in.readTypedList(photos, Media.CREATOR);
+
+        oldId = in.readString();
     }
 
     public static final Creator<Event> CREATOR = new Creator<Event>() {
@@ -278,6 +284,8 @@ public class Event implements Parcelable {
         dest.writeTypedList(attendees);
         dest.writeTypedList(reminders);
         dest.writeTypedList(photos);
+
+        dest.writeString(oldId);
     }
 
     public long getDuration() {
@@ -298,5 +306,23 @@ public class Event implements Parcelable {
             attendeeIdList.add(attendee.id);
         }
         return attendeeIdList;
+    }
+
+    /**
+     * Provider Events Only. Copy data from partial event containing information not available
+     * from the provider.
+     *
+     * @param event Data to be copied.
+     */
+    public void complete(Event event) {
+        id = event.id;
+        favorite = event.favorite;
+        modifyTime = event.modifyTime;
+        viewTime = event.viewTime;
+        syncTime = event.syncTime;
+
+        for (Media photo : event.photos) {
+            photos.add(photo);
+        }
     }
 }

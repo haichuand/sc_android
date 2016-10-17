@@ -655,13 +655,22 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
         Event scrollToEvent = scrollToPosition >= 0 ? items.get(scrollToPosition) : null;
 
         for (Event event : items) {
-            int index = events.indexOf(event);
+            int index;
+
+            if (event.oldId != null) {
+                Event tempEvent = new Event(event);
+                tempEvent.id = tempEvent.oldId;
+                index = events.indexOf(tempEvent);
+            } else {
+                index = events.indexOf(event);
+            }
+
             if (index < 0) {
                 continue;
             }
 
             events.remove(index);
-            this.items.remove(event.id);
+            this.items.remove(event.oldId != null ? event.oldId : event.id);
 
             events.add(event);
 

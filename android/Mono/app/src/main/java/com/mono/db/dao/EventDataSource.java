@@ -89,6 +89,39 @@ public class EventDataSource extends DataSource {
         return id;
     }
 
+    /**
+     * Create a partial event into the database.
+     *
+     * @param providerId Event ID used in the Calendar Provider.
+     * @param type Type of event.
+     * @param startTime Start time of the event.
+     * @param endTime End time of the event.
+     * @param favorite Event is a favorite.
+     * @param createTime Current time event was created
+     * @return event ID.
+     */
+    public String createPartialEvent(long providerId, String type, long startTime, long endTime,
+            int favorite, long createTime) {
+        String id = DataSource.UniqueIdGenerator(getClass().getSimpleName());
+
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.Event.ID, id);
+        values.put(DatabaseValues.Event.PROVIDER_ID, providerId);
+        values.put(DatabaseValues.Event.TYPE, type);
+        values.put(DatabaseValues.Event.START_TIME, startTime);
+        values.put(DatabaseValues.Event.END_TIME, endTime);
+        values.put(DatabaseValues.Event.FAVORITE, favorite);
+        values.put(DatabaseValues.Event.CREATE_TIME, createTime);
+
+        try {
+            database.insert(DatabaseValues.Event.TABLE, values);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return id;
+    }
+
     public int updateEventId(String originalId, String newId) {
         try {
             ContentValues values = new ContentValues();
@@ -409,6 +442,8 @@ public class EventDataSource extends DataSource {
             selection = getCalendarSelection(args, calendarIds) + " AND ";
         }
 
+        selection += DatabaseValues.Event.PROVIDER_ID + " = 0 AND ";
+
         String operator, order;
         if (direction >= 0) {
             operator = ">";
@@ -462,6 +497,8 @@ public class EventDataSource extends DataSource {
             selection = getCalendarSelection(args, calendarIds) + " AND ";
         }
 
+        selection += DatabaseValues.Event.PROVIDER_ID + " = 0 AND ";
+
         selection += getTimeSelection(args, startTime, endTime);
 
         String[] selectionArgs = args.toArray(new String[args.size()]);
@@ -508,6 +545,8 @@ public class EventDataSource extends DataSource {
         if (calendarIds != null && calendarIds.length > 0) {
             selection = getCalendarSelection(args, calendarIds) + " AND ";
         }
+
+        selection += DatabaseValues.Event.PROVIDER_ID + " = 0 AND ";
 
         selection += getTimeSelection(args, startTime, endTime);
 
@@ -572,6 +611,8 @@ public class EventDataSource extends DataSource {
         if (calendarIds != null && calendarIds.length > 0) {
             selection = getCalendarSelection(args, calendarIds) + " AND ";
         }
+
+        selection += DatabaseValues.Event.PROVIDER_ID + " = 0 AND ";
 
         selection += getTimeSelection(args, startTime, endTime) + " AND ";
 
@@ -639,6 +680,8 @@ public class EventDataSource extends DataSource {
             selection = getCalendarSelection(args, calendarIds) + " AND ";
         }
 
+        selection += DatabaseValues.Event.PROVIDER_ID + " = 0 AND ";
+
         selection += String.format(
             "%s BETWEEN ? AND ?",
             DatabaseValues.Event.START_TIME
@@ -673,7 +716,7 @@ public class EventDataSource extends DataSource {
      * Retrieve events set as favorites.
      *
      * @param calendarIds Restrict events to these calendars.
-     * @return
+     * @return a list of events.
      */
     public List<Event> getFavoriteEvents(long... calendarIds) {
         List<Event> events = new ArrayList<>();
@@ -742,6 +785,7 @@ public class EventDataSource extends DataSource {
             " FROM " + DatabaseValues.Event.TABLE + " e" +
             " INNER JOIN " + DatabaseValues.Location.TABLE + " l" +
             " ON e." + DatabaseValues.Event.LOCATION_ID + " = l." + DatabaseValues.Location.ID +
+            " WHERE e." + DatabaseValues.Event.PROVIDER_ID + " = 0" +
         ")";
 
         List<String> args = new ArrayList<>();
@@ -849,6 +893,8 @@ public class EventDataSource extends DataSource {
         if (calendarIds != null && calendarIds.length > 0) {
             selection = getCalendarSelection(args, calendarIds) + " AND ";
         }
+
+        selection += DatabaseValues.Event.PROVIDER_ID + " = 0 AND ";
 
         selection += getTimeSelection(args, startTime, endTime);
 

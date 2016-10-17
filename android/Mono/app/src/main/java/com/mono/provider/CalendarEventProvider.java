@@ -198,7 +198,7 @@ public class CalendarEventProvider {
     /**
      * Remove an event from the provider.
      *
-     * @param eventId The value of the event ID.
+     * @param eventId ID of event.
      * @return the number of affected rows.
      * @throws SecurityException
      */
@@ -210,6 +210,86 @@ public class CalendarEventProvider {
                 String.valueOf(eventId)
             }
         );
+    }
+
+    /**
+     * Remove an instance of recurring event from the provider. If no recurring events remain,
+     * the whole event series will be removed.
+     *
+     * @param eventId ID of event.
+     * @param startTime Time of recurring event.
+     * @return the exception event ID.
+     */
+    public long removeEvent(long eventId, long startTime) {
+        long exceptionId = -1;
+
+        boolean removeAll = false;
+
+        long dtStart = 0;
+        long lastDate = 0;
+
+        Uri.Builder builder = Events.CONTENT_URI.buildUpon();
+        ContentUris.appendId(builder, eventId);
+
+        Cursor cursor = context.getContentResolver().query(
+            builder.build(),
+            new String[]{
+                Events.DTSTART,
+                Events.LAST_DATE
+            },
+            null,
+            null,
+            null
+        );
+
+        if (cursor != null && cursor.moveToNext()) {
+            dtStart = cursor.getLong(0);
+            lastDate = cursor.getLong(1);
+
+            cursor.close();
+        }
+
+        ContentValues values = new ContentValues();
+        values.put(Events.ORIGINAL_INSTANCE_TIME, startTime);
+        values.put(Events.STATUS, Events.STATUS_CANCELED);
+
+        builder = Events.CONTENT_EXCEPTION_URI.buildUpon();
+        ContentUris.appendId(builder, eventId);
+
+        Uri uri = context.getContentResolver().insert(builder.build(), values);
+
+        if (uri != null) {
+            exceptionId = Long.parseLong(uri.getLastPathSegment());
+
+            builder = Instances.CONTENT_URI.buildUpon();
+            ContentUris.appendId(builder, dtStart);
+            ContentUris.appendId(builder, lastDate);
+
+            cursor = context.getContentResolver().query(
+                builder.build(),
+                new String[]{
+                    Instances._ID
+                },
+                null,
+                null,
+                null
+            );
+
+            if (cursor != null) {
+                removeAll = cursor.getCount() == 0;
+                cursor.close();
+            }
+        } else {
+            removeAll = true;
+        }
+
+        if (removeAll) {
+            if (removeEvent(eventId) > 0) {
+                exceptionId = 0;
+            }
+        }
+
+        return exceptionId;
     }
 
     /**
