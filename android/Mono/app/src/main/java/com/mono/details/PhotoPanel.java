@@ -32,8 +32,8 @@ import com.mono.util.UriHelper;
  */
 public class PhotoPanel {
 
-    private static final int PHOTO_WIDTH_DP = 80;
-    private static final int PHOTO_HEIGHT_DP = 60;
+    private static final int PHOTO_WIDTH_DP = 120;
+    private static final int PHOTO_HEIGHT_DP = 90;
 
     private static final String[] PHOTO_ACTIONS = {"View", "Remove"};
     private static final int PHOTO_ACTION_VIEW = 0;
