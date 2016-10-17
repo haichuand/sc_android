@@ -74,6 +74,7 @@ public class SettingsFragment extends PreferenceFragment {
 
             CheckBoxPreference preference = new CheckBoxPreference(context);
             preference.setTitle(calendar.name);
+            preference.setSummary(calendar.accountName);
             preference.setChecked(calendarIds.contains(id));
 
             preference.setOnPreferenceChangeListener(
