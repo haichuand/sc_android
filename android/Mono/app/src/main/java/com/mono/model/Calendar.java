@@ -6,6 +6,11 @@ import android.os.Parcelable;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * This data structure is used to store information about a specific calendar.
+ *
+ * @author Gary Ng
+ */
 public class Calendar implements Parcelable {
 
     public final long id;
@@ -18,6 +23,7 @@ public class Calendar implements Parcelable {
     public String accountName;
     public String accountType;
     public boolean primary;
+    public boolean local;
 
     public List<Event> events = new ArrayList<>();
 
@@ -35,6 +41,7 @@ public class Calendar implements Parcelable {
         accountName = in.readString();
         accountType = in.readString();
         primary = in.readInt() > 0;
+        local = in.readInt() > 0;
         in.readTypedList(events, Event.CREATOR);
     }
 
@@ -66,6 +73,7 @@ public class Calendar implements Parcelable {
         dest.writeString(accountName);
         dest.writeString(accountType);
         dest.writeInt(primary ? 1 : 0);
+        dest.writeInt(local ? 1 : 0);
         dest.writeTypedList(events);
     }
 }

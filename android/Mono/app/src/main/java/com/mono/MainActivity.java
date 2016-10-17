@@ -682,7 +682,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         if (event.id == null) {
             List<Calendar> calendars = CalendarProvider.getInstance(this).getCalendars();
             for (Calendar item : calendars) {
-                if (item.primary) {
+                if (item.primary && !item.local) {
                     event.source = Event.SOURCE_PROVIDER;
                     event.calendarId = item.id;
                     break;

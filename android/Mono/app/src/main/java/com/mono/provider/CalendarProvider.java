@@ -2,9 +2,11 @@ package com.mono.provider;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.provider.CalendarContract;
 import android.provider.CalendarContract.Calendars;
 
 import com.mono.model.Calendar;
+import com.mono.util.Common;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -83,6 +85,8 @@ public class CalendarProvider {
         calendar.accountName = cursor.getString(CalendarValues.Calendar.INDEX_ACCOUNT_NAME);
         calendar.accountType = cursor.getString(CalendarValues.Calendar.INDEX_ACCOUNT_TYPE);
         calendar.primary = cursor.getInt(CalendarValues.Calendar.INDEX_PRIMARY) > 0;
+        calendar.local = Common.compareStrings(calendar.accountType,
+            CalendarContract.ACCOUNT_TYPE_LOCAL);
 
         return calendar;
     }
