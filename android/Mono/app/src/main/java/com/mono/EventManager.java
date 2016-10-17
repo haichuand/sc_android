@@ -103,11 +103,11 @@ public class EventManager {
     }
 
     /**
-     * Insert an event into the cache and retrieve any additional event information.
+     * Retrieve additional event information.
      *
-     * @param event Event to be added to cache.
+     * @param event Event to be resolved.
      */
-    private void add(Event event) {
+    private void resolveEvent(Event event) {
         if (event.source == Event.SOURCE_DATABASE) {
             EventAttendeeDataSource dataSource =
                 DatabaseHelper.getDataSource(context, EventAttendeeDataSource.class);
@@ -119,15 +119,6 @@ public class EventManager {
             event.location = manager.getLocation(event.location.id);
         }
 
-        if (event.providerId > 0) {
-            EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-            Event tempEvent = dataSource.getEvent(event.providerId, event.startTime, event.endTime);
-
-            if (tempEvent != null) {
-                event.complete(tempEvent);
-            }
-        }
-
         EventMediaDataSource mediaDataSource =
             DatabaseHelper.getDataSource(context, EventMediaDataSource.class);
         event.photos = mediaDataSource.getMedia(event.id, Media.IMAGE);
@@ -136,7 +127,25 @@ public class EventManager {
             MediaManager manager = MediaManager.getInstance(context);
             event.photos = manager.getImages(event.startTime, event.endTime);
         }
+    }
 
+    /**
+     * Retrieve additional event information and insert the event into the cache.
+     *
+     * @param event Event to be added to cache.
+     */
+    private void add(Event event) {
+        if (event.providerId > 0) {
+            EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+            Event tempEvent = dataSource.getEvent(event.providerId, event.startTime, event.endTime);
+
+            if (tempEvent != null) {
+                resolveEvent(tempEvent);
+                event.complete(tempEvent);
+            }
+        }
+
+        resolveEvent(event);
         cache.put(event.id, event);
     }
 
@@ -193,11 +202,10 @@ public class EventManager {
         List<Event> result = new ArrayList<>(limit);
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-        List<Event> events = dataSource.getEvents(startTime, offset, limit, direction, calendarIds);
+        result.addAll(dataSource.getEvents(startTime, offset, limit, direction, calendarIds));
 
-        for (Event event : events) {
+        for (Event event : result) {
             add(event);
-            result.add(event);
         }
 
         return result;
@@ -228,11 +236,10 @@ public class EventManager {
         }
 
         CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
-        List<Event> events = provider.getEvents(start, end, offset, limit, direction, calendarIds);
+        result.addAll(provider.getEvents(start, end, offset, limit, direction, calendarIds));
 
-        for (Event event : events) {
+        for (Event event : result) {
             add(event);
-            result.add(event);
         }
 
         return result;
@@ -253,14 +260,10 @@ public class EventManager {
         result.addAll(provider.getEvents(startTime, endTime, calendarIds));
         // Events from Database
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-        List<Event> events = dataSource.getEvents(startTime, endTime, calendarIds);
+        result.addAll(dataSource.getEvents(startTime, endTime, calendarIds));
 
-        for (Event event : events) {
+        for (Event event : result) {
             add(event);
-
-            if (!result.contains(event)) {
-                result.add(event);
-            }
         }
 
         return result;
@@ -277,14 +280,10 @@ public class EventManager {
         List<Event> result = new ArrayList<>();
         // Events from Database
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-        List<Event> events = dataSource.getEvents(startTime, endTime, calendarIds);
+        result.addAll(dataSource.getEvents(startTime, endTime, calendarIds));
 
-        for (Event event : events) {
+        for (Event event : result) {
             add(event);
-
-            if (!result.contains(event)) {
-                result.add(event);
-            }
         }
 
         return result;
@@ -306,14 +305,10 @@ public class EventManager {
         result.addAll(provider.getEvents(year, month, day, calendarIds));
         // Events from Database
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-        List<Event> events = dataSource.getEvents(year, month, day, calendarIds);
+        result.addAll(dataSource.getEvents(year, month, day, calendarIds));
 
-        for (Event event : events) {
+        for (Event event : result) {
             add(event);
-
-            if (!result.contains(event)) {
-                result.add(event);
-            }
         }
 
         return result;
@@ -337,14 +332,10 @@ public class EventManager {
         result.addAll(provider.getEvents(startTime, endTime, query, limit, calendarIds));
         // Events from Database
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-        List<Event> events = dataSource.getEvents(startTime, endTime, query, limit, calendarIds);
+        result.addAll(dataSource.getEvents(startTime, endTime, query, limit, calendarIds));
 
-        for (Event event : events) {
+        for (Event event : result) {
             add(event);
-
-            if (!result.contains(event)) {
-                result.add(event);
-            }
         }
 
         Collections.sort(result, new Comparator<Event>() {
@@ -372,14 +363,10 @@ public class EventManager {
         result.addAll(provider.getEventsWithReminders(startTime, endTime, calendarIds));
         // Events from Database
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-        List<Event> events = dataSource.getEventsWithReminders(startTime, endTime, calendarIds);
+        result.addAll(dataSource.getEventsWithReminders(startTime, endTime, calendarIds));
 
-        for (Event event : events) {
+        for (Event event : result) {
             add(event);
-
-            if (!result.contains(event)) {
-                result.add(event);
-            }
         }
 
         return result;
@@ -682,6 +669,14 @@ public class EventManager {
                         AlarmHelper.createAlarm(context, id, alarmTime, event.title, event.startTime);
                     }
                 }
+            }
+            // Create Participants
+            if (event.attendees != null) {
+                updateEventAttendees(id, event.attendees);
+            }
+            // Create Photos
+            if (event.photos != null) {
+                updateEventPhotos(id, event.photos);
             }
         }
 

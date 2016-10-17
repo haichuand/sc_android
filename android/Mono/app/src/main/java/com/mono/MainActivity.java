@@ -683,6 +683,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             List<Calendar> calendars = CalendarProvider.getInstance(this).getCalendars();
             for (Calendar item : calendars) {
                 if (item.primary) {
+                    event.source = Event.SOURCE_PROVIDER;
                     event.calendarId = item.id;
                     break;
                 }

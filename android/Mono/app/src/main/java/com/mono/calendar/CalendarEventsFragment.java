@@ -170,7 +170,13 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
             item.type = CalendarEventsItem.TYPE_EVENT;
             item.iconResId = R.drawable.circle;
             item.iconColor = event.color;
-            item.title = event.title;
+
+            if (event.title != null && !event.title.isEmpty()) {
+                item.title = event.title;
+            } else {
+                item.title = "(" + getString(R.string.no_subject) + ")";
+            }
+
             item.description = event.description;
             // Check Event Photos
             item.hasPhotos = event.photos != null && !event.photos.isEmpty();
