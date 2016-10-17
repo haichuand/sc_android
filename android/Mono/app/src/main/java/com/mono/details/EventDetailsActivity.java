@@ -305,6 +305,9 @@ public class EventDetailsActivity extends GestureActivity {
         currentCalendar = calendar;
 
         this.calendar.setText(calendar.name);
+        if (original.id != null) {
+            this.calendar.setOnClickListener(null);
+        }
 
         if (event.title != null) {
             title.setText(event.title);

@@ -23,9 +23,7 @@ import com.mono.EventManager.EventBroadcastListener;
 import com.mono.MainInterface;
 import com.mono.R;
 import com.mono.dashboard.EventsFragment.ListListener;
-import com.mono.model.Calendar;
 import com.mono.model.Event;
-import com.mono.provider.CalendarProvider;
 import com.mono.search.SearchFragment;
 import com.mono.search.SearchHandler;
 import com.mono.util.OnBackPressedListener;
@@ -122,16 +120,6 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
         switch (id) {
             case R.id.action_add:
                 Event event = new Event(Event.TYPE_CALENDAR);
-
-                List<Calendar> calendars =
-                    CalendarProvider.getInstance(getContext()).getCalendars();
-                for (Calendar calendar : calendars) {
-                    if (calendar.primary) {
-                        event.calendarId = calendar.id;
-                        break;
-                    }
-                }
-
                 mainInterface.showEventDetails(event);
                 return true;
         }
