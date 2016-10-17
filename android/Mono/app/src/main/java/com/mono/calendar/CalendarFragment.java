@@ -161,19 +161,14 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
                 // Create Event Using the Selected Date
                 LocalDate date = calendarView.getCurrentSelected();
                 if (date != null) {
-                    DateTime dateTime = new DateTime();
-                    int hour = dateTime.getHourOfDay();
-                    int minute = dateTime.getMinuteOfHour();
+                    DateTime dateTime = date.toDateTimeAtCurrentTime();
 
-                    if (minute < 30) {
-                        minute = 30;
+                    if (dateTime.getMinuteOfHour() < 30) {
+                        dateTime = dateTime.withMinuteOfHour(30);
                     } else {
-                        hour++;
-                        minute = 0;
+                        dateTime = dateTime.plusHours(1).withMinuteOfHour(0);
                     }
 
-                    dateTime = new DateTime(date.getYear(), date.getMonthOfYear(),
-                        date.getDayOfMonth(), hour, minute, 0, 0);
                     event.startTime = dateTime.getMillis();
                 }
 

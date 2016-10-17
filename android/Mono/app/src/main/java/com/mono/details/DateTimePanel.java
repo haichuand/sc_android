@@ -156,17 +156,12 @@ public class DateTimePanel {
         if (event.startTime > 0) {
             dateTime = dateTime.withMillis(event.startTime);
         } else {
-            int hour = dateTime.getHourOfDay();
-            int minute = dateTime.getMinuteOfHour();
-
-            if (minute < 30) {
-                minute = 30;
+            if (dateTime.getMinuteOfHour() < 30) {
+                dateTime = dateTime.withMinuteOfHour(30);
             } else {
-                hour++;
-                minute = 0;
+                dateTime = dateTime.plusHours(1).withMinuteOfHour(0);
             }
 
-            dateTime = dateTime.withTime(hour, minute, 0, 0);
             event.startTime = dateTime.getMillis();
         }
 
