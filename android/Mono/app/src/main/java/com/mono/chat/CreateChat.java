@@ -475,10 +475,12 @@ public class CreateChat {
                 user.firstName = contact.firstName;
                 user.lastName = contact.lastName;
 
-                if (user.firstName == null && user.lastName == null) {
-                    user.firstName = contact.displayName;
+                if (contact.displayName != null && !contact.displayName.isEmpty()) {
+                    user.userName = contact.displayName;
+                } else {
+                    user.userName = user.firstName + user.lastName;
                 }
-                user.userName = user.firstName + user.lastName;
+
                 user.isFriend = true;
 
                 int responsCode = httpServerManager.createUser(
@@ -488,7 +490,7 @@ public class CreateChat {
                         user.lastName,
                         user.mediaId,
                         user.phoneNumber,
-                        user.firstName + user.lastName,
+                        user.userName,
                         DEFAULT_USER_PASSWORD );
 
                 switch (responsCode) {
@@ -508,12 +510,10 @@ public class CreateChat {
                         break;
                 }
 
-                if (!attendeeDataSource.createAttendee(user)) {
+                if (!conversationManager.saveUserToDB(user)) {
                     Toast.makeText(activity, R.string.error_create_attendee, Toast.LENGTH_SHORT).show();
                     continue;
                 }
-
-                conversationManager.saveUserToDB(user);
                 addCheckBoxFromAttendee(user);
             }
         }
