@@ -42,6 +42,7 @@ public class CalendarValues {
 
         public static final String ID = Events._ID;
         public static final String CALENDAR_ID = Events.CALENDAR_ID;
+        public static final String CALENDAR_NAME = Events.CALENDAR_DISPLAY_NAME;
         public static final String TITLE = Events.TITLE;
         public static final String DESC = Events.DESCRIPTION;
         public static final String LOCATION = Events.EVENT_LOCATION;

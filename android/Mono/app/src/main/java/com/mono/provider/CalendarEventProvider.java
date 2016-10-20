@@ -548,10 +548,9 @@ public class CalendarEventProvider {
             long... calendarIds) {
         List<Event> events = new ArrayList<>();
 
-        Uri.Builder builder = Instances.CONTENT_SEARCH_URI.buildUpon();
+        Uri.Builder builder = Instances.CONTENT_URI.buildUpon();
         ContentUris.appendId(builder, startTime);
         ContentUris.appendId(builder, endTime);
-        builder.appendPath(query);
 
         List<String> args = new ArrayList<>();
 
@@ -559,6 +558,30 @@ public class CalendarEventProvider {
         if (calendarIds != null && calendarIds.length > 0) {
             selection = getCalendarSelection(args, calendarIds);
         }
+
+        String querySelection = "";
+        String[] terms = Common.explode(" ", query);
+        for (int i = 0; i < terms.length; i++) {
+            if (i > 0) querySelection += " AND ";
+
+            querySelection += "(";
+
+            String[] fields = {
+                CalendarValues.Event.CALENDAR_NAME,
+                CalendarValues.Event.TITLE,
+                CalendarValues.Event.DESC,
+                CalendarValues.Event.LOCATION
+            };
+
+            for (int j = 0; j < fields.length; j++) {
+                if (j > 0) querySelection += " OR ";
+                querySelection += fields[j] + " LIKE '%' || ? || '%'";
+                args.add(terms[i]);
+            }
+
+            querySelection += ")";
+        }
+        selection += String.format("(%s)", querySelection);
 
         String[] selectionArgs = args.toArray(new String[args.size()]);
 
