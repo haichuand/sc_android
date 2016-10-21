@@ -39,6 +39,9 @@ public class Settings {
     public static final String PREF_CALENDAR_WEEK_NUMBER = "pref_calendar_week_number";
     public static final boolean DEFAULT_CALENDAR_WEEK_NUMBER = false;
 
+    public static final String PREF_CALENDAR_DEFAULT = "pref_calendar_default";
+    public static final int DEFAULT_CALENDAR_DEFAULT = 0;
+
     public static final String PREF_LOCATION_SERVICE = "pref_location_service";
     public static final boolean DEFAULT_LOCATION_SERVICE = true;
 
@@ -263,6 +266,19 @@ public class Settings {
     public void setCalendarWeekNumber(boolean value) {
         Editor editor = getEditor();
         editor.putBoolean(PREF_CALENDAR_WEEK_NUMBER, value);
+        editor.apply();
+    }
+
+    public long getCalendarDefault() {
+        String value = preferences.getString(PREF_CALENDAR_DEFAULT,
+            String.valueOf(DEFAULT_CALENDAR_DEFAULT));
+
+        return Long.parseLong(value);
+    }
+
+    public void setCalendarDefault(long value) {
+        Editor editor = getEditor();
+        editor.putString(PREF_CALENDAR_DEFAULT, String.valueOf(value));
         editor.apply();
     }
 

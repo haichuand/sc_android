@@ -585,8 +585,16 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                 try {
                     // Initialize Calendars
                     Set<Long> calendars = new HashSet<>();
+                    long defaultId = -1;
+
                     List<Calendar> calendarList = CalendarProvider.getInstance(this).getCalendars();
+
                     for (Calendar calendar : calendarList) {
+                        if (defaultId == -1 && calendar.primary && !calendar.local) {
+                            defaultId = calendar.id;
+                            settings.setCalendarDefault(defaultId);
+                        }
+
                         calendars.add(calendar.id);
                     }
                     settings.setCalendars(calendars);
@@ -680,13 +688,10 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         Calendar calendar;
 
         if (event.id == null) {
-            List<Calendar> calendars = CalendarProvider.getInstance(this).getCalendars();
-            for (Calendar item : calendars) {
-                if (item.primary && !item.local) {
-                    event.source = Event.SOURCE_PROVIDER;
-                    event.calendarId = item.id;
-                    break;
-                }
+            long calendarId = Settings.getInstance(this).getCalendarDefault();
+            if (calendarId > 0) {
+                event.source = Event.SOURCE_PROVIDER;
+                event.calendarId = calendarId;
             }
         }
 
@@ -694,8 +699,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             calendar = CalendarProvider.getInstance(this).getCalendar(event.calendarId);
         } else {
             // Local Calendar (Specific for this App)
-            calendar = new Calendar(event.calendarId);
-            calendar.name = getString(R.string.local_calendar);
+            calendar = new Calendar(event.calendarId, getString(R.string.local_calendar));
         }
 
         Intent intent = new Intent(this, EventDetailsActivity.class);

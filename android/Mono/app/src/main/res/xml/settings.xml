@@ -32,7 +32,12 @@
     <PreferenceCategory
         android:key="@string/settings_cat_calendars_key"
         android:title="@string/settings_cat_calendars_title"
-        android:layout="@layout/settings_category"/>
+        android:layout="@layout/settings_category">
+
+        <ListPreference
+            android:key="@string/pref_calendar_default_key"
+            android:title="@string/pref_calendar_default_title"/>
+    </PreferenceCategory>
 
     <PreferenceCategory
         android:key="@string/settings_cat_notifications_key"

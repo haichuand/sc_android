@@ -31,6 +31,11 @@ public class Calendar implements Parcelable {
         this.id = id;
     }
 
+    public Calendar(long id, String name) {
+        this(id);
+        this.name = name;
+    }
+
     protected Calendar(Parcel in) {
         id = in.readLong();
         name = in.readString();

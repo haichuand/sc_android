@@ -27,6 +27,7 @@ import com.mono.model.Calendar;
 import com.mono.model.Event;
 import com.mono.model.Location;
 import com.mono.provider.CalendarProvider;
+import com.mono.util.Common;
 import com.mono.util.GestureActivity;
 
 import java.util.ArrayList;
@@ -418,7 +419,13 @@ public class EventDetailsActivity extends GestureActivity {
 
         items[0] = getString(R.string.local_calendar);
         for (int i = 0; i < calendars.size(); i++) {
-            items[1 + i] = calendars.get(i).name;
+            Calendar calendar = calendars.get(i);
+
+            String text = calendar.name;
+            if (!Common.isEmpty(calendar.accountName)) {
+                text += "\n(" + calendar.accountName + ")";
+            }
+            items[1 + i] = text;
         }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AppTheme_Dialog_Alert);

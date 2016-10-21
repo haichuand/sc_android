@@ -14,6 +14,7 @@ import com.mono.BuildConfig;
 import com.mono.R;
 import com.mono.model.Calendar;
 import com.mono.provider.CalendarProvider;
+import com.mono.util.Common;
 
 import org.acra.ACRA;
 
@@ -34,6 +35,7 @@ public class SettingsFragment extends PreferenceFragment {
         addPreferencesFromResource(R.xml.settings);
 
         setLocationService();
+        setCalendarDefault();
         setCalendars();
         setCalendarWeekStart();
         setCalendarWeekNumber();
@@ -51,6 +53,98 @@ public class SettingsFragment extends PreferenceFragment {
         preference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
             @Override
             public boolean onPreferenceChange(Preference preference, Object value) {
+                getActivity().setResult(Activity.RESULT_OK);
+                return true;
+            }
+        });
+    }
+
+    /**
+     * Initialize the current default calendar.
+     */
+    public void setCalendarDefault() {
+        String key = getString(R.string.pref_calendar_default_key);
+        ListPreference preference = (ListPreference) findPreference(key);
+
+        Context context = getActivity();
+
+        List<Calendar> calendars = CalendarProvider.getInstance(context).getCalendars();
+        calendars.add(0, new Calendar(0, getString(R.string.local_calendar)));
+
+        long defaultId = Settings.getInstance(context).getCalendarDefault();
+
+        Calendar primaryCalendar = null, secondaryCalendar = null;
+        int primaryIndex = -1, secondaryIndex = -1;
+
+        String[] entries = new String[calendars.size()];
+        String[] values = new String[calendars.size()];
+
+        for (int i = 0; i < calendars.size(); i++) {
+            Calendar calendar = calendars.get(i);
+
+            if (primaryIndex == -1 && calendar.id == defaultId) {
+                primaryCalendar = calendar;
+                primaryIndex = i;
+            }
+
+            if (secondaryIndex == -1 && calendar.primary && !calendar.local) {
+                secondaryCalendar = calendar;
+                secondaryIndex = i;
+            }
+
+            entries[i] = calendar.name;
+            if (!Common.isEmpty(calendar.accountName)) {
+                entries[i] += "\n(" + calendar.accountName + ")";
+            }
+            values[i] = String.valueOf(calendar.id);
+        }
+
+        preference.setEntries(entries);
+        preference.setEntryValues(values);
+
+        String summary;
+
+        if (primaryIndex >= 0) {
+            summary = primaryCalendar.name;
+            if (!Common.isEmpty(primaryCalendar.accountName)) {
+                summary += "\n(" + primaryCalendar.accountName + ")";
+            }
+
+            preference.setSummary(summary);
+            preference.setValueIndex(primaryIndex);
+        } else if (secondaryIndex >= 0) {
+            Settings.getInstance(context).setCalendarDefault(secondaryCalendar.id);
+
+            summary = secondaryCalendar.name;
+            if (!Common.isEmpty(secondaryCalendar.accountName)) {
+                summary += "\n(" + secondaryCalendar.accountName + ")";
+            }
+            preference.setSummary(summary);
+            preference.setValueIndex(secondaryIndex);
+        }
+
+        preference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+            @Override
+            public boolean onPreferenceChange(Preference preference, Object value) {
+                CalendarProvider provider = CalendarProvider.getInstance(preference.getContext());
+
+                Calendar calendar = null;
+                long calendarId = Long.parseLong(value.toString());
+
+                if (calendarId > 0) {
+                    calendar = provider.getCalendar(calendarId);
+                }
+
+                if (calendar == null) {
+                    calendar = new Calendar(0, getString(R.string.local_calendar));
+                }
+
+                String summary = calendar.name;
+                if (!Common.isEmpty(calendar.accountName)) {
+                    summary += "\n(" + calendar.accountName + ")";
+                }
+                preference.setSummary(summary);
+
                 getActivity().setResult(Activity.RESULT_OK);
                 return true;
             }

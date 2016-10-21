@@ -74,6 +74,9 @@
     <string name="pref_week_num_title">Show Week Numbers</string>
     <string name="pref_week_num_default">false</string>
 
+    <string name="pref_calendar_default_key">pref_calendar_default</string>
+    <string name="pref_calendar_default_title">Default Calendar</string>
+
     <string name="pref_location_service_key">pref_location_service</string>
     <string name="pref_location_service_title">Enable Location Service</string>
     <string name="pref_location_service_default">true</string>
