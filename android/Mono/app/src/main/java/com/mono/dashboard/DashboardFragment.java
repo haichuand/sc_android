@@ -209,10 +209,6 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
         event.favorite = true;
 
         eventManager.updateEvent(EventAction.ACTOR_SELF, event, null);
-
-        FavoritesFragment fragment = (FavoritesFragment) tabPagerAdapter.getItem(TAB_FAVORITE);
-        fragment.insert(event, false);
-
         mainInterface.showSnackBar(R.string.favorites_added, 0, 0, null);
     }
 
@@ -225,10 +221,6 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
         event.favorite = false;
 
         eventManager.updateEvent(EventAction.ACTOR_SELF, event, null);
-
-        FavoritesFragment fragment = (FavoritesFragment) tabPagerAdapter.getItem(TAB_FAVORITE);
-        fragment.remove(event);
-
         mainInterface.showSnackBar(R.string.favorites_removed, 0, 0, null);
     }
 

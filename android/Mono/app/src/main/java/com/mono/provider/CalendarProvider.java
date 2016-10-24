@@ -11,6 +11,12 @@ import com.mono.util.Common;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * This class is used to provide access to the Calendar Provider to allow the retrieval of
+ * calendars stored on the device.
+ *
+ * @author Gary Ng
+ */
 public class CalendarProvider {
 
     private static CalendarProvider instance;
@@ -29,6 +35,13 @@ public class CalendarProvider {
         return instance;
     }
 
+    /**
+     * Retrieve a calendar using the ID.
+     *
+     * @param id ID of calendar.
+     * @return Instance of calendar.
+     * @throws SecurityException
+     */
     public Calendar getCalendar(long id) throws SecurityException {
         Calendar calendar = null;
 
@@ -53,6 +66,12 @@ public class CalendarProvider {
         return calendar;
     }
 
+    /**
+     * Retrieve all calendars.
+     *
+     * @return List of calendars.
+     * @throws SecurityException
+     */
     public List<Calendar> getCalendars() throws SecurityException {
         List<Calendar> calendars = new ArrayList<>();
 
@@ -61,7 +80,7 @@ public class CalendarProvider {
             CalendarValues.Calendar.PROJECTION,
             null,
             null,
-            null
+            CalendarValues.Calendar.ACCOUNT_NAME
         );
 
         if (cursor != null) {
@@ -76,6 +95,9 @@ public class CalendarProvider {
         return calendars;
     }
 
+    /**
+     * For PROJECTION only.
+     */
     private Calendar cursorToCalendar(Cursor cursor) {
         Calendar calendar = new Calendar(cursor.getLong(CalendarValues.Calendar.INDEX_ID));
         calendar.name = cursor.getString(CalendarValues.Calendar.INDEX_NAME);

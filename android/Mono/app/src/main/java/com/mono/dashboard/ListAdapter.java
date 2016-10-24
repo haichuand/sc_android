@@ -27,6 +27,7 @@ import com.mono.util.SimpleViewHolder.HolderItem;
 import com.mono.util.Views;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -53,6 +54,7 @@ public class ListAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
     private DashboardListListener listener;
 
     private boolean isSelectable;
+    private List<String> selections = new LinkedList<>();
 
     static {
         TYPEFACE = Typeface.create("sans-serif-light", Typeface.NORMAL);
@@ -131,9 +133,33 @@ public class ListAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
      * Enable the display of checkboxes for item selection during Edit Mode.
      *
      * @param selectable Whether to display checkboxes.
+     * @param id ID of item to be selected.
      */
-    public void setSelectable(boolean selectable) {
+    public void setSelectable(boolean selectable, String id) {
         this.isSelectable = selectable;
+
+        selections.clear();
+        if (id != null) {
+            selections.add(id);
+        }
+
+        notifyDataSetChanged();
+    }
+
+    /**
+     * Set item to be displayed as selected.
+     *
+     * @param id ID of item.
+     * @param selected Display as selected.
+     */
+    public void setSelected(String id, boolean selected) {
+        if (selected) {
+            if (!selections.contains(id)) {
+                selections.add(id);
+            }
+        } else {
+            selections.remove(id);
+        }
     }
 
     public class Holder extends SimpleViewHolder {
@@ -171,7 +197,7 @@ public class ListAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
                 R.drawable.ic_trash);
 
             checkbox.setOnCheckedChangeListener(null);
-            checkbox.setChecked(item.selected);
+            checkbox.setChecked(selections.contains(item.id));
             checkbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
                 public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {

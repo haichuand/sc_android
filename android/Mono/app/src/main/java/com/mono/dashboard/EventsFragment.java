@@ -23,8 +23,11 @@ import com.mono.R;
 import com.mono.dashboard.ListAdapter.DashboardListListener;
 import com.mono.dashboard.ListAdapter.ListItem;
 import com.mono.dashboard.ListAdapter.PhotoItem;
+import com.mono.model.Calendar;
 import com.mono.model.Event;
+import com.mono.provider.CalendarProvider;
 import com.mono.util.Colors;
+import com.mono.util.Common;
 import com.mono.util.SimpleDataSource;
 import com.mono.util.SimpleLinearLayoutManager;
 import com.mono.util.SimpleTabLayout.Scrollable;
@@ -160,6 +163,13 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
         int id = item.getItemId();
 
         switch (id) {
+            case R.id.action_sync:
+                if (eventSelections.isEmpty()) {
+                    return true;
+                }
+
+                showCalendarPicker();
+                return true;
             case R.id.action_delete:
                 if (eventSelections.isEmpty()) {
                     return true;
@@ -195,7 +205,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
 
                 return true;
             case R.id.action_edit:
-                setEditMode(true);
+                setEditMode(true, null);
                 return true;
         }
 
@@ -227,8 +237,6 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
             } else {
                 item = new ListItem(id);
             }
-
-            item.selected = eventSelections.contains(id);
 
             item.type = ListItem.TYPE_EVENT;
             item.iconResId = R.drawable.circle;
@@ -352,15 +360,10 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
             return false;
         }
 
-        setEditMode(true);
-
         int position = recyclerView.getChildAdapterPosition(view);
         ListItem item = getItem(position);
-        if (item == null) {
-            return false;
-        }
 
-        onSelectClick(view, true);
+        setEditMode(true, item != null ? item.id : null);
 
         return true;
     }
@@ -368,18 +371,18 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
     /**
      * Enable edit mode to allow multiple item selection.
      *
-     * @param value State of edit mode
+     * @param value State of edit mode.
+     * @param id ID of item to be selected.
      */
-    public void setEditMode(boolean value) {
+    public void setEditMode(boolean value, String id) {
         isEditModeEnabled = value;
-        // Clear Selections
-        for (ListItem item : items.values()) {
-            item.selected = false;
-        }
-        eventSelections.clear();
 
-        adapter.setSelectable(isEditModeEnabled);
-        adapter.notifyItemRangeChanged(0, adapter.getItemCount());
+        eventSelections.clear();
+        if (id != null) {
+            eventSelections.add(id);
+        }
+
+        adapter.setSelectable(isEditModeEnabled, id);
 
         if (isEditModeEnabled) {
             refreshActionBar();
@@ -389,7 +392,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
                 @Override
                 public void onFinish() {
                     mainInterface.setToolbarTitle(R.string.dashboard);
-                    setEditMode(false);
+                    setEditMode(false, null);
                 }
             });
         }
@@ -409,7 +412,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
             return;
         }
 
-        item.selected = value;
+        adapter.setSelected(item.id, value);
 
         if (value) {
             if (!eventSelections.contains(item.id)) {
@@ -820,6 +823,64 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
     @Override
     public void scrollToTop() {
         recyclerView.scrollToPosition(0);
+    }
+
+    public void showCalendarPicker() {
+        final List<Calendar> calendars = CalendarProvider.getInstance(getContext()).getCalendars();
+        final CharSequence[] items = new CharSequence[calendars.size()];
+
+        for (int i = 0; i < calendars.size(); i++) {
+            Calendar calendar = calendars.get(i);
+
+            String text = calendar.name;
+            if (!Common.isEmpty(calendar.accountName)) {
+                text += "\n(" + calendar.accountName + ")";
+            }
+            items[i] = text;
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext(),
+            R.style.AppTheme_Dialog_Alert);
+        builder.setItems(items, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                confirmSync(calendars.get(which));
+            }
+        });
+        builder.create().show();
+    }
+
+    public void confirmSync(final Calendar calendar) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext(),
+            R.style.AppTheme_Dialog_Alert);
+        builder.setMessage(getString(R.string.confirm_event_sync_multiple, calendar.name));
+
+        DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                switch (which) {
+                    case DialogInterface.BUTTON_POSITIVE:
+                        EventManager.getInstance(getContext()).syncEvents(EventAction.ACTOR_SELF,
+                            eventSelections, calendar.id, null);
+
+                        getActivity().onBackPressed();
+                        break;
+                    case DialogInterface.BUTTON_NEGATIVE:
+                        break;
+                }
+            }
+        };
+
+        builder.setPositiveButton(R.string.yes, listener);
+        builder.setNegativeButton(R.string.no, listener);
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+    }
+
+    public void syncEvents(Calendar calendar) {
+
     }
 
     public interface ListListener {

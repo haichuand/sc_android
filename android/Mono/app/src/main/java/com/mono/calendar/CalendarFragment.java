@@ -416,7 +416,19 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
      */
     @Override
     public void onFavoriteClick(String id) {
+        Event event = eventManager.getEvent(id, false);
 
+        if (!event.favorite) {
+            event.favorite = true;
+
+            eventManager.updateEvent(EventAction.ACTOR_SELF, event, null);
+            mainInterface.showSnackBar(R.string.favorites_added, 0, 0, null);
+        } else {
+            event.favorite = false;
+
+            eventManager.updateEvent(EventAction.ACTOR_SELF, event, null);
+            mainInterface.showSnackBar(R.string.favorites_removed, 0, 0, null);
+        }
     }
 
     /**

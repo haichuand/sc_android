@@ -130,14 +130,39 @@ public class EventManager {
     }
 
     /**
-     * Retrieve additional event information and insert the event into the cache.
+     * Retrieve additional event information including data from the provider.
      *
-     * @param event Event to be added to cache.
+     * @param event Database event to be resolved.
+     * @return Resolved event.
      */
-    private void add(Event event) {
+    private Event resolveEventFromDB(Event event) {
+        resolveEvent(event);
+
         if (event.providerId > 0) {
-            EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-            Event tempEvent = dataSource.getEvent(event.providerId, event.startTime, event.endTime);
+            CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
+            Event tempEvent = provider.getEvent(event.providerId, event.startTime, event.endTime);
+
+            if (tempEvent != null) {
+                tempEvent.complete(event);
+                event = tempEvent;
+            }
+        }
+
+        return event;
+    }
+
+    /**
+     * Retrieve additional event information not found in the provider.
+     *
+     * @param event Provider event to be resolved.
+     * @return Resolved event.
+     */
+    private Event resolveEventFromProvider(Event event) {
+        if (event.providerId > 0) {
+            EventDataSource dataSource =
+                DatabaseHelper.getDataSource(context, EventDataSource.class);
+            Event tempEvent = dataSource.getEvent(event.providerId, event.startTime,
+                event.endTime);
 
             if (tempEvent != null) {
                 resolveEvent(tempEvent);
@@ -145,7 +170,15 @@ public class EventManager {
             }
         }
 
-        resolveEvent(event);
+        return event;
+    }
+
+    /**
+     * Insert event into the cache.
+     *
+     * @param event Event to be added to cache.
+     */
+    private void add(Event event) {
         cache.put(event.id, event);
     }
 
@@ -171,16 +204,22 @@ public class EventManager {
 
                 CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
                 event = provider.getEvent(eventId, startTime, endTime);
+
+                if (event != null) {
+                    event = resolveEventFromProvider(event);
+                    add(event);
+                }
             }
 
             if (event == null) {
                 EventDataSource dataSource =
                     DatabaseHelper.getDataSource(context, EventDataSource.class);
                 event = dataSource.getEvent(id);
-            }
-            // Cache Event
-            if (event != null) {
-                add(event);
+
+                if (event != null) {
+                    event = resolveEventFromDB(event);
+                    add(event);
+                }
             }
         }
 
@@ -205,7 +244,7 @@ public class EventManager {
         result.addAll(dataSource.getEvents(startTime, offset, limit, direction, calendarIds));
 
         for (Event event : result) {
-            add(event);
+            add(resolveEventFromDB(event));
         }
 
         return result;
@@ -239,7 +278,7 @@ public class EventManager {
         result.addAll(provider.getEvents(start, end, offset, limit, direction, calendarIds));
 
         for (Event event : result) {
-            add(event);
+            add(resolveEventFromProvider(event));
         }
 
         return result;
@@ -263,6 +302,12 @@ public class EventManager {
         result.addAll(dataSource.getEvents(startTime, endTime, calendarIds));
 
         for (Event event : result) {
+            if (event.source == Event.SOURCE_DATABASE) {
+                event = resolveEventFromDB(event);
+            } else if (event.source == Event.SOURCE_PROVIDER) {
+                event = resolveEventFromProvider(event);
+            }
+
             add(event);
         }
 
@@ -283,7 +328,7 @@ public class EventManager {
         result.addAll(dataSource.getEvents(startTime, endTime, calendarIds));
 
         for (Event event : result) {
-            add(event);
+            add(resolveEventFromDB(event));
         }
 
         return result;
@@ -308,6 +353,12 @@ public class EventManager {
         result.addAll(dataSource.getEvents(year, month, day, calendarIds));
 
         for (Event event : result) {
+            if (event.source == Event.SOURCE_DATABASE) {
+                event = resolveEventFromDB(event);
+            } else if (event.source == Event.SOURCE_PROVIDER) {
+                event = resolveEventFromProvider(event);
+            }
+
             add(event);
         }
 
@@ -335,6 +386,12 @@ public class EventManager {
         result.addAll(dataSource.getEvents(startTime, endTime, query, limit, calendarIds));
 
         for (Event event : result) {
+            if (event.source == Event.SOURCE_DATABASE) {
+                event = resolveEventFromDB(event);
+            } else if (event.source == Event.SOURCE_PROVIDER) {
+                event = resolveEventFromProvider(event);
+            }
+
             add(event);
         }
 
@@ -366,6 +423,12 @@ public class EventManager {
         result.addAll(dataSource.getEventsWithReminders(startTime, endTime, calendarIds));
 
         for (Event event : result) {
+            if (event.source == Event.SOURCE_DATABASE) {
+                event = resolveEventFromDB(event);
+            } else if (event.source == Event.SOURCE_PROVIDER) {
+                event = resolveEventFromProvider(event);
+            }
+
             add(event);
         }
 
@@ -385,21 +448,10 @@ public class EventManager {
         List<Event> events = dataSource.getFavoriteEvents(calendarIds);
 
         for (Event event : events) {
+            event = resolveEventFromDB(event);
             add(event);
 
-            if (event.providerId > 0) {
-                CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
-                Event tempEvent = provider.getEvent(event.providerId, event.startTime, event.endTime);
-
-                if (tempEvent != null) {
-                    tempEvent.complete(event);
-                    event = tempEvent;
-                }
-            }
-
-            if (!result.contains(event)) {
-                result.add(event);
-            }
+            result.add(event);
         }
 
         return result;
@@ -660,10 +712,10 @@ public class EventManager {
 
             // Handle Reminders
             if (event.reminders != null) {
-                for (Reminder reminder : event.reminders) {
-                    CalendarReminderProvider reminderProvider =
-                        CalendarReminderProvider.getInstance(context);
+                CalendarReminderProvider reminderProvider =
+                    CalendarReminderProvider.getInstance(context);
 
+                for (Reminder reminder : event.reminders) {
                     if (reminderProvider.createReminder(eventId, reminder.minutes, reminder.method)) {
                         long alarmTime = event.startTime - reminder.minutes * Constants.MINUTE_MS;
                         AlarmHelper.createAlarm(context, id, alarmTime, event.title, event.startTime);
@@ -681,14 +733,86 @@ public class EventManager {
         }
 
         if (id != null) {
-            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE, id);
+            log.debug(getClass().getSimpleName(), Strings.LOG_PROVIDER_EVENT_CREATE, id);
             event = getEvent(id, false);
         } else {
-            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE_FAILED);
+            log.debug(getClass().getSimpleName(), Strings.LOG_PROVIDER_EVENT_CREATE_FAILED);
             status = EventAction.STATUS_FAILED;
         }
 
         return new EventAction(EventAction.ACTION_CREATE, actor, status, event);
+    }
+
+    /**
+     * Sync a local event to another calendar in the provider. Provider events will be duplicated
+     * when synced to a different calendar.
+     *
+     * @param actor Caller such as the user or system.
+     * @param eventIds Event IDs to sync.
+     * @param calendarId Calendar ID to sync to.
+     * @param callback Callback used once completed.
+     */
+    public void syncEvents(int actor, List<String> eventIds, long calendarId,
+            EventActionCallback callback) {
+        if (calendarId <= 0) {
+            return;
+        }
+
+        for (String id : eventIds) {
+            Event event = getEvent(id, false);
+            if (event == null || event.calendarId == calendarId) {
+                continue;
+            }
+
+            if (event.calendarId <= 0) {
+                CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
+
+                // Create Event into Calendar Provider
+                long eventId = provider.createEvent(
+                    calendarId,
+                    event.title,
+                    event.description,
+                    event.location != null ? event.location.name : null,
+                    event.color,
+                    event.startTime,
+                    event.endTime,
+                    event.timeZone,
+                    event.endTimeZone,
+                    event.allDay ? 1 : 0
+                );
+
+                if (eventId > 0) {
+                    // Handle Reminders
+                    if (event.reminders != null) {
+                        CalendarReminderProvider reminderProvider =
+                            CalendarReminderProvider.getInstance(context);
+
+                        for (Reminder reminder : event.reminders) {
+                            reminderProvider.createReminder(eventId, reminder.minutes,
+                                reminder.method);
+                        }
+                    }
+                    // Update Provider ID
+                    ContentValues values = new ContentValues();
+                    values.put(DatabaseValues.Event.PROVIDER_ID, eventId);
+
+                    EventDataSource dataSource =
+                        DatabaseHelper.getDataSource(context, EventDataSource.class);
+                    dataSource.updateValues(id, values);
+
+                    event.source = Event.SOURCE_PROVIDER;
+                    event.providerId = eventId;
+                    // Update Other
+                    event.calendarId = calendarId;
+                    updateEvent(actor, event);
+                }
+            } else {
+                event = new Event(event);
+                event.calendarId = calendarId;
+
+                createEvent(actor, event, null);
+            }
+        }
     }
 
     public boolean updateEventId(String originalId, String newId) {
@@ -918,10 +1042,17 @@ public class EventManager {
         }
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
-        if (values.size() == 0 || dataSource.updateValues(id, values) > 0) {
+
+        if (values.size() == 0) {
+            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE_SKIPPED, id);
+        } else if (dataSource.updateValues(id, values) > 0) {
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE, id);
+            for (String key : values.keySet()) {
+                log.debug(getClass().getSimpleName(), key);
+            }
         } else {
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE_FAILED, id);
+            status = EventAction.STATUS_FAILED;
         }
 
         return new EventAction(EventAction.ACTION_UPDATE, actor, status, original);
@@ -935,8 +1066,6 @@ public class EventManager {
      * @return event result.
      */
     private EventAction updateSyncEvent(int actor, Event event) {
-        boolean result = false;
-
         int status = EventAction.STATUS_OK;
 
         String id = event.id;
@@ -954,7 +1083,9 @@ public class EventManager {
                 original.id = eventId;
                 cache.put(eventId, original);
 
-                result = true;
+                log.debug(getClass().getSimpleName(), Strings.LOG_PARTIAL_EVENT_CREATE, eventId);
+            } else {
+                log.debug(getClass().getSimpleName(), Strings.LOG_PARTIAL_EVENT_CREATE_FAILED);
             }
         }
 
@@ -1042,7 +1173,21 @@ public class EventManager {
         }
 
         CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
-        result = (values.size() > 0 && provider.updateValues(event.providerId, values) > 0) || result;
+
+        if (values.size() == 0) {
+            log.debug(getClass().getSimpleName(), Strings.LOG_PROVIDER_EVENT_UPDATE_SKIPPED, id);
+        } else if (provider.updateValues(event.providerId, values) > 0) {
+            log.debug(getClass().getSimpleName(), Strings.LOG_PROVIDER_EVENT_UPDATE, id);
+            for (String key : values.keySet()) {
+                log.debug(getClass().getSimpleName(), key);
+            }
+        } else {
+            log.debug(getClass().getSimpleName(), Strings.LOG_PROVIDER_EVENT_UPDATE_FAILED, id);
+            status = EventAction.STATUS_FAILED;
+
+            return new EventAction(EventAction.ACTION_UPDATE, actor, status, original);
+        }
+
         // Handle Database Values
         values = new ContentValues();
 
@@ -1077,10 +1222,16 @@ public class EventManager {
             original.photos.addAll(event.photos);
         }
 
-        if ((values.size() > 0 && dataSource.updateValues(id, values) > 0) || result) {
+        if (values.size() == 0) {
+            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE_SKIPPED, id);
+        } else if (dataSource.updateValues(id, values) > 0) {
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE, id);
+            for (String key : values.keySet()) {
+                log.debug(getClass().getSimpleName(), key);
+            }
         } else {
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE_FAILED, id);
+            status = EventAction.STATUS_FAILED;
         }
 
         return new EventAction(EventAction.ACTION_UPDATE, actor, status, original);

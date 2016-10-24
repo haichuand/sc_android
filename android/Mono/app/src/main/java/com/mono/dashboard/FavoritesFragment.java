@@ -88,6 +88,19 @@ public class FavoritesFragment extends EventsFragment {
         }
     }
 
+    @Override
+    public void update(List<Event> items, int scrollToPosition) {
+        for (Event event : items) {
+            if (event.favorite && !events.contains(event)) {
+                insert(event, false);
+            } else if (!event.favorite && events.contains(event)) {
+                remove(event);
+            }
+        }
+
+        super.update(items, scrollToPosition);
+    }
+
     /**
      * Retrieve and append events at the bottom of the list.
      */
