@@ -205,32 +205,53 @@ public class MyFcmListenerService extends FirebaseMessagingService {
         JSONObject conversationObj = httpServerManager.getConversation(conversationId);
         String conversationTitle;
         String creatorId;
-        List<String> attendeesList = new ArrayList<>();
+        String creatorName = "";
+        List<String> attendeesIdList = new ArrayList<>();
+        List<String> attendeesNameList = new ArrayList<>();
         try {
             conversationTitle = conversationObj.getString(HttpServerManager.TITLE);
             creatorId = conversationObj.getString(HttpServerManager.CREATOR_ID);
-            JSONArray attendeesArray = conversationObj.getJSONArray(HttpServerManager.ATTENDEES_ID);
+//            JSONArray attendeesIdArray = conversationObj.getJSONArray(HttpServerManager.ATTENDEES_ID);
+            JSONArray attendeesArray = conversationObj.getJSONArray(HttpServerManager.ATTENDEES);
             if (attendeesArray != null) {
                 for (int i = 0; i < attendeesArray.length(); i++) {
-                    String id = attendeesArray.get(i).toString();
-                    //get user from server and save user if not in local database
+                    JSONObject attendeeObj = (JSONObject) attendeesArray.get(i);
+                    String id = String.valueOf(attendeeObj.getInt(HttpServerManager.UID));
+                    // save attendee if not in local database
+                    Attendee attendee = null;
                     if (!conversationManager.hasUser(id)) {
-                        Attendee attendee = getAttendeeFromServer(id);
+                        attendee = new Attendee(
+                                id,
+                                attendeeObj.getString(HttpServerManager.MEDIA_ID),
+                                attendeeObj.getString(HttpServerManager.EMAIL),
+                                attendeeObj.getString(HttpServerManager.PHONE_NUMBER),
+                                attendeeObj.getString(HttpServerManager.FIRST_NAME),
+                                attendeeObj.getString(HttpServerManager.LAST_NAME),
+                                attendeeObj.getString(HttpServerManager.USER_NAME),
+                                false,
+                                true
+                        );
                         conversationManager.saveUserToDB(attendee);
+                    } else {
+                        attendee = conversationManager.getUserById(id);
                     }
-                    attendeesList.add(id);
+                    attendeesIdList.add(id);
+                    attendeesNameList.add(attendee.toString());
+                    if (id.equals(creatorId)) {
+                        creatorName = attendee.toString();
+                    }
                 }
             }
         } catch (JSONException e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
             return false;
         }
 
         //create conversation in local database
         ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
-        conversationDataSource.createEventConversation(eventId, conversationId, conversationTitle, creatorId, attendeesList, false);
+        conversationDataSource.createEventConversation(eventId, conversationId, conversationTitle, creatorId, attendeesIdList, false);
         //do not send notification if conversation's creator is user self because it's for self-confirmation
-        sendNotification("Added new conversation with title: " + conversationTitle + "; attendees: " + attendeesList);
+        sendNotification(creatorName + " invited you to chat: " + conversationTitle + "\nAttendees: " + Common.implode(", ", attendeesNameList));
         final Conversation conversation = conversationDataSource.getConversation(conversationId, false, false);
         handler.post(new Runnable() {
             @Override

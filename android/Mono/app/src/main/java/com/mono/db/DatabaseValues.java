@@ -321,7 +321,7 @@ public class DatabaseValues {
             String[] parameters = {
                     ID + " INTEGER PRIMARY KEY AUTOINCREMENT",
                     C_ID + " TEXT REFERENCES " + Conversation.TABLE + " ( "+ Conversation.C_ID +" ) ON DELETE CASCADE",
-                    SENDER_ID + " TEXT REFERENCES " + User.TABLE + " ( "+ User.U_ID +" )",
+                    SENDER_ID + " TEXT REFERENCES " + User.TABLE + " ( "+ User.U_ID +" ) ON DELETE CASCADE",
                     TEXT + " TEXT",
                     TIMESTAMP + " INTEGER",
                     ACK + "INTEGER DEFAULT 1"
@@ -423,7 +423,7 @@ public class DatabaseValues {
         static {
             String[] parameters = {
                     EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " ( "+ Event.ID +" ) ON UPDATE CASCADE ON DELETE CASCADE",
-                    ATTENDEE_ID + " TEXT REFERENCES " + User.TABLE + " ( "+ User.U_ID +" )"
+                    ATTENDEE_ID + " TEXT REFERENCES " + User.TABLE + " ( "+ User.U_ID +" ) ON DELETE CASCADE"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);
@@ -554,7 +554,7 @@ public class DatabaseValues {
         static {
             String[] parameters = {
                     C_ID + " TEXT REFERENCES " + Conversation.TABLE + " ( "+ Conversation.C_ID +" ) ON DELETE CASCADE",
-                    ATTENDEE_ID + " TEXT REFERENCES " + User.TABLE + " ( "+ User.U_ID +" )"
+                    ATTENDEE_ID + " TEXT REFERENCES " + User.TABLE + " ( "+ User.U_ID +" ) ON DELETE CASCADE"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);

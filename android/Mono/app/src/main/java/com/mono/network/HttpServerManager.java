@@ -82,6 +82,7 @@ public class HttpServerManager {
     public static final String CREATOR_ID = "creatorId";
     public static final String CREATE_TIME = "createTime";
     public static final String ATTENDEES_ID = "attendeesId";
+    public static final String ATTENDEES = "attendees";
     public static final String STATUS = "status";
     public static final String CONVERSATION_ID = "cId";
 
