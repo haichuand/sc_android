@@ -262,7 +262,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
 
         ViewGroup options = (ViewGroup) view.findViewById(R.id.options);
 
-        if (event.photos != null && !event.photos.isEmpty()) {
+        if (event.hasPhotos()) {
             createOption(options, R.drawable.ic_camera);
         }
 

@@ -218,29 +218,27 @@ public class DatabaseValues {
     }
 
     public static class EventLocationCandidates {
+
         public static final String TABLE = "`event_location_candidates`";
 
         public static final String EVENT_ID = "`event_id`";
         public static final String LOC_ID = "`loc_id`";
 
-
-
         public static final String[] PROJECTION = {
-                EventLocationCandidates.EVENT_ID,
-                EventLocationCandidates.LOC_ID
+            EventLocationCandidates.EVENT_ID,
+            EventLocationCandidates.LOC_ID
         };
 
         public static final int INDEX_EVENT_ID = 0;
         public static final int INDEX_LOC_ID = 1;
-
 
         public static final String CREATE_TABLE;
         public static final String DROP_TABLE;
 
         static {
             String[] parameters = {
-                EVENT_ID + " INTEGER REFERENCES " + Event.TABLE + " (" + Event.ID + ") ON UPDATE CASCADE ON DELETE CASCADE",
-                    LOC_ID
+                EVENT_ID + " TEXT REFERENCES " + Event.TABLE + " (" + Event.ID + ") ON UPDATE CASCADE ON DELETE CASCADE",
+                LOC_ID
 //                LOC_ID + " INTEGER REFERENCES " + Location.TABLE + " (" + Location.ID + ")"
             };
 

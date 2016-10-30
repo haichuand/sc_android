@@ -144,9 +144,9 @@ public class SearchHandler implements OnQueryTextListener {
         for (Event event : events) {
             EventItem item;
 
-            if (event.photos != null && !event.photos.isEmpty()) {
+            if (event.hasPhotos()) {
                 PhotoEventItem photoItem = new PhotoEventItem(event.id);
-                photoItem.photos = event.photos;
+                photoItem.photos = event.getPhotos();
 
                 item = photoItem;
             } else {

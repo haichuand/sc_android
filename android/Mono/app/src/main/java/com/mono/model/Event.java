@@ -51,6 +51,9 @@ public class Event implements Parcelable {
     public List<Reminder> reminders = new ArrayList<>();
     public List<Media> photos = new ArrayList<>();
 
+    public List<Location> tempLocations = new ArrayList<>();
+    public List<Media> tempPhotos = new ArrayList<>();
+
     public String oldId;
     public boolean syncNeeded;
 
@@ -109,6 +112,14 @@ public class Event implements Parcelable {
             photos.add(photo);
         }
 
+        for (Location location : event.tempLocations) {
+            tempLocations.add(new Location(location));
+        }
+
+        for (Media photo : event.tempPhotos) {
+            tempPhotos.add(photo);
+        }
+
         oldId = event.oldId;
     }
 
@@ -141,6 +152,9 @@ public class Event implements Parcelable {
         in.readTypedList(attendees, Attendee.CREATOR);
         in.readTypedList(reminders, Reminder.CREATOR);
         in.readTypedList(photos, Media.CREATOR);
+
+        in.readTypedList(tempLocations, Location.CREATOR);
+        in.readTypedList(tempPhotos, Media.CREATOR);
 
         oldId = in.readString();
     }
@@ -285,7 +299,18 @@ public class Event implements Parcelable {
         dest.writeTypedList(reminders);
         dest.writeTypedList(photos);
 
+        dest.writeTypedList(tempLocations);
+        dest.writeTypedList(tempPhotos);
+
         dest.writeString(oldId);
+    }
+
+    public Location getLocation() {
+        if (location == null && !tempLocations.isEmpty()) {
+            return tempLocations.get(0);
+        }
+
+        return location;
     }
 
     public long getDuration() {
@@ -308,6 +333,18 @@ public class Event implements Parcelable {
         return attendeeIdList;
     }
 
+    public List<Media> getPhotos() {
+        if (photos == null || photos.isEmpty()) {
+            return tempPhotos;
+        }
+
+        return photos;
+    }
+
+    public boolean hasPhotos() {
+        return photos != null && !photos.isEmpty() || tempPhotos != null && !tempPhotos.isEmpty();
+    }
+
     /**
      * Provider Events Only. Copy data from partial event containing information not available
      * from the provider.
@@ -321,8 +358,20 @@ public class Event implements Parcelable {
         viewTime = event.viewTime;
         syncTime = event.syncTime;
 
+        for (Attendee attendee : event.attendees) {
+            attendees.add(attendee);
+        }
+
         for (Media photo : event.photos) {
             photos.add(photo);
+        }
+
+        for (Location location : event.tempLocations) {
+            tempLocations.add(location);
+        }
+
+        for (Media photo : event.tempPhotos) {
+            tempPhotos.add(photo);
         }
     }
 }

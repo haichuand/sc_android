@@ -128,6 +128,10 @@ public class LocationPanel implements OnMapReadyCallback {
     public void setEvent(Event event) {
         this.event = event;
 
+        if (event.location == null && !event.tempLocations.isEmpty()) {
+            event.location = event.tempLocations.get(0);
+        }
+
         if (event.location != null) {
             location.removeTextChangedListener(textWatcher);
             location.setText(event.location.name);

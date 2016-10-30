@@ -25,6 +25,8 @@ import com.mono.util.Pixels;
 import com.mono.util.SimpleQuickAction;
 import com.mono.util.UriHelper;
 
+import java.util.ArrayList;
+
 /**
  * This class is used to handle the photos section located in Event Details.
  *
@@ -63,7 +65,13 @@ public class PhotoPanel {
         photos.removeAllViews();
         createPhotoButton();
 
-        if (!event.photos.isEmpty()) {
+        if (event.photos == null || event.photos.isEmpty()) {
+            if (event.tempPhotos != null && !event.tempPhotos.isEmpty()) {
+                event.photos = new ArrayList<>(event.tempPhotos);
+            }
+        }
+
+        if (event.photos != null) {
             for (Media photo : event.photos) {
                 createPhoto(photo.uri, photo.thumbnail);
             }

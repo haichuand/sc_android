@@ -179,7 +179,7 @@ public class CalendarEventsFragment extends Fragment implements OnBackPressedLis
 
             item.description = event.description;
             // Check Event Photos
-            item.hasPhotos = event.photos != null && !event.photos.isEmpty();
+            item.hasPhotos = event.hasPhotos();
             // Check Event Chat
             ConversationManager manager = ConversationManager.getInstance(getContext());
             item.hasChat = !manager.getConversations(id).isEmpty();

@@ -229,9 +229,9 @@ public class EventsFragment extends Fragment implements SimpleDataSource<ListIte
         if (items.containsKey(id)) {
             item = items.get(id);
         } else {
-            if (event.photos != null && !event.photos.isEmpty()) {
+            if (event.hasPhotos()) {
                 PhotoItem photoItem = new PhotoItem(id);
-                photoItem.photos = event.photos;
+                photoItem.photos = event.getPhotos();
 
                 item = photoItem;
             } else {

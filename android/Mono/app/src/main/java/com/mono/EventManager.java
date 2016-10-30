@@ -121,9 +121,15 @@ public class EventManager {
             DatabaseHelper.getDataSource(context, EventMediaDataSource.class);
         event.photos = mediaDataSource.getMedia(event.id, Media.IMAGE);
 
+        if (event.location == null) {
+            LocationDataSource locationDataSource =
+                DatabaseHelper.getDataSource(context, LocationDataSource.class);
+            event.tempLocations = locationDataSource.getLocationCandidates(event.id);
+        }
+
         if (event.photos.isEmpty()) {
             MediaManager manager = MediaManager.getInstance(context);
-            event.photos = manager.getImages(event.startTime, event.endTime);
+            event.tempPhotos = manager.getImages(event.startTime, event.endTime);
         }
     }
 
@@ -671,6 +677,10 @@ public class EventManager {
             if (event.photos != null) {
                 updateEventPhotos(id, event.photos);
             }
+            // Create Suggested Locations
+            if (event.tempLocations != null) {
+                updateEventLocationCandidates(id, event.tempLocations);
+            }
 
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE, id);
             event = getEvent(id);
@@ -738,6 +748,10 @@ public class EventManager {
             // Create Photos
             if (event.photos != null) {
                 updateEventPhotos(id, event.photos);
+            }
+            // Create Suggested Locations
+            if (event.tempLocations != null) {
+                updateEventLocationCandidates(id, event.tempLocations);
             }
         }
 
@@ -1050,6 +1064,17 @@ public class EventManager {
             original.photos.addAll(event.photos);
         }
 
+        if (!event.tempLocations.equals(original.tempLocations)) {
+            LocationDataSource locationDataSource =
+                DatabaseHelper.getDataSource(context, LocationDataSource.class);
+            locationDataSource.clearLocationCandidates(id);
+
+            updateEventLocationCandidates(id, event.tempLocations);
+
+            original.tempLocations.clear();
+            original.tempLocations.addAll(event.tempLocations);
+        }
+
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
 
         if (values.size() == 0) {
@@ -1232,6 +1257,17 @@ public class EventManager {
             original.photos.addAll(event.photos);
         }
 
+        if (!event.tempLocations.equals(original.tempLocations)) {
+            LocationDataSource locationDataSource =
+                DatabaseHelper.getDataSource(context, LocationDataSource.class);
+            locationDataSource.clearLocationCandidates(id);
+
+            updateEventLocationCandidates(id, event.tempLocations);
+
+            original.tempLocations.clear();
+            original.tempLocations.addAll(event.tempLocations);
+        }
+
         if (values.size() == 0) {
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE_SKIPPED, id);
         } else if (dataSource.updateValues(id, values) > 0) {
@@ -1367,6 +1403,22 @@ public class EventManager {
             }
 
             eventMediaDataSource.setMedia(id, mediaId);
+        }
+    }
+
+    /**
+     * Update event with the following suggested locations.
+     *
+     * @param id ID of event.
+     * @param locations Suggested locations to be updated.
+     */
+    private void updateEventLocationCandidates(String id, List<Location> locations) {
+        LocationDataSource locationDataSource =
+            DatabaseHelper.getDataSource(context, LocationDataSource.class);
+
+        for (Location location : locations) {
+            locationDataSource.createLocationAsCandidates(location.name, location.googlePlaceId,
+                location.getLatitude(), location.getLongitude(), location.getAddress(), id);
         }
     }
 
