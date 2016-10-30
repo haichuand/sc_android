@@ -101,7 +101,7 @@ public class SearchFragment extends Fragment implements SimpleDataSource<HolderI
         switch (type) {
             case SearchAdapter.TYPE_EVENT:
             case SearchAdapter.TYPE_PHOTO_EVENT:
-                Event event = EventManager.getInstance(getContext()).getEvent(id, false);
+                Event event = EventManager.getInstance(getContext()).getEvent(id);
                 if (event != null) {
                     mainInterface.showEventDetails(event);
                 }

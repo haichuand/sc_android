@@ -217,7 +217,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
         if (intent.hasExtra(EXTRA_EVENT_ID)) {
             String eventId = intent.getStringExtra(EXTRA_EVENT_ID);
-            Event event = EventManager.getInstance(this).getEvent(eventId, false);
+            Event event = EventManager.getInstance(this).getEvent(eventId);
 
             if (event != null) {
                 showEventDetails(event);
@@ -738,7 +738,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
     @Override
     public void showChat(String eventId) {
-        Event event = EventManager.getInstance(this).getEvent(eventId, false);
+        Event event = EventManager.getInstance(this).getEvent(eventId);
         if (event == null) {
             return;
         }
@@ -771,7 +771,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         EventManager eventManager = EventManager.getInstance(this);
         Event event = null;
         if (conversation.eventId != null) {
-            event = eventManager.getEvent(conversation.eventId, false);
+            event = eventManager.getEvent(conversation.eventId);
         }
 
         String myId = String.valueOf(AccountManager.getInstance(this).getAccount().id);

@@ -409,7 +409,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, OnCamer
                     // Group Events by Days
                     for (int i = 0; i < eventIds.size(); i++) {
                         String id = eventIds.get(i);
-                        Event event = eventManager.getEvent(id, false);
+                        Event event = eventManager.getEvent(id);
                         // Only Locations with Latitude and Longitude
                         if (event.location.containsLatLng()) {
                             LocalDate date = new LocalDate(event.startTime);

@@ -116,7 +116,7 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
             item.title = chat.name;
 
             if (chat.eventId != null) {
-                Event event = EventManager.getInstance(getContext()).getEvent(chat.eventId, false);
+                Event event = EventManager.getInstance(getContext()).getEvent(chat.eventId);
                 if (event != null) {
                     Calendar calendar = Calendar.getInstance();
                     calendar.setTimeInMillis(event.startTime);

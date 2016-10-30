@@ -108,11 +108,9 @@ public class EventManager {
      * @param event Event to be resolved.
      */
     private void resolveEvent(Event event) {
-        if (event.source == Event.SOURCE_DATABASE) {
-            EventAttendeeDataSource dataSource =
-                DatabaseHelper.getDataSource(context, EventAttendeeDataSource.class);
-            event.attendees = dataSource.getAttendees(event.id);
-        }
+        EventAttendeeDataSource dataSource =
+            DatabaseHelper.getDataSource(context, EventAttendeeDataSource.class);
+        event.attendees.addAll(dataSource.getAttendees(event.id));
 
         if (event.location != null && event.location.id > 0) {
             LocationManager manager = LocationManager.getInstance(context);
@@ -184,6 +182,17 @@ public class EventManager {
 
     /**
      * Retrieve an event using the ID.
+     *
+     * @param id ID of event to be retrieved.
+     * @return instance of the event.
+     */
+    public Event getEvent(String id) {
+        return getEvent(id, false);
+    }
+
+    /**
+     * Retrieve an event using the ID with the choice of retrieving the latest copy from its
+     * original source.
      *
      * @param id ID of event to be retrieved.
      * @param refresh Trigger a new retrieval from its original source.
@@ -664,7 +673,7 @@ public class EventManager {
             }
 
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE, id);
-            event = getEvent(id, false);
+            event = getEvent(id);
         } else {
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE_FAILED);
             status = EventAction.STATUS_FAILED;
@@ -734,7 +743,7 @@ public class EventManager {
 
         if (id != null) {
             log.debug(getClass().getSimpleName(), Strings.LOG_PROVIDER_EVENT_CREATE, id);
-            event = getEvent(id, false);
+            event = getEvent(id);
         } else {
             log.debug(getClass().getSimpleName(), Strings.LOG_PROVIDER_EVENT_CREATE_FAILED);
             status = EventAction.STATUS_FAILED;
@@ -759,7 +768,7 @@ public class EventManager {
         }
 
         for (String id : eventIds) {
-            Event event = getEvent(id, false);
+            Event event = getEvent(id);
             if (event == null || event.calendarId == calendarId) {
                 continue;
             }
@@ -1247,7 +1256,7 @@ public class EventManager {
     public void removeEvent(int actor, String id, EventActionCallback callback) {
         int status = EventAction.STATUS_OK;
 
-        Event event = getEvent(id, false);
+        Event event = getEvent(id);
 
         boolean result = false;
 

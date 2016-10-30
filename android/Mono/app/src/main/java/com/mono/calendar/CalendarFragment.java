@@ -256,7 +256,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
      */
     @Override
     public void onCellDrop(String id, final int year, final int month, final int day, int action) {
-        Event event = eventManager.getEvent(id, false);
+        Event event = eventManager.getEvent(id);
         if (event == null) {
             return;
         }
@@ -375,7 +375,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
      */
     @Override
     public void onClick(String id, View view) {
-        Event event = eventManager.getEvent(id, false);
+        Event event = eventManager.getEvent(id);
         if (event != null) {
             mainInterface.showEventDetails(event);
         }
@@ -416,7 +416,7 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
      */
     @Override
     public void onFavoriteClick(String id) {
-        Event event = eventManager.getEvent(id, false);
+        Event event = eventManager.getEvent(id);
 
         if (!event.favorite) {
             event.favorite = true;

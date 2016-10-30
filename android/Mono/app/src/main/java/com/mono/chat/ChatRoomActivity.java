@@ -141,7 +141,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         Conversation conversation = conversationManager.getCompleteConversation(conversationId);
         if (conversation.eventId != null && eventStartTime == 0) {
             EventManager eventManager = EventManager.getInstance(this);
-            Event event = eventManager.getEvent(conversation.eventId, false);
+            Event event = eventManager.getEvent(conversation.eventId);
             if (event != null) {
                 eventStartTime = event.startTime;
                 eventEndTime = event.endTime;

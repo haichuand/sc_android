@@ -161,7 +161,7 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
 
     @Override
     public void onClick(int tab, String id, View view) {
-        Event event = eventManager.getEvent(id, false);
+        Event event = eventManager.getEvent(id);
         mainInterface.showEventDetails(event);
     }
 
@@ -183,7 +183,7 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
      */
     @Override
     public void onFavoriteClick(int tab, String id) {
-        Event event = eventManager.getEvent(id, false);
+        Event event = eventManager.getEvent(id);
 
         switch (tab) {
             case TAB_EVENTS:
