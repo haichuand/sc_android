@@ -1198,6 +1198,7 @@ public class EventManager {
         }
 
         // Handle Database Values
+        id = original.id;
         values = new ContentValues();
 
         if (event.favorite != original.favorite) {
@@ -1223,9 +1224,9 @@ public class EventManager {
         if (!event.photos.equals(original.photos)) {
             EventMediaDataSource eventMediaDataSource =
                 DatabaseHelper.getDataSource(context, EventMediaDataSource.class);
-            eventMediaDataSource.clearAll(original.id);
+            eventMediaDataSource.clearAll(id);
 
-            updateEventPhotos(original.id, event.photos);
+            updateEventPhotos(id, event.photos);
 
             original.photos.clear();
             original.photos.addAll(event.photos);
