@@ -6,4 +6,5 @@ package com.mono;
 public class SuperCalyPreferences {
 
     public static final String USER_DEFINED_LOCATION = "hashmapLocation";
+    public static final String LAST_MODIFIED_KML =  "lastmodified";
 }

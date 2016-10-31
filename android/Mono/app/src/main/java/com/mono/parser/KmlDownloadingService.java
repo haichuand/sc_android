@@ -4,12 +4,14 @@ import android.app.IntentService;
 import android.content.Intent;
 
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.util.Log;
 import android.webkit.CookieManager;
 
 
+import com.mono.SuperCalyPreferences;
 import com.mono.db.DatabaseValues;
 import com.mono.model.Event;
 
@@ -70,9 +72,23 @@ public class KmlDownloadingService extends IntentService {
      //   Log.i(TAG, "downloadType: "+downloadType);
         if(KML.isSignedIn()) {
             if(downloadType.equals(REGULAR)) {
-                downloadKML(KML_URL + "&pb=" + getPbValue(0), 0);
+                // Reading from SharedPreferences
+                SharedPreferences settings = getSharedPreferences(SuperCalyPreferences.LAST_MODIFIED_KML, MODE_PRIVATE);
+                String value = settings.getString("lastModified", "");
+                Calendar c = Calendar.getInstance();
+                long diff = Math.abs(Long.parseLong(value) - c.getTimeInMillis());
+                int diffInDays = (int)(diff / (24 * 60 * 60 * 1000));
+                for(int i = 0;i <= diffInDays; i++) {
+                    downloadKML(KML_URL + "&pb=" + getPbValue(0), 0);
+                }
             }
             else {
+                SharedPreferences settings = getSharedPreferences(SuperCalyPreferences.LAST_MODIFIED_KML, MODE_PRIVATE);
+                Calendar c = Calendar.getInstance();
+                // Writing data to SharedPreferences
+                SharedPreferences.Editor editor = settings.edit();
+                editor.putString("lastModified",Long.toString(c.getTimeInMillis()));
+                editor.commit();
                 for(int i = 0; i <= 365; i++) {
                     downloadKML(KML_URL + "&pb=" + getPbValue(i), i);
                 }
