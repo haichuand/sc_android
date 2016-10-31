@@ -239,6 +239,7 @@ public class KmlLocationService extends IntentService {
 
     private Boolean checkEventOverlap(KmlEvents kmlevent, Location location, Event event) {
 
+        Event event1 = null, event2 = null;
         Boolean eventFound = false;
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(kmlevent.getStartTime());
@@ -268,22 +269,37 @@ public class KmlLocationService extends IntentService {
                     );
                     eventFound = true;
 
-                    if((events.get(i).startTime - kmlevent.getStartTime()) > 1200000 ) // Difference more than 20 minutes
+                    if(((events.get(i).startTime - kmlevent.getStartTime()) > 1200000 )&& (i==0)) // Difference more than 20 minutes
                     {
-                        event.endTime = events.get(i).startTime;
-                        GlobalEventList.getInstance().monthList.add(event);
+                        event1 = event;
+                        event1.startTime = kmlevent.getStartTime();
+                        event1.endTime = events.get(i).startTime;
                     }
-                    if((kmlevent.getEndTime() - events.get(i).endTime) > 1200000)
+                    if(((kmlevent.getEndTime() - events.get(i).endTime) > 1200000) && (i== (events.size()-1)))
                     {
-                        event.startTime = events.get(i).endTime;
-                        event.endTime = kmlevent.getEndTime();
-                        GlobalEventList.getInstance().monthList.add(event);
+                        event2 = event;
+                        event2.startTime = events.get(i).endTime;
+                        event2.endTime = kmlevent.getEndTime();
+
                     }
                 }
 
 
             }
 
+        }
+
+
+        if(event1 != null)
+        {
+            GlobalEventList.getInstance().monthList.add(event1);
+
+        }
+        if(event2 != null)
+        {
+            if(event1 != event2) {
+                GlobalEventList.getInstance().monthList.add(event2);
+            }
         }
         return eventFound;
     }
