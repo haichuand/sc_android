@@ -216,13 +216,18 @@ public class KmlLocationService extends IntentService {
                     }
                     if((loopNumber%30 == 0)||( loopNumber == 365))
                     {
-                        GlobalEventList.getInstance().monthList.add(event);
-                        eventManager.createEvents(EventManager.EventAction.ACTOR_NONE, GlobalEventList.getInstance().monthList, null);
-                        GlobalEventList.getInstance().monthList.clear();
+                        if(!checkEventOverlap(kmlevent, event.location))
+                        {
+                            GlobalEventList.getInstance().monthList.add(event);
+                            eventManager.createEvents(EventManager.EventAction.ACTOR_NONE, GlobalEventList.getInstance().monthList, null);
+                            GlobalEventList.getInstance().monthList.clear();
+                        }
                     }
                     else
                     {
-                        GlobalEventList.getInstance().monthList.add(event);
+                        if(!checkEventOverlap(kmlevent, event.location)) {
+                            GlobalEventList.getInstance().monthList.add(event);
+                        }
                     }
                   //  checkEventOverlap(kmlevent, location, notes);
                 }
@@ -232,7 +237,9 @@ public class KmlLocationService extends IntentService {
 
     }
 
-    private void checkEventOverlap(KmlEvents kmlevent, Location location, String notes) {
+    private Boolean checkEventOverlap(KmlEvents kmlevent, Location location) {
+
+        Boolean eventFound = false;
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(kmlevent.getStartTime());
 
@@ -245,27 +252,31 @@ public class KmlLocationService extends IntentService {
 
         //make changes to all the events
         for (int i = 0; i < events.size(); i++) {
-            if (events.get(i).source == Event.SOURCE_PROVIDER) {
-                continue;
-            }
+        //    if (events.get(i).source == Event.SOURCE_PROVIDER) {
+          //      continue;
+           // }
 
             if ((events.get(i).startTime >= kmlevent.getStartTime()) && (events.get(i).endTime <= kmlevent.getEndTime()))// if event lies in between userstay period
             {
                 if(location != null)
                 {
-                    events.get(i).description = notes;
-                    events.get(i).location = location;
+                    List<Location> tempLocations = new ArrayList<>();
+                    tempLocations.add(location);
+                    events.get(i).tempLocations = tempLocations;
+                   // events.get(i).description = notes;
                     eventManager.updateEvent(
                             EventManager.EventAction.ACTOR_SELF,
                             events.get(i),
                             null
                     );
+                    eventFound = true;
                 }
 
 
             }
 
         }
+        return eventFound;
     }
 
     public static String makeCall(String urlString) {
