@@ -268,12 +268,12 @@ public class KmlLocationService extends IntentService {
                     );
                     eventFound = true;
 
-                    if(events.get(i).startTime - kmlevent.getStartTime() > 1200000 ) // Difference more than 20 minutes
+                    if((events.get(i).startTime - kmlevent.getStartTime()) > 1200000 ) // Difference more than 20 minutes
                     {
                         event.endTime = events.get(i).startTime;
                         GlobalEventList.getInstance().monthList.add(event);
                     }
-                    if(kmlevent.getEndTime() - events.get(i).endTime > 1200000)
+                    if((kmlevent.getEndTime() - events.get(i).endTime) > 1200000)
                     {
                         event.startTime = events.get(i).endTime;
                         event.endTime = kmlevent.getEndTime();

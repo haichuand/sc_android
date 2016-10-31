@@ -73,20 +73,23 @@ public class KmlDownloadingService extends IntentService {
         if(KML.isSignedIn()) {
             if(downloadType.equals(REGULAR)) {
                 // Reading from SharedPreferences
-                SharedPreferences settings = getSharedPreferences(SuperCalyPreferences.LAST_MODIFIED_KML, MODE_PRIVATE);
-                String value = settings.getString("lastModified", "");
+                SharedPreferences lastmod = getSharedPreferences(SuperCalyPreferences.LAST_MODIFIED_KML, MODE_PRIVATE);
+                String value = lastmod.getString("lastModified", "");
                 Calendar c = Calendar.getInstance();
                 long diff = Math.abs(Long.parseLong(value) - c.getTimeInMillis());
                 int diffInDays = (int)(diff / (24 * 60 * 60 * 1000));
                 for(int i = 0;i <= diffInDays; i++) {
                     downloadKML(KML_URL + "&pb=" + getPbValue(0), 0);
                 }
+                SharedPreferences.Editor editor = lastmod.edit();
+                editor.putString("lastModified", Long.toString(c.getTimeInMillis()));
+                editor.commit();
             }
             else {
-                SharedPreferences settings = getSharedPreferences(SuperCalyPreferences.LAST_MODIFIED_KML, MODE_PRIVATE);
+                SharedPreferences lastmod = getSharedPreferences(SuperCalyPreferences.LAST_MODIFIED_KML, MODE_PRIVATE);
                 Calendar c = Calendar.getInstance();
                 // Writing data to SharedPreferences
-                SharedPreferences.Editor editor = settings.edit();
+                SharedPreferences.Editor editor = lastmod.edit();
                 editor.putString("lastModified",Long.toString(c.getTimeInMillis()));
                 editor.commit();
                 for(int i = 0; i <= 365; i++) {
