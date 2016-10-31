@@ -117,6 +117,8 @@ public class LocationDataSource extends DataSource {
                 double longitude = cursor.getDouble(5);
                 location.setLatLng(latitude, longitude);
             }
+
+            result.add(location);
         }
 
         cursor.close();
