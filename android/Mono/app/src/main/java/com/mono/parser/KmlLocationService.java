@@ -157,8 +157,8 @@ public class KmlLocationService extends IntentService {
                     distance = kmlevent.getNotes().trim();
                     Location location = new Location(kmlevent.getName(), placeId, kmlevent.getLat(), kmlevent.getLng(), address);
                         if (distance != "") {
-                            double disinMiles = Math.round(Integer.parseInt(distance.split("m")[0]) * 0.00062);
-                            if (disinMiles != 0.0) {
+                            String disinMiles = String.format("%.2f", Double.parseDouble(distance.split("m")[0]) * 0.000621371);
+                            if (!disinMiles.equals("0.00")) {
                                 notes = "Distance Travelled : " + disinMiles + "miles";
                             } else {
                                 notes = kmlevent.getAddress();
@@ -216,7 +216,7 @@ public class KmlLocationService extends IntentService {
                     }
                     if((loopNumber%30 == 0)||( loopNumber == 365))
                     {
-                        if(!checkEventOverlap(kmlevent, event.location))
+                        if(!checkEventOverlap(kmlevent, event.location, event))
                         {
                             GlobalEventList.getInstance().monthList.add(event);
                             eventManager.createEvents(EventManager.EventAction.ACTOR_NONE, GlobalEventList.getInstance().monthList, null);
@@ -225,7 +225,7 @@ public class KmlLocationService extends IntentService {
                     }
                     else
                     {
-                        if(!checkEventOverlap(kmlevent, event.location)) {
+                        if(!checkEventOverlap(kmlevent, event.location, event)) {
                             GlobalEventList.getInstance().monthList.add(event);
                         }
                     }
@@ -237,7 +237,7 @@ public class KmlLocationService extends IntentService {
 
     }
 
-    private Boolean checkEventOverlap(KmlEvents kmlevent, Location location) {
+    private Boolean checkEventOverlap(KmlEvents kmlevent, Location location, Event event) {
 
         Boolean eventFound = false;
         Calendar calendar = Calendar.getInstance();
@@ -252,9 +252,6 @@ public class KmlLocationService extends IntentService {
 
         //make changes to all the events
         for (int i = 0; i < events.size(); i++) {
-        //    if (events.get(i).source == Event.SOURCE_PROVIDER) {
-          //      continue;
-           // }
 
             if ((events.get(i).startTime >= kmlevent.getStartTime()) && (events.get(i).endTime <= kmlevent.getEndTime()))// if event lies in between userstay period
             {
@@ -270,6 +267,18 @@ public class KmlLocationService extends IntentService {
                             null
                     );
                     eventFound = true;
+
+                    if(events.get(i).startTime - kmlevent.getStartTime() > 1200000 ) // Difference more than 20 minutes
+                    {
+                        event.endTime = events.get(i).startTime;
+                        GlobalEventList.getInstance().monthList.add(event);
+                    }
+                    if(kmlevent.getEndTime() - events.get(i).endTime > 1200000)
+                    {
+                        event.startTime = events.get(i).endTime;
+                        event.endTime = kmlevent.getEndTime();
+                        GlobalEventList.getInstance().monthList.add(event);
+                    }
                 }
 
 

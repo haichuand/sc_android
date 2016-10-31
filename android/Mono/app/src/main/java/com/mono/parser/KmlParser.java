@@ -84,8 +84,8 @@ public class KmlParser {
 
                                     if (!((i == 0)&&(name.equalsIgnoreCase("Driving")))) // ignore days when only event is driving
                                     {
-                                          if(!(name.equalsIgnoreCase("Driving"))) //Non Driving events
-                                         {
+                                        if(placemarkNode.getChildNodes().item(1).hasChildNodes())
+                                        {
                                                      address = placemarkNode.getChildNodes().item(1).getChildNodes().item(0).getNodeValue();
                                          }
 
@@ -137,7 +137,7 @@ public class KmlParser {
                             }
                             catch(Exception ex)
                             {
-                               // Log.d("kmlParser", ex.getMessage());
+                                Log.d("kmlParser", ex.getMessage());
                             }
 
                         }
