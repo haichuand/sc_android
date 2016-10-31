@@ -927,6 +927,8 @@ public class EventManager {
      * @return event result.
      */
     private EventAction updateLocalEvent(int actor, Event event) {
+        int count = 0;
+
         int status = EventAction.STATUS_OK;
 
         String id = event.id;
@@ -967,6 +969,8 @@ public class EventManager {
                 event.location == null && original.location != null) {
             updateEventLocation(id, event.location);
             original.location = event.location;
+
+            count++;
         }
 
         if (event.color != original.color) {
@@ -1028,6 +1032,8 @@ public class EventManager {
 
             original.attendees.clear();
             original.attendees.addAll(event.attendees);
+
+            count++;
         }
 
         if (!event.reminders.equals(original.reminders)) {
@@ -1062,6 +1068,8 @@ public class EventManager {
 
             original.photos.clear();
             original.photos.addAll(event.photos);
+
+            count++;
         }
 
         if (!event.tempLocations.equals(original.tempLocations)) {
@@ -1073,13 +1081,15 @@ public class EventManager {
 
             original.tempLocations.clear();
             original.tempLocations.addAll(event.tempLocations);
+
+            count++;
         }
 
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
 
-        if (values.size() == 0) {
+        if (values.size() == 0 && count == 0) {
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE_SKIPPED, id);
-        } else if (dataSource.updateValues(id, values) > 0) {
+        } else if ((values.size() > 0 && dataSource.updateValues(id, values) > 0) || count > 0) {
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE, id);
             for (String key : values.keySet()) {
                 log.debug(getClass().getSimpleName(), key);
@@ -1100,6 +1110,8 @@ public class EventManager {
      * @return event result.
      */
     private EventAction updateSyncEvent(int actor, Event event) {
+        int count = 0;
+
         int status = EventAction.STATUS_OK;
 
         String id = event.id;
@@ -1186,6 +1198,8 @@ public class EventManager {
 
             original.attendees.clear();
             original.attendees.addAll(event.attendees);
+
+            count++;
         }
 
         if (!event.reminders.equals(original.reminders)) {
@@ -1204,13 +1218,15 @@ public class EventManager {
                 long alarmTime = event.startTime - reminder.minutes * Constants.MINUTE_MS;
                 AlarmHelper.createAlarm(context, id, alarmTime, event.title, event.startTime);
             }
+
+            count++;
         }
 
         CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
 
-        if (values.size() == 0) {
+        if (values.size() == 0 && count == 0) {
             log.debug(getClass().getSimpleName(), Strings.LOG_PROVIDER_EVENT_UPDATE_SKIPPED, id);
-        } else if (provider.updateValues(event.providerId, values) > 0) {
+        } else if ((values.size() > 0 && provider.updateValues(event.providerId, values) > 0) || count > 0) {
             log.debug(getClass().getSimpleName(), Strings.LOG_PROVIDER_EVENT_UPDATE, id);
             for (String key : values.keySet()) {
                 log.debug(getClass().getSimpleName(), key);
@@ -1223,6 +1239,7 @@ public class EventManager {
         }
 
         // Handle Database Values
+        count = 0;
         id = original.id;
         values = new ContentValues();
 
@@ -1255,6 +1272,8 @@ public class EventManager {
 
             original.photos.clear();
             original.photos.addAll(event.photos);
+
+            count++;
         }
 
         if (!event.tempLocations.equals(original.tempLocations)) {
@@ -1266,11 +1285,13 @@ public class EventManager {
 
             original.tempLocations.clear();
             original.tempLocations.addAll(event.tempLocations);
+
+            count++;
         }
 
-        if (values.size() == 0) {
+        if (values.size() == 0 && count == 0) {
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE_SKIPPED, id);
-        } else if (dataSource.updateValues(id, values) > 0) {
+        } else if ((values.size() > 0 && dataSource.updateValues(id, values) > 0) || count > 0) {
             log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE, id);
             for (String key : values.keySet()) {
                 log.debug(getClass().getSimpleName(), key);
@@ -1326,8 +1347,8 @@ public class EventManager {
     /**
      * Update event with the following location.
      *
-     * @param id The value of the event ID.
-     * @param location The value of the location.
+     * @param id ID of event.
+     * @param location Location to be updated.
      */
     private void updateEventLocation(String id, Location location) {
         LocationDataSource locationDataSource =
@@ -1351,8 +1372,8 @@ public class EventManager {
     /**
      * Update event with the following attendees.
      *
-     * @param id The value of the event ID.
-     * @param attendees The list of attendees.
+     * @param id ID of event.
+     * @param attendees Attendees to be updated.
      */
     private void updateEventAttendees(String id, List<Attendee> attendees) {
         AttendeeDataSource userDataSource =
