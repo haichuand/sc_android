@@ -149,11 +149,11 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
         if (original == null) {
 
         } else {
-            EventManager.getInstance(context).updateEvent(
-                EventAction.ACTOR_NONE,
-                event,
-                callback
-            );
+//            EventManager.getInstance(context).updateEvent(
+//                EventAction.ACTOR_NONE,
+//                event,
+//                callback
+//            );
         }
     }
 

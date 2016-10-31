@@ -693,6 +693,12 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
                 event.source = Event.SOURCE_PROVIDER;
                 event.calendarId = calendarId;
             }
+        } else {
+            EventManager manager = EventManager.getInstance(this);
+            event = manager.getEvent(event.id, true);
+
+            event.viewTime = System.currentTimeMillis();
+            manager.updateEvent(EventManager.EventAction.ACTOR_SELF, event, null);
         }
 
         if (event.calendarId > 0) {
@@ -707,13 +713,6 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         intent.putExtra(EventDetailsActivity.EXTRA_EVENT, event);
 
         startActivityForResult(intent, RequestCodes.Activity.EVENT_DETAILS);
-
-        if (event.id != null) {
-            event.viewTime = System.currentTimeMillis();
-
-            EventManager manager = EventManager.getInstance(this);
-            manager.updateEvent(EventManager.EventAction.ACTOR_SELF, event, null);
-        }
     }
 
     /**
