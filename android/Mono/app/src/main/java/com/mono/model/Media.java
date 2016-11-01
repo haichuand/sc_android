@@ -19,6 +19,7 @@ public class Media implements Parcelable {
     public long id;
     public Uri uri;
     public String type;
+    public long addTime;
     public long size;
     public byte[] thumbnail;
 
@@ -36,6 +37,7 @@ public class Media implements Parcelable {
         id = in.readLong();
         uri = in.readParcelable(Uri.class.getClassLoader());
         type = in.readString();
+        addTime = in.readLong();
         size = in.readLong();
         thumbnail = in.createByteArray();
     }
@@ -81,6 +83,7 @@ public class Media implements Parcelable {
         dest.writeLong(id);
         dest.writeParcelable(uri, flags);
         dest.writeString(type);
+        dest.writeLong(addTime);
         dest.writeLong(size);
         dest.writeByteArray(thumbnail);
     }

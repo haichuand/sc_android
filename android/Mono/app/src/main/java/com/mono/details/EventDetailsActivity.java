@@ -220,6 +220,8 @@ public class EventDetailsActivity extends GestureActivity {
                 public void onClick(DialogInterface dialog, int which) {
                     switch (which) {
                         case DialogInterface.BUTTON_POSITIVE:
+                            event.modifyTime = System.currentTimeMillis();
+
                             Intent data = new Intent();
                             data.putExtra(EXTRA_EVENT, event);
                             setResult(RESULT_OK, data);
@@ -359,6 +361,8 @@ public class EventDetailsActivity extends GestureActivity {
                 public void onClick(DialogInterface dialog, int which) {
                     switch (which) {
                         case DialogInterface.BUTTON_POSITIVE:
+                            event.modifyTime = System.currentTimeMillis();
+
                             Intent data = new Intent();
                             data.putExtra(EXTRA_EVENT, event);
                             setResult(RESULT_OK, data);

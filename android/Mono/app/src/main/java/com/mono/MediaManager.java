@@ -136,8 +136,10 @@ public class MediaManager {
         List<Media> images = provider.getImages(startTime, endTime);
 
         for (Media image : images) {
-            image = getImage(image.uri.toString(), image.size);
-            result.add(image);
+            Media tempImage = getImage(image.uri.toString(), image.size);
+            tempImage.addTime = image.addTime;
+
+            result.add(tempImage);
         }
 
         return result;

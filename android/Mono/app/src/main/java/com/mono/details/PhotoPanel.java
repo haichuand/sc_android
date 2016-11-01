@@ -77,10 +77,11 @@ public class PhotoPanel implements EventDetailsActivity.PanelInterface {
 
         photos.removeAllViews();
         createPhotoButton();
-
+        // Handle Photo Suggestions
         if (event.photos == null || event.photos.isEmpty()) {
             if (event.tempPhotos != null && !event.tempPhotos.isEmpty()) {
                 event.photos = new ArrayList<>(event.tempPhotos);
+                event.tempPhotos.clear();
             }
         }
 

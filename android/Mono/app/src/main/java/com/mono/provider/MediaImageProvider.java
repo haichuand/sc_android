@@ -37,8 +37,8 @@ public class MediaImageProvider {
     /**
      * Retrieve images that were taken with the time range.
      *
-     * @param startTime The start time of images taken after.
-     * @param endTime The end time of images taken before.
+     * @param startTime Start time of images taken after.
+     * @param endTime End time of images taken before.
      * @return a list of images.
      */
     public List<Media> getImages(long startTime, long endTime) {
@@ -75,6 +75,8 @@ public class MediaImageProvider {
                 long size = cursor.getLong(MediaValues.Image.INDEX_SIZE);
 
                 Media image = new Media(Uri.parse(path), Media.IMAGE, size);
+                image.addTime = cursor.getLong(MediaValues.Image.INDEX_DATE_ADDED) * 1000;
+
                 images.add(image);
             }
 

@@ -123,16 +123,26 @@ public class EventManager {
         EventMediaDataSource mediaDataSource =
             DatabaseHelper.getDataSource(context, EventMediaDataSource.class);
         event.photos = mediaDataSource.getMedia(event.id, Media.IMAGE);
-
+        // Location Suggestions
         if (event.location == null) {
             LocationDataSource locationDataSource =
                 DatabaseHelper.getDataSource(context, LocationDataSource.class);
             event.tempLocations = locationDataSource.getLocationCandidates(event.id);
         }
-
+        // Photo Suggestions
         if (event.photos.isEmpty()) {
             MediaManager manager = MediaManager.getInstance(context);
-            event.tempPhotos = manager.getImages(event.startTime, event.endTime);
+            List<Media> result = manager.getImages(event.startTime, event.endTime);
+
+            for (Media media : result) {
+                if (event.modifyTime > 0 && media.addTime < event.modifyTime) {
+                    continue;
+                }
+
+                if (!event.tempPhotos.contains(media)) {
+                    event.tempPhotos.add(media);
+                }
+            }
         }
     }
 
