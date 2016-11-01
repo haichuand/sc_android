@@ -482,12 +482,27 @@ public class EventDataSource extends DataSource {
     /**
      * Retrieve events belonging within a time range.
      *
-     * @param startTime The start time of the event.
-     * @param endTime The end time of the event.
-     * @param calendarIds The array of calendar IDs.
+     * @param startTime Start time of the event.
+     * @param endTime End time of the event.
+     * @param calendarIds Array of calendar IDs.
      * @return a list of events.
      */
     public List<Event> getEvents(long startTime, long endTime, long... calendarIds) {
+        return getEvents(startTime, endTime, false, calendarIds);
+    }
+
+    /**
+     * Retrieve events belonging within a time range with the choice of limiting to only
+     * provider events.
+     *
+     * @param startTime Start time of the event.
+     * @param endTime End time of the event.
+     * @param providerOnly Return only provider events.
+     * @param calendarIds Array of calendar IDs.
+     * @return a list of events.
+     */
+    public List<Event> getEvents(long startTime, long endTime, boolean providerOnly,
+            long... calendarIds) {
         List<Event> events = new ArrayList<>();
 
         List<String> args = new ArrayList<>();
@@ -497,7 +512,11 @@ public class EventDataSource extends DataSource {
             selection = getCalendarSelection(args, calendarIds) + " AND ";
         }
 
-        selection += DatabaseValues.Event.PROVIDER_ID + " = 0 AND ";
+        if (providerOnly) {
+            selection += DatabaseValues.Event.PROVIDER_ID + " > 0 AND ";
+        } else {
+            selection += DatabaseValues.Event.PROVIDER_ID + " = 0 AND ";
+        }
 
         selection += getTimeSelection(args, startTime, endTime);
 

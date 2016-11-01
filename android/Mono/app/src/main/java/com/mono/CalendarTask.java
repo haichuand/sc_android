@@ -12,6 +12,7 @@ import com.mono.model.Attendee;
 import com.mono.model.Calendar;
 import com.mono.model.Event;
 import com.mono.provider.CalendarEventProvider;
+import com.mono.provider.CalendarProvider;
 import com.mono.settings.Settings;
 import com.mono.util.Constants;
 import com.mono.util.Log;
@@ -51,13 +52,20 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
         boolean isRunning = false;
         long currentTime = System.currentTimeMillis();
 
+        CalendarProvider calendarProvider = CalendarProvider.getInstance(context);
+
         for (long calendarId : calendarIds) {
+            Calendar calendar = calendarProvider.getCalendar(calendarId);
+            if (calendar == null || calendar.local) {
+                continue;
+            }
+
             long initialTime = settings.getCalendarInitialTime(calendarId, 0);
 
             if (initialTime == 0) {
                 settings.setCalendarInitialTime(calendarId, initialTime = currentTime);
             } else if (initialTime == -1) {
-                checkChanges(calendarIds);
+                checkChanges(calendarId);
                 continue;
             }
 
@@ -69,7 +77,7 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
             long endMin = settings.getCalendarEndTime(calendarId, initialTime);
             long endMax = Math.min(endMin + 30 * Constants.DAY_MS, endTime);
 
-            Calendar calendar = provider.getEvents(calendarId, startMin, startMax, endMin, endMax);
+            calendar = provider.getEvents(calendarId, startMin, startMax, endMin, endMax);
             if (calendar == null) {
                 continue;
             }
@@ -162,57 +170,55 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
 
     }
 
-    public void checkChanges(Set<Long> calendarIds) {
+    public void checkChanges(long calendarId) {
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
         EventManager manager = EventManager.getInstance(context);
 
-        for (long calendarId : calendarIds) {
-            long defaultTime = settings.getCalendarStartTime(calendarId, 0);
-            long startTime = settings.getCalendarUpdateTime(calendarId, defaultTime);
-            long endTime = settings.getCalendarEndTime(calendarId, 0);
-            // Check for Changes
-            Calendar calendar = provider.getUpdates(calendarId, startTime, endTime);
-            if (calendar == null) {
-                continue;
+        long defaultTime = settings.getCalendarStartTime(calendarId, 0);
+        long startTime = settings.getCalendarUpdateTime(calendarId, defaultTime);
+        long endTime = settings.getCalendarEndTime(calendarId, 0);
+        // Check for Changes
+        Calendar calendar = manager.getUpdates(calendarId, startTime, endTime);
+        if (calendar == null) {
+            return;
+        }
+
+        if (!calendar.events.isEmpty()) {
+            long lastUpdateTime = 0;
+            for (Event event : calendar.events) {
+                event.calendarId = calendarId;
+                if (event.color == 0) {
+                    event.color = calendar.color;
+                }
+
+                publishProgress(event);
+
+                lastUpdateTime = Math.max(lastUpdateTime, event.updateTime);
             }
 
-            if (!calendar.events.isEmpty()) {
-                long lastUpdateTime = 0;
-                for (Event event : calendar.events) {
-                    event.calendarId = calendarId;
-                    if (event.color == 0) {
-                        event.color = calendar.color;
-                    }
+            settings.setCalendarUpdateTime(calendarId, lastUpdateTime);
+        }
+        // Check for Deletions
+        List<Event> events = dataSource.getEvents(0, endTime, true, calendarId);
+        List<Event> remoteEvents = provider.getEvents(0, endTime, calendarId);
 
-                    publishProgress(event);
-
-                    lastUpdateTime = Math.max(lastUpdateTime, event.updateTime);
-                }
-
-                settings.setCalendarUpdateTime(calendarId, lastUpdateTime);
+        if (!events.isEmpty() && !remoteEvents.isEmpty()) {
+            List<EventComparable> tempEvents = new ArrayList<>(events.size());
+            for (Event event : events) {
+                tempEvents.add(new EventComparable(event.id, event.providerId, event.startTime,
+                    event.endTime));
             }
-            // Check for Deletions
-            List<Event> events = dataSource.getEvents(0, endTime, calendarId);
-            List<Event> remoteEvents = provider.getEvents(calendarId, 0, endTime);
 
-            if (!events.isEmpty() && !remoteEvents.isEmpty()) {
-                List<EventComparable> tempEvents = new ArrayList<>(events.size());
-                for (Event event : events) {
-                    tempEvents.add(new EventComparable(event.id, event.providerId, event.startTime,
-                        event.endTime));
-                }
+            List<EventComparable> tempRemoteEvents = new ArrayList<>(remoteEvents.size());
+            for (Event event : remoteEvents) {
+                tempRemoteEvents.add(new EventComparable(event.id, event.providerId,
+                    event.startTime, event.endTime));
+            }
 
-                List<EventComparable> tempRemoteEvents = new ArrayList<>(remoteEvents.size());
-                for (Event event : remoteEvents) {
-                    tempRemoteEvents.add(new EventComparable(event.id, event.providerId,
-                        event.startTime, event.endTime));
-                }
+            tempEvents.removeAll(tempRemoteEvents);
 
-                tempEvents.removeAll(tempRemoteEvents);
-
-                for (EventComparable event : tempEvents) {
-                    manager.removeEvent(EventAction.ACTOR_NONE, event.id, null);
-                }
+            for (EventComparable event : tempEvents) {
+                manager.removeEvent(EventAction.ACTOR_NONE, event.id, null);
             }
         }
     }
@@ -220,13 +226,13 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
     private class EventComparable {
 
         public String id;
-        public long externalId;
+        public long providerId;
         public long startTime;
         public long endTime;
 
-        public EventComparable(String id, long externalId, long startTime, long endTime) {
+        public EventComparable(String id, long providerId, long startTime, long endTime) {
             this.id = id;
-            this.externalId = externalId;
+            this.providerId = providerId;
             this.startTime = startTime;
             this.endTime = endTime;
         }
@@ -239,7 +245,7 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
 
             EventComparable event = (EventComparable) object;
 
-            if (externalId != event.externalId) {
+            if (providerId != event.providerId) {
                 return false;
             }
 

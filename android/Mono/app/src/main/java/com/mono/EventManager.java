@@ -13,6 +13,7 @@ import com.mono.db.dao.EventMediaDataSource;
 import com.mono.db.dao.LocationDataSource;
 import com.mono.db.dao.MediaDataSource;
 import com.mono.model.Attendee;
+import com.mono.model.Calendar;
 import com.mono.model.Event;
 import com.mono.model.Location;
 import com.mono.model.Media;
@@ -34,6 +35,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TimeZone;
 
 /**
@@ -502,6 +504,34 @@ public class EventManager {
         }
 
         return result;
+    }
+
+    /**
+     * Retrieve a calendar containing events updated within a time range.
+     *
+     * @param calendarId ID of calendar.
+     * @param startTime Start time of the event updates.
+     * @param endTime End time of the event updates.
+     * @return an instance of a calendar with events.
+     */
+    public Calendar getUpdates(long calendarId, long startTime, long endTime) {
+        Calendar calendar;
+
+        CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
+        calendar = provider.getUpdates(calendarId, startTime, endTime);
+
+        if (calendar != null) {
+            List<Event> events = new ArrayList<>();
+
+            for (Event event : calendar.events) {
+                event = resolveEventFromProvider(event);
+                events.add(event);
+            }
+
+            calendar.events = events;
+        }
+
+        return calendar;
     }
 
     public Event getUserstayEventByStartTime(long startTime) {
