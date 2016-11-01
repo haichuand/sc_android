@@ -18,8 +18,6 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -259,6 +257,26 @@ public class Common {
 
     public static String random(String... values) {
         return values[(int) (Math.random() * values.length) % values.length];
+    }
+
+    public static String sha1(String str) {
+        String result = null;
+
+        try {
+            MessageDigest messageDigest = MessageDigest.getInstance("SHA-1");
+            byte[] digest = messageDigest.digest(str.getBytes("UTF-8"));
+
+            StringBuilder builder = new StringBuilder();
+            for (byte b : digest) {
+                builder.append(String.format("%02x", b & 0xFF));
+            }
+
+            result = builder.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return result;
     }
 
     public static boolean isConnectedToInternet(Context context) {

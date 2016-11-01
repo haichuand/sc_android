@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * This class is used to perform database actions related to events.
@@ -58,7 +59,7 @@ public class EventDataSource extends DataSource {
             long startTime, long endTime, String timeZone, String endTimeZone, int allDay,
             String reminders, int favorite, long createTime) {
         if (id == null || id.isEmpty()) {
-            id = DataSource.UniqueIdGenerator(getClass().getSimpleName());
+            id = Common.sha1(UUID.randomUUID().toString());
         }
 
         ContentValues values = new ContentValues();
@@ -102,7 +103,7 @@ public class EventDataSource extends DataSource {
      */
     public String createPartialEvent(long providerId, String type, long startTime, long endTime,
             int favorite, long createTime) {
-        String id = DataSource.UniqueIdGenerator(getClass().getSimpleName());
+        String id = Common.sha1(UUID.randomUUID().toString());
 
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.Event.ID, id);

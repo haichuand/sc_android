@@ -16,6 +16,7 @@ import com.mono.util.Common;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Created by xuejing on 3/9/16.
@@ -89,7 +90,7 @@ public class ConversationDataSource extends DataSource{
 //    }
 
     public String getUniqueConversationId () {
-        return DataSource.UniqueIdGenerator(this.getClass().getSimpleName());
+        return Common.sha1(UUID.randomUUID().toString());
     }
 
 //    public void createConversationGivenId (String conversationId, String name, String eventId, List<String> attendeesID, String creatorId) {

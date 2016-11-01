@@ -35,7 +35,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.TimeZone;
 
 /**
@@ -46,6 +45,8 @@ import java.util.TimeZone;
  * @author Gary Ng
  */
 public class EventManager {
+
+    private final String TAG = getClass().getSimpleName();
 
     private static EventManager instance;
 
@@ -712,10 +713,10 @@ public class EventManager {
                 updateEventLocationCandidates(id, event.tempLocations);
             }
 
-            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE, id);
+            log.debug(TAG, Strings.LOG_EVENT_CREATE, id.substring(0, 7));
             event = getEvent(id);
         } else {
-            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_CREATE_FAILED);
+            log.debug(TAG, Strings.LOG_EVENT_CREATE_FAILED);
             status = EventAction.STATUS_FAILED;
         }
 
@@ -786,10 +787,10 @@ public class EventManager {
         }
 
         if (id != null) {
-            log.debug(getClass().getSimpleName(), Strings.LOG_PROVIDER_EVENT_CREATE, id);
+            log.debug(TAG, Strings.LOG_PROVIDER_EVENT_CREATE, id.substring(0, 7));
             event = getEvent(id);
         } else {
-            log.debug(getClass().getSimpleName(), Strings.LOG_PROVIDER_EVENT_CREATE_FAILED);
+            log.debug(TAG, Strings.LOG_PROVIDER_EVENT_CREATE_FAILED);
             status = EventAction.STATUS_FAILED;
         }
 
@@ -1118,14 +1119,14 @@ public class EventManager {
         EventDataSource dataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
 
         if (values.size() == 0 && count == 0) {
-            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE_SKIPPED, id);
+            log.debug(TAG, Strings.LOG_EVENT_UPDATE_SKIPPED, id.substring(0, 7));
         } else if ((values.size() > 0 && dataSource.updateValues(id, values) > 0) || count > 0) {
-            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE, id);
+            log.debug(TAG, Strings.LOG_EVENT_UPDATE, id.substring(0, 7));
             for (String key : values.keySet()) {
-                log.debug(getClass().getSimpleName(), key);
+                log.debug(TAG, key);
             }
         } else {
-            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE_FAILED, id);
+            log.debug(TAG, Strings.LOG_EVENT_UPDATE_FAILED, id.substring(0, 7));
             status = EventAction.STATUS_FAILED;
         }
 
@@ -1159,9 +1160,9 @@ public class EventManager {
                 original.id = eventId;
                 cache.put(eventId, original);
 
-                log.debug(getClass().getSimpleName(), Strings.LOG_PARTIAL_EVENT_CREATE, eventId);
+                log.debug(TAG, Strings.LOG_PARTIAL_EVENT_CREATE, eventId.substring(0, 7));
             } else {
-                log.debug(getClass().getSimpleName(), Strings.LOG_PARTIAL_EVENT_CREATE_FAILED);
+                log.debug(TAG, Strings.LOG_PARTIAL_EVENT_CREATE_FAILED);
             }
         }
 
@@ -1255,14 +1256,14 @@ public class EventManager {
         CalendarEventProvider provider = CalendarEventProvider.getInstance(context);
 
         if (values.size() == 0 && count == 0) {
-            log.debug(getClass().getSimpleName(), Strings.LOG_PROVIDER_EVENT_UPDATE_SKIPPED, id);
+            log.debug(TAG, Strings.LOG_PROVIDER_EVENT_UPDATE_SKIPPED, id.substring(0, 7));
         } else if ((values.size() > 0 && provider.updateValues(event.providerId, values) > 0) || count > 0) {
-            log.debug(getClass().getSimpleName(), Strings.LOG_PROVIDER_EVENT_UPDATE, id);
+            log.debug(TAG, Strings.LOG_PROVIDER_EVENT_UPDATE, id.substring(0, 7));
             for (String key : values.keySet()) {
-                log.debug(getClass().getSimpleName(), key);
+                log.debug(TAG, key);
             }
         } else {
-            log.debug(getClass().getSimpleName(), Strings.LOG_PROVIDER_EVENT_UPDATE_FAILED, id);
+            log.debug(TAG, Strings.LOG_PROVIDER_EVENT_UPDATE_FAILED, id.substring(0, 7));
             status = EventAction.STATUS_FAILED;
 
             return new EventAction(EventAction.ACTION_UPDATE, actor, status, original);
@@ -1320,14 +1321,14 @@ public class EventManager {
         }
 
         if (values.size() == 0 && count == 0) {
-            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE_SKIPPED, id);
+            log.debug(TAG, Strings.LOG_EVENT_UPDATE_SKIPPED, id.substring(0, 7));
         } else if ((values.size() > 0 && dataSource.updateValues(id, values) > 0) || count > 0) {
-            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE, id);
+            log.debug(TAG, Strings.LOG_EVENT_UPDATE, id.substring(0, 7));
             for (String key : values.keySet()) {
-                log.debug(getClass().getSimpleName(), key);
+                log.debug(TAG, key);
             }
         } else {
-            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_UPDATE_FAILED, id);
+            log.debug(TAG, Strings.LOG_EVENT_UPDATE_FAILED, id.substring(0, 7));
             status = EventAction.STATUS_FAILED;
         }
 
@@ -1360,9 +1361,9 @@ public class EventManager {
             AlarmHelper.removeAlarms(context, id);
 
             cache.remove(id);
-            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_REMOVE, id);
+            log.debug(TAG, Strings.LOG_EVENT_REMOVE, id.substring(0, 7));
         } else {
-            log.debug(getClass().getSimpleName(), Strings.LOG_EVENT_REMOVE_FAILED, id);
+            log.debug(TAG, Strings.LOG_EVENT_REMOVE_FAILED, id.substring(0, 7));
         }
 
         EventAction data = new EventAction(EventAction.ACTION_REMOVE, actor, status, event);
