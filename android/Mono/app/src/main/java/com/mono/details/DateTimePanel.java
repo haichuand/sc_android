@@ -35,7 +35,7 @@ import java.util.TimeZone;
  *
  * @author Gary Ng
  */
-public class DateTimePanel {
+public class DateTimePanel implements EventDetailsActivity.PanelInterface {
 
     private static final SimpleDateFormat DATE_FORMAT;
     private static final SimpleDateFormat TIME_FORMAT;
@@ -61,6 +61,7 @@ public class DateTimePanel {
         this.activity = activity;
     }
 
+    @Override
     public void onCreate(Bundle savedInstanceState) {
         startDate = (TextView) activity.findViewById(R.id.start_date);
         startDate.setOnClickListener(new OnClickListener() {
@@ -135,11 +136,33 @@ public class DateTimePanel {
         });
     }
 
+    @Override
+    public void setVisible(boolean visible) {
+        View view = activity.findViewById(R.id.start_date_layout);
+        view.setVisibility(visible ? View.VISIBLE : View.GONE);
+
+        view = activity.findViewById(R.id.end_date_layout);
+        view.setVisibility(visible ? View.VISIBLE : View.GONE);
+
+        view = activity.findViewById(R.id.options_layout);
+        view.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        startDate.setEnabled(enabled);
+        startTime.setEnabled(enabled);
+        endDate.setEnabled(enabled);
+        endTime.setEnabled(enabled);
+        allDay.setEnabled(enabled);
+    }
+
     /**
      * Initialize this panel using the given event.
      *
      * @param event The instance of the event.
      */
+    @Override
     public void setEvent(Event event) {
         this.event = event;
 

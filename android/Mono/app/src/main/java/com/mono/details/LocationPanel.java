@@ -38,7 +38,7 @@ import com.mono.util.LocationHelper.LocationCallback;
  *
  * @author Gary Ng
  */
-public class LocationPanel implements OnMapReadyCallback {
+public class LocationPanel implements EventDetailsActivity.PanelInterface, OnMapReadyCallback {
 
     private static final float DEFAULT_ZOOM_LEVEL = 16f;
 
@@ -59,6 +59,7 @@ public class LocationPanel implements OnMapReadyCallback {
         this.activity = activity;
     }
 
+    @Override
     public void onCreate(Bundle savedInstanceState) {
         FragmentManager manager = activity.getSupportFragmentManager();
         fragment = (SupportMapFragment) manager.findFragmentById(R.id.map);
@@ -120,11 +121,23 @@ public class LocationPanel implements OnMapReadyCallback {
         });
     }
 
+    @Override
+    public void setVisible(boolean visible) {
+        View view = activity.findViewById(R.id.location_layout);
+        view.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+
+    }
+
     /**
      * Initialize this panel using the given event.
      *
      * @param event The instance of the event.
      */
+    @Override
     public void setEvent(Event event) {
         this.event = event;
 

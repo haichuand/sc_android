@@ -23,7 +23,7 @@ import com.mono.util.Pixels;
  *
  * @author Gary Ng
  */
-public class ReminderPanel {
+public class ReminderPanel implements EventDetailsActivity.PanelInterface {
 
     private static final int DEFAULT_INDEX = 2;
     private static final float WIDTH_DP = 150f;
@@ -60,6 +60,7 @@ public class ReminderPanel {
         this.activity = activity;
     }
 
+    @Override
     public void onCreate(Bundle savedInstanceState) {
         reminders = (ViewGroup) activity.findViewById(R.id.reminders);
         // Create Add Reminder Button
@@ -87,11 +88,23 @@ public class ReminderPanel {
         reminders.addView(view, params);
     }
 
+    @Override
+    public void setVisible(boolean visible) {
+        View view = activity.findViewById(R.id.reminders_layout);
+        view.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+
+    }
+
     /**
      * Initialize this panel using the given event.
      *
      * @param event The instance of the event.
      */
+    @Override
     public void setEvent(Event event) {
         this.event = event;
 

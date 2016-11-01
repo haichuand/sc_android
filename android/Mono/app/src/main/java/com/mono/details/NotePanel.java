@@ -3,6 +3,7 @@ package com.mono.details;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.View;
 import android.widget.EditText;
 
 import com.mono.R;
@@ -13,7 +14,7 @@ import com.mono.model.Event;
  *
  * @author Gary Ng
  */
-public class NotePanel {
+public class NotePanel implements EventDetailsActivity.PanelInterface {
 
     private EventDetailsActivity activity;
     private EditText notes;
@@ -25,6 +26,7 @@ public class NotePanel {
         this.activity = activity;
     }
 
+    @Override
     public void onCreate(Bundle savedInstanceState) {
         notes = (EditText) activity.findViewById(R.id.notes);
         notes.addTextChangedListener(textWatcher = new TextWatcher() {
@@ -46,11 +48,23 @@ public class NotePanel {
         });
     }
 
+    @Override
+    public void setVisible(boolean visible) {
+        View view = activity.findViewById(R.id.notes_layout);
+        view.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        notes.setEnabled(enabled);
+    }
+
     /**
      * Initialize this panel using the given event.
      *
      * @param event The instance of the event.
      */
+    @Override
     public void setEvent(Event event) {
         this.event = event;
         setText(event.description, true);

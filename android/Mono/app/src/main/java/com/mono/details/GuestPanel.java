@@ -32,7 +32,7 @@ import java.util.List;
  *
  * @author Gary Ng
  */
-public class GuestPanel {
+public class GuestPanel implements EventDetailsActivity.PanelInterface {
 
     private static final int ICON_DIMENSION_DP = 24;
     private static final int MARGIN_DP = 2;
@@ -50,8 +50,20 @@ public class GuestPanel {
         this.activity = activity;
     }
 
+    @Override
     public void onCreate(Bundle savedInstanceState) {
         guests = (ViewGroup) activity.findViewById(R.id.guests);
+    }
+
+    @Override
+    public void setVisible(boolean visible) {
+        View view = activity.findViewById(R.id.guests_layout);
+        view.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+
     }
 
     /**
@@ -59,6 +71,7 @@ public class GuestPanel {
      *
      * @param event Event for initialization.
      */
+    @Override
     public void setEvent(Event event) {
         this.event = event;
 

@@ -32,7 +32,7 @@ import java.util.ArrayList;
  *
  * @author Gary Ng
  */
-public class PhotoPanel {
+public class PhotoPanel implements EventDetailsActivity.PanelInterface {
 
     private static final int PHOTO_WIDTH_DP = 120;
     private static final int PHOTO_HEIGHT_DP = 90;
@@ -50,8 +50,20 @@ public class PhotoPanel {
         this.activity = activity;
     }
 
+    @Override
     public void onCreate(Bundle savedInstanceState) {
         photos = (ViewGroup) activity.findViewById(R.id.photos);
+    }
+
+    @Override
+    public void setVisible(boolean visible) {
+        View view = activity.findViewById(R.id.photos_layout);
+        view.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+
     }
 
     /**
@@ -59,6 +71,7 @@ public class PhotoPanel {
      *
      * @param event The instance of the event.
      */
+    @Override
     public void setEvent(Event event) {
         this.event = event;
 

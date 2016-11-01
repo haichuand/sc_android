@@ -39,6 +39,7 @@ public class Event implements Parcelable {
     public String endTimeZone;
     public boolean allDay;
     public long lastRepeatTime;
+    public String organizer;
     public boolean favorite;
     public long createTime;
     public long modifyTime;
@@ -92,6 +93,7 @@ public class Event implements Parcelable {
         endTimeZone = event.endTimeZone;
         allDay = event.allDay;
         lastRepeatTime = event.lastRepeatTime;
+        organizer = event.organizer;
         favorite = event.favorite;
         createTime = event.createTime;
         modifyTime = event.modifyTime;
@@ -141,6 +143,7 @@ public class Event implements Parcelable {
         endTimeZone = in.readString();
         allDay = in.readByte() != 0;
         lastRepeatTime = in.readLong();
+        organizer = in.readString();
         favorite = in.readByte() != 0;
         createTime = in.readLong();
         modifyTime = in.readLong();
@@ -287,6 +290,7 @@ public class Event implements Parcelable {
         dest.writeString(endTimeZone);
         dest.writeInt(allDay ? 1 : 0);
         dest.writeLong(lastRepeatTime);
+        dest.writeString(organizer);
         dest.writeInt(favorite ? 1 : 0);
         dest.writeLong(createTime);
         dest.writeLong(modifyTime);
@@ -323,6 +327,10 @@ public class Event implements Parcelable {
 
     public String getEndTimeZone() {
         return endTimeZone == null ? timeZone : endTimeZone;
+    }
+
+    public boolean isLocked() {
+        return organizer != null && organizer.contains("group.v.calendar.google.com");
     }
 
     public List<String> getAttendeeIdList () {

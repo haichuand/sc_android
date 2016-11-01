@@ -323,6 +323,18 @@ public class EventDetailsActivity extends GestureActivity {
         notePanel.setEvent(event);
         guestPanel.setEvent(event);
         photoPanel.setEvent(event);
+
+        if (event.isLocked()) {
+            title.setEnabled(false);
+            colorPicker.setEnabled(false);
+
+            dateTimePanel.setEnabled(false);
+            reminderPanel.setVisible(false);
+            locationPanel.setVisible(false);
+            notePanel.setEnabled(false);
+            guestPanel.setVisible(false);
+            photoPanel.setVisible(false);
+        }
     }
 
     /**
@@ -489,5 +501,16 @@ public class EventDetailsActivity extends GestureActivity {
         this.color = color;
         color |= 0xFF000000;
         colorPicker.setColorFilter(color);
+    }
+
+    public interface PanelInterface {
+
+        void onCreate(Bundle savedInstanceState);
+
+        void setVisible(boolean visible);
+
+        void setEnabled(boolean enabled);
+
+        void setEvent(Event event);
     }
 }
