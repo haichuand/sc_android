@@ -140,9 +140,10 @@ public class LocationPanel implements EventDetailsActivity.PanelInterface, OnMap
     @Override
     public void setEvent(Event event) {
         this.event = event;
-
+        // Handle Location Suggestions
         if (event.location == null && !event.tempLocations.isEmpty()) {
             event.location = event.tempLocations.get(0);
+            event.tempLocations.clear();
         }
 
         if (event.location != null) {
