@@ -1,27 +1,27 @@
 {
   "project_info": {
-    "project_number": "1076145801492",
-    "firebase_url": "https://supercaly-2f8e7.firebaseio.com",
-    "project_id": "supercaly-2f8e7",
-    "storage_bucket": "supercaly-2f8e7.appspot.com"
+    "project_number": "670096617047",
+    "firebase_url": "https://supercaly-dc882.firebaseio.com",
+    "project_id": "supercaly-dc882",
+    "storage_bucket": "supercaly-dc882.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1076145801492:android:21add6dbea9d57ab",
+        "mobilesdk_app_id": "1:670096617047:android:21add6dbea9d57ab",
         "android_client_info": {
           "package_name": "com.mono"
         }
       },
       "oauth_client": [
         {
-          "client_id": "1076145801492-57a0kr9jhouuqorrrj4i3hlp677sg8d8.apps.googleusercontent.com",
+          "client_id": "670096617047-9uftp0g1v72eg9qtvm3afu6ennv2l26m.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyDpHeeMXJ9PZfaXblZbkQK5rl6Mihw4Hn0"
+          "current_key": "AIzaSyDr6Ozh_FGEBXpo2cIKcbN5ttJEyn4cO48"
         }
       ],
       "services": {

@@ -21,7 +21,7 @@ public class ChatServerManager {
 
     private static final String TAG = ChatServerManager.class.getSimpleName();
 
-    private static final String SERVER_ID = "1076145801492";
+    private static final String SERVER_ID = "670096617047";
 
     private static ChatServerManager instance;
 
