@@ -229,7 +229,7 @@ public class KmlLocationService extends IntentService {
                             GlobalEventList.getInstance().monthList.add(event);
                         }
                     }
-                  //  checkEventOverlap(kmlevent, location, notes);
+
                 }
 
             }
@@ -239,10 +239,12 @@ public class KmlLocationService extends IntentService {
 
     private Boolean checkEventOverlap(KmlEvents kmlevent, Location location, Event event) {
 
-        Event event1 = null, event2 = null;
+        Event event1 = new Event(event);
+        Event event2 = new Event(event);
         Boolean eventFound = false;
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(kmlevent.getStartTime());
+
 
         int mYear = calendar.get(Calendar.YEAR);
         int mMonth = calendar.get(Calendar.MONTH);
@@ -256,6 +258,11 @@ public class KmlLocationService extends IntentService {
 
             if ((events.get(i).startTime >= kmlevent.getStartTime()) && (events.get(i).endTime <= kmlevent.getEndTime()))// if event lies in between userstay period
             {
+                Long startTime = kmlevent.getStartTime();
+                Long endTime = kmlevent.getEndTime();
+                Long startTimeEvent = events.get(i).startTime;
+                Long endTimeEvent = events.get(i).endTime;
+
                 if(location != null)
                 {
                     List<Location> tempLocations = new ArrayList<>();
@@ -271,35 +278,23 @@ public class KmlLocationService extends IntentService {
 
                     if(((events.get(i).startTime - kmlevent.getStartTime()) > 1200000 )&& (i==0)) // Difference more than 20 minutes
                     {
-                        event1 = event;
-                        event1.startTime = kmlevent.getStartTime();
-                        event1.endTime = events.get(i).startTime;
+                        event1.startTime = startTime;
+                        event1.endTime = startTimeEvent;
+                        GlobalEventList.getInstance().monthList.add(event1);
                     }
                     if(((kmlevent.getEndTime() - events.get(i).endTime) > 1200000) && (i== (events.size()-1)))
                     {
-                        event2 = event;
-                        event2.startTime = events.get(i).endTime;
-                        event2.endTime = kmlevent.getEndTime();
-
+                        if(event1 != event2) {
+                            event2.startTime = endTimeEvent;
+                            event2.endTime = endTime;
+                            GlobalEventList.getInstance().monthList.add(event2);
+                        }
                     }
                 }
 
 
             }
 
-        }
-
-
-        if(event1 != null)
-        {
-            GlobalEventList.getInstance().monthList.add(event1);
-
-        }
-        if(event2 != null)
-        {
-            if(event1 != event2) {
-                GlobalEventList.getInstance().monthList.add(event2);
-            }
         }
         return eventFound;
     }
