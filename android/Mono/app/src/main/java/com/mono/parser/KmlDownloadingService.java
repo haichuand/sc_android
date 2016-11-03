@@ -71,25 +71,30 @@ public class KmlDownloadingService extends IntentService {
         String downloadType = intent.getExtras().getString(TYPE);
      //   Log.i(TAG, "downloadType: "+downloadType);
         if(KML.isSignedIn()) {
+
+            SharedPreferences lastmod = getSharedPreferences(SuperCalyPreferences.LAST_MODIFIED_KML, MODE_PRIVATE);
+            SharedPreferences.Editor editor = lastmod.edit();
             if(downloadType.equals(REGULAR)) {
                 // Reading from SharedPreferences
-                SharedPreferences lastmod = getSharedPreferences(SuperCalyPreferences.LAST_MODIFIED_KML, MODE_PRIVATE);
+
                 String value = lastmod.getString("lastModified", "");
                 Calendar c = Calendar.getInstance();
-                long diff = Math.abs(Long.parseLong(value) - c.getTimeInMillis());
-                int diffInDays = (int)(diff / (24 * 60 * 60 * 1000));
-                for(int i = 0;i <= diffInDays; i++) {
-                    downloadKML(KML_URL + "&pb=" + getPbValue(0), 0);
+                int diffInDays = 0;
+                if(value != "") {
+                    long diff = Math.abs(Long.parseLong(value) - c.getTimeInMillis());
+                    diffInDays = (int) (diff / (24 * 60 * 60 * 1000));
                 }
-                SharedPreferences.Editor editor = lastmod.edit();
+
+                for(int i = 0;i <= diffInDays; i++) {
+                    downloadKML(KML_URL + "&pb=" + getPbValue(i), i);
+                }
+
                 editor.putString("lastModified", Long.toString(c.getTimeInMillis()));
                 editor.commit();
             }
             else {
-                SharedPreferences lastmod = getSharedPreferences(SuperCalyPreferences.LAST_MODIFIED_KML, MODE_PRIVATE);
                 Calendar c = Calendar.getInstance();
                 // Writing data to SharedPreferences
-                SharedPreferences.Editor editor = lastmod.edit();
                 editor.putString("lastModified",Long.toString(c.getTimeInMillis()));
                 editor.commit();
                 for(int i = 0; i <= 365; i++) {
