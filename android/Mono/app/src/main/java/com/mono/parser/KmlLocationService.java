@@ -275,7 +275,8 @@ public class KmlLocationService extends IntentService {
                             null
                     );
                     eventFound = true;
-
+                    /*
+                    // to create kml events encapsulating user created events
                     if(((events.get(i).startTime - kmlevent.getStartTime()) > 1200000 )&& (i==0)) // Difference more than 20 minutes
                     {
                         event1.startTime = startTime;
@@ -290,6 +291,7 @@ public class KmlLocationService extends IntentService {
                             GlobalEventList.getInstance().monthList.add(event2);
                         }
                     }
+                    */
                 }
 
 
