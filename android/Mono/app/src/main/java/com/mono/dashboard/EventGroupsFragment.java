@@ -20,12 +20,12 @@ import com.mono.EventManager.EventAction;
 import com.mono.EventManager.EventBroadcastListener;
 import com.mono.MainInterface;
 import com.mono.R;
+import com.mono.dashboard.EventsFragment.ListListener;
+import com.mono.dashboard.EventGroupsListAdapter.EventGroupsListListener;
 import com.mono.model.Calendar;
 import com.mono.model.Event;
 import com.mono.provider.CalendarProvider;
-import com.mono.util.Colors;
 import com.mono.util.Common;
-import com.mono.util.SimpleDataSource;
 import com.mono.util.SimpleLinearLayoutManager;
 import com.mono.util.SimpleTabLayout.Scrollable;
 
@@ -33,45 +33,37 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDate;
 import org.joda.time.LocalDateTime;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.TimeZone;
 
 /**
- * A fragment that displays a list of events. Events selected can be viewed or edited. Using a
- * sliding gesture of left or right on the event will reveal additional options to trigger a
- * chat conversation or perform a quick deletion of unwanted events.
+ * A fragment that displays a list of events as groups. Events selected can be viewed or edited.
+ * Using a sliding gesture of left or right on the event will reveal additional options to trigger
+ * a chat conversation or perform a quick deletion of unwanted events.
  *
  * @author Gary Ng
  */
-public class EventsFragment extends Fragment implements SimpleDataSource<EventItem>,
-        EventItemListener, EventBroadcastListener, Scrollable {
+public class EventGroupsFragment extends Fragment implements EventGroupsListListener,
+        EventBroadcastListener, Scrollable {
 
     protected static final int PRECACHE_AMOUNT = 20;
     protected static final int PRECACHE_OFFSET = 10;
 
-    protected static final SimpleDateFormat DATE_FORMAT;
-    protected static final SimpleDateFormat DATE_FORMAT_2;
-    protected static final SimpleDateFormat TIME_FORMAT;
+    protected static final String PLACEHOLDER = "Events";
 
     protected int position;
     protected ListListener listener;
 
     protected RecyclerView recyclerView;
     protected SimpleLinearLayoutManager layoutManager;
-    protected ListAdapter adapter;
+    protected EventGroupsListAdapter adapter;
     protected TextView text;
 
-    protected final Map<String, EventItem> items = new HashMap<>();
-    protected final List<Event> events = new ArrayList<>();
+    protected EventGroupDataSource dataSource;
 
     protected Comparator<Event> comparator;
     protected int defaultDateTimeColorId;
@@ -84,12 +76,6 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
 
     protected boolean isEditModeEnabled;
     protected List<String> eventSelections = new LinkedList<>();
-
-    static {
-        DATE_FORMAT = new SimpleDateFormat("MMM d", Locale.getDefault());
-        DATE_FORMAT_2 = new SimpleDateFormat("M/d/yy", Locale.getDefault());
-        TIME_FORMAT = new SimpleDateFormat("h:mm a", Locale.getDefault());
-    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -115,7 +101,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
             }
         };
 
-        defaultDateTimeColorId = R.color.gray_dark;
+        defaultDateTimeColorId = R.color.gray_dark;;
         direction = -1;
     }
 
@@ -127,7 +113,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
         recyclerView = (RecyclerView) view.findViewById(R.id.list);
         recyclerView.setVerticalScrollBarEnabled(false);
         recyclerView.setLayoutManager(layoutManager = new SimpleLinearLayoutManager(getActivity()));
-        recyclerView.setAdapter(adapter = new ListAdapter(this));
+        recyclerView.setAdapter(adapter = new EventGroupsListAdapter(this));
         recyclerView.addOnScrollListener(new OnScrollListener() {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
@@ -135,10 +121,11 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
             }
         });
 
-        adapter.setDataSource(this);
+        dataSource = new EventGroupDataSource(getContext(), defaultDateTimeColorId);
+        adapter.setDataSource(dataSource);
 
         text = (TextView) view.findViewById(R.id.text);
-        text.setVisibility(events.isEmpty() ? View.VISIBLE : View.INVISIBLE);
+        text.setVisibility(dataSource.isEmpty() ? View.VISIBLE : View.INVISIBLE);
 
         return view;
     }
@@ -148,11 +135,11 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
         super.onResume();
 
         if (startTime > 0 && !new LocalDate(startTime).isEqual(new LocalDate())) {
-            events.clear();
+            dataSource.clear();
             adapter.notifyDataSetChanged();
         }
 
-        if (events.isEmpty()) {
+        if (dataSource.isEmpty()) {
             startTime = System.currentTimeMillis();
             append();
         }
@@ -187,7 +174,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
                 }
 
                 AlertDialog.Builder builder = new AlertDialog.Builder(getContext(),
-                        R.style.AppTheme_Dialog_Alert);
+                    R.style.AppTheme_Dialog_Alert);
                 builder.setMessage(R.string.confirm_event_delete_multiple);
 
                 DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
@@ -224,138 +211,21 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
     }
 
     /**
-     * Retrieve events as items to be displayed by the adapter. Special case events such as one
-     * with photos will return as a different type of item to be displayed differently.
-     *
-     * @param position Position of the event.
-     * @return item to display event information.
-     */
-    @Override
-    public EventItem getItem(int position) {
-        EventItem item;
-
-        Event event = events.get(position);
-        String id = event.id;
-
-        if (items.containsKey(id)) {
-            item = items.get(id);
-        } else {
-            if (event.hasPhotos()) {
-                PhotoEventItem photoItem = new PhotoEventItem(id);
-                photoItem.photos = event.getPhotos();
-
-                item = photoItem;
-            } else {
-                item = new EventItem(id);
-            }
-
-            item.type = EventItem.TYPE_EVENT;
-            item.iconResId = R.drawable.circle;
-            item.iconColor = event.color;
-
-            if (event.title != null && !event.title.isEmpty()) {
-                item.title = event.title;
-            } else {
-                item.title = "(" + getString(R.string.no_subject) + ")";
-            }
-
-            item.description = event.description;
-
-            items.put(id, item);
-        }
-        // Date Display
-        if (item != null) {
-            int colorId;
-            boolean bold;
-
-            if (event.viewTime == 0) {
-                colorId = R.color.gray_dark;
-                bold = true;
-            } else {
-                colorId = R.color.gray_dark;
-                bold = false;
-            }
-
-            item.titleColor = Colors.getColor(getContext(), colorId);
-            item.titleBold = bold;
-
-            DateTimeZone timeZone = event.allDay ? DateTimeZone.UTC : DateTimeZone.getDefault();
-            item.dateTime = getDateString(event.startTime, timeZone.toTimeZone(), event.allDay);
-
-            if (event.viewTime == 0) {
-                colorId = defaultDateTimeColorId;
-                bold = true;
-            } else {
-                colorId = R.color.gray_light_3;
-                bold = false;
-            }
-
-            item.dateTimeColor = Colors.getColor(getContext(), colorId);
-            item.dateTimeBold = bold;
-        }
-
-        return item;
-    }
-
-    /**
-     * Helper function to convert milliseconds into a readable date string that takes time zone
-     * into account.
-     *
-     * @param time Time in milliseconds.
-     * @param timeZone Time zone to be used.
-     * @param allDay All day event.
-     * @return date string.
-     */
-    protected String getDateString(long time, TimeZone timeZone, boolean allDay) {
-        LocalDate currentDate = new LocalDate();
-
-        LocalDateTime dateTime = new LocalDateTime(time);
-        LocalDate date = dateTime.toLocalDate();
-
-        SimpleDateFormat dateFormat;
-
-        if (date.isEqual(currentDate)) {
-            if (allDay) {
-                return getString(R.string.today);
-            } else {
-                dateFormat = TIME_FORMAT;
-            }
-        } else if (date.getYear() == currentDate.getYear()) {
-            dateFormat = DATE_FORMAT;
-        } else {
-            dateFormat = DATE_FORMAT_2;
-        }
-
-        dateFormat.setTimeZone(timeZone);
-
-        return dateFormat.format(dateTime.toDate());
-    }
-
-    /**
-     * Retrieve the number of events to be used by the adapter.
-     *
-     * @return number of events.
-     */
-    @Override
-    public int getCount() {
-        return events.size();
-    }
-
-    /**
      * Handle the action of clicking an event and notify any listeners.
      *
      * @param view View of the event.
      */
     @Override
-    public void onClick(View view) {
-        int position = recyclerView.getChildAdapterPosition(view);
-        EventItem item = getItem(position);
+    public void onClick(View view, int position) {
+        int adapterPosition = recyclerView.getChildAdapterPosition(view);
+        EventGroupItem item = dataSource.getItem(adapterPosition);
         if (item == null) {
             return;
         }
 
         if (listener != null) {
-            listener.onClick(this.position, item.id, view);
+            EventItem eventItem = item.items.get(position);
+            listener.onClick(this.position, eventItem.id, view);
         }
     }
 
@@ -366,15 +236,19 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
      * @return whether the action has been consumed.
      */
     @Override
-    public boolean onLongClick(View view) {
+    public boolean onLongClick(View view, int position) {
         if (isEditModeEnabled) {
             return false;
         }
 
-        int position = recyclerView.getChildAdapterPosition(view);
-        EventItem item = getItem(position);
+        int adapterPosition = recyclerView.getChildAdapterPosition(view);
+        EventGroupItem item = dataSource.getItem(adapterPosition);
+        if (item == null) {
+            return false;
+        }
 
-        setEditMode(true, item != null ? item.id : null);
+        EventItem eventItem = item.items.get(position);
+        setEditMode(true, eventItem.id);
 
         return true;
     }
@@ -416,21 +290,22 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
      * @param value Event is selected or unselected.
      */
     @Override
-    public void onSelectClick(View view, boolean value) {
-        int position = recyclerView.getChildAdapterPosition(view);
-        EventItem item = getItem(position);
+    public void onSelectClick(View view, int position, boolean value) {
+        int adapterPosition = recyclerView.getChildAdapterPosition(view);
+        EventGroupItem item = dataSource.getItem(adapterPosition);
         if (item == null) {
             return;
         }
 
-        adapter.setSelected(item.id, value);
+        EventItem eventItem = item.items.get(position);
+        adapter.setSelected(eventItem.id, value);
 
         if (value) {
-            if (!eventSelections.contains(item.id)) {
-                eventSelections.add(item.id);
+            if (!eventSelections.contains(eventItem.id)) {
+                eventSelections.add(eventItem.id);
             }
         } else {
-            eventSelections.remove(item.id);
+            eventSelections.remove(eventItem.id);
         }
 
         refreshActionBar();
@@ -457,26 +332,28 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
      * Handle the action of clicking on a hidden option on the left side of the event.
      *
      * @param view View of the event.
-     * @param index Index of the action.
+     * @param option Index of the action.
      */
     @Override
-    public void onLeftButtonClick(View view, int index) {
-        int position = recyclerView.getChildAdapterPosition(view);
-        EventItem item = getItem(position);
+    public void onLeftButtonClick(View view, int position, int option) {
+        int adapterPosition = recyclerView.getChildAdapterPosition(view);
+        EventGroupItem item = dataSource.getItem(adapterPosition);
         if (item == null) {
             return;
         }
 
         if (listener != null) {
-            switch (index) {
-                case ListAdapter.BUTTON_CHAT_INDEX:
-                    listener.onChatClick(this.position, item.id);
-                    break;
-                case ListAdapter.BUTTON_FAVORITE_INDEX:
-                    listener.onFavoriteClick(this.position, item.id);
+            EventItem eventItem = item.items.get(position);
 
-                    items.remove(item.id);
-                    adapter.notifyItemChanged(position);
+            switch (option) {
+                case EventGroupsListAdapter.BUTTON_CHAT_INDEX:
+                    listener.onChatClick(this.position, eventItem.id);
+                    break;
+                case EventGroupsListAdapter.BUTTON_FAVORITE_INDEX:
+                    listener.onFavoriteClick(this.position, eventItem.id);
+
+                    dataSource.removeItem(eventItem.id);
+                    adapter.notifyItemChanged(adapterPosition);
                     break;
             }
         }
@@ -486,20 +363,22 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
      * Handle the action of clicking on a hidden option on the right side of the event.
      *
      * @param view View of the event.
-     * @param index Index of the action.
+     * @param option Index of the action.
      */
     @Override
-    public void onRightButtonClick(View view, int index) {
-        int position = recyclerView.getChildAdapterPosition(view);
-        EventItem item = getItem(position);
+    public void onRightButtonClick(View view, int position, int option) {
+        int adapterPosition = recyclerView.getChildAdapterPosition(view);
+        EventGroupItem item = dataSource.getItem(adapterPosition);
         if (item == null) {
             return;
         }
 
         if (listener != null) {
-            switch (index) {
-                case ListAdapter.BUTTON_DELETE_INDEX:
-                    listener.onDeleteClick(this.position, item.id);
+            EventItem eventItem = item.items.get(position);
+
+            switch (option) {
+                case EventGroupsListAdapter.BUTTON_DELETE_INDEX:
+                    listener.onDeleteClick(this.position, eventItem.id);
                     break;
             }
         }
@@ -571,7 +450,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
      * @return whether event is valid.
      */
     protected boolean checkEvent(Event event) {
-        if (events.contains(event)) {
+        if (dataSource.containsEvent(event.id)) {
             return false;
         }
 
@@ -595,7 +474,8 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
      */
     public void insert(List<Event> items, int scrollToPosition) {
         Event scrollToEvent = scrollToPosition >= 0 ? items.get(scrollToPosition) : null;
-
+        EventGroup scrollToGroup = null;
+        // Check Event Display Criteria
         Iterator<Event> iterator = items.iterator();
         while (iterator.hasNext()) {
             if (!checkEvent(iterator.next())) {
@@ -607,15 +487,67 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
             return;
         }
 
-        events.addAll(items);
-        Collections.sort(events, comparator);
+        List<EventGroup> insertGroups = new ArrayList<>();
+        List<EventGroup> updateGroups = new ArrayList<>();
 
         for (Event event : items) {
-            adapter.notifyItemInserted(events.indexOf(event));
+            String title = event.location != null ? event.location.name : PLACEHOLDER;
+            DateTimeZone timeZone = event.allDay ? DateTimeZone.UTC : DateTimeZone.getDefault();
+
+            EventGroup group = new EventGroup(null, title, event.startTime, timeZone);
+
+            if (!dataSource.containsGroup(group)) {
+                group.id = String.valueOf((int) (Math.random() * 10000));
+                dataSource.addGroup(group);
+                // For Adapter Use
+                if (!insertGroups.contains(group)) {
+                    insertGroups.add(group);
+                }
+            } else {
+                int index = dataSource.indexOf(group);
+                int lastIndex = dataSource.lastIndexOf(group);
+
+                if (index == lastIndex) {
+                    // Handle Single Group
+                    group = dataSource.getGroup(index);
+                } else {
+                    // Handle Multiple Groups
+                    for (int i = index; i <= lastIndex; i++) {
+                        EventGroup tempGroup = dataSource.getGroup(i);
+                        // Check Event Time w/ Group
+                        if (Common.between(event.startTime, tempGroup.getStartTime(),
+                                tempGroup.getEndTime())) {
+                            group = tempGroup;
+                            break;
+                        }
+                    }
+                }
+                // For Adapter Use
+                if (!updateGroups.contains(group)) {
+                    updateGroups.add(group);
+                }
+            }
+
+            dataSource.addEvent(event, group, comparator);
+
+            if (scrollToEvent != null && event.equals(scrollToEvent)) {
+                scrollToGroup = group;
+            }
         }
 
-        if (scrollToEvent != null) {
-            scrollToPosition = events.indexOf(scrollToEvent);
+        dataSource.sortGroups();
+
+        for (EventGroup group : insertGroups) {
+            adapter.notifyItemInserted(dataSource.indexOf(group));
+        }
+
+        for (EventGroup group : updateGroups) {
+            dataSource.removeItem(group.id);
+            adapter.notifyItemChanged(dataSource.indexOf(group));
+        }
+
+        if (scrollToGroup != null) {
+            scrollToPosition = dataSource.indexOf(scrollToGroup);
             if (scrollToPosition >= 0) {
                 recyclerView.smoothScrollToPosition(scrollToPosition);
             }
@@ -638,28 +570,6 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
     }
 
     /**
-     * Handle the insertion of multiple events at a starting index.
-     *
-     * @param index Index to insert.
-     * @param items Events to be inserted.
-     */
-    public void insert(int index, List<Event> items) {
-        int size = 0;
-
-        for (Event event : items) {
-            if (!checkEvent(event)) {
-                continue;
-            }
-
-            events.add(index + size, event);
-            size++;
-        }
-
-        text.setVisibility(View.INVISIBLE);
-        adapter.notifyItemRangeInserted(index, size);
-    }
-
-    /**
      * Handle the refresh of events if it was updated.
      *
      * @param items Events to be updated.
@@ -667,39 +577,50 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
      */
     public void update(List<Event> items, int scrollToPosition) {
         Event scrollToEvent = scrollToPosition >= 0 ? items.get(scrollToPosition) : null;
+        EventGroup scrollToGroup = null;
 
         for (Event event : items) {
-            int index;
+            Event tempEvent;
+            String eventId;
 
             if (event.oldId != null) {
-                Event tempEvent = new Event(event);
-                tempEvent.id = tempEvent.oldId;
-                index = events.indexOf(tempEvent);
+                tempEvent = new Event(event);
+                eventId = tempEvent.id = tempEvent.oldId;
             } else {
-                index = events.indexOf(event);
+                tempEvent = event;
+                eventId = event.id;
             }
 
-            if (index < 0) {
+            EventGroup group = null;
+            int index = -1;
+
+            if (dataSource.containsEvent(eventId)) {
+                group = dataSource.getGroupByEvent(eventId);
+                index = group.events.indexOf(tempEvent);
+            }
+
+            if (group == null || index < 0) {
                 continue;
             }
 
-            events.remove(index);
-            this.items.remove(event.oldId != null ? event.oldId : event.id);
+            dataSource.removeEvent(tempEvent, group);
 
-            events.add(event);
+            DateTimeZone timeZone = event.allDay ? DateTimeZone.UTC : DateTimeZone.getDefault();
+            if (new LocalDate(event.startTime, timeZone).isEqual(group.date)) {
+                dataSource.addEvent(event, group, comparator);
 
-            Collections.sort(events, comparator);
+                if (scrollToEvent != null && event.equals(scrollToEvent)) {
+                    scrollToGroup = group;
+                }
 
-            adapter.notifyItemChanged(index);
-
-            int currentIndex = events.indexOf(event);
-            if (currentIndex != index) {
-                adapter.notifyItemMoved(index, currentIndex);
+                adapter.notifyItemChanged(dataSource.indexOf(group));
+            } else {
+                insert(event, false);
             }
         }
 
-        if (scrollToEvent != null) {
-            scrollToPosition = events.indexOf(scrollToEvent);
+        if (scrollToGroup != null) {
+            scrollToPosition = dataSource.indexOf(scrollToGroup);
             if (scrollToPosition >= 0) {
                 recyclerView.smoothScrollToPosition(scrollToPosition);
             }
@@ -713,18 +634,30 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
      */
     public void remove(List<Event> items) {
         for (Event event : items) {
-            int index = events.indexOf(event);
+            if (!dataSource.containsEvent(event.id)) {
+                continue;
+            }
+
+            EventGroup group = dataSource.getGroupByEvent(event.id);
+            int index = group.events.indexOf(event);
+
             if (index < 0) {
                 continue;
             }
 
-            events.remove(index);
-            this.items.remove(event.id);
+            dataSource.removeEvent(event, group);
 
-            adapter.notifyItemRemoved(index);
+            index = dataSource.indexOf(group);
+
+            if (!group.events.isEmpty()) {
+                adapter.notifyItemChanged(index);
+            } else {
+                dataSource.removeGroup(group);
+                adapter.notifyItemRemoved(index);
+            }
         }
 
-        if (events.isEmpty()) {
+        if (dataSource.isEmpty()) {
             text.setVisibility(View.VISIBLE);
         }
     }
@@ -756,7 +689,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
 
         if (deltaY > 0) {
             position = layoutManager.findLastVisibleItemPosition();
-            if (position >= Math.max(events.size() - 1 - PRECACHE_OFFSET, 0)) {
+            if (position >= Math.max(dataSource.getCount() - 1 - PRECACHE_OFFSET, 0)) {
                 append();
             }
         }
@@ -774,17 +707,34 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
         task = new AsyncTask<Void, Void, List<Event>>() {
             @Override
             protected List<Event> doInBackground(Void... params) {
+                List<Event> result = new ArrayList<>();
+
                 EventManager manager = EventManager.getInstance(getContext());
-
-                List<Event> result = manager.getEventsFromProviderByOffset(startTime,
+                List<Event> tempResult = new ArrayList<>();
+                // Retrieve Provider Events
+                List<Event> providerEvents = manager.getEventsFromProviderByOffset(startTime,
                     offsetProvider, PRECACHE_AMOUNT, direction);
-                offsetProvider += result.size();
-
+                tempResult.addAll(providerEvents);
+                // Retrieve Local Events
                 List<Event> events = manager.getEventsByOffset(startTime, offset,
                     PRECACHE_AMOUNT, direction);
-                offset += events.size();
+                tempResult.addAll(events);
+                // Sort By Time
+                Collections.sort(tempResult, comparator);
+                // Keep Set Amount
+                for (Event event : tempResult) {
+                    if (providerEvents.contains(event)) {
+                        offsetProvider++;
+                    } else {
+                        offset++;
+                    }
 
-                combine(result, events);
+                    result.add(event);
+
+                    if (result.size() >= PRECACHE_AMOUNT) {
+                        break;
+                    }
+                }
 
                 return result;
             }
@@ -792,7 +742,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
             @Override
             protected void onPostExecute(List<Event> result) {
                 if (!result.isEmpty()) {
-                    insert(events.size(), result);
+                    processEvents(result);
                 }
 
                 task = null;
@@ -801,36 +751,61 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
     }
 
     /**
-     * Used to combine two list of events into one sorted list.
+     * Group events into their corresponding groups.
      *
-     * @param result List for events to be added.
-     * @param events Events to be added.
+     * @param events Events to be grouped.
      */
-    protected void combine(List<Event> result, List<Event> events) {
-        for (Event event : events) {
-            if (result.contains(event)) {
-                int index = result.indexOf(event);
-                result.remove(index);
-                result.add(index, event);
-            } else {
-                result.add(event);
-            }
-        }
+    protected void processEvents(List<Event> events) {
+        int initSize = 0;
 
-        Collections.sort(result, comparator);
+        EventGroup group = null;
+        if (!dataSource.isEmpty()) {
+            initSize = dataSource.getCount();
+            group = dataSource.getGroup(initSize - 1);
+        }
+        // Group Events
+        for (int i = 0; i < events.size(); i++) {
+            Event event = events.get(i);
+            if (!checkEvent(event)) {
+                continue;
+            }
+            // Create Event Group
+            if (group == null || !checkEventGroup(event, group)) {
+                String id = String.valueOf((int) (Math.random() * 10000));
+                String title = event.location != null ? event.location.name : PLACEHOLDER;
+                DateTimeZone timeZone = event.allDay ? DateTimeZone.UTC : DateTimeZone.getDefault();
+
+                group = new EventGroup(id, title, event.startTime, timeZone);
+                dataSource.addGroup(group);
+            }
+            // Insert Event into Group
+            dataSource.addEvent(event, group, comparator);
+        }
+        // Update Existing Event Group
+        if (initSize != 0) {
+            adapter.notifyItemChanged(initSize - 1);
+        }
+        // Insert Event Groups
+        if (dataSource.getCount() > initSize) {
+            text.setVisibility(View.INVISIBLE);
+            adapter.notifyItemRangeInserted(initSize, dataSource.getCount() - initSize);
+        }
     }
 
     /**
-     * Scroll to a specific event.
+     * Check for event group criteria, which is defined by the location and date of the event.
      *
-     * @param event Instance of the event.
+     * @param event Event to check.
+     * @param eventGroup Event group to check against.
+     * @return whether event belongs to this group.
      */
-    public void scrollTo(Event event) {
-        int index = events.indexOf(event);
+    protected boolean checkEventGroup(Event event, EventGroup eventGroup) {
+        String location = event.location != null ? event.location.name : PLACEHOLDER;
 
-        if (index >= 0) {
-            recyclerView.scrollToPosition(index);
-        }
+        DateTimeZone timeZone = event.allDay ? DateTimeZone.UTC : DateTimeZone.getDefault();
+        LocalDate date = new LocalDate(event.startTime, timeZone);
+
+        return Common.compareStrings(location, eventGroup.title) && date.isEqual(eventGroup.date);
     }
 
     @Override
@@ -904,16 +879,58 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
 
     }
 
-    public interface ListListener {
+    public static class EventGroup {
 
-        void onClick(int tab, String id, View view);
+        public String id;
+        public String title;
+        public LocalDate date;
+        public List<Event> events = new ArrayList<>();
 
-        void onLongClick(int tab, String id, View view);
+        public EventGroup(String id, String title, long time, DateTimeZone timeZone) {
+            this.id = id;
+            this.title = title;
+            this.date = new LocalDate(time, timeZone);
+        }
 
-        void onChatClick(int tab, String id);
+        @Override
+        public boolean equals(Object object) {
+            if (!(object instanceof EventGroup)) {
+                return false;
+            }
 
-        void onFavoriteClick(int tab, String id);
+            EventGroup eventGroup = (EventGroup) object;
 
-        void onDeleteClick(int tab, String id);
+            if (!Common.compareStrings(title, eventGroup.title)) {
+                return false;
+            }
+
+            if (!date.isEqual(eventGroup.date)) {
+                return false;
+            }
+
+            return true;
+        }
+
+        public void add(Event event, Comparator<Event> comparator) {
+            if (!events.contains(event)) {
+                events.add(event);
+
+                if (comparator != null) {
+                    Collections.sort(events, comparator);
+                }
+            }
+        }
+
+        public void remove(Event event) {
+            events.remove(event);
+        }
+
+        public long getStartTime() {
+            return events.get(events.size() - 1).startTime;
+        }
+
+        public long getEndTime() {
+            return events.get(0).startTime;
+        }
     }
 }

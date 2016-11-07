@@ -11,13 +11,13 @@ import org.joda.time.LocalDateTime;
 import java.util.Comparator;
 
 /**
- * A fragment that displays a list of upcoming events. Events selected can be viewed or edited.
- * Using a sliding gesture of left or right on the event will reveal additional options to trigger
- * a chat conversation or perform a quick deletion of unwanted events.
+ * A fragment that displays a list of upcoming events as groups. Events selected can be viewed or
+ * edited. Using a sliding gesture of left or right on the event will reveal additional options to
+ * trigger a chat conversation or perform a quick deletion of unwanted events.
  *
  * @author Gary Ng
  */
-public class UpcomingFragment extends EventsFragment {
+public class UpcomingGroupsFragment extends EventGroupsFragment {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -49,7 +49,7 @@ public class UpcomingFragment extends EventsFragment {
      */
     @Override
     protected boolean checkEvent(Event event) {
-        if (events.contains(event)) {
+        if (dataSource.containsEvent(event.id)) {
             return false;
         }
 
