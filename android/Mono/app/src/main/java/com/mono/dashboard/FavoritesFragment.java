@@ -88,6 +88,16 @@ public class FavoritesFragment extends EventsFragment {
         }
     }
 
+    /**
+     * Check if event is valid to be displayed within this fragment.
+     *
+     * @param event Event to check.
+     * @return whether event is valid.
+     */
+    protected boolean checkEvent(Event event) {
+        return !events.contains(event);
+    }
+
     @Override
     public void update(List<Event> items, int scrollToPosition) {
         for (Event event : items) {
