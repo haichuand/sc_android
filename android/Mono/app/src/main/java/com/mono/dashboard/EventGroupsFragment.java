@@ -24,6 +24,7 @@ import com.mono.dashboard.EventsFragment.ListListener;
 import com.mono.dashboard.EventGroupsListAdapter.EventGroupsListListener;
 import com.mono.model.Calendar;
 import com.mono.model.Event;
+import com.mono.model.Location;
 import com.mono.provider.CalendarProvider;
 import com.mono.util.Common;
 import com.mono.util.SimpleLinearLayoutManager;
@@ -491,7 +492,9 @@ public class EventGroupsFragment extends Fragment implements EventGroupsListList
         List<EventGroup> updateGroups = new ArrayList<>();
 
         for (Event event : items) {
-            String title = event.location != null ? event.location.name : PLACEHOLDER;
+            Location location = event.getLocation();
+            String title = location != null ? location.name : PLACEHOLDER;
+
             DateTimeZone timeZone = event.allDay ? DateTimeZone.UTC : DateTimeZone.getDefault();
 
             EventGroup group = new EventGroup(null, title, event.startTime, timeZone);
@@ -772,7 +775,10 @@ public class EventGroupsFragment extends Fragment implements EventGroupsListList
             // Create Event Group
             if (group == null || !checkEventGroup(event, group)) {
                 String id = String.valueOf((int) (Math.random() * 10000));
-                String title = event.location != null ? event.location.name : PLACEHOLDER;
+
+                Location location = event.getLocation();
+                String title = location != null ? location.name : PLACEHOLDER;
+
                 DateTimeZone timeZone = event.allDay ? DateTimeZone.UTC : DateTimeZone.getDefault();
 
                 group = new EventGroup(id, title, event.startTime, timeZone);
@@ -800,12 +806,13 @@ public class EventGroupsFragment extends Fragment implements EventGroupsListList
      * @return whether event belongs to this group.
      */
     protected boolean checkEventGroup(Event event, EventGroup eventGroup) {
-        String location = event.location != null ? event.location.name : PLACEHOLDER;
+        Location location = event.getLocation();
+        String title = location != null ? location.name : PLACEHOLDER;
 
         DateTimeZone timeZone = event.allDay ? DateTimeZone.UTC : DateTimeZone.getDefault();
         LocalDate date = new LocalDate(event.startTime, timeZone);
 
-        return Common.compareStrings(location, eventGroup.title) && date.isEqual(eventGroup.date);
+        return Common.compareStrings(title, eventGroup.title) && date.isEqual(eventGroup.date);
     }
 
     @Override
