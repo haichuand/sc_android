@@ -433,23 +433,25 @@ public class HttpServerManager {
         return STATUS_EXCEPTION;
     }
 
-    public String addMessage(Message msg) {
+    public int addMessage(Message msg) {
 
         try {
+            JSONObject messagekey = getJSONObject(new String[]{CONVERSATION_ID,"senderId", "timestamp"}, new Object[]{msg.getConversationId(), Integer.parseInt(msg.getSenderId()), msg.getTimestamp()});
             JSONObject userInfo = getUserInfo(Integer.parseInt(msg.getSenderId()));
             JSONObject jsonObject = getJSONObject(
-                    new String[]{CONVERSATION_ID,"sender_id" , MEDIA_ID, "textContent", "timestamp"},
-                    new Object[]{msg.getConversationId(), Integer.parseInt(msg.getSenderId()),  userInfo.getString(MEDIA_ID), msg.getMessageText(), msg.getTimestamp()}
+                    new String[]{"messageKey", MEDIA_ID, "textContent"},
+                    new Object[]{messagekey, userInfo.getString(MEDIA_ID), msg.getMessageText()}
             );
             JSONObject responseJson = queryServer(jsonObject, ADD_MESSAGE_URL, POST);
-            if (responseJson != null && responseJson.has(EVENT_ID)) {
-                return  responseJson.getString(EVENT_ID);
+            if (responseJson != null && responseJson.has(STATUS)) {
+                return  responseJson.getInt(STATUS);
             }
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-        return null;
+        return STATUS_EXCEPTION;
     }
+
 
     public JSONObject getJSONObject(String[] keys, Object[] values) throws JSONException {
         if (keys.length != values.length) {
