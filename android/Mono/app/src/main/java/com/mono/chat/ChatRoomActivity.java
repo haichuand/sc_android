@@ -411,7 +411,6 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         message.ack = false;
         message.attachments = attachments;
         message.setMessageId(conversationManager.saveChatMessageToDB(message));
-        httpServerManager.addMessage(message);
         addMessageToUI(message);
 
         if (message.attachments == null || message.attachments.isEmpty()) {
@@ -439,6 +438,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
             );
         }
 
+        httpServerManager.addMessage(message);
         sendMessageText.setText("");
         attachmentPanel.clear();
     }
