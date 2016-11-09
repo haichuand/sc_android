@@ -511,10 +511,6 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
                         if (item.getStatus() == EventAction.STATUS_OK) {
                             Event event = item.getEvent();
 
-                            if (Common.compareStrings(event.type, Event.TYPE_USERSTAY)) {
-                                continue;
-                            }
-
                             LocalDate startDate, endDate;
                             // Special Handling of All Day Events
                             if (!event.allDay) {
@@ -615,12 +611,6 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
 
         long[] calendarIds = Settings.getInstance(getContext()).getCalendarsArray();
         List<Event> events = eventManager.getEvents(year, month, day, calendarIds);
-
-        for (int i = events.size() - 1; i >= 0; i--) {
-            if (Common.compareStrings(events.get(i).type, Event.TYPE_USERSTAY)) {
-                events.remove(i);
-            }
-        }
 
         if (!events.isEmpty()) {
             eventsFragment.setEvents(year, month, day, events);
