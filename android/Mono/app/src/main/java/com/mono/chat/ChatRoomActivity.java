@@ -437,7 +437,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
                 }
             );
         }
-
+        httpServerManager.addMessage(message);
         sendMessageText.setText("");
         attachmentPanel.clear();
     }

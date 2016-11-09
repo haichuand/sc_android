@@ -6,6 +6,7 @@ import android.os.AsyncTask;
 import com.mono.AccountManager;
 import com.mono.db.dao.AttendeeDataSource;
 import com.mono.model.Account;
+import com.mono.model.Message;
 import com.mono.util.Common;
 
 import org.json.JSONArray;
@@ -46,6 +47,10 @@ public class HttpServerManager {
     public static final String ADD_CONVERSATION_ATTENDEES_URL = REST_URL + "conversation/addAttendees";
     public static final String UPDATE_CONVERSATION_TITLE_URL = REST_URL + "conversation/updateTitle";
     public static final String DROP_CONVERSATION_ATTENDEES_URL = REST_URL + "conversation/dropAttendees";
+
+    public static final String ADD_MESSAGE_URL = REST_URL + "conversation/addMessage";
+    public static final String BACKUP_MESSAGE_URL = REST_URL + "conversation/backupMessages";
+
     public static final String UPLOAD_IMAGE_URL = REST_URL + "file/upload/image";
     public static final String UPLOAD_VIDEO_URL = REST_URL + "file/upload/video";
     public static final String DOWNLOAD_URL = REST_URL + "file/download/";
@@ -426,6 +431,24 @@ public class HttpServerManager {
             ex.printStackTrace();
         }
         return STATUS_EXCEPTION;
+    }
+
+    public String addMessage(Message msg) {
+
+        try {
+            JSONObject userInfo = getUserInfo(Integer.parseInt(msg.getSenderId()));
+            JSONObject jsonObject = getJSONObject(
+                    new String[]{CONVERSATION_ID,"sender_id" , MEDIA_ID, "textContent", "timestamp"},
+                    new Object[]{msg.getConversationId(), Integer.parseInt(msg.getSenderId()),  userInfo.getString(MEDIA_ID), msg.getMessageText(), msg.getTimestamp()}
+            );
+            JSONObject responseJson = queryServer(jsonObject, ADD_MESSAGE_URL, POST);
+            if (responseJson != null && responseJson.has(EVENT_ID)) {
+                return  responseJson.getString(EVENT_ID);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return null;
     }
 
     public JSONObject getJSONObject(String[] keys, Object[] values) throws JSONException {
