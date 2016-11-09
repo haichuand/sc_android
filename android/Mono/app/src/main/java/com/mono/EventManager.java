@@ -482,6 +482,13 @@ public class EventManager {
             result.add(event);
         }
 
+        Collections.sort(result, new Comparator<Event>() {
+            @Override
+            public int compare(Event e1, Event e2) {
+                return Long.compare(e2.startTime, e1.startTime);
+            }
+        });
+
         return result;
     }
 

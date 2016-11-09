@@ -25,6 +25,8 @@ public abstract class SimpleViewHolder extends RecyclerView.ViewHolder {
 
         public String id;
         public String sortValue;
+        public boolean isSelectable;
+        public boolean selected;
 
         @Override
         public boolean equals(Object object) {

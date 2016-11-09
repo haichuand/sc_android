@@ -32,8 +32,6 @@ import com.mono.util.SimpleTabLayout.TabPagerCallback;
 import com.mono.util.SimpleTabPagerAdapter;
 import com.mono.util.SimpleViewPager;
 
-import java.util.List;
-
 /**
  * This fragment class is used to serve as the parent container of all views used to display a
  * list of events. Common methods used by these other views are placed here primarily to have
@@ -74,8 +72,8 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
         eventManager.addEventBroadcastListener(this);
 
         tabPagerAdapter = new SimpleTabPagerAdapter(getChildFragmentManager(), getContext());
-        tabPagerAdapter.add(0, getString(R.string.events), new EventsFragment());
-        tabPagerAdapter.add(0, getString(R.string.upcoming), new UpcomingFragment());
+        tabPagerAdapter.add(0, getString(R.string.events), new EventGroupsFragment());
+        tabPagerAdapter.add(0, getString(R.string.upcoming), new UpcomingGroupsFragment());
         tabPagerAdapter.add(0, getString(R.string.favorite), new FavoritesFragment());
     }
 

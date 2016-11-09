@@ -1,23 +1,23 @@
 package com.mono.dashboard;
 
 import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 
 import com.mono.R;
-import com.mono.util.Pixels;
 import com.mono.util.SimpleDataSource;
-import com.mono.util.SimpleSlideView;
 import com.mono.util.SimpleViewHolder;
 
 import java.util.LinkedList;
 import java.util.List;
 
 /**
- * A adapter used to display events in the recycler view.
+ * A adapter used to display event groups in the recycler view.
  *
  * @author Gary Ng
  */
-public class ListAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
+public class EventGroupsListAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
 
     public static final int BUTTON_CHAT_INDEX = 0;
     public static final int BUTTON_FAVORITE_INDEX = 1;
@@ -26,47 +26,32 @@ public class ListAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
     private static final int TYPE_EVENT = 100;
     private static final int TYPE_PHOTO_EVENT = 200;
 
-    private static final int ITEM_HEIGHT_DP = 60;
-    private static final int ITEM_PHOTO_HEIGHT_DP = 120;
-
-    private SimpleDataSource<EventItem> dataSource;
-    private EventItemListener listener;
+    private SimpleDataSource<EventGroupItem> dataSource;
+    private EventGroupsListListener listener;
 
     private boolean isSelectable;
     private List<String> selections = new LinkedList<>();
 
-    public ListAdapter(EventItemListener listener) {
+    public EventGroupsListAdapter(EventGroupsListListener listener) {
         this.listener = listener;
     }
 
     @Override
     public SimpleViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        SimpleViewHolder holder = null;
+        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+        View view = inflater.inflate(R.layout.list_card, null, false);
 
-        if (viewType == TYPE_EVENT) {
-            int height = Pixels.pxFromDp(parent.getContext(), ITEM_HEIGHT_DP);
-
-            SimpleSlideView view = new SimpleSlideView(parent.getContext());
-            view.setContent(R.layout.list_item, height, listener);
-
-            holder = new EventHolder(view, listener);
-        } else if (viewType == TYPE_PHOTO_EVENT) {
-            int height = Pixels.pxFromDp(parent.getContext(), ITEM_PHOTO_HEIGHT_DP);
-
-            SimpleSlideView view = new SimpleSlideView(parent.getContext());
-            view.setContent(R.layout.list_item, height, listener);
-
-            holder = new PhotoEventHolder(view, listener);
-        }
-
-        return holder;
+        return new EventGroupHolder(view, listener);
     }
 
     @Override
     public void onBindViewHolder(SimpleViewHolder holder, int position) {
-        EventItem item = dataSource.getItem(position);
-        item.isSelectable = isSelectable;
-        item.selected = selections.contains(item.id);
+        EventGroupItem item = dataSource.getItem(position);
+
+        for (EventItem eventItem : item.items) {
+            eventItem.isSelectable = isSelectable;
+            eventItem.selected = selections.contains(eventItem.id);
+        }
 
         holder.onBind(item);
     }
@@ -75,13 +60,15 @@ public class ListAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
     public int getItemViewType(int position) {
         int viewType;
 
-        EventItem item = dataSource.getItem(position);
+        EventGroupItem item = dataSource.getItem(position);
 
-        if (item instanceof PhotoEventItem) {
+        if (item.hasPhotos) {
             viewType = TYPE_PHOTO_EVENT;
         } else {
             viewType = TYPE_EVENT;
         }
+
+        viewType += item.items.size();
 
         return viewType;
     }
@@ -101,7 +88,7 @@ public class ListAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
      *
      * @param dataSource The item source.
      */
-    public void setDataSource(SimpleDataSource<EventItem> dataSource) {
+    public void setDataSource(SimpleDataSource<EventGroupItem> dataSource) {
         this.dataSource = dataSource;
         notifyDataSetChanged();
     }
@@ -137,5 +124,20 @@ public class ListAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
         } else {
             selections.remove(id);
         }
+    }
+
+    public interface EventGroupsListListener {
+
+        void onClick(View view, int position);
+
+        boolean onLongClick(View view, int position);
+
+        void onLeftButtonClick(View view, int position, int option);
+
+        void onRightButtonClick(View view, int position, int option);
+
+        void onGesture(View view, boolean state);
+
+        void onSelectClick(View view, int position, boolean value);
     }
 }
