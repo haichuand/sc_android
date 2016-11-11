@@ -12,6 +12,7 @@ import com.mono.util.Common;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -114,7 +115,7 @@ public class ContactsProvider {
         );
 
         if (cursor != null) {
-            Map<Long, Contact> contactsMap = new HashMap<>();
+            Map<Long, Contact> contactsMap = new LinkedHashMap<>();
 
             while (cursor.moveToNext()) {
                 long id = cursor.getLong(ContactsValues.Contact.INDEX_ID);
@@ -139,11 +140,11 @@ public class ContactsProvider {
     /**
      * Retrieve a list of contacts stored on the device.
      *
-     * @param visible The value to return only visible or not contacts.
-     * @param terms The search terms to be used.
-     * @param offset The offset to start with.
-     * @param limit The max number of results to return.
-     * @param normalized The value to return phone numbers as normalized format.
+     * @param visible Return only visible contacts.
+     * @param terms Search terms to be used.
+     * @param offset Offset to start with.
+     * @param limit Max number of results to return.
+     * @param normalized Return phone numbers as normalized format.
      * @return a list of contacts.
      */
     public List<Contact> getContacts(boolean visible, String[] terms, int offset, int limit,
@@ -156,10 +157,8 @@ public class ContactsProvider {
         selection += " AND ";
         selection += ContactsContract.Data.IN_VISIBLE_GROUP + (visible ? " > " : " = ") + "0";
 
-        if (terms != null) {
-            selection += " AND ";
-            selection += getIdSelection(args, terms, offset, limit);
-        }
+        selection += " AND ";
+        selection += getIdSelection(args, terms, offset, limit);
 
         String[] selectionArgs = args.toArray(new String[args.size()]);
 
@@ -178,7 +177,7 @@ public class ContactsProvider {
         );
 
         if (cursor != null) {
-            Map<Long, Contact> contactsMap = new HashMap<>();
+            Map<Long, Contact> contactsMap = new LinkedHashMap<>();
 
             while (cursor.moveToNext()) {
                 long id = cursor.getLong(ContactsValues.Contact.INDEX_ID);
@@ -265,9 +264,9 @@ public class ContactsProvider {
     /**
      * Retrieve a list of contact IDs that contains either the name, email, phone number, etc.
      *
-     * @param terms The search terms to be used.
-     * @param offset The offset to start with.
-     * @param limit The max number of results to return.
+     * @param terms Search terms to be used.
+     * @param offset Offset to start with.
+     * @param limit Max number of results to return.
      * @return a list of contact IDs.
      */
     private List<Long> getContactIds(String[] terms, int offset, int limit) {
@@ -277,8 +276,10 @@ public class ContactsProvider {
 
         String selection = getMimeTypeSelection(args);
 
-        selection += " AND ";
-        selection += getLikeSelection(args, terms);
+        if (terms != null) {
+            selection += " AND ";
+            selection += getLikeSelection(args, terms);
+        }
 
         String[] selectionArgs = args.toArray(new String[args.size()]);
 
@@ -289,11 +290,11 @@ public class ContactsProvider {
         );
 
         if (limit > 0) {
-            order += String.format(
-                " LIMIT %d OFFSET %d",
-                limit,
-                offset
-            );
+            order += " LIMIT " + limit;
+        }
+
+        if (offset > 0) {
+            order += " OFFSET " + offset;
         }
 
         Cursor cursor = context.getContentResolver().query(

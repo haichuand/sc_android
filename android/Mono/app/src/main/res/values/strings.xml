@@ -166,6 +166,7 @@
     <string name="friends_remove">Remove from Friends</string>
     <string name="skip">Skip</string>
     <string name="invite">Invite</string>
+    <string name="invite_to">Invite to %s</string>
     <string name="remove">Remove</string>
 
     <string name="me">Me</string>

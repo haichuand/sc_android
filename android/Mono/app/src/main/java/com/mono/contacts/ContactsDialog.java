@@ -146,8 +146,8 @@ public class ContactsDialog extends AlertDialog.Builder {
                 break;
             case ContactsFragment.GROUP_CONTACTS:
             case ContactsFragment.GROUP_OTHER:
-                resIds = new int[]{
-                    R.string.invite
+                items = new CharSequence[]{
+                    context.getString(R.string.invite_to, context.getString(R.string.app_name))
                 };
                 break;
         }

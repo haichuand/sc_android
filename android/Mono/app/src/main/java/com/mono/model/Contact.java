@@ -165,6 +165,10 @@ public class Contact implements Parcelable {
     }
 
     public void setEmail(int type, String email) {
+        if (email == null) {
+            return;
+        }
+
         if (emails == null) {
             emails = new HashMap<>();
         }
@@ -226,6 +230,10 @@ public class Contact implements Parcelable {
     }
 
     public void setPhone(int type, String phone) {
+        if (phone == null) {
+            return;
+        }
+
         if (phones == null) {
             phones = new HashMap<>();
         }

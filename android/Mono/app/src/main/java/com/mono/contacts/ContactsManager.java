@@ -198,11 +198,12 @@ public class ContactsManager {
     /**
      * Retrieve a list of users.
      *
-     * @param terms The terms used to filter users.
-     * @param limit The max number of results to return.
+     * @param terms Terms used to filter users.
+     * @param offset Offset of contacts to start with.
+     * @param limit Max number of results to return.
      * @return a list of contacts.
      */
-    public List<Contact> getUsers(String[] terms, int limit) {
+    public List<Contact> getUsers(String[] terms, int offset, int limit) {
         List<Contact> result = new ArrayList<>();
 
 //        Account account = AccountManager.getInstance(context).getAccount();
@@ -217,12 +218,12 @@ public class ContactsManager {
             HttpServerManager manager = HttpServerManager.getInstance(context);
             manager.addAllRegisteredUsersToUserTable(dataSource);
 
-            for (Attendee user : dataSource.getUsers(null, 0)) {
+            for (Attendee user : dataSource.getUsers(null, 0, 0)) {
                 dataSource.setFriend(user.id, false);
             }
         }
 
-        List<Attendee> users = dataSource.getUsers(terms, limit);
+        List<Attendee> users = dataSource.getUsers(terms, offset, limit);
 
         if (!users.isEmpty()) {
             for (Attendee user : users) {
@@ -242,14 +243,15 @@ public class ContactsManager {
     /**
      * Retrieve a list of either local or other contacts.
      *
-     * @param visible The value to return only visible or not contacts.
-     * @param terms The terms used to filter users.
-     * @param limit The max number of results to return.
+     * @param visible Return only visible contacts.
+     * @param terms Terms used to filter users.
+     * @param offset Offset of contacts to start with.
+     * @param limit Max number of results to return.
      * @return a list of contacts.
      */
-    public List<Contact> getContacts(boolean visible, String[] terms, int limit) {
-        List<Contact> result = ContactsProvider.getInstance(context).getContacts(visible, terms, 0,
-            limit, true);
+    public List<Contact> getContacts(boolean visible, String[] terms, int offset, int limit) {
+        ContactsProvider provider = ContactsProvider.getInstance(context);
+        List<Contact> result = provider.getContacts(visible, terms, offset, limit, true);
 
         if (!result.isEmpty()) {
             Contact self = getAccountContact();
@@ -264,14 +266,15 @@ public class ContactsManager {
     /**
      * Retrieve users or contacts in the background. Results are passed through callbacks.
      *
-     * @param types The types of contacts to retrieve.
-     * @param terms The terms used to filter users.
-     * @param limit The max number of results to return.
-     * @param callback The callback to invoke.
+     * @param types Types of contacts to retrieve.
+     * @param terms Terms used to filter users.
+     * @param offset Offset of contacts to start with.
+     * @param limit Max number of results to return.
+     * @param callback Callback to invoke.
      * @return a list of contacts.
      */
     public AsyncTask<Object, Contact, List<Contact>> getContactsAsync(int[] types, String[] terms,
-            int limit, ContactsTaskCallback callback) {
+            final int offset, int limit, ContactsTaskCallback callback) {
         return new AsyncTask<Object, Contact, List<Contact>>() {
             private ContactsTaskCallback callback;
 
@@ -287,13 +290,13 @@ public class ContactsManager {
                 for (int type : types) {
                     switch (type) {
                         case TYPE_USERS:
-                            result.addAll(getUsers(terms, limit));
+                            result.addAll(getUsers(terms, offset, limit));
                             break;
                         case TYPE_CONTACTS:
-                            result.addAll(getContacts(true, terms, limit));
+                            result.addAll(getContacts(true, terms, offset, limit));
                             break;
                         case TYPE_OTHERS:
-                            result.addAll(getContacts(false, terms, limit));
+                            result.addAll(getContacts(false, terms, offset, limit));
                             break;
                     }
                 }
@@ -313,37 +316,40 @@ public class ContactsManager {
     /**
      * Retrieve users in the background. Results are passed through callbacks.
      *
-     * @param terms The terms used to filter users.
-     * @param limit The max number of results to return.
-     * @param callback The callback to invoke.
+     * @param terms Terms used to filter users.
+     * @param offset Offset of contacts to start with.
+     * @param limit Max number of results to return.
+     * @param callback Callback to invoke.
      */
-    public AsyncTask<Object, Contact, List<Contact>> getUsersAsync(String[] terms, int limit,
-            ContactsTaskCallback callback) {
-        return getContactsAsync(new int[]{TYPE_USERS}, terms, limit, callback);
+    public AsyncTask<Object, Contact, List<Contact>> getUsersAsync(String[] terms, int offset,
+            int limit, ContactsTaskCallback callback) {
+        return getContactsAsync(new int[]{TYPE_USERS}, terms, offset, limit, callback);
     }
 
     /**
      * Retrieve local contacts in the background. Results are passed through callbacks.
      *
-     * @param terms The terms used to filter users.
-     * @param limit The max number of results to return.
-     * @param callback The callback to invoke.
+     * @param terms Terms used to filter users.
+     * @param offset Offset of contacts to start with.
+     * @param limit Max number of results to return.
+     * @param callback Callback to invoke.
      */
     public AsyncTask<Object, Contact, List<Contact>> getLocalContactsAsync(String[] terms,
-            int limit, ContactsTaskCallback callback) {
-        return getContactsAsync(new int[]{TYPE_CONTACTS}, terms, limit, callback);
+            int offset, int limit, ContactsTaskCallback callback) {
+        return getContactsAsync(new int[]{TYPE_CONTACTS}, terms, offset, limit, callback);
     }
 
     /**
      * Retrieve other contacts in the background. Results are passed through callbacks.
      *
-     * @param terms The terms used to filter users.
-     * @param limit The max number of results to return.
-     * @param callback The callback to invoke.
+     * @param terms Terms used to filter users.
+     * @param offset Offset of contacts to start with.
+     * @param limit Max number of results to return.
+     * @param callback Callback to invoke.
      */
     public AsyncTask<Object, Contact, List<Contact>> getOtherContactsAsync(String[] terms,
-            int limit, ContactsTaskCallback callback) {
-        return getContactsAsync(new int[]{TYPE_OTHERS}, terms, limit, callback);
+            int offset, int limit, ContactsTaskCallback callback) {
+        return getContactsAsync(new int[]{TYPE_OTHERS}, terms, offset, limit, callback);
     }
 
     /**

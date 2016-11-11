@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.RecyclerView.OnScrollListener;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
@@ -27,6 +28,7 @@ import com.mono.contacts.ContactsManager.ContactsTaskCallback;
 import com.mono.model.Contact;
 import com.mono.util.Colors;
 import com.mono.util.Common;
+import com.mono.util.OnBackPressedListener;
 import com.mono.util.SimpleDataSource;
 import com.mono.util.SimpleLinearLayoutManager;
 import com.mono.util.SimpleViewHolder.HolderItem;
@@ -44,8 +46,8 @@ import java.util.Map;
  *
  * @author Gary Ng
  */
-public class ContactsFragment extends Fragment implements ContactsAdapterListener,
-        ContactsBroadcastListener {
+public class ContactsFragment extends Fragment implements OnBackPressedListener,
+        ContactsAdapterListener, ContactsBroadcastListener {
 
     public static final int GROUP_FAVORITES = 0;
     public static final int GROUP_FRIENDS = 1;
@@ -57,10 +59,13 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
     public static final int TASK_USERS = 0;
     public static final int TASK_CONTACTS = 1;
 
+    private static final int REFRESH_LIMIT = 30;
+    private static final int REFRESH_OFFSET = 5;
     private static final int SEARCH_LIMIT = 30;
 
     private EditText search;
     private RecyclerView recyclerView;
+    private SimpleLinearLayoutManager layoutManager;
     private ContactsAdapter adapter;
     private TextView resultsText;
     private AlertDialog dialog;
@@ -73,6 +78,7 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
     private ContactsManager contactsManager;
 
     private final Map<Integer, AsyncTask> tasks = new HashMap<>();
+    private int othersOffset;
     private String[] terms;
 
     @Override
@@ -109,13 +115,19 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
             @Override
             public void afterTextChanged(Editable s) {
                 String str = s.toString().trim();
-                getContacts(!str.isEmpty() ? str : null);
+                getContacts(!str.isEmpty() ? str : null, 0);
             }
         });
 
         recyclerView = (RecyclerView) view.findViewById(R.id.list);
-        recyclerView.setLayoutManager(new SimpleLinearLayoutManager(getActivity()));
+        recyclerView.setLayoutManager(layoutManager = new SimpleLinearLayoutManager(getActivity()));
         recyclerView.setAdapter(adapter = new ContactsAdapter(this));
+        recyclerView.addOnScrollListener(new OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                handleInfiniteScroll(dy);
+            }
+        });
         // Initialize Group Categories
         int[][] array = {
             {GROUP_FAVORITES, R.string.favorites},
@@ -151,8 +163,12 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
     }
 
     @Override
-    public void onViewCreated(View view, Bundle savedInstanceState) {
-        getContacts(null);
+    public void onResume() {
+        super.onResume();
+
+        if (contactsMap.isEmpty()) {
+            getContacts(null, 0);
+        }
     }
 
     @Override
@@ -180,6 +196,17 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    public boolean onBackPressed() {
+        if (search.hasFocus() && search.getText().length() > 0) {
+            search.setText("");
+            search.clearFocus();
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * Clears the current contacts and retrieve a new set of contacts.
      *
@@ -187,8 +214,7 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
      */
     public boolean onRefresh() {
         // Retrieve Users and Contacts
-        ContactsManager.getInstance(getContext()).reset();
-        getContacts(null);
+        getContacts(null, 0);
 
         return true;
     }
@@ -196,14 +222,16 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
     /**
      * Retrieve contacts from the Contacts Manager using callbacks.
      *
-     * @param query The value of the search query.
+     * @param query Search query.
+     * @param offset Offset of contacts to start with.
      */
-    public void getContacts(String query) {
+    public void getContacts(final String query, final int offset) {
         // Cancel Existing Tasks
         clearTasks();
         // Clear Cache
         items.clear();
         contactsMap.clear();
+        othersOffset = 0;
         // Reset Scroll Position to Top
         recyclerView.scrollToPosition(0);
         // Show or Hide Labels
@@ -219,32 +247,81 @@ public class ContactsFragment extends Fragment implements ContactsAdapterListene
         // Search Limit
         final int limit = !Common.isEmpty(query) ? SEARCH_LIMIT : 0;
         // Start Retrieval
-        setTask(TASK_USERS, contactsManager.getContactsAsync(types, terms, limit,
+        setTask(TASK_USERS, contactsManager.getContactsAsync(types, terms, 0, limit,
             new ContactsTaskCallback() {
                 @Override
                 protected void onFinish(List<Contact> contacts) {
-                    addAll(contacts, true);
-                    // Retrieve Other Contacts Second
-                    adapter.setGroupProgress(GROUP_OTHER, true);
-                    setTask(TASK_CONTACTS, contactsManager.getOtherContactsAsync(terms, limit,
-                        new ContactsTaskCallback() {
-                            @Override
-                            protected void onFinish(List<Contact> contacts) {
-                                adapter.setGroupProgress(GROUP_OTHER, false);
+                    if (!contacts.isEmpty()) {
+                        addAll(contacts, true);
+                    }
 
-                                if (!contacts.isEmpty()) {
-                                    addAll(contacts, true);
-                                }
-
-                                removeTask(TASK_CONTACTS);
-                            }
-                        }
-                    ));
+                    getOtherContacts(query, 0);
 
                     removeTask(TASK_USERS);
                 }
             }
         ));
+    }
+
+    /**
+     * Retrieve other contacts from the Contacts Manager using callbacks.
+     *
+     * @param query Search query.
+     * @param offset Offset of contacts to start with.
+     */
+    public void getOtherContacts(String query, int offset) {
+        final int limit = !Common.isEmpty(query) ? SEARCH_LIMIT : REFRESH_LIMIT;
+
+        setTask(TASK_CONTACTS, contactsManager.getOtherContactsAsync(terms, offset, limit,
+            new ContactsTaskCallback() {
+                @Override
+                protected void onFinish(List<Contact> contacts) {
+                    if (!contacts.isEmpty()) {
+                        int offset = adapter.getItemCount();
+                        int count = 0;
+
+                        for (Contact contact : contacts) {
+                            if (contactsMap.indexOf(contact) == -1 && (contact.hasEmails() ||
+                                    contact.hasPhones())) {
+                                contactsMap.add(GROUP_OTHER, contact);
+                                count++;
+                            }
+                        }
+
+                        if (count > 0) {
+                            adapter.notifyItemRangeInserted(offset, count);
+                        }
+
+                        othersOffset += contacts.size();
+                    }
+
+                    // Handle Empty Message
+                    handleEmptyMessage();
+
+                    removeTask(TASK_CONTACTS);
+                }
+            }
+        ));
+    }
+
+    /**
+     * Handle scrolling to enable dynamic retrieval of contacts in chunks.
+     *
+     * @param deltaY Direction of vertical scrolling.
+     */
+    public void handleInfiniteScroll(int deltaY) {
+        if (!tasks.isEmpty()) {
+            return;
+        }
+
+        int position;
+
+        if (deltaY > 0) {
+            position = layoutManager.findLastVisibleItemPosition();
+            if (position >= Math.max(contactsMap.size() - 1 - REFRESH_OFFSET, 0)) {
+                getOtherContacts(null, othersOffset);
+            }
+        }
     }
 
     /**

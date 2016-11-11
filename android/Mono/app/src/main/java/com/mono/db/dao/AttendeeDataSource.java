@@ -282,11 +282,12 @@ public class AttendeeDataSource extends DataSource {
     /**
      * Retrieve registered users.
      *
-     * @param terms The search terms to be used.
-     * @param limit The max number of results to return.
+     * @param terms Search terms to be used.
+     * @param offset Offset of users to start with.
+     * @param limit Max number of results to return.
      * @return a list of users.
      */
-    public List<Attendee> getUsers(String[] terms, int limit) {
+    public List<Attendee> getUsers(String[] terms, int offset, int limit) {
         List<Attendee> users = new ArrayList<>();
 
         List<String> args = new ArrayList<>();
@@ -311,7 +312,11 @@ public class AttendeeDataSource extends DataSource {
         );
 
         if (limit > 0) {
-            order += String.format(" LIMIT %d", limit);
+            order += " LIMIT " + limit;
+        }
+
+        if (offset > 0) {
+            order += " OFFSET " + offset;
         }
 
         Cursor cursor = database.select(
