@@ -28,6 +28,7 @@
     <string name="action_save">Save</string>
     <string name="action_edit">Edit</string>
     <string name="action_sync">Sync</string>
+    <string name="action_done">Done</string>
 
     <string name="fragment_main">MainFragment</string>
     <string name="fragment_login">LoginFragment</string>
@@ -154,6 +155,7 @@
     <string name="no_subject">No Subject</string>
     <string name="submit">Submit</string>
     <string name="select_items">Select Items</string>
+    <string name="select_contacts">Select Contacts</string>
     <string name="value_selected">%d Selected</string>
     <string name="today">Today</string>
 

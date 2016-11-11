@@ -5,7 +5,9 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.RecyclerView.OnScrollListener;
 import android.text.Editable;
@@ -35,6 +37,7 @@ import com.mono.util.SimpleViewHolder.HolderItem;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -74,12 +77,15 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
     private ContactsMap contactsMap = new ContactsMap();
 
     private int mode;
+    private String actionBarTitle;
 
     private ContactsManager contactsManager;
 
     private final Map<Integer, AsyncTask> tasks = new HashMap<>();
     private int othersOffset;
     private String[] terms;
+
+    protected List<Contact> contactSelections = new LinkedList<>();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -93,6 +99,14 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
         if (intent != null) {
             mode = intent.getIntExtra(ContactsActivity.EXTRA_MODE, ContactsActivity.MODE_VIEW);
         }
+
+        if (mode == ContactsActivity.MODE_PICKER) {
+            actionBarTitle = getString(R.string.select_contacts);
+        } else {
+            actionBarTitle = getString(R.string.contacts);
+        }
+
+        setToolbarTitle(actionBarTitle);
     }
 
     @Override
@@ -157,6 +171,10 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
             ));
         }
 
+        if (mode == ContactsActivity.MODE_PICKER) {
+            adapter.setSelectable(true);
+        }
+
         resultsText = (TextView) view.findViewById(R.id.results_text);
 
         return view;
@@ -181,7 +199,11 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        inflater.inflate(R.menu.contacts, menu);
+        if (mode == ContactsActivity.MODE_PICKER) {
+            inflater.inflate(R.menu.contacts_picker, menu);
+        } else {
+            inflater.inflate(R.menu.contacts, menu);
+        }
     }
 
     @Override
@@ -189,6 +211,10 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
         int id = item.getItemId();
 
         switch (id) {
+            case R.id.action_done:
+                return onPickerDone();
+            case R.id.action_clear:
+                return onClearSelections();
             case R.id.action_refresh:
                 return onRefresh();
         }
@@ -208,9 +234,44 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
     }
 
     /**
+     * Return from this activity with the selected contacts.
+     *
+     * @return whether action was consumed.
+     */
+    public boolean onPickerDone() {
+        if (contactSelections.isEmpty()) {
+            return true;
+        }
+
+        ArrayList<Contact> result = new ArrayList<>();
+        result.addAll(contactSelections);
+
+        Intent data = new Intent();
+        data.putParcelableArrayListExtra(ContactsActivity.EXTRA_CONTACTS, result);
+
+        getActivity().setResult(Activity.RESULT_OK, data);
+        getActivity().finish();
+
+        return true;
+    }
+
+    /**
+     * Clears current selected contacts during picker mode.
+     *
+     * @return whether action was consumed.
+     */
+    public boolean onClearSelections() {
+        contactSelections.clear();
+        adapter.setSelectable(true);
+        setToolbarTitle(actionBarTitle);
+
+        return true;
+    }
+
+    /**
      * Clears the current contacts and retrieve a new set of contacts.
      *
-     * @return a boolean of the status.
+     * @return whether action was consumed.
      */
     public boolean onRefresh() {
         // Retrieve Users and Contacts
@@ -220,12 +281,24 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
     }
 
     /**
+     * Set the action bar title using a string.
+     *
+     * @param title String containing the title.
+     */
+    private void setToolbarTitle(CharSequence title) {
+        ActionBar actionBar = ((AppCompatActivity) getActivity()).getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setTitle(title);
+        }
+    }
+
+    /**
      * Retrieve contacts from the Contacts Manager using callbacks.
      *
      * @param query Search query.
      * @param offset Offset of contacts to start with.
      */
-    public void getContacts(final String query, final int offset) {
+    public void getContacts(final String query, int offset) {
         // Cancel Existing Tasks
         clearTasks();
         // Clear Cache
@@ -456,6 +529,36 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
     }
 
     /**
+     * Handle the action of selecting a contact from the list.
+     *
+     * @param view View of the event.
+     * @param group Group category.
+     * @param position Position in the list.
+     * @param value Contact is selected or unselected.
+     */
+    @Override
+    public void onSelectClick(View view, int group, int position, boolean value) {
+        ContactItem item = getItemFromSource(group, position);
+        if (item == null) {
+            return;
+        }
+
+        adapter.setSelected(item.id, value);
+
+        Contact contact = contactsMap.get(group, position);
+
+        if (value) {
+            if (!contactSelections.contains(contact)) {
+                contactSelections.add(contact);
+            }
+        } else {
+            contactSelections.remove(contact);
+        }
+
+        refreshActionBar();
+    }
+
+    /**
      * Display the contacts dialog to perform additional actions.
      *
      * @param contact The selected contact form the list.
@@ -485,6 +588,17 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
 
         getActivity().setResult(Activity.RESULT_OK, data);
         getActivity().finish();
+    }
+
+    /**
+     * Display the number of contacts selected in the action bar.
+     */
+    private void refreshActionBar() {
+        if (contactSelections.isEmpty()) {
+            setToolbarTitle(actionBarTitle);
+        } else {
+            setToolbarTitle(getString(R.string.value_selected, contactSelections.size()));
+        }
     }
 
     /**

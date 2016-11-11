@@ -8,6 +8,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -23,6 +25,7 @@ import com.mono.util.SimpleViewHolder;
 import com.mono.util.SimpleViewHolder.HolderItem;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -40,6 +43,9 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
 
     private ContactsAdapterListener listener;
     private List<ContactsGroup> groups = new ArrayList<>();
+
+    private boolean isSelectable;
+    private List<String> selections = new LinkedList<>();
 
     private boolean hideEmptyLabels;
     private String[] terms;
@@ -76,6 +82,9 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
         if (item == null) {
             return;
         }
+
+        item.isSelectable = isSelectable;
+        item.selected = selections.contains(item.id);
 
         holder.onBind(item);
 
@@ -151,6 +160,34 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
     public void add(ContactsGroup group) {
         groups.add(group);
         notifyDataSetChanged();
+    }
+
+    /**
+     * Enable the display of checkboxes for item selection.
+     *
+     * @param selectable Whether to display checkboxes.
+     */
+    public void setSelectable(boolean selectable) {
+        this.isSelectable = selectable;
+        selections.clear();
+
+        notifyDataSetChanged();
+    }
+
+    /**
+     * Set item to be displayed as selected.
+     *
+     * @param id ID of item.
+     * @param selected Display as selected.
+     */
+    public void setSelected(String id, boolean selected) {
+        if (selected) {
+            if (!selections.contains(id)) {
+                selections.add(id);
+            }
+        } else {
+            selections.remove(id);
+        }
     }
 
     /**
@@ -392,6 +429,7 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
 
     public class ContactHolder extends SimpleViewHolder {
 
+        private CheckBox checkbox;
         private ImageView icon;
         private TextView name;
         private TextView msg;
@@ -401,6 +439,7 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
         public ContactHolder(View itemView) {
             super(itemView);
 
+            checkbox = (CheckBox) itemView.findViewById(R.id.checkbox);
             icon = (ImageView) itemView.findViewById(R.id.icon);
             name = (TextView) itemView.findViewById(R.id.name);
             msg = (TextView) itemView.findViewById(R.id.msg);
@@ -413,7 +452,12 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
 
                         if (result != null) {
                             int group = result[0], position = result[1];
-                            listener.onClick(view, group, position);
+
+                            if (!isSelectable) {
+                                listener.onClick(view, group, position);
+                            } else {
+                                checkbox.setChecked(!checkbox.isChecked());
+                            }
                         }
                     }
                 });
@@ -428,6 +472,22 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
                 task.cancel(true);
                 task = null;
             }
+
+            checkbox.setOnCheckedChangeListener(null);
+            checkbox.setChecked(item.selected);
+            checkbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    int[] result = getGroupPosition(getAdapterPosition());
+
+                    if (result != null) {
+                        int group = result[0], position = result[1];
+                        listener.onSelectClick(itemView, group, position, isChecked);
+                    }
+                }
+            });
+
+            checkbox.setVisibility(item.isSelectable ? View.VISIBLE : View.GONE);
 
             if (item.iconBitmap != null) {
                 icon.setImageBitmap(item.iconBitmap);
@@ -540,5 +600,7 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
     public interface ContactsAdapterListener {
 
         void onClick(View view, int group, int position);
+
+        void onSelectClick(View view, int group, int position, boolean value);
     }
 }
