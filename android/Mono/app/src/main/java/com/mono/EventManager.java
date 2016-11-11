@@ -124,11 +124,9 @@ public class EventManager {
             DatabaseHelper.getDataSource(context, EventMediaDataSource.class);
         event.photos = mediaDataSource.getMedia(event.id, Media.IMAGE);
         // Location Suggestions
-        if (event.location == null) {
-            LocationDataSource locationDataSource =
-                DatabaseHelper.getDataSource(context, LocationDataSource.class);
-            event.tempLocations = locationDataSource.getLocationCandidates(event.id);
-        }
+        LocationDataSource locationDataSource =
+            DatabaseHelper.getDataSource(context, LocationDataSource.class);
+        event.tempLocations = locationDataSource.getLocationCandidates(event.id);
         // Photo Suggestions
         if (event.photos.isEmpty()) {
             MediaManager manager = MediaManager.getInstance(context);

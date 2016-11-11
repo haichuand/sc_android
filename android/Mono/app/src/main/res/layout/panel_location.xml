@@ -56,8 +56,9 @@
             android:layout_weight="1"
             android:background="@null"
             android:hint="@string/location"
+            android:inputType="text"
+            android:maxLines="1"
             android:padding="6dp"
-            android:singleLine="true"
             android:textSize="16sp"/>
 
         <ImageView
@@ -71,4 +72,22 @@
             android:scaleType="center"
             android:src="@drawable/ic_clear"/>
     </LinearLayout>
+
+    <com.mono.util.SimpleLabelLayout
+        android:id="@+id/location_suggestions_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:visibility="gone"
+        app:label="@string/suggestions"
+        app:labelColor="?attr/colorPrimary"
+        app:labelSize="14sp">
+
+        <LinearLayout
+            android:id="@+id/location_suggestions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="4dp"/>
+    </com.mono.util.SimpleLabelLayout>
 </com.mono.util.SimpleLabelLayout>

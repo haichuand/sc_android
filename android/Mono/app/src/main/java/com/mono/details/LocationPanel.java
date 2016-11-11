@@ -10,10 +10,14 @@ import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.ui.PlacePicker;
@@ -32,6 +36,7 @@ import com.mono.model.Location;
 import com.mono.util.Colors;
 import com.mono.util.LocationHelper;
 import com.mono.util.LocationHelper.LocationCallback;
+import com.mono.util.Pixels;
 
 /**
  * This class is used to handle the location section located in Event Details.
@@ -41,6 +46,8 @@ import com.mono.util.LocationHelper.LocationCallback;
 public class LocationPanel implements EventDetailsActivity.PanelInterface, OnMapReadyCallback {
 
     private static final float DEFAULT_ZOOM_LEVEL = 16f;
+    private static final float WIDTH_DP = 200f;
+    private static final float MARGIN_DP = 2f;
 
     private EventDetailsActivity activity;
     private SupportMapFragment fragment;
@@ -50,6 +57,8 @@ public class LocationPanel implements EventDetailsActivity.PanelInterface, OnMap
     private TextWatcher textWatcher;
     private View locationPicker;
     private View clear;
+    private ViewGroup locationSuggestionsLayout;
+    private ViewGroup locationSuggestions;
     public boolean locationChanged = false;
 
     private Event event;
@@ -119,6 +128,16 @@ public class LocationPanel implements EventDetailsActivity.PanelInterface, OnMap
                 onLocationClear();
             }
         });
+
+        locationSuggestionsLayout = (ViewGroup) activity.findViewById(R.id.location_suggestions_layout);
+
+        locationSuggestions = (ViewGroup) activity.findViewById(R.id.location_suggestions);
+        locationSuggestions.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                onSuggestedLocationClick();
+            }
+        });
     }
 
     @Override
@@ -140,17 +159,47 @@ public class LocationPanel implements EventDetailsActivity.PanelInterface, OnMap
     @Override
     public void setEvent(Event event) {
         this.event = event;
-        // Handle Location Suggestions
-        if (event.location == null && !event.tempLocations.isEmpty()) {
-            event.location = event.tempLocations.get(0);
-            event.tempLocations.clear();
-        }
-
+        // Handle Event Location
         if (event.location != null) {
             location.removeTextChangedListener(textWatcher);
             location.setText(event.location.name);
             location.addTextChangedListener(textWatcher);
         }
+        // Handle Location Suggestions
+        if (!event.tempLocations.isEmpty()) {
+            Location location = event.tempLocations.get(0);
+            createLocation(location);
+        }
+    }
+
+    /**
+     * Create a location item using the location information.
+     *
+     * @param location Location used to create item.
+     */
+    public void createLocation(Location location) {
+        LayoutInflater inflater = LayoutInflater.from(activity);
+
+        View itemView = inflater.inflate(R.layout.location_item, null, false);
+        itemView.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                onSuggestedLocationClick();
+            }
+        });
+
+        TextView text = (TextView) itemView.findViewById(R.id.text);
+        text.setText(location.name);
+
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+            Pixels.pxFromDp(activity, WIDTH_DP), ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        params.bottomMargin = Pixels.pxFromDp(activity, MARGIN_DP);
+
+        int index = Math.max(locationSuggestions.getChildCount() - 1, 0);
+        locationSuggestions.addView(itemView, index, params);
+
+        locationSuggestionsLayout.setVisibility(View.VISIBLE);
     }
 
     @Override
@@ -326,5 +375,23 @@ public class LocationPanel implements EventDetailsActivity.PanelInterface, OnMap
         if (marker != null) {
             marker.remove();
         }
+    }
+
+    /**
+     * Handle the action of choosing a suggested location.
+     */
+    public void onSuggestedLocationClick() {
+        if (event.tempLocations.isEmpty()) {
+            return;
+        }
+
+        event.location = event.tempLocations.get(0);;
+        event.tempLocations.clear();
+
+        location.removeTextChangedListener(textWatcher);
+        location.setText(event.location.name);
+        location.addTextChangedListener(textWatcher);
+
+        locationSuggestionsLayout.setVisibility(View.GONE);
     }
 }
