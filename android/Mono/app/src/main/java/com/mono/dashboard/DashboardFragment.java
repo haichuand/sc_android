@@ -73,7 +73,7 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
 
         tabPagerAdapter = new SimpleTabPagerAdapter(getChildFragmentManager(), getContext());
         tabPagerAdapter.add(0, getString(R.string.events), new EventGroupsFragment());
-        tabPagerAdapter.add(0, getString(R.string.upcoming), new UpcomingGroupsFragment());
+        tabPagerAdapter.add(0, getString(R.string.upcoming), new UpcomingFragment());
         tabPagerAdapter.add(0, getString(R.string.favorite), new FavoritesFragment());
     }
 
