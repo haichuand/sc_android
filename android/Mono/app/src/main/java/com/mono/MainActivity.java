@@ -728,7 +728,12 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             Event event = data.getParcelableExtra(EventDetailsActivity.EXTRA_EVENT);
 
             if (event.id != null) {
-                manager.updateEvent(EventManager.EventAction.ACTOR_SELF, event, null);
+                if (event.repeats) {
+                    manager.removeEvent(EventManager.EventAction.ACTOR_NONE, event.id, null);
+                    manager.createEvent(EventManager.EventAction.ACTOR_SELF, event, null);
+                } else {
+                    manager.updateEvent(EventManager.EventAction.ACTOR_SELF, event, null);
+                }
             } else {
                 manager.createEvent(EventManager.EventAction.ACTOR_SELF, event, null);
             }

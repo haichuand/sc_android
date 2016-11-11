@@ -929,6 +929,7 @@ public class CalendarEventProvider {
         event.allDay = cursor.getInt(CalendarValues.Event.INDEX_ALL_DAY) > 0;
         event.lastRepeatTime = cursor.getLong(CalendarValues.Event.INDEX_LAST_REPEAT_TIME);
         event.organizer = cursor.getString(CalendarValues.Event.INDEX_ORGANIZER);
+        event.repeats = cursor.getString(CalendarValues.Event.INDEX_RRULE) != null;
 
         try {
             String dateTime = cursor.getString(CalendarValues.Event.INDEX_UPDATE_TIME);

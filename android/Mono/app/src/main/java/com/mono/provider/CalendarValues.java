@@ -56,10 +56,11 @@ public class CalendarValues {
         public static final String ALL_DAY = Events.ALL_DAY;
         public static final String LAST_REPEAT_TIME = Events.LAST_DATE;
         public static final String ORGANIZER = Events.ORGANIZER;
+        public static final String RRULE = Events.RRULE;
 
         public static final String[] PROJECTION = {
             ID, CALENDAR_ID, TITLE, DESC, LOCATION, COLOR, REMOTE_ID, UPDATE_TIME, START_TIME,
-            END_TIME, TIMEZONE, END_TIMEZONE, ALL_DAY, LAST_REPEAT_TIME, ORGANIZER
+            END_TIME, TIMEZONE, END_TIMEZONE, ALL_DAY, LAST_REPEAT_TIME, ORGANIZER, RRULE
         };
 
         public static final int INDEX_ID = 0;
@@ -77,6 +78,7 @@ public class CalendarValues {
         public static final int INDEX_ALL_DAY = 12;
         public static final int INDEX_LAST_REPEAT_TIME = 13;
         public static final int INDEX_ORGANIZER = 14;
+        public static final int INDEX_RRULE = 15;
     }
 
     public static class Instance {

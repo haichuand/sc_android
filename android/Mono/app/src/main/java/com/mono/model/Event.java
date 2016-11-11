@@ -40,6 +40,7 @@ public class Event implements Parcelable {
     public boolean allDay;
     public long lastRepeatTime;
     public String organizer;
+    public boolean repeats;
     public boolean favorite;
     public long createTime;
     public long modifyTime;
@@ -94,6 +95,7 @@ public class Event implements Parcelable {
         allDay = event.allDay;
         lastRepeatTime = event.lastRepeatTime;
         organizer = event.organizer;
+        repeats = event.repeats;
         favorite = event.favorite;
         createTime = event.createTime;
         modifyTime = event.modifyTime;
@@ -144,6 +146,7 @@ public class Event implements Parcelable {
         allDay = in.readByte() != 0;
         lastRepeatTime = in.readLong();
         organizer = in.readString();
+        repeats = in.readByte() != 0;
         favorite = in.readByte() != 0;
         createTime = in.readLong();
         modifyTime = in.readLong();
@@ -291,6 +294,7 @@ public class Event implements Parcelable {
         dest.writeInt(allDay ? 1 : 0);
         dest.writeLong(lastRepeatTime);
         dest.writeString(organizer);
+        dest.writeInt(repeats ? 1 : 0);
         dest.writeInt(favorite ? 1 : 0);
         dest.writeLong(createTime);
         dest.writeLong(modifyTime);
