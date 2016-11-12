@@ -102,10 +102,10 @@ public class KmlParser {
                                          long endmillis = enddate.getTime();
 
                                         TimeZone tz = TimeZone.getDefault();
-                                        long offset = tz.getRawOffset() + tz.getDSTSavings();
-
+                                        long offset = tz.getOffset(startmillis);
+                                        long offset2 = tz.getOffset(endmillis); // incase daylightsaving occurs in between - offset would be different
                                         startmillis +=offset;
-                                        endmillis +=offset;
+                                        endmillis +=offset2;
 
                                     kmlevent.setStartTime(startmillis);
                                     kmlevent.setEndTime(endmillis);
