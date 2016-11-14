@@ -17,10 +17,8 @@ import com.mono.EventManager;
 import com.mono.MainActivity;
 import com.mono.R;
 import com.mono.chat.ChatRoomActivity;
-import com.mono.chat.CreateChat;
 import com.mono.chat.ConversationManager;
 import com.mono.db.DatabaseHelper;
-import com.mono.db.dao.AttendeeDataSource;
 import com.mono.db.dao.ConversationDataSource;
 import com.mono.model.Account;
 import com.mono.model.Attendee;
@@ -79,6 +77,9 @@ public class MyFcmListenerService extends FirebaseMessagingService {
                 break;
             case FCMHelper.ACTION_START_EVENT_CONVERSATION:
                 onNewEventConversation(from, data);
+                break;
+            case FCMHelper.ACTION_START_CONVERSATION:
+                onNewConversation(from, data);
                 break;
             case FCMHelper.ACTION_ADD_CONVERSATION_ATTENDEES:
                 addConversationAttendees(from, data);
@@ -171,9 +172,9 @@ public class MyFcmListenerService extends FirebaseMessagingService {
             return false;
         }
 
-        //self-sent ack message
+        //check if message is self-sent ack
         if (((int) AccountManager.getInstance(this).getAccount().id) == eventCreatorId) {
-            CreateChat.handleEventConversationAck(eventId);
+            conversationManager.notifyListenersChatAck(eventId);
             serverSyncManager.handleAckEventConversation(eventId);
             return true;
         }
@@ -211,7 +212,6 @@ public class MyFcmListenerService extends FirebaseMessagingService {
         try {
             conversationTitle = conversationObj.getString(HttpServerManager.TITLE);
             creatorId = conversationObj.getString(HttpServerManager.CREATOR_ID);
-//            JSONArray attendeesIdArray = conversationObj.getJSONArray(HttpServerManager.ATTENDEES_ID);
             JSONArray attendeesArray = conversationObj.getJSONArray(HttpServerManager.ATTENDEES);
             if (attendeesArray != null) {
                 for (int i = 0; i < attendeesArray.length(); i++) {
@@ -250,8 +250,9 @@ public class MyFcmListenerService extends FirebaseMessagingService {
         //create conversation in local database
         ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
         conversationDataSource.createEventConversation(eventId, conversationId, conversationTitle, creatorId, attendeesIdList, false);
-        //do not send notification if conversation's creator is user self because it's for self-confirmation
+
         sendNotification(creatorName + " invited you to chat: " + conversationTitle + "\nAttendees: " + Common.implode(", ", attendeesNameList));
+
         final Conversation conversation = conversationDataSource.getConversation(conversationId, false, false);
         handler.post(new Runnable() {
             @Override
@@ -261,6 +262,83 @@ public class MyFcmListenerService extends FirebaseMessagingService {
         });
 
         return true;
+    }
+
+    private void onNewConversation(String from, Map<String, String> data) {
+        String conversationId = data.get(FCMHelper.CONVERSATION_ID);
+        if (conversationId == null) {
+            return;
+        }
+        JSONObject object = httpServerManager.getConversation(conversationId);
+        if (object == null) {
+            return;
+        }
+
+        try {
+            int creatorId = object.getInt(FCMHelper.CREATOR_ID);
+            String title = object.getString(FCMHelper.TITLE);
+            //check if message is self-sent ack
+            if (((int) AccountManager.getInstance(this).getAccount().id) == creatorId) {
+                conversationManager.notifyListenersChatAck(conversationId);
+                serverSyncManager.handleAckEventConversation(conversationId);
+                return;
+            }
+
+            List<String> attendeesId = new ArrayList<>();
+            List<String> attendeesName = new ArrayList<>();
+            String creatorName = "";
+            JSONArray attendeesArray = object.getJSONArray(HttpServerManager.ATTENDEES);
+            if (attendeesArray != null) {
+                for (int i = 0; i < attendeesArray.length(); i++) {
+                    JSONObject attendeeObj = (JSONObject) attendeesArray.get(i);
+                    String id = String.valueOf(attendeeObj.getInt(HttpServerManager.UID));
+                    // save attendee if not in local database
+                    Attendee attendee = null;
+                    if (!conversationManager.hasUser(id)) {
+                        attendee = new Attendee(
+                                id,
+                                attendeeObj.getString(HttpServerManager.MEDIA_ID),
+                                attendeeObj.getString(HttpServerManager.EMAIL),
+                                attendeeObj.getString(HttpServerManager.PHONE_NUMBER),
+                                attendeeObj.getString(HttpServerManager.FIRST_NAME),
+                                attendeeObj.getString(HttpServerManager.LAST_NAME),
+                                attendeeObj.getString(HttpServerManager.USER_NAME),
+                                false,
+                                true
+                        );
+                        conversationManager.saveUserToDB(attendee);
+                    } else {
+                        attendee = conversationManager.getUserById(id);
+                    }
+                    attendeesId.add(id);
+                    attendeesName.add(attendee.toString());
+                    if (id.equals(String.valueOf(creatorId))) {
+                        creatorName = attendee.toString();
+                    }
+                }
+            }
+            //save conversation to local database
+            conversationManager.createConversation(
+                    conversationId,
+                    title,
+                    String.valueOf(creatorId),
+                    attendeesId,
+                    false
+            );
+
+            //do not send notification if conversation's creator is user self because it's for self-confirmation
+            sendNotification(creatorName + " invited you to chat: " + title + "\nAttendees: " + Common.implode(", ", attendeesName));
+            final Conversation conversation = conversationManager.getConversation(conversationId, false, false);
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    conversationManager.notifyListenersNewConversation(conversation, 0);
+                }
+            });
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
     private void addConversationAttendees(String from, Map<String, String> data) {

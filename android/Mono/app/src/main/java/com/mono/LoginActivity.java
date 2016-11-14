@@ -91,7 +91,7 @@ public class LoginActivity extends AppCompatActivity {
                 Settings.getInstance(this).setRememberMe(remember);
 
                 getUserInfoAndSetAccount(emailOrPhone, httpServerManager);
-                resetUserTable(httpServerManager);
+//                resetUserTable(httpServerManager);
 
                 startKMLService(this);
                 Toast.makeText(this, "Login successful", Toast.LENGTH_LONG).show();

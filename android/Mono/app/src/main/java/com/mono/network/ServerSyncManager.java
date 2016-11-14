@@ -117,6 +117,7 @@ public class ServerSyncManager {
 
         switch (syncItem.itemType) {
             case DatabaseValues.ServerSync.TYPE_CONVERSATION:
+                sendConversation(syncItem);
                 break;
             case DatabaseValues.ServerSync.TYPE_EVENT:
                 sendEvent(syncItem);
@@ -253,6 +254,39 @@ public class ServerSyncManager {
         }
     }
 
+    private void sendConversation (ServerSyncItem syncItem) {
+        Account account = AccountManager.getInstance(appContext).getAccount();
+        if (account == null) {
+            return;
+        }
+        Integer myId = (int) account.id;
+
+        // syncItem.itemID = conversationId
+        if (syncItem.server == DatabaseValues.ServerSync.SERVER_HTTP) { //sync with http server
+            List<String> attendeeIds = conversationDataSource.getConversationAttendeesIds(syncItem.itemId);
+            Conversation conversation = conversationDataSource.getConversation(syncItem.itemId, false, false);
+            if (httpServerManager.createConversation(
+                    syncItem.itemId,
+                    conversation.name,
+                    myId,
+                    attendeeIds
+            )) {
+                removeSyncItem();
+                processServerSyncItems();
+            }
+        } else { //send through chat server
+            List<Conversation> conversations = conversationDataSource.getConversations(syncItem.itemId);
+            if (conversations.isEmpty()) {
+                removeSyncItem();
+                processServerSyncItems();
+                return;
+            }
+            Conversation conversation = conversations.get(0);
+            List<String> attendeesId = conversationDataSource.getConversationAttendeesIds(conversation.id);
+            chatServerManager.startConversation(String.valueOf(myId), syncItem.itemId, attendeesId);
+        }
+    }
+
     private void updateSyncItems(String originalId, String newId) {
         syncDataSource.updateSyncItems(originalId, newId);
         for (ServerSyncItem syncItem : syncQueue) {
@@ -286,6 +320,20 @@ public class ServerSyncManager {
 
         if (headItem != null && headItem.itemType.equals(DatabaseValues.ServerSync.TYPE_EVENT_CONVERSATION)
                 && headItem.itemId.equals(eventId)) {
+            removeSyncItem();
+            processServerSyncItems();
+        }
+    }
+
+    /**
+     * Call back to handle conversation ack message
+     * @param conversationId
+     */
+    public void handleAckConversation (String conversationId) {
+        ServerSyncItem headItem = syncQueue.peek();
+
+        if (headItem != null && headItem.itemType.equals(DatabaseValues.ServerSync.TYPE_CONVERSATION)
+                && headItem.itemId.equals(conversationId)) {
             removeSyncItem();
             processServerSyncItems();
         }

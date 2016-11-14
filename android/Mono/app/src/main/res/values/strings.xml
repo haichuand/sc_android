@@ -184,6 +184,8 @@
     <string name="confirm_chat_leave">Are you sure you want to leave this chat?</string>
     <string name="confirm_friend_delete">Are you sure you want to remove this friend?</string>
     <string name="verify_location_change_forAll">Do you want to remember this location for all future/past events?</string>
+    <string name="confirm_discard_change">Discard the changes?</string>
+    <string name="pending_server_response">Waiting for response from server. Please check back in a few seconds…</string>
 
     <string name="event_action_move">Moved Event</string>
     <string name="event_action_copy">Copied Event</string>
@@ -202,6 +204,7 @@
     <string name="crash_report_sent">Thank you for your feedback!</string>
     <string name="send_report">Send Report</string>
 
+    <string name="create_chat_title">Create New Chat</string>
     <string name="error_chat_participant">Chat must have at least two participants</string>
     <string name="network_error_sync_text">Network error. The chat has been saved on your device and will be sent later</string>
     <string name="error_chat_title">Chat title cannot be empty</string>
@@ -209,4 +212,5 @@
     <string name="error_no_email">Chat attendee must have a valid email address</string>
     <string name="error_duplicate_attendee">Chat attendee already in list</string>
     <string name="error_create_attendee">Error creating attendee in database</string>
+    <string name="title_activity_create_chat">CreateChatActivity</string>
 </resources>

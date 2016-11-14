@@ -2,7 +2,6 @@ package com.mono.chat;
 
 import android.content.Context;
 
-import com.mono.EventManager;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.AttendeeDataSource;
 import com.mono.db.dao.ConversationDataSource;
@@ -17,6 +16,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * Created by hduan on 3/28/2016.
@@ -28,9 +28,13 @@ public class ConversationManager {
     private ConversationDataSource conversationDataSource;
     private AttendeeDataSource attendeeDataSource;
     private EventDataSource eventDataSource;
-    private final List<ConversationBroadcastListener> listeners = new LinkedList<>();
+    private final List<ConversationBroadcastListener> broadcastListeners = new LinkedList<>();
+    private final List<ChatAckListener> chatAckListeners = new LinkedList<>();
     private String activeConversationId = null;
     private final Map<String, Attendee> allUserMap = new HashMap<>(); //id->Attendee map of all SuperCaly users in local database
+    private static final char[] randomIdCharPool = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890".toCharArray();
+    private static Random random = new Random();
+    private static final int randomIdLength = 8;
 
     private ConversationManager(Context context) {
         this.context = context;
@@ -81,6 +85,10 @@ public class ConversationManager {
 
     public List<Conversation> getConversations(String eventId) {
         return conversationDataSource.getConversations(eventId);
+    }
+
+    public Conversation getConversation(String conversationId, boolean getAttendees, boolean getMessages) {
+        return conversationDataSource.getConversation(conversationId, getAttendees, getMessages);
     }
 
     public List<Conversation> getConversationsDBFirst(Event event) {
@@ -187,30 +195,82 @@ public class ConversationManager {
         }
     }
 
-    public void addListener (ConversationBroadcastListener listener) {
-        listeners.add(listener);
+    public void addBroadcastListner(ConversationBroadcastListener listener) {
+        broadcastListeners.add(listener);
     }
 
-    public void removeListener (ConversationBroadcastListener listener) {
-        listeners.remove(listener);
+    public void removeBroadcastListener(ConversationBroadcastListener listener) {
+        broadcastListeners.remove(listener);
     }
 
     public void notifyListenersNewConversation(Conversation conversation, int index) {
-        for (ConversationBroadcastListener listener : listeners) {
+        for (ConversationBroadcastListener listener : broadcastListeners) {
             listener.onNewConversation(conversation, index);
         }
     }
 
     public void notifyListenersNewConversationAttendees (String conversationId, List<String> newAttendeeIds) {
-        for (ConversationBroadcastListener listener : listeners) {
+        for (ConversationBroadcastListener listener : broadcastListeners) {
             listener.onNewConversationAttendees(conversationId, newAttendeeIds);
         }
     }
 
     public void notifyListenersNewConversationMessage (Message message) {
-        for (ConversationBroadcastListener listener : listeners) {
+        for (ConversationBroadcastListener listener : broadcastListeners) {
             listener.onNewConversationMessage(message);
         }
+    }
+
+    public void addChatAckListener(ChatAckListener listener) {
+        chatAckListeners.add(listener);
+    }
+
+    public void removeChatAckListener(ChatAckListener listener) {
+        chatAckListeners.remove(listener);
+    }
+
+    public void notifyListenersChatAck(String id) {
+        for (ChatAckListener listener : chatAckListeners) {
+            listener.onHandleChatAck(id);
+        }
+    }
+
+    public boolean createConversation (String conversationId, String title, String creatorId, List<String> attendeesId, boolean syncNeeded) {
+        return conversationDataSource.createConversation(conversationId, title, creatorId, attendeesId, syncNeeded);
+    }
+
+    public static List<String> getAttendeeStringtWithNameAndEmail (List<Attendee> attendeeList) {
+        if (attendeeList == null) {
+            return null;
+        }
+        List<String> attendeeStringList = new ArrayList<>();
+        for (Attendee attendee : attendeeList) {
+            String str = "";
+            if (attendee.firstName != null && !attendee.firstName.isEmpty()) {
+                str += attendee.firstName;
+                if (attendee.lastName != null && !attendee.lastName.isEmpty()) {
+                    str += (" " + attendee.lastName);
+                }
+            } else if (attendee.userName != null && !attendee.userName.isEmpty()) {
+                str += attendee.userName;
+            }
+            if (attendee.email != null && !attendee.email.isEmpty()) {
+                str += (" (" + attendee.email + ")");
+            } else {
+                str += (" (" + attendee.phoneNumber + ")");
+            }
+            attendeeStringList.add(str);
+        }
+
+        return attendeeStringList;
+    }
+
+    public static String getRandomId () {
+        String str = "";
+        for (int i = 0; i < randomIdLength; i++) {
+            str += randomIdCharPool[random.nextInt(randomIdCharPool.length)];
+        }
+        return str;
     }
 
     public interface ConversationBroadcastListener {
@@ -218,5 +278,9 @@ public class ConversationManager {
         void onNewConversationMessage(Message message);
         void onNewConversationAttendees (String conversationId, List<String> newAttendeeIds);
         void onDropConversationAttendees (String conversationId, List<String> dropAttendeeIds);
+    }
+
+    public interface ChatAckListener {
+        void onHandleChatAck (String id);
     }
 }

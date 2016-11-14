@@ -270,7 +270,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         addAttendeeTextView = (AutoCompleteTextView) findViewById(R.id.edit_text_invite);
         final List<Attendee> allUsersList = conversationManager.getAllUserList();
         Collections.sort(allUsersList, new AttendeeUsernameComparator());
-        List<String> allUserStringList = CreateChat.getAttendeeStringtWithNameAndEmail(allUsersList);
+        List<String> allUserStringList = ConversationManager.getAttendeeStringtWithNameAndEmail(allUsersList);
         ArrayAdapter<String> addAttendeeAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, allUserStringList);
         addAttendeeTextView.setAdapter(addAttendeeAdapter);
         addAttendeeTextView.setInputType(InputType.TYPE_NULL);
@@ -319,7 +319,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
             });
         }
 
-        conversationManager.addListener(this);
+        conversationManager.addBroadcastListner(this);
     }
 
     @Override
@@ -350,7 +350,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        conversationManager.removeListener(this);
+        conversationManager.removeBroadcastListener(this);
     }
 
     @Override
