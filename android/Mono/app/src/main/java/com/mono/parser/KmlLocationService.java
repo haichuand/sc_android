@@ -90,7 +90,6 @@ public class KmlLocationService extends IntentService {
 
         for (KmlEvents kmlevent : newuserStays) {
             if (eventManager == null) {
-              //  Log.d(TAG, "eventManager is null");
                 return;
             }
 
@@ -127,8 +126,6 @@ public class KmlLocationService extends IntentService {
 
     private class detailedEvent extends AsyncTask<Object, Void, String> {
         String requestResult;
-        String notes = "";
-        String distance = "";
         KmlEvents kmlevent = null;
        // String event_id;
 
@@ -137,115 +134,114 @@ public class KmlLocationService extends IntentService {
             kmlevent = (KmlEvents) params[0];
             String latitude = String.valueOf(kmlevent.getLat());
             String longitude = String.valueOf(kmlevent.getLng());
-
-           // Log.d(TAG, "LatLong in the detailedAddress: " + latitude + ", " + longitude);
             String url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + latitude + "," + longitude + "&location_type=ROOFTOP&result_type=street_address" + "&key=" + GOOGLE_API_KEY;
             requestResult = makeCall(url);
+            createEvents(requestResult, kmlevent);
             return "";
         }
 
         protected void onPostExecute(String result) {
-            Event event;
-            if (requestResult != null) {
 
-                String[] detailResult = getAddressByLatLong(requestResult);
-                long locationId;
-                if (detailResult != null) {
-
-                    String placeId = detailResult[1];
-                    String address[] = kmlevent.getAddress().split(",");
-                    distance = kmlevent.getNotes().trim();
-                    Location location = new Location(kmlevent.getName(), placeId, kmlevent.getLat(), kmlevent.getLng(), address);
-                        if (distance != "") {
-                            String disinMiles = String.format("%.2f", Double.parseDouble(distance.split("m")[0]) * 0.000621371);
-                            if (!disinMiles.equals("0.00")) {
-                                notes = "Distance Travelled : " + disinMiles + "miles";
-                            } else {
-                                notes = kmlevent.getAddress();
-                            }
-                        }
-
-                    if (locationDataSource.getLocationByGooglePlaceId(placeId) == null) {
-                        locationId = locationDataSource.createLocation(kmlevent.getName(), placeId, kmlevent.getLat(), kmlevent.getLng(), kmlevent.getAddress());
-                        //todo:this id would be used to map a location record to a event in eventLocationTable
-                        location.id = locationId;
-                    }
-
-                    //get location info from shared pref to check any user defined address present
-                    sharedPreferences = getSharedPreferences(SuperCalyPreferences.USER_DEFINED_LOCATION, MODE_PRIVATE);
-                    Gson gson = new Gson();
-                    String storedHashMapString = sharedPreferences.getString(SuperCalyPreferences.USER_DEFINED_LOCATION, "default");
-                    java.lang.reflect.Type type = new TypeToken<HashMap<String, Location>>() {
-                    }.getType();
-                    if (storedHashMapString != "default") {
-                        HashMap<String, Location> testHashMap = gson.fromJson(storedHashMapString, type);
-                        //use values
-                        Location toastString = testHashMap.get(kmlevent.getName());
+        }
 
 
-                            event = new Event(Event.TYPE_USERSTAY);
-                            event.title = location.name;
-                            event.description = notes;
-                            event.startTime = kmlevent.getStartTime();
-                            event.endTime = kmlevent.getEndTime();
+    }
 
-                            if (toastString != null) {
-                             //   Log.i("testtoast", toastString.name);
-                                event.location = toastString;
-                                location = toastString;
-                                event.title = toastString.name;
-                            } else {
-                                event.location = location;
-                            }
-                          //  event_id = eventManager.createEvent(EventManager.EventAction.ACTOR_NONE, event, null);
-                         //   Log.d(TAG, "event with id: " + event_id + " created");
+    private void createEvents(String requestResult, KmlEvents kmlevent)
+    {
+        String notes = "";
+        String distance = "";
+        Event event;
+        if (requestResult != null) {
 
+            String[] detailResult = getAddressByLatLong(requestResult);
+            long locationId;
+            if (detailResult != null) {
+
+                String placeId = detailResult[1];
+                String address[] = kmlevent.getAddress().split(",");
+                distance = kmlevent.getNotes().trim();
+                Location location = new Location(kmlevent.getName(), placeId, kmlevent.getLat(), kmlevent.getLng(), address);
+                if (distance != "") {
+                    String disinMiles = String.format("%.2f", Double.parseDouble(distance.split("m")[0]) * 0.000621371);
+                    if (!disinMiles.equals("0.00")) {
+                        notes = "Distance Travelled : " + disinMiles + "miles";
                     } else {
-
-                            //create a userstay event
-                            event = new Event(Event.TYPE_USERSTAY);
-                            event.title = location.name;
-                            event.description = notes;
-                            event.location = location;
-                            event.startTime = kmlevent.getStartTime();
-                            event.endTime = kmlevent.getEndTime();
-
-                         //   event_id = eventManager.createEvent(EventManager.EventAction.ACTOR_NONE, event, null);
-                           // Log.d(TAG, "event with id: " + event_id + " created");
-
+                        notes = kmlevent.getAddress();
                     }
-                    if((loopNumber%30 == 0)||( loopNumber == 365))
+                }
+
+                if (locationDataSource.getLocationByGooglePlaceId(placeId) == null) {
+                    locationId = locationDataSource.createLocation(kmlevent.getName(), placeId, kmlevent.getLat(), kmlevent.getLng(), kmlevent.getAddress());
+                    //todo:this id would be used to map a location record to a event in eventLocationTable
+                    location.id = locationId;
+                }
+
+                //get location info from shared pref to check any user defined address present
+                sharedPreferences = getSharedPreferences(SuperCalyPreferences.USER_DEFINED_LOCATION, MODE_PRIVATE);
+                Gson gson = new Gson();
+                String storedHashMapString = sharedPreferences.getString(SuperCalyPreferences.USER_DEFINED_LOCATION, "default");
+                java.lang.reflect.Type type = new TypeToken<HashMap<String, Location>>() {
+                }.getType();
+                if (storedHashMapString != "default") {
+                    HashMap<String, Location> testHashMap = gson.fromJson(storedHashMapString, type);
+                    //use values
+                    Location toastString = testHashMap.get(kmlevent.getName());
+
+
+                    event = new Event(Event.TYPE_USERSTAY);
+                    event.title = location.name;
+                    event.description = notes;
+                    event.startTime = kmlevent.getStartTime();
+                    event.endTime = kmlevent.getEndTime();
+
+                    if (toastString != null) {
+                        event.location = toastString;
+                        location = toastString;
+                        event.title = toastString.name;
+                    } else {
+                        event.location = location;
+                    }
+
+
+                } else {
+
+                    //create a userstay event
+                    event = new Event(Event.TYPE_USERSTAY);
+                    event.title = location.name;
+                    event.description = notes;
+                    event.location = location;
+                    event.startTime = kmlevent.getStartTime();
+                    event.endTime = kmlevent.getEndTime();
+
+
+                }
+                if((loopNumber%30 == 0)||( loopNumber == 365))
+                {
+                    if(!checkEventOverlap(kmlevent, event.location, event))
                     {
-                        if(!checkEventOverlap(kmlevent, event.location, event))
-                        {
-                            GlobalEventList.getInstance().monthList.add(event);
-                            eventManager.createEvents(EventManager.EventAction.ACTOR_NONE, GlobalEventList.getInstance().monthList, null);
-                            GlobalEventList.getInstance().monthList.clear();
-                        }
+                        GlobalEventList.getInstance().monthList.add(event);
+                        eventManager.createEvents(EventManager.EventAction.ACTOR_NONE, GlobalEventList.getInstance().monthList, null);
+                        GlobalEventList.getInstance().monthList.clear();
                     }
-                    else
-                    {
-                        if(!checkEventOverlap(kmlevent, event.location, event)) {
-                            GlobalEventList.getInstance().monthList.add(event);
-                        }
+                }
+                else
+                {
+                    if(!checkEventOverlap(kmlevent, event.location, event)) {
+                        GlobalEventList.getInstance().monthList.add(event);
                     }
-
                 }
 
             }
-        }
 
+        }
     }
 
     private Boolean checkEventOverlap(KmlEvents kmlevent, Location location, Event event) {
 
-        Event event1 = new Event(event);
-        Event event2 = new Event(event);
         Boolean eventFound = false;
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(kmlevent.getStartTime());
-
-
         int mYear = calendar.get(Calendar.YEAR);
         int mMonth = calendar.get(Calendar.MONTH);
         int mDay = calendar.get(Calendar.DAY_OF_MONTH);
@@ -258,40 +254,17 @@ public class KmlLocationService extends IntentService {
 
             if ((events.get(i).startTime >= kmlevent.getStartTime()) && (events.get(i).endTime <= kmlevent.getEndTime()))// if event lies in between userstay period
             {
-                Long startTime = kmlevent.getStartTime();
-                Long endTime = kmlevent.getEndTime();
-                Long startTimeEvent = events.get(i).startTime;
-                Long endTimeEvent = events.get(i).endTime;
-
                 if(location != null)
                 {
                     List<Location> tempLocations = new ArrayList<>();
                     tempLocations.add(location);
                     events.get(i).tempLocations = tempLocations;
-                   // events.get(i).description = notes;
                     eventManager.updateEvent(
                             EventManager.EventAction.ACTOR_SELF,
                             events.get(i),
                             null
                     );
                     eventFound = true;
-                    /*
-                    // to create kml events encapsulating user created events
-                    if(((events.get(i).startTime - kmlevent.getStartTime()) > 1200000 )&& (i==0)) // Difference more than 20 minutes
-                    {
-                        event1.startTime = startTime;
-                        event1.endTime = startTimeEvent;
-                        GlobalEventList.getInstance().monthList.add(event1);
-                    }
-                    if(((kmlevent.getEndTime() - events.get(i).endTime) > 1200000) && (i== (events.size()-1)))
-                    {
-                        if(event1 != event2) {
-                            event2.startTime = endTimeEvent;
-                            event2.endTime = endTime;
-                            GlobalEventList.getInstance().monthList.add(event2);
-                        }
-                    }
-                    */
                 }
 
 
@@ -347,7 +320,7 @@ public class KmlLocationService extends IntentService {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-       // Log.d(TAG, "detailed address: " + addressInfo[0]);
+
         return addressInfo;
     }
 }

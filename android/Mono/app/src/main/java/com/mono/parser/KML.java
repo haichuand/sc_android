@@ -13,7 +13,6 @@ public class KML {
     public static boolean isSignedIn() {
         CookieManager cookieManager = CookieManager.getInstance();
         String cookie = cookieManager.getCookie(COOKIE_URL);
-
         return cookie != null && cookie.contains("SID=");
     }
 

@@ -57,7 +57,7 @@ public class LocationDataSource extends DataSource {
             e.printStackTrace();
         }
 
-        Log.d("LocationDataSource", " create location: " + id + " name: " + name + " address: " + address);
+      //  Log.d("LocationDataSource", " create location: " + id + " name: " + name + " address: " + address);
 
         return id;
     }
@@ -179,7 +179,7 @@ public class LocationDataSource extends DataSource {
     }
 
     public int updateValues(String id, ContentValues values) {
-        Log.d("LLocationDataSource", "updateing location with id " + id);
+    //    Log.d("LLocationDataSource", "updateing location with id " + id);
         return database.update(
                 DatabaseValues.Location.TABLE,
                 values,

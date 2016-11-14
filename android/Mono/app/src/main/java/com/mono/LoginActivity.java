@@ -153,7 +153,6 @@ public class LoginActivity extends AppCompatActivity {
         if (!Settings.getInstance(context).getGoogleHasCookie()) {
             return;
         }
-
         Intent intent = new Intent(context, KmlDownloadingService.class);
         intent.putExtra(KmlDownloadingService.TYPE, KmlDownloadingService.FIRST_TIME);
         context.startService(intent);

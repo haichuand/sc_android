@@ -4,6 +4,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Rect;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
@@ -31,6 +32,7 @@ import com.mono.util.Common;
 import com.mono.util.GestureActivity;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -69,6 +71,8 @@ public class EventDetailsActivity extends GestureActivity {
     private EventManager manager;
     private List<Event> events = new ArrayList<>();
     private HashMap<String, Location> LocationHashmap = new HashMap<>();
+    private Boolean focusChangeloaded = false;
+    private Boolean scrollFocusChange = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -123,6 +127,19 @@ public class EventDetailsActivity extends GestureActivity {
 
         locationPanel = new LocationPanel(this);
         locationPanel.onCreate(savedInstanceState);
+        locationPanel.location.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            public void onFocusChange(View v, boolean hasFocus) {
+                if(!hasFocus) {
+                    if(!scrollFocusChange){
+                    if((original.location != null)&&(!original.location.name.equals(locationPanel.location.getText().toString())))
+                    {
+                        changeLocation();
+                        focusChangeloaded = true;
+                    }
+                    }
+                }
+            }
+        });
 
         notePanel = new NotePanel(this);
         notePanel.onCreate(savedInstanceState);
@@ -147,59 +164,14 @@ public class EventDetailsActivity extends GestureActivity {
             if ( locationPanel.location.isFocused()) {
                 if(locationPanel.locationChanged) {
                     if (original.location != null) {
-                        Rect outRect = new Rect();
-                        v.getGlobalVisibleRect(outRect);
-                        if (!outRect.contains((int) event.getRawX(), (int) event.getRawY())) {
-                            v.clearFocus();
-                            AlertDialog.Builder builder = new AlertDialog.Builder(EventDetailsActivity.this);
-                            builder.setMessage(R.string.verify_location_change_forAll);
-
-                            DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    switch (which) {
-                                        case DialogInterface.BUTTON_POSITIVE:
-
-                                            title.setText(locationPanel.location.getText().toString().trim());
-                                            //get all events with same location
-                                            manager = EventManager.getInstance(getApplicationContext());
-                                            events = manager.getEvents(original.location.getAddress(), 365);
-                                            Log.d("test", "address" + original.location.getAddress());
-                                            LocationHashmap.put(locationPanel.location.getText().toString().trim(), original.location);
-                                            //convert to string using gson
-                                            Gson gson = new Gson();
-                                            String hashMapString = gson.toJson(LocationHashmap);
-                                            //save in shared prefs
-                                            sharedPreferences = getSharedPreferences(SuperCalyPreferences.USER_DEFINED_LOCATION, MODE_PRIVATE);
-                                            sharedPreferences.edit().putString(SuperCalyPreferences.USER_DEFINED_LOCATION, hashMapString).apply();
-
-                                            //make changes to all the events
-                                            for (int i = 0; i < events.size(); i++) {
-                                                events.get(i).location.name = locationPanel.location.getText().toString().trim();
-                                                events.get(i).title = locationPanel.location.getText().toString().trim();
-                                                manager.updateEvent(
-                                                        EventManager.EventAction.ACTOR_SELF,
-                                                        events.get(i),
-                                                        null
-                                                );
-                                            }
-
-                                            break;
-
-                                        case DialogInterface.BUTTON_NEGATIVE:
-                                            break;
-                                    }
-
-                                    dialog.dismiss();
-                                    locationPanel.locationChanged = false;
-                                }
-                            };
-
-                            builder.setPositiveButton(R.string.yes, listener);
-                            builder.setNegativeButton(R.string.no, listener);
-
-                            AlertDialog dialog = builder.create();
-                            dialog.show();
+                        if(!focusChangeloaded) {
+                            Rect outRect = new Rect();
+                            v.getGlobalVisibleRect(outRect);
+                            if (!outRect.contains((int) event.getRawX(), (int) event.getRawY())) {
+                                v.clearFocus();
+                                changeLocation();
+                                scrollFocusChange = true;
+                            }
                         }
                     }
                 }
@@ -207,6 +179,40 @@ public class EventDetailsActivity extends GestureActivity {
         }
         return super.dispatchTouchEvent( event );
     }
+
+    private void changeLocation()
+    {
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(EventDetailsActivity.this);
+                builder.setMessage(R.string.verify_location_change_forAll);
+
+                DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        switch (which) {
+                            case DialogInterface.BUTTON_POSITIVE:
+                                if(original.location.name.equalsIgnoreCase(title.getText().toString())) {
+                                    title.setText(locationPanel.location.getText().toString().trim());
+                                }
+                                new updateUserPreferedLocation().execute(title.getText().toString(),locationPanel.location.getText().toString());
+                                break;
+
+                            case DialogInterface.BUTTON_NEGATIVE:
+                                break;
+                        }
+
+                        dialog.dismiss();
+                        locationPanel.locationChanged = false;
+                    }
+                };
+
+                builder.setPositiveButton(R.string.yes, listener);
+                builder.setNegativeButton(R.string.no, listener);
+
+                AlertDialog dialog = builder.create();
+                dialog.show();
+    }
+
 
     @Override
     public void onBackPressed() {
@@ -505,6 +511,45 @@ public class EventDetailsActivity extends GestureActivity {
         this.color = color;
         color |= 0xFF000000;
         colorPicker.setColorFilter(color);
+    }
+    private class updateUserPreferedLocation extends AsyncTask<Object, Void, String> {
+
+        protected String doInBackground(Object... params) {
+            String title = (String) params[0];
+            String location = (String) params[1];
+
+            //get all events with same location
+            manager = EventManager.getInstance(getApplicationContext());
+            events = manager.getEvents(original.location.getAddress(), 365);
+            LocationHashmap.put(location.trim(), original.location);
+            //convert to string using gson
+            Gson gson = new Gson();
+            String hashMapString = gson.toJson(LocationHashmap);
+            //save in shared prefs
+            sharedPreferences = getSharedPreferences(SuperCalyPreferences.USER_DEFINED_LOCATION, MODE_PRIVATE);
+            sharedPreferences.edit().putString(SuperCalyPreferences.USER_DEFINED_LOCATION, hashMapString).apply();
+
+            //make changes to all the events
+            for (int i = 0; i < events.size(); i++) {
+                if(Arrays.equals(events.get(i).location.address, original.location.address)){
+                    if(events.get(i).location.name.equals(original.location.name)) {
+                        events.get(i).location.name = location.trim();
+                        events.get(i).title = title;
+                        manager.updateEvent(
+                                EventManager.EventAction.ACTOR_SELF,
+                                events.get(i),
+                                null
+                        );
+                    }
+                }
+            }
+
+            return "";
+        }
+
+        protected void onPostExecute(String result) {
+
+        }
     }
 
     public interface PanelInterface {

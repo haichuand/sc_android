@@ -137,7 +137,7 @@ public class KmlParser {
                             }
                             catch(Exception ex)
                             {
-                                Log.d("kmlParser", ex.getMessage());
+                              // Log.d("kmlParser", ex.getMessage());
                             }
 
                         }

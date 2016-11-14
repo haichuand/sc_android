@@ -50,8 +50,6 @@ public class KmlDownloadingService extends IntentService {
         endOfMonthMap.put(10,30);
         endOfMonthMap.put(11,31);
     }
-
-    public static final String KML_FILENAME_TODAY = "TodayLocationHistory.kml";
     public static final String REGULAR = "regular";
     public static final String FIRST_TIME = "firstTime";
     public static final String TYPE = "Type";
@@ -69,14 +67,12 @@ public class KmlDownloadingService extends IntentService {
 
     protected void onHandleIntent (Intent intent) {
         String downloadType = intent.getExtras().getString(TYPE);
-     //   Log.i(TAG, "downloadType: "+downloadType);
         if(KML.isSignedIn()) {
 
             SharedPreferences lastmod = getSharedPreferences(SuperCalyPreferences.LAST_MODIFIED_KML, MODE_PRIVATE);
             SharedPreferences.Editor editor = lastmod.edit();
             if(downloadType.equals(REGULAR)) {
                 // Reading from SharedPreferences
-
                 String value = lastmod.getString("lastModified", "");
                 Calendar c = Calendar.getInstance();
                 int diffInDays = 0;
@@ -86,9 +82,8 @@ public class KmlDownloadingService extends IntentService {
                 }
 
                 for(int i = 0;i <= diffInDays; i++) {
-                    downloadKML(KML_URL + "&pb=" + getPbValue(i), i);
+                    downloadKML(KML_URL + "&pb=" + getPbValue(i), 30); //passing 30 to always update
                 }
-
                 editor.putString("lastModified", Long.toString(c.getTimeInMillis()));
                 editor.commit();
             }
@@ -123,7 +118,6 @@ public class KmlDownloadingService extends IntentService {
             while ((nextLine = reader.readLine()) != null) {
                 builder.append(nextLine + "\n");
             }
-
             Intent i = new Intent(getApplicationContext(), KmlLocationService.class);
             i.putExtra("dataString", builder.toString());
             i.putExtra("loopNumber", day);
