@@ -280,7 +280,7 @@ public class MyFcmListenerService extends FirebaseMessagingService {
             //check if message is self-sent ack
             if (((int) AccountManager.getInstance(this).getAccount().id) == creatorId) {
                 conversationManager.notifyListenersChatAck(conversationId);
-                serverSyncManager.handleAckEventConversation(conversationId);
+                serverSyncManager.handleAckConversation(conversationId);
                 return;
             }
 

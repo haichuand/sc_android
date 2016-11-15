@@ -275,14 +275,13 @@ public class ServerSyncManager {
                 processServerSyncItems();
             }
         } else { //send through chat server
-            List<Conversation> conversations = conversationDataSource.getConversations(syncItem.itemId);
-            if (conversations.isEmpty()) {
+            Conversation conversation = conversationDataSource.getConversation(syncItem.itemId, false, false);
+            if (conversation == null) {
                 removeSyncItem();
                 processServerSyncItems();
                 return;
             }
-            Conversation conversation = conversations.get(0);
-            List<String> attendeesId = conversationDataSource.getConversationAttendeesIds(conversation.id);
+            List<String> attendeesId = conversationDataSource.getConversationAttendeesIds(syncItem.itemId);
             chatServerManager.startConversation(String.valueOf(myId), syncItem.itemId, attendeesId);
         }
     }

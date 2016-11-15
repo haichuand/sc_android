@@ -299,15 +299,15 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
             syncItem = new ServerSyncItem(
                     conversationId, DatabaseValues.ServerSync.TYPE_CONVERSATION, DatabaseValues.ServerSync.SERVER_CHAT);
             serverSyncManager.addSyncItem(syncItem);
-            return;
+            Toast.makeText(this, R.string.network_error_sync_text, Toast.LENGTH_LONG).show();
+        } else {
+            // send conversation through chat server
+            chatServerManager.startConversation(myId, conversationId, checkedChatAttendeeIds);
+
+            timerType = TIMER_TYPE_CONVERSATION;
+            timer.start();
+            isRunning = true;
         }
-
-        // send conversation through chat server
-        chatServerManager.startConversation(myId, conversationId, checkedChatAttendeeIds);
-
-        timerType = TIMER_TYPE_CONVERSATION;
-        timer.start();
-        isRunning = true;
 
         Conversation conversation = new Conversation(conversationId, myId, conversationTitle, null, null);
         conversationManager.notifyListenersNewConversation(conversation, 0);
