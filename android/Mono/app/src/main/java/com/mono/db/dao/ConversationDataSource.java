@@ -60,6 +60,30 @@ public class ConversationDataSource extends DataSource{
         return true;
     }
 
+    public boolean createConversation(String conversationId, String name, String creatorId, List<String> attendeesId, boolean syncNeeded) {
+        ContentValues conversationValues = new ContentValues();
+        conversationValues.put(DatabaseValues.Conversation.C_ID, conversationId);
+        conversationValues.put(DatabaseValues.Conversation.C_NAME, name);
+        conversationValues.put(DatabaseValues.Conversation.C_CREATOR, creatorId);
+        conversationValues.put(DatabaseValues.Conversation.ACK, syncNeeded ? 1 : 0);
+
+        ContentValues convAttendeeValues = new ContentValues();
+        convAttendeeValues.put(DatabaseValues.ConversationAttendee.C_ID, conversationId);
+
+        try {
+            database.insert(DatabaseValues.Conversation.TABLE,conversationValues);
+            for (String id : attendeesId) {
+                convAttendeeValues.put(DatabaseValues.ConversationAttendee.ATTENDEE_ID, id);
+                database.insert(DatabaseValues.ConversationAttendee.TABLE, convAttendeeValues);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        return true;
+    }
+
 //    public String getConversationFromEvent (String eventID) {
 //        String conversationID = null;
 //        try {

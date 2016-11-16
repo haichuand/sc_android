@@ -1,6 +1,7 @@
 package com.mono.social;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -17,6 +18,7 @@ import android.view.ViewGroup;
 
 import com.mono.MainInterface;
 import com.mono.R;
+import com.mono.chat.CreateChatActivity;
 import com.mono.search.SearchFragment;
 import com.mono.search.SearchHandler;
 import com.mono.util.OnBackPressedListener;
@@ -91,6 +93,8 @@ public class SocialFragment extends Fragment implements OnBackPressedListener,
 
         switch (id) {
             case R.id.action_add:
+                Intent intent = new Intent(getContext(), CreateChatActivity.class);
+                startActivity(intent);
                 return true;
             case R.id.action_search:
                 return true;

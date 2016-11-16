@@ -70,7 +70,7 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         chats.addAll(ConversationManager.getInstance(getContext()).getAllConversations());
-        conversationManager.addListener(this);
+        conversationManager.addBroadcastListner(this);
     }
 
     @Override
@@ -92,7 +92,7 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
 
     @Override
     public void onDestroy() {
-        conversationManager.removeListener(this);
+        conversationManager.removeBroadcastListener(this);
         super.onDestroy();
     }
 
