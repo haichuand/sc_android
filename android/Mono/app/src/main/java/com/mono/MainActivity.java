@@ -55,9 +55,7 @@ import com.mono.util.GoogleClient;
 import com.mono.util.OnBackPressedListener;
 import com.mono.util.SimpleTabLayout;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * The Main Activity is used to hold and display the various screens (specifically Fragments) in
@@ -579,27 +577,8 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             long milliseconds = settings.getDayOne();
 
             if (milliseconds <= 0) {
-                try {
-                    // Initialize Calendars
-                    Set<Long> calendars = new HashSet<>();
-                    long defaultId = -1;
-
-                    List<Calendar> calendarList = CalendarProvider.getInstance(this).getCalendars();
-
-                    for (Calendar calendar : calendarList) {
-                        if (defaultId == -1 && calendar.primary && !calendar.local) {
-                            defaultId = calendar.id;
-                            settings.setCalendarDefault(defaultId);
-                        }
-
-                        calendars.add(calendar.id);
-                    }
-                    settings.setCalendars(calendars);
-                    // Mark Now as Day One
-                    settings.setDayOne(System.currentTimeMillis());
-                } catch (SecurityException e) {
-                    e.printStackTrace();
-                }
+                // Mark Now as Day One
+                settings.setDayOne(System.currentTimeMillis());
             }
 
             start();

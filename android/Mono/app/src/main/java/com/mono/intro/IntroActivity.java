@@ -11,6 +11,12 @@ import com.mono.settings.Settings;
 import com.mono.util.SimpleTabPagerAdapter;
 import com.mono.util.SimpleViewPager;
 
+/**
+ * This activity is primarily used to hold the fragment that is responsible for creating the
+ * intro screen.
+ *
+ * @author Gary Ng
+ */
 public class IntroActivity extends AppCompatActivity {
 
     private SimpleTabPagerAdapter tabPagerAdapter;
