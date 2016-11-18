@@ -155,7 +155,21 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
             }
         });
 
-        // Initialize Adapter Groups
+        if (mode == ContactsActivity.MODE_PICKER) {
+            adapter.setSelectable(true);
+        }
+
+        resultsText = (TextView) view.findViewById(R.id.results_text);
+
+        return view;
+    }
+
+    /**
+     * Initialize adapter groups.
+     */
+    private void initialize() {
+        adapter.removeGroups();
+
         for (int[] element : groups) {
             final int group = element[0];
             int labelResId = element[1];
@@ -203,14 +217,6 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
                 }
             ));
         }
-
-        if (mode == ContactsActivity.MODE_PICKER) {
-            adapter.setSelectable(true);
-        }
-
-        resultsText = (TextView) view.findViewById(R.id.results_text);
-
-        return view;
     }
 
     @Override
@@ -322,13 +328,13 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
         groupOffset = 0;
         // Reset Scroll Position to Top
         recyclerView.scrollToPosition(0);
-        // Show or Hide Labels
-        adapter.setHideEmptyLabels(currentQuery != null, true);
         // Convert Query into Terms
         terms = !Common.isEmpty(currentQuery) ? Common.explode(" ", currentQuery) : null;
         adapter.setHighlightTerms(terms);
-        // Clear UI
-        adapter.notifyDataSetChanged();
+        // Initialize Adapter Groups
+        initialize();
+        // Show or Hide Labels
+        adapter.setHideEmptyLabels(currentQuery != null, true);
         // Hide Results Text
         resultsText.setVisibility(View.GONE);
         // Retrieve Contacts

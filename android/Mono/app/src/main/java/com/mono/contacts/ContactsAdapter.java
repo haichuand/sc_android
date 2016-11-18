@@ -162,6 +162,13 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
     }
 
     /**
+     * Remove all existing groups.
+     */
+    public void removeGroups() {
+        groups.clear();
+    }
+
+    /**
      * Retrieve contacts group by position.
      *
      * @param position Position of group.
