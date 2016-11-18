@@ -127,6 +127,7 @@ public class KmlLocationService extends IntentService {
     private class detailedEvent extends AsyncTask<Object, Void, String> {
         String requestResult;
         KmlEvents kmlevent = null;
+        Event event;
        // String event_id;
 
 
@@ -136,18 +137,30 @@ public class KmlLocationService extends IntentService {
             String longitude = String.valueOf(kmlevent.getLng());
             String url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + latitude + "," + longitude + "&location_type=ROOFTOP&result_type=street_address" + "&key=" + GOOGLE_API_KEY;
             requestResult = makeCall(url);
-            createEvents(requestResult, kmlevent);
+            event = createEvent(requestResult, kmlevent);
             return "";
         }
 
         protected void onPostExecute(String result) {
 
+            if (event != null) {
+                if ((loopNumber % 30 == 0) || (loopNumber == 365)) {
+                    if (!checkEventOverlap(kmlevent, event.location, event)) {
+                        GlobalEventList.getInstance().monthList.add(event);
+                        eventManager.createEvents(EventManager.EventAction.ACTOR_NONE, GlobalEventList.getInstance().monthList, null);
+                        GlobalEventList.getInstance().monthList.clear();
+                    }
+                } else {
+                    if (!checkEventOverlap(kmlevent, event.location, event)) {
+                        GlobalEventList.getInstance().monthList.add(event);
+                    }
+                }
+            }
+
         }
-
-
     }
 
-    private void createEvents(String requestResult, KmlEvents kmlevent)
+    private Event createEvent(String requestResult, KmlEvents kmlevent)
     {
         String notes = "";
         String distance = "";
@@ -216,25 +229,11 @@ public class KmlLocationService extends IntentService {
 
 
                 }
-                if((loopNumber%30 == 0)||( loopNumber == 365))
-                {
-                    if(!checkEventOverlap(kmlevent, event.location, event))
-                    {
-                        GlobalEventList.getInstance().monthList.add(event);
-                        eventManager.createEvents(EventManager.EventAction.ACTOR_NONE, GlobalEventList.getInstance().monthList, null);
-                        GlobalEventList.getInstance().monthList.clear();
-                    }
-                }
-                else
-                {
-                    if(!checkEventOverlap(kmlevent, event.location, event)) {
-                        GlobalEventList.getInstance().monthList.add(event);
-                    }
-                }
-
+                return event;
             }
 
         }
+       return null;
     }
 
     private Boolean checkEventOverlap(KmlEvents kmlevent, Location location, Event event) {

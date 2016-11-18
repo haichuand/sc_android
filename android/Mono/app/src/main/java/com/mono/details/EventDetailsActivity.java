@@ -71,8 +71,6 @@ public class EventDetailsActivity extends GestureActivity {
     private EventManager manager;
     private List<Event> events = new ArrayList<>();
     private HashMap<String, Location> LocationHashmap = new HashMap<>();
-    private Boolean focusChangeloaded = false;
-    private Boolean scrollFocusChange = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -127,19 +125,6 @@ public class EventDetailsActivity extends GestureActivity {
 
         locationPanel = new LocationPanel(this);
         locationPanel.onCreate(savedInstanceState);
-        locationPanel.location.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            public void onFocusChange(View v, boolean hasFocus) {
-                if(!hasFocus) {
-                    if(!scrollFocusChange){
-                    if((original.location != null)&&(!original.location.name.equals(locationPanel.location.getText().toString())))
-                    {
-                        changeLocation();
-                        focusChangeloaded = true;
-                    }
-                    }
-                }
-            }
-        });
 
         notePanel = new NotePanel(this);
         notePanel.onCreate(savedInstanceState);
@@ -164,14 +149,11 @@ public class EventDetailsActivity extends GestureActivity {
             if ( locationPanel.location.isFocused()) {
                 if(locationPanel.locationChanged) {
                     if (original.location != null) {
-                        if(!focusChangeloaded) {
                             Rect outRect = new Rect();
                             v.getGlobalVisibleRect(outRect);
                             if (!outRect.contains((int) event.getRawX(), (int) event.getRawY())) {
                                 v.clearFocus();
                                 changeLocation();
-                                scrollFocusChange = true;
-                            }
                         }
                     }
                 }
@@ -520,30 +502,33 @@ public class EventDetailsActivity extends GestureActivity {
 
             //get all events with same location
             manager = EventManager.getInstance(getApplicationContext());
-            events = manager.getEvents(original.location.getAddress(), 365);
-            LocationHashmap.put(location.trim(), original.location);
-            //convert to string using gson
-            Gson gson = new Gson();
-            String hashMapString = gson.toJson(LocationHashmap);
-            //save in shared prefs
-            sharedPreferences = getSharedPreferences(SuperCalyPreferences.USER_DEFINED_LOCATION, MODE_PRIVATE);
-            sharedPreferences.edit().putString(SuperCalyPreferences.USER_DEFINED_LOCATION, hashMapString).apply();
+            if(original.location.getAddress() != null) {
+                events = manager.getEvents(original.location.getAddress(), 365);
+                LocationHashmap.put(location.trim(), original.location);
+                //convert to string using gson
+                Gson gson = new Gson();
+                String hashMapString = gson.toJson(LocationHashmap);
+                //save in shared prefs
+                sharedPreferences = getSharedPreferences(SuperCalyPreferences.USER_DEFINED_LOCATION, MODE_PRIVATE);
+                sharedPreferences.edit().putString(SuperCalyPreferences.USER_DEFINED_LOCATION, hashMapString).apply();
 
-            //make changes to all the events
-            for (int i = 0; i < events.size(); i++) {
-                if(Arrays.equals(events.get(i).location.address, original.location.address)){
-                    if(events.get(i).location.name.equals(original.location.name)) {
-                        events.get(i).location.name = location.trim();
-                        events.get(i).title = title;
-                        manager.updateEvent(
-                                EventManager.EventAction.ACTOR_SELF,
-                                events.get(i),
-                                null
-                        );
+                //make changes to all the events
+                for (int i = 0; i < events.size(); i++) {
+                    if ((events.get(i).location.address != null)&&(original.location.address != null)) {
+                        if (isEqualAddress(events.get(i), original)) {
+                            if (events.get(i).location.name.equals(original.location.name)) {
+                                events.get(i).location.name = location.trim();
+                                events.get(i).title = title;
+                                manager.updateEvent(
+                                        EventManager.EventAction.ACTOR_SELF,
+                                        events.get(i),
+                                        null
+                                );
+                            }
+                        }
                     }
                 }
             }
-
             return "";
         }
 
@@ -551,7 +536,15 @@ public class EventDetailsActivity extends GestureActivity {
 
         }
     }
-
+    public Boolean isEqualAddress(Event event, Event original)
+    {
+        String arr = "";
+        String arr2 = "";
+        for(String a : event.location.address){arr += a.trim();}
+        for(String b : original.location.address){arr2 += b.trim();}
+        if(arr.equalsIgnoreCase(arr2)) return true;
+        return false;
+    }
     public interface PanelInterface {
 
         void onCreate(Bundle savedInstanceState);
