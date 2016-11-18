@@ -280,7 +280,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
             item.titleBold = bold;
 
             DateTimeZone timeZone = event.allDay ? DateTimeZone.UTC : DateTimeZone.getDefault();
-            item.dateTime = getDateString(event.startTime, timeZone.toTimeZone(), event.allDay);
+            item.startDateTime = getDateString(event.startTime, timeZone.toTimeZone(), event.allDay);
 
             if (event.viewTime == 0) {
                 colorId = defaultDateTimeColorId;
@@ -290,7 +290,7 @@ public class EventsFragment extends Fragment implements SimpleDataSource<EventIt
                 bold = false;
             }
 
-            item.dateTimeColor = Colors.getColor(getContext(), colorId);
+            item.startDateTimeColor = Colors.getColor(getContext(), colorId);
             item.dateTimeBold = bold;
         }
 

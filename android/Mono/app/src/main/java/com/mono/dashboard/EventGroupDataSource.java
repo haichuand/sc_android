@@ -141,13 +141,17 @@ public class EventGroupDataSource implements SimpleDataSource<EventGroupItem> {
                 tempItem.titleBold = bold;
 
                 if (event.allDay) {
-                    tempItem.dateTime = null;
+                    tempItem.startDateTime = null;
+                    tempItem.endDateTime = null;
                 } else {
                     SimpleDateFormat dateFormat = TIME_FORMAT;
                     dateFormat.setTimeZone(TimeZone.getDefault());
 
                     LocalDateTime dateTime = new LocalDateTime(event.startTime);
-                    tempItem.dateTime = dateFormat.format(dateTime.toDate());
+                    tempItem.startDateTime = dateFormat.format(dateTime.toDate());
+
+                    dateTime = new LocalDateTime(event.endTime);
+                    tempItem.endDateTime = dateFormat.format(dateTime.toDate());
                 }
 
                 if (event.viewTime == 0) {
@@ -158,7 +162,8 @@ public class EventGroupDataSource implements SimpleDataSource<EventGroupItem> {
                     bold = false;
                 }
 
-                tempItem.dateTimeColor = Colors.getColor(context, colorId);
+                tempItem.startDateTimeColor = Colors.getColor(context, colorId);
+                tempItem.endDateTimeColor = Colors.getColor(context, R.color.gray_light_3);
                 tempItem.dateTimeBold = bold;
             }
         }

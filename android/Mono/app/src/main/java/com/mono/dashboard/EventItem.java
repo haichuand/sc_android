@@ -18,9 +18,11 @@ public class EventItem extends SimpleViewHolder.HolderItem {
     public int titleColor;
     public boolean titleBold;
     public String description;
-    public String dateTime;
+    public String startDateTime;
+    public int startDateTimeColor;
+    public String endDateTime;
+    public int endDateTimeColor;
     public boolean dateTimeBold;
-    public int dateTimeColor;
 
     public EventItem(String id) {
         this.id = id;

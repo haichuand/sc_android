@@ -3,6 +3,7 @@ package com.mono.dashboard;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
@@ -28,7 +29,9 @@ public class EventHolder extends SimpleViewHolder {
     private ImageView icon;
     private TextView title;
     private TextView description;
-    private TextView date;
+    private ViewGroup date;
+    private TextView startTime;
+    private TextView endTime;
 
     private EventItemListener listener;
 
@@ -44,7 +47,9 @@ public class EventHolder extends SimpleViewHolder {
         icon = (ImageView) itemView.findViewById(R.id.icon);
         title = (TextView) itemView.findViewById(R.id.title);
         description = (TextView) itemView.findViewById(R.id.description);
-        date = (TextView) itemView.findViewById(R.id.date);
+        date = (ViewGroup) itemView.findViewById(R.id.date);
+        startTime = (TextView) itemView.findViewById(R.id.start_time);
+        endTime = (TextView) itemView.findViewById(R.id.end_time);
 
         this.listener = listener;
     }
@@ -85,10 +90,19 @@ public class EventHolder extends SimpleViewHolder {
 
         description.setText(item.description);
 
-        if (!Common.isEmpty(item.dateTime)) {
-            date.setText(item.dateTime);
-            date.setTextColor(item.dateTimeColor);
-            date.setTypeface(item.dateTimeBold ? TYPEFACE_BOLD : TYPEFACE);
+        if (!Common.isEmpty(item.startDateTime) || !Common.isEmpty(item.endDateTime)) {
+            if (!Common.isEmpty(item.startDateTime)) {
+                startTime.setText(item.startDateTime);
+                startTime.setTextColor(item.startDateTimeColor);
+                startTime.setTypeface(item.dateTimeBold ? TYPEFACE_BOLD : TYPEFACE);
+            }
+
+            if (!Common.isEmpty(item.endDateTime)) {
+                endTime.setText(item.endDateTime);
+                endTime.setTextColor(item.endDateTimeColor);
+                endTime.setTypeface(item.dateTimeBold ? TYPEFACE_BOLD : TYPEFACE);
+            }
+
             date.setVisibility(View.VISIBLE);
         } else {
             date.setVisibility(View.GONE);
