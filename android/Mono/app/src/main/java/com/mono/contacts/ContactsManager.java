@@ -9,7 +9,6 @@ import com.mono.db.dao.AttendeeDataSource;
 import com.mono.model.Account;
 import com.mono.model.Attendee;
 import com.mono.model.Contact;
-import com.mono.network.HttpServerManager;
 import com.mono.provider.ContactsProvider;
 import com.mono.util.Common;
 import com.mono.util.Constants;
@@ -29,9 +28,12 @@ import java.util.Map;
  */
 public class ContactsManager {
 
-    public static final int TYPE_USERS = 0;
-    public static final int TYPE_CONTACTS = 1;
-    public static final int TYPE_OTHERS = 2;
+    public static final int TYPE_USERS = 1;
+    public static final int TYPE_CONTACTS = 2;
+    public static final int TYPE_OTHERS = 3;
+    public static final int TYPE_FRIENDS = 4;
+    public static final int TYPE_FAVORITES = 5;
+    public static final int TYPE_SUGGESTIONS = 6;
 
     private static ContactsManager instance;
 
@@ -198,12 +200,13 @@ public class ContactsManager {
     /**
      * Retrieve a list of users.
      *
+     * @param type Type of user.
      * @param terms Terms used to filter users.
      * @param offset Offset of contacts to start with.
      * @param limit Max number of results to return.
      * @return a list of contacts.
      */
-    public List<Contact> getUsers(String[] terms, int offset, int limit) {
+    public List<Contact> getUsers(int type, String[] terms, int offset, int limit) {
         List<Contact> result = new ArrayList<>();
 
 //        Account account = AccountManager.getInstance(context).getAccount();
@@ -214,16 +217,31 @@ public class ContactsManager {
         AttendeeDataSource dataSource =
             DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
 
+        switch (type) {
+            case TYPE_FRIENDS:
+                type = AttendeeDataSource.TYPE_FRIEND;
+                break;
+            case TYPE_FAVORITES:
+                type = AttendeeDataSource.TYPE_FAVORITE;
+                break;
+            case TYPE_SUGGESTIONS:
+                type = AttendeeDataSource.TYPE_SUGGESTED;
+                break;
+            default:
+                type = AttendeeDataSource.TYPE_ALL;
+                break;
+        }
+
 //        if (!dataSource.hasUsers()) {
 //            HttpServerManager manager = HttpServerManager.getInstance(context);
 //            manager.addAllRegisteredUsersToUserTable(dataSource);
 //
-//            for (Attendee user : dataSource.getUsers(null, 0, 0)) {
+//            for (Attendee user : dataSource.getUsers(type, null, 0, 0)) {
 //                dataSource.setFriend(user.id, false);
 //            }
 //        }
 
-        List<Attendee> users = dataSource.getUsers(terms, offset, limit);
+        List<Attendee> users = dataSource.getUsers(type, terms, offset, limit);
 
         if (!users.isEmpty()) {
             for (Attendee user : users) {
@@ -288,16 +306,13 @@ public class ContactsManager {
                 List<Contact> result = new ArrayList<>();
 
                 for (int type : types) {
-                    switch (type) {
-                        case TYPE_USERS:
-                            result.addAll(getUsers(terms, offset, limit));
-                            break;
-                        case TYPE_CONTACTS:
-                            result.addAll(getContacts(true, terms, offset, limit));
-                            break;
-                        case TYPE_OTHERS:
-                            result.addAll(getContacts(false, terms, offset, limit));
-                            break;
+                    if (type == TYPE_USERS || type == TYPE_FRIENDS || type == TYPE_FAVORITES ||
+                            type == TYPE_SUGGESTIONS) {
+                        result.addAll(getUsers(type, terms, offset, limit));
+                    } else if (type == TYPE_CONTACTS) {
+                        result.addAll(getContacts(true, terms, offset, limit));
+                    } else if (type == TYPE_OTHERS) {
+                        result.addAll(getContacts(false, terms, offset, limit));
                     }
                 }
 
@@ -314,42 +329,46 @@ public class ContactsManager {
     }
 
     /**
-     * Retrieve users in the background. Results are passed through callbacks.
+     * Retrieve the number of contacts that satisfies the given criteria.
      *
-     * @param terms Terms used to filter users.
-     * @param offset Offset of contacts to start with.
-     * @param limit Max number of results to return.
-     * @param callback Callback to invoke.
+     * @param types Types of contact.
+     * @param terms Search terms to be used.
+     * @return a count of contacts.
      */
-    public AsyncTask<Object, Contact, List<Contact>> getUsersAsync(String[] terms, int offset,
-            int limit, ContactsTaskCallback callback) {
-        return getContactsAsync(new int[]{TYPE_USERS}, terms, offset, limit, callback);
-    }
+    public int getContactsCount(int[] types, String[] terms) {
+        int count = 0;
 
-    /**
-     * Retrieve local contacts in the background. Results are passed through callbacks.
-     *
-     * @param terms Terms used to filter users.
-     * @param offset Offset of contacts to start with.
-     * @param limit Max number of results to return.
-     * @param callback Callback to invoke.
-     */
-    public AsyncTask<Object, Contact, List<Contact>> getLocalContactsAsync(String[] terms,
-            int offset, int limit, ContactsTaskCallback callback) {
-        return getContactsAsync(new int[]{TYPE_CONTACTS}, terms, offset, limit, callback);
-    }
+        AttendeeDataSource dataSource = DatabaseHelper.getDataSource(context,
+            AttendeeDataSource.class);
+        ContactsProvider provider = ContactsProvider.getInstance(context);
 
-    /**
-     * Retrieve other contacts in the background. Results are passed through callbacks.
-     *
-     * @param terms Terms used to filter users.
-     * @param offset Offset of contacts to start with.
-     * @param limit Max number of results to return.
-     * @param callback Callback to invoke.
-     */
-    public AsyncTask<Object, Contact, List<Contact>> getOtherContactsAsync(String[] terms,
-            int offset, int limit, ContactsTaskCallback callback) {
-        return getContactsAsync(new int[]{TYPE_OTHERS}, terms, offset, limit, callback);
+        for (int type : types) {
+            if (type == TYPE_USERS || type == TYPE_FRIENDS || type == TYPE_FAVORITES ||
+                    type == TYPE_SUGGESTIONS) {
+                switch (type) {
+                    case TYPE_FRIENDS:
+                        type = AttendeeDataSource.TYPE_FRIEND;
+                        break;
+                    case TYPE_FAVORITES:
+                        type = AttendeeDataSource.TYPE_FAVORITE;
+                        break;
+                    case TYPE_SUGGESTIONS:
+                        type = AttendeeDataSource.TYPE_SUGGESTED;
+                        break;
+                    default:
+                        type = AttendeeDataSource.TYPE_ALL;
+                        break;
+                }
+
+                count += dataSource.getUsersCount(type, terms);
+            } else if (type == TYPE_CONTACTS) {
+                count += provider.getContactsCount(true, terms);
+            } else if (type == TYPE_OTHERS) {
+                count += provider.getContactsCount(false, terms);
+            }
+        }
+
+        return count;
     }
 
     /**

@@ -19,6 +19,11 @@ import java.util.List;
  */
 public class AttendeeDataSource extends DataSource {
 
+    public static final int TYPE_ALL = 0;
+    public static final int TYPE_FAVORITE = 1;
+    public static final int TYPE_FRIEND = 2;
+    public static final int TYPE_SUGGESTED = 3;
+
     private AttendeeDataSource(Database database) {
         super(database);
     }
@@ -287,19 +292,75 @@ public class AttendeeDataSource extends DataSource {
     }
 
     /**
+     * Retrieve the number of users that satisfies the given criteria.
+     *
+     * @param terms Search terms to be used.
+     * @return a count of users.
+     */
+    public int getUsersCount(int type, String[] terms) {
+        int count = 0;
+
+        List<String> args = new ArrayList<>();
+
+        String selection = DatabaseValues.User.USER_NAME + " IS NOT NULL";
+
+        if (type != TYPE_ALL) {
+            selection += " AND ";
+            selection += getUserTypeSelection(type);
+        }
+
+        if (terms != null) {
+            String[] fields = {
+                DatabaseValues.User.FIRST_NAME,
+                DatabaseValues.User.LAST_NAME,
+                DatabaseValues.User.USER_NAME
+            };
+
+            selection += " AND ";
+            selection += getLikeSelection(args, terms, fields);
+        }
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
+
+        Cursor cursor = database.select(
+            DatabaseValues.User.TABLE,
+            new String[]{
+                "COUNT(*) AS `count`"
+            },
+            selection,
+            selectionArgs,
+            null
+        );
+
+        if (cursor.moveToNext()) {
+            count = cursor.getInt(0);
+        }
+
+        cursor.close();
+
+        return count;
+    }
+
+    /**
      * Retrieve registered users.
      *
+     * @param type Type of user.
      * @param terms Search terms to be used.
      * @param offset Offset of users to start with.
      * @param limit Max number of results to return.
      * @return a list of users.
      */
-    public List<Attendee> getUsers(String[] terms, int offset, int limit) {
+    public List<Attendee> getUsers(int type, String[] terms, int offset, int limit) {
         List<Attendee> users = new ArrayList<>();
 
         List<String> args = new ArrayList<>();
 
         String selection = DatabaseValues.User.USER_NAME + " IS NOT NULL";
+
+        if (type != TYPE_ALL) {
+            selection += " AND ";
+            selection += getUserTypeSelection(type);
+        }
 
         if (terms != null) {
             String[] fields = {
@@ -318,20 +379,15 @@ public class AttendeeDataSource extends DataSource {
             DatabaseValues.User.FIRST_NAME
         );
 
-        if (limit > 0) {
-            order += " LIMIT " + limit;
-        }
-
-        if (offset > 0) {
-            order += " OFFSET " + offset;
-        }
-
         Cursor cursor = database.select(
             DatabaseValues.User.TABLE,
             DatabaseValues.User.PROJECTION,
             selection,
             selectionArgs,
-            order
+            null,
+            order,
+            offset > 0 ? offset : null,
+            limit > 0 || offset > 0 ? limit : null
         );
 
         while (cursor.moveToNext()) {
@@ -342,6 +398,36 @@ public class AttendeeDataSource extends DataSource {
         cursor.close();
 
         return users;
+    }
+
+    /**
+     * Construct a selection query to restrict user type.
+     *
+     * @param type Type of user.
+     * @return a selection query.
+     */
+    private String getUserTypeSelection(int type) {
+        String selection = "";
+
+        String field = null;
+
+        switch (type) {
+            case TYPE_FAVORITE:
+                field = DatabaseValues.User.FAVORITE;
+                break;
+            case TYPE_FRIEND:
+                field = DatabaseValues.User.FRIEND;
+                break;
+            case TYPE_SUGGESTED:
+                field = DatabaseValues.User.SUGGESTED;
+                break;
+        }
+
+        if (field != null) {
+            selection += field + " > 0";
+        }
+
+        return selection;
     }
 
     /**

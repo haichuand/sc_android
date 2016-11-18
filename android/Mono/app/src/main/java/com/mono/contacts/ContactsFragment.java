@@ -59,9 +59,6 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
     public static final int GROUP_CONTACTS = 4;
     public static final int GROUP_OTHER = 5;
 
-    public static final int TASK_USERS = 0;
-    public static final int TASK_CONTACTS = 1;
-
     private static final int REFRESH_LIMIT = 30;
     private static final int REFRESH_OFFSET = 5;
     private static final int SEARCH_LIMIT = 30;
@@ -73,6 +70,9 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
     private TextView resultsText;
     private AlertDialog dialog;
 
+    private int[][] groups;
+    private int groupPosition;
+
     private final Map<String, ContactItem> items = new HashMap<>();
     private ContactsMap contactsMap = new ContactsMap();
 
@@ -81,8 +81,9 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
 
     private ContactsManager contactsManager;
 
-    private final Map<Integer, AsyncTask> tasks = new HashMap<>();
-    private int othersOffset;
+    private AsyncTask task;
+    private int groupOffset;
+    private String currentQuery;
     private String[] terms;
 
     protected List<Contact> contactSelections = new LinkedList<>();
@@ -107,6 +108,16 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
         }
 
         setToolbarTitle(actionBarTitle);
+
+        // Initialize Group Categories
+        groups = new int[][]{
+            {GROUP_FAVORITES, R.string.favorites},
+            {GROUP_FRIENDS, R.string.friends},
+            {GROUP_SUGGESTIONS, R.string.suggestions},
+            {GROUP_USERS, R.string.users},
+            {GROUP_CONTACTS, R.string.local_contacts},
+            {GROUP_OTHER, R.string.other_contacts}
+        };
     }
 
     @Override
@@ -129,7 +140,8 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
             @Override
             public void afterTextChanged(Editable s) {
                 String str = s.toString().trim();
-                getContacts(!str.isEmpty() ? str : null, 0);
+                currentQuery = !str.isEmpty() ? str : null;
+                onRefresh();
             }
         });
 
@@ -142,21 +154,42 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
                 handleInfiniteScroll(dy);
             }
         });
-        // Initialize Group Categories
-        int[][] array = {
-            {GROUP_FAVORITES, R.string.favorites},
-            {GROUP_FRIENDS, R.string.friends},
-            {GROUP_SUGGESTIONS, R.string.suggestions},
-            {GROUP_USERS, R.string.users},
-            {GROUP_CONTACTS, R.string.local_contacts},
-            {GROUP_OTHER, R.string.other_contacts}
-        };
 
-        for (int[] element : array) {
+        // Initialize Adapter Groups
+        for (int[] element : groups) {
             final int group = element[0];
             int labelResId = element[1];
 
-            adapter.add(new ContactsAdapter.ContactsGroup(group, labelResId,
+            int count = 0;
+            int type = 0;
+
+            switch (group) {
+                case GROUP_FAVORITES:
+                    type = ContactsManager.TYPE_FAVORITES;
+                    break;
+                case GROUP_FRIENDS:
+                    type = ContactsManager.TYPE_FRIENDS;
+                    break;
+                case GROUP_SUGGESTIONS:
+                    type = ContactsManager.TYPE_SUGGESTIONS;
+                    break;
+                case GROUP_USERS:
+                    type = ContactsManager.TYPE_USERS;
+                    break;
+                case GROUP_CONTACTS:
+                    type = ContactsManager.TYPE_CONTACTS;
+                    break;
+                case GROUP_OTHER:
+                    type = ContactsManager.TYPE_OTHERS;
+                    break;
+            }
+
+            if (type != 0) {
+                // Initial Estimated Number of Contacts
+                count = contactsManager.getContactsCount(new int[]{type}, terms);
+            }
+
+            adapter.add(new ContactsAdapter.ContactsGroup(group, labelResId, count,
                 new SimpleDataSource<HolderItem>() {
                     @Override
                     public HolderItem getItem(int position) {
@@ -185,7 +218,7 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
         super.onResume();
 
         if (contactsMap.isEmpty()) {
-            getContacts(null, 0);
+            onRefresh();
         }
     }
 
@@ -193,7 +226,10 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
     public void onDestroy() {
         super.onDestroy();
 
-        clearTasks();
+        if (task != null) {
+            task.cancel(true);
+        }
+
         contactsManager.removeListener(this);
     }
 
@@ -274,8 +310,29 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
      * @return whether action was consumed.
      */
     public boolean onRefresh() {
-        // Retrieve Users and Contacts
-        getContacts(null, 0);
+        // Cancel Existing Task
+        if (task != null) {
+            task.cancel(true);
+        }
+        // Clear Cache
+        items.clear();
+        contactsMap.clear();
+        // Clear Offsets
+        groupPosition = 0;
+        groupOffset = 0;
+        // Reset Scroll Position to Top
+        recyclerView.scrollToPosition(0);
+        // Show or Hide Labels
+        adapter.setHideEmptyLabels(currentQuery != null, true);
+        // Convert Query into Terms
+        terms = !Common.isEmpty(currentQuery) ? Common.explode(" ", currentQuery) : null;
+        adapter.setHighlightTerms(terms);
+        // Clear UI
+        adapter.notifyDataSetChanged();
+        // Hide Results Text
+        resultsText.setVisibility(View.GONE);
+        // Retrieve Contacts
+        getContacts();
 
         return true;
     }
@@ -293,88 +350,137 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
     }
 
     /**
-     * Retrieve contacts from the Contacts Manager using callbacks.
+     * Retrieve group type by position.
      *
-     * @param query Search query.
-     * @param offset Offset of contacts to start with.
+     * @param position Position of group.
+     * @return group type.
      */
-    public void getContacts(final String query, int offset) {
-        // Cancel Existing Tasks
-        clearTasks();
-        // Clear Cache
-        items.clear();
-        contactsMap.clear();
-        othersOffset = 0;
-        // Reset Scroll Position to Top
-        recyclerView.scrollToPosition(0);
-        // Show or Hide Labels
-        adapter.setHideEmptyLabels(query != null, true);
-        // Convert Query into Terms
-        terms = !Common.isEmpty(query) ? Common.explode(" ", query) : null;
-        adapter.setHighlightTerms(terms);
-        // Retrieve Important Contacts First
-        int[] types = {
-            ContactsManager.TYPE_USERS,
-            ContactsManager.TYPE_CONTACTS
-        };
-        // Search Limit
-        final int limit = !Common.isEmpty(query) ? SEARCH_LIMIT : 0;
-        // Start Retrieval
-        setTask(TASK_USERS, contactsManager.getContactsAsync(types, terms, 0, limit,
-            new ContactsTaskCallback() {
-                @Override
-                protected void onFinish(List<Contact> contacts) {
-                    if (!contacts.isEmpty()) {
-                        addAll(contacts, true);
-                    }
-
-                    getOtherContacts(query, 0);
-
-                    removeTask(TASK_USERS);
-                }
-            }
-        ));
+    public int getGroupByPosition(int position) {
+        return groups[position][0];
     }
 
     /**
-     * Retrieve other contacts from the Contacts Manager using callbacks.
+     * Retrieve group position.
      *
-     * @param query Search query.
-     * @param offset Offset of contacts to start with.
+     * @param group Group type.
+     * @return group position.
      */
-    public void getOtherContacts(String query, int offset) {
-        final int limit = !Common.isEmpty(query) ? SEARCH_LIMIT : REFRESH_LIMIT;
+    public int getGroupPosition(int group) {
+        int position = -1;
 
-        setTask(TASK_CONTACTS, contactsManager.getOtherContactsAsync(terms, offset, limit,
-            new ContactsTaskCallback() {
-                @Override
-                protected void onFinish(List<Contact> contacts) {
-                    if (!contacts.isEmpty()) {
-                        int offset = adapter.getItemCount();
-                        int count = 0;
+        for (int i = 0; i < groups.length; i++) {
+            if (groups[i][0] == group) {
+                position = i;
+                break;
+            }
+        }
 
-                        for (Contact contact : contacts) {
-                            if (contactsMap.indexOf(contact) == -1 && (contact.hasEmails() ||
-                                    contact.hasPhones())) {
-                                contactsMap.add(GROUP_OTHER, contact);
-                                count++;
+        return position;
+    }
+
+    /**
+     * Retrieve contacts from the Contacts Manager using callbacks.
+     */
+    public void getContacts() {
+        // Reached End of Contacts -> Return
+        if (groupPosition == -1) {
+            return;
+        }
+        // Limit Contacts Per Retrieval
+        final int limit = !Common.isEmpty(currentQuery) ? SEARCH_LIMIT : REFRESH_LIMIT;
+        // Callback to Process Retrieved Contacts
+        ContactsTaskCallback callback = new ContactsTaskCallback() {
+            @Override
+            protected void onFinish(List<Contact> contacts) {
+                boolean forceRetrieve = false;
+                int group = getGroupByPosition(groupPosition);
+
+                if (!contacts.isEmpty()) {
+                    int offset = 0;
+
+                    int count = 0, skipped = 0;
+                    // Process Contacts
+                    for (Contact contact : contacts) {
+                        if (contactsMap.indexOf(contact) == -1 && (contact.hasEmails() ||
+                                contact.hasPhones())) {
+                            contactsMap.add(group, contact);
+
+                            if (count == 0) {
+                                offset = contactsMap.indexOf(contact);
+                                offset = adapter.getAdapterPosition(offset);
                             }
-                        }
 
-                        if (count > 0) {
-                            adapter.notifyItemRangeInserted(offset, count);
+                            count++;
+                        } else {
+                            skipped++;
                         }
-
-                        othersOffset += contacts.size();
                     }
-
+                    // Refresh UI
+                    if (count > 0) {
+                        adapter.notifyRangeInserted(offset, count);
+                    }
+                    // Refresh Count
+                    if (skipped > 0) {
+                        ContactsAdapter.ContactsGroup tempGroup = adapter.getGroup(groupPosition);
+                        adapter.setGroupCount(groupPosition, tempGroup.getInitialCount() - skipped);
+                    }
+                    // Remember Offset for Next Iteration
+                    groupOffset += contacts.size();
+                    // Force Next Iteration Due to Insufficient Contacts
+                    if (contacts.size() < limit) {
+                        forceRetrieve = true;
+                    }
+                } else if (groupPosition < groups.length - 1) {
+                    // Update Actual Group Size
+                    ContactsAdapter.ContactsGroup tempGroup = adapter.getGroup(groupPosition);
+                    adapter.setGroupCount(groupPosition, contactsMap.size(group));
+                    // Move to Next Group
+                    groupPosition++;
+                    groupOffset = 0;
+                    // Start Next Iteration
+                    forceRetrieve = true;
+                } else {
+                    // Reached End of Contacts
+                    groupPosition = -1;
                     // Handle Empty Message
                     handleEmptyMessage();
-
-                    removeTask(TASK_CONTACTS);
+                }
+                // Remove Task Reference
+                task = null;
+                // Force Next Iteration
+                if (forceRetrieve) {
+                    getContacts();
                 }
             }
-        ));
+        };
+        // Determine Contact Type Using Group Type
+        int type = 0;
+
+        switch (getGroupByPosition(groupPosition)) {
+            case GROUP_FAVORITES:
+                type = ContactsManager.TYPE_FAVORITES;
+                break;
+            case GROUP_FRIENDS:
+                type = ContactsManager.TYPE_FRIENDS;
+                break;
+            case GROUP_SUGGESTIONS:
+                type = ContactsManager.TYPE_SUGGESTIONS;
+                break;
+            case GROUP_USERS:
+                type = ContactsManager.TYPE_USERS;
+                break;
+            case GROUP_CONTACTS:
+                type = ContactsManager.TYPE_CONTACTS;
+                break;
+            case GROUP_OTHER:
+                type = ContactsManager.TYPE_OTHERS;
+                break;
+        }
+        // Retrieve Contacts
+        if (type != 0) {
+            task = contactsManager.getContactsAsync(new int[]{type}, terms, groupOffset,
+                limit, callback);
+        }
     }
 
     /**
@@ -383,16 +489,15 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
      * @param deltaY Direction of vertical scrolling.
      */
     public void handleInfiniteScroll(int deltaY) {
-        if (!tasks.isEmpty()) {
+        if (task != null) {
             return;
         }
 
-        int position;
-
         if (deltaY > 0) {
-            position = layoutManager.findLastVisibleItemPosition();
+            int position = layoutManager.findLastVisibleItemPosition();
+
             if (position >= Math.max(contactsMap.size() - 1 - REFRESH_OFFSET, 0)) {
-                getOtherContacts(null, othersOffset);
+                getContacts();
             }
         }
     }
@@ -666,10 +771,17 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
                 return;
             }
 
+            int groupPosition = contactsMap.getGroupPosition(contact);
             contactsMap.remove(contact);
+            // Update Group Count
+            ContactsAdapter.ContactsGroup tempGroup = adapter.getGroup(groupPosition);
+            adapter.setGroupCount(groupPosition, tempGroup.getInitialCount() - 1);
         }
 
         contactsMap.add(group, contact);
+        // Update Group Count
+        ContactsAdapter.ContactsGroup tempGroup = adapter.getGroup(getGroupPosition(group));
+        adapter.setGroupCount(getGroupPosition(group), tempGroup.getInitialCount() + 1);
 
         if (notify) {
             // Sort Contact Group
@@ -777,23 +889,5 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
 
     public void sortAll() {
         contactsMap.sortAll(terms != null && terms.length > 0 ? terms[0] : null);
-    }
-
-    private void setTask(int type, AsyncTask task) {
-        removeTask(type);
-        tasks.put(type, task);
-    }
-
-    private void removeTask(int type) {
-        if (tasks.containsKey(type)) {
-            tasks.remove(type).cancel(true);
-        }
-    }
-
-    private void clearTasks() {
-        for (AsyncTask task : tasks.values()) {
-            task.cancel(true);
-        }
-        tasks.clear();
     }
 }

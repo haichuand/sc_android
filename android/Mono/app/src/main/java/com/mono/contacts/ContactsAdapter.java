@@ -11,7 +11,6 @@ import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.mono.R;
@@ -163,6 +162,16 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
     }
 
     /**
+     * Retrieve contacts group by position.
+     *
+     * @param position Position of group.
+     * @return an instance of contacts group.
+     */
+    public ContactsGroup getGroup(int position) {
+        return groups.get(position);
+    }
+
+    /**
      * Enable the display of checkboxes for item selection.
      *
      * @param selectable Whether to display checkboxes.
@@ -215,13 +224,26 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
      * Notify the adapter the item has been added as well as refresh the label belonging to its
      * group.
      *
-     * @param position The position in the adapter.
+     * @param position Position in the adapter.
      */
     public void notifyInserted(int position) {
-        notifyItemInserted(position);
+        notifyRangeInserted(position, 1);
+    }
+
+    /**
+     * Notify the adapter that a range of items has been added as well as refresh the label
+     * belonging to its groups.
+     *
+     * @param position Position in the adapter.
+     */
+    public void notifyRangeInserted(int position, int count) {
+        notifyItemRangeInserted(position, count);
 
         setHideEmptyLabels(hideEmptyLabels, false);
-        notifyItemChanged(getGroupLabelPosition(position));
+
+        for (int i = 0; i < count; i++) {
+            notifyItemChanged(getGroupLabelPosition(position + i));
+        }
     }
 
     /**
@@ -360,31 +382,26 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
     }
 
     /**
-     * Display progress spinner next to the label.
+     * Update group count label.
      *
-     * @param group The group category.
-     * @param visible The visible status of the spinner.
+     * @param position Position in the adapter.
+     * @param count Number of contacts.
      */
-    public void setGroupProgress(int group, boolean visible) {
-        int position = getGroupOffset(group);
-        if (position == -1) {
-            return;
-        }
+    public void setGroupCount(int position, int count) {
+        ContactsGroup group = groups.get(position);
+        group.count = count;
 
-        LabelItem item = (LabelItem) getItem(position);
-        item.showProgress = visible;
-
-        notifyItemChanged(position);
+        notifyItemChanged(getGroupOffset(group.id));
     }
 
     public static class LabelItem extends HolderItem {
 
         public int labelResId;
-        public String count;
-        public boolean showProgress;
+        public int count;
 
-        public LabelItem(int labelResId) {
+        public LabelItem(int labelResId, int count) {
             this.labelResId = labelResId;
+            this.count = count;
         }
     }
 
@@ -392,14 +409,12 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
 
         private TextView label;
         private TextView count;
-        private ProgressBar progress;
 
         public LabelHolder(View itemView) {
             super(itemView);
 
             label = (TextView) itemView.findViewById(R.id.label);
             count = (TextView) itemView.findViewById(R.id.count);
-            progress = (ProgressBar) itemView.findViewById(R.id.progress);
         }
 
         @Override
@@ -407,8 +422,7 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
             LabelItem item = (LabelItem) holderItem;
 
             label.setText(item.labelResId);
-            count.setText(item.count);
-            progress.setVisibility(item.showProgress ? View.VISIBLE : View.GONE);
+            count.setText("(" + item.count + ")");
         }
     }
 
@@ -554,14 +568,17 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
     public static class ContactsGroup implements SimpleDataSource<HolderItem> {
 
         private int id;
+        private int labelResId;
+        private int count;
         private final SimpleDataSource<HolderItem> dataSource;
 
-        private LabelItem labelItem;
         private boolean hideEmptyLabels;
 
-        public ContactsGroup(int id, int labelResId, SimpleDataSource<HolderItem> dataSource) {
+        public ContactsGroup(int id, int labelResId, int count,
+                SimpleDataSource<HolderItem> dataSource) {
             this.id = id;
-            labelItem = new LabelItem(labelResId);
+            this.labelResId = labelResId;
+            this.count = count;
             this.dataSource = dataSource;
         }
 
@@ -570,8 +587,7 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
             HolderItem item;
 
             if (position == 0 && getContactsOffset() > 0) {
-                labelItem.count = String.format("(%d)", dataSource.getCount());
-                item = labelItem;
+                item = new LabelItem(labelResId, count);
             } else {
                 item = dataSource.getItem(position - getContactsOffset());
             }
@@ -582,6 +598,10 @@ public class ContactsAdapter extends RecyclerView.Adapter<SimpleViewHolder> {
         @Override
         public int getCount() {
             return getContactsOffset() + dataSource.getCount();
+        }
+
+        public int getInitialCount() {
+            return count;
         }
 
         public boolean isEmpty() {

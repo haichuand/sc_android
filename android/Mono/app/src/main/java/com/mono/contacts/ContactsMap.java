@@ -66,6 +66,18 @@ public class ContactsMap {
         return map.get(group);
     }
 
+    public int getGroupPosition(Contact contact) {
+        List<Integer> keys = new ArrayList<>(map.keySet());
+
+        for (int key : keys) {
+            if (map.get(key).contains(contact)) {
+                return keys.indexOf(key);
+            }
+        }
+
+        return -1;
+    }
+
     public int indexOf(Contact contact) {
         int position = -1;
 

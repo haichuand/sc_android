@@ -155,10 +155,7 @@ public class ContactsProvider {
         String selection = getMimeTypeSelection(args);
 
         selection += " AND ";
-        selection += ContactsContract.Data.IN_VISIBLE_GROUP + (visible ? " > " : " = ") + "0";
-
-        selection += " AND ";
-        selection += getIdSelection(args, terms, offset, limit);
+        selection += getIdSelection(args, visible, terms, offset, limit);
 
         String[] selectionArgs = args.toArray(new String[args.size()]);
 
@@ -197,6 +194,48 @@ public class ContactsProvider {
         }
 
         return contacts;
+    }
+
+    /**
+     * Retrieve the number of contacts that satisfies the given criteria.
+     *
+     * @param visible Only visible contacts.
+     * @param terms Search terms to be used.
+     * @return a count of contacts.
+     */
+    public int getContactsCount(boolean visible, String[] terms) {
+        int count = 0;
+
+        List<String> args = new ArrayList<>();
+
+        String selection = getMimeTypeSelection(args);
+
+        selection += " AND ";
+        selection += ContactsContract.Data.IN_VISIBLE_GROUP + (visible ? " > " : " = ") + "0";
+
+        if (terms != null) {
+            selection += " AND ";
+            selection += getLikeSelection(args, terms);
+        }
+
+        String[] selectionArgs = args.toArray(new String[args.size()]);
+
+        Cursor cursor = context.getContentResolver().query(
+            ContactsContract.Data.CONTENT_URI,
+            new String[]{
+                ContactsContract.Data.CONTACT_ID,
+            },
+            selection,
+            selectionArgs,
+            null
+        );
+
+        if (cursor != null) {
+            count = cursor.getCount();
+            cursor.close();
+        }
+
+        return count;
     }
 
     /**
@@ -264,17 +303,21 @@ public class ContactsProvider {
     /**
      * Retrieve a list of contact IDs that contains either the name, email, phone number, etc.
      *
+     * @param visible Return only visible contacts.
      * @param terms Search terms to be used.
      * @param offset Offset to start with.
      * @param limit Max number of results to return.
      * @return a list of contact IDs.
      */
-    private List<Long> getContactIds(String[] terms, int offset, int limit) {
+    private List<Long> getContactIds(boolean visible, String[] terms, int offset, int limit) {
         List<Long> result = new ArrayList<>();
 
         List<String> args = new ArrayList<>();
 
         String selection = getMimeTypeSelection(args);
+
+        selection += " AND ";
+        selection += ContactsContract.Data.IN_VISIBLE_GROUP + (visible ? " > " : " = ") + "0";
 
         if (terms != null) {
             selection += " AND ";
@@ -289,7 +332,7 @@ public class ContactsProvider {
             ContactsContract.Data.CONTACT_ID
         );
 
-        if (limit > 0) {
+        if (limit > 0 || offset > 0) {
             order += " LIMIT " + limit;
         }
 
@@ -381,14 +424,16 @@ public class ContactsProvider {
     /**
      * Helper function to retrieve the selection for contact IDs.
      *
-     * @param args The list to insert arguments.
-     * @param terms The search terms to be used.
-     * @param offset The offset to start with.
-     * @param limit The max number of results to return.
+     * @param visible Return only visible contacts.
+     * @param args List to insert arguments.
+     * @param terms Search terms to be used.
+     * @param offset Offset to start with.
+     * @param limit Max number of results to return.
      * @return a selection string.
      */
-    private String getIdSelection(List<String> args, String[] terms, int offset, int limit) {
-        List<Long> contactIds = getContactIds(terms, offset, limit);
+    private String getIdSelection(List<String> args, boolean visible, String[] terms, int offset,
+            int limit) {
+        List<Long> contactIds = getContactIds(visible, terms, offset, limit);
 
         String selection = String.format(
             "%s IN (%s)",
