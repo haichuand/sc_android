@@ -760,6 +760,16 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
     }
 
     /**
+     * Handle suggestions removal.
+     *
+     * @param contact Contact to remove.
+     */
+    @Override
+    public void onSuggestionRemove(Contact contact) {
+        add(GROUP_USERS, contact, true);
+    }
+
+    /**
      * Add contact to the specified group and notify the adapter to reflect the new addition.
      *
      * @param group The group category.
@@ -864,7 +874,12 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
         }
 
         index = adapter.getAdapterPosition(index);
+
+        int groupPosition = contactsMap.getGroupPosition(contact);
         contactsMap.remove(contact);
+        // Update Group Count
+        ContactsAdapter.ContactsGroup tempGroup = adapter.getGroup(groupPosition);
+        adapter.setGroupCount(groupPosition, tempGroup.getInitialCount() - 1);
 
         if (sort) {
             sortAll();

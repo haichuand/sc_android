@@ -490,7 +490,11 @@ public class ContactsManager {
             contact.isSuggested = value;
 
             for (ContactsBroadcastListener listener : listeners) {
-                listener.onSuggestionAdd(contact);
+                if (value == Contact.SUGGESTION_PENDING) {
+                    listener.onSuggestionAdd(contact);
+                } else if (value == Contact.SUGGESTION_IGNORED) {
+                    listener.onSuggestionRemove(contact);
+                }
             }
         }
     }
@@ -564,6 +568,8 @@ public class ContactsManager {
         void onContactRemove(Contact contact);
 
         void onSuggestionAdd(Contact contact);
+
+        void onSuggestionRemove(Contact contact);
     }
 
     public static abstract class ContactsTaskCallback {
