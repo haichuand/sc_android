@@ -41,6 +41,7 @@ import com.mono.details.EventDetailsActivity;
 import com.mono.intro.IntroActivity;
 import com.mono.locationSetting.LocationSettingActivity;
 import com.mono.model.Account;
+import com.mono.model.Attendee;
 import com.mono.model.Calendar;
 import com.mono.model.Conversation;
 import com.mono.model.Event;
@@ -622,9 +623,26 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
      * @param data The data returned from the activity.
      */
     public void handleLogin(int resultCode, Intent data) {
-        if (resultCode == RESULT_OK) {
-            Account account = data.getParcelableExtra(LoginActivity.EXTRA_ACCOUNT);
-            AccountManager.getInstance(this).login(account);
+//        if (resultCode == RESULT_OK) {
+//            Account account = data.getParcelableExtra(LoginActivity.EXTRA_ACCOUNT);
+//            AccountManager.getInstance(this).login(account);
+//        }
+        // add user self to database if not already
+        Account account = AccountManager.getInstance(this).getAccount();
+        Attendee attendee = conversationManager.getUserById(String.valueOf(account.id));
+        if (attendee == null) {
+            attendee = new Attendee(
+                    String.valueOf(account.id),
+                    account.mediaId,
+                    account.email,
+                    account.phone,
+                    account.firstName,
+                    account.lastName,
+                    account.username,
+                    false,
+                    true
+            );
+            conversationManager.saveUserToDB(attendee);
         }
     }
 

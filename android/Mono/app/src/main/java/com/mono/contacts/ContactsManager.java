@@ -214,14 +214,14 @@ public class ContactsManager {
         AttendeeDataSource dataSource =
             DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
 
-        if (!dataSource.hasUsers()) {
-            HttpServerManager manager = HttpServerManager.getInstance(context);
-            manager.addAllRegisteredUsersToUserTable(dataSource);
-
-            for (Attendee user : dataSource.getUsers(null, 0, 0)) {
-                dataSource.setFriend(user.id, false);
-            }
-        }
+//        if (!dataSource.hasUsers()) {
+//            HttpServerManager manager = HttpServerManager.getInstance(context);
+//            manager.addAllRegisteredUsersToUserTable(dataSource);
+//
+//            for (Attendee user : dataSource.getUsers(null, 0, 0)) {
+//                dataSource.setFriend(user.id, false);
+//            }
+//        }
 
         List<Attendee> users = dataSource.getUsers(terms, offset, limit);
 
@@ -507,9 +507,8 @@ public class ContactsManager {
                 }
                 // Handle Suggestions
                 SuggestionsTask task = new SuggestionsTask(context, 0);
-                List<Contact> suggestions = task.checkSuggestions(contact);
-
-                for (Contact suggestion : suggestions) {
+                Contact suggestion = task.checkSuggestions(contact);
+                if (suggestion != null) {
                     setSuggested(suggestion.id, Contact.SUGGESTION_PENDING);
                 }
             }

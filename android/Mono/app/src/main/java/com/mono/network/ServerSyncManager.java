@@ -3,21 +3,29 @@ package com.mono.network;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.widget.Toast;
 
 import com.mono.AccountManager;
 import com.mono.EventManager;
+import com.mono.R;
 import com.mono.chat.AttachmentPanel;
+import com.mono.chat.ConversationManager;
+import com.mono.chat.CreateChatActivity;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
 import com.mono.db.dao.ConversationDataSource;
 import com.mono.db.dao.EventAttendeeDataSource;
 import com.mono.db.dao.ServerSyncDataSource;
 import com.mono.model.Account;
+import com.mono.model.Attendee;
 import com.mono.model.Conversation;
 import com.mono.model.Event;
 import com.mono.model.Message;
 import com.mono.model.ServerSyncItem;
 import com.mono.util.Common;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -37,7 +45,8 @@ public class ServerSyncManager {
     private HttpServerManager httpServerManager;
     private ChatServerManager chatServerManager;
     private EventManager eventManager;
-    private ConversationDataSource conversationDataSource;
+    private ConversationManager conversationManager;
+//    private ConversationDataSource conversationDataSource;
     private ConcurrentLinkedQueue<ServerSyncItem> syncQueue;
     private ServerSyncItem lastSyncItem;
     private long lastSyncTime;
@@ -52,7 +61,8 @@ public class ServerSyncManager {
         httpServerManager = HttpServerManager.getInstance(appContext);
         chatServerManager = ChatServerManager.getInstance(appContext);
         eventManager = EventManager.getInstance(appContext);
-        conversationDataSource = DatabaseHelper.getDataSource(appContext, ConversationDataSource.class);
+//        conversationDataSource = DatabaseHelper.getDataSource(appContext, ConversationDataSource.class);
+        conversationManager = ConversationManager.getInstance(appContext);
         syncQueue = new ConcurrentLinkedQueue<>(syncDataSource.getAllSyncItems());
     }
 
@@ -64,9 +74,9 @@ public class ServerSyncManager {
     }
 
     /**
-     * Enable NetworkStateReceiver if it's disabled
+     * Disable NetworkStateReceiver if it's enabled
      */
-    public void disableNetworkStateReceiver () {
+    private void disableNetworkStateReceiver () {
         if (isNetworkStateReceiver) {
             ComponentName receiver = new ComponentName(appContext, NetworkStateReceiver.class);
             PackageManager pm = appContext.getPackageManager();
@@ -78,9 +88,9 @@ public class ServerSyncManager {
     }
 
     /**
-     * Disable NetworkStateReceiver if it's enabled
+     * Enable NetworkStateReceiver if it's disabled
      */
-    public void enableNetworkStateReceiver () {
+    private void enableNetworkStateReceiver () {
         if (!isNetworkStateReceiver) {
             ComponentName receiver = new ComponentName(appContext, NetworkStateReceiver.class);
             PackageManager pm = appContext.getPackageManager();
@@ -138,6 +148,7 @@ public class ServerSyncManager {
     public void addSyncItem (ServerSyncItem syncItem) {
         syncDataSource.addSyncItem(syncItem);
         syncQueue.add(syncItem);
+        enableNetworkStateReceiver();
     }
 
     /**
@@ -155,7 +166,7 @@ public class ServerSyncManager {
      * @param syncItem
      */
     private void sendConversationMessage (final ServerSyncItem syncItem) {
-        Message message = conversationDataSource.getMessageByMessageId(syncItem.itemId);
+        Message message = conversationManager.getMessageByMessageId(syncItem.itemId);
         if (message == null) {
             return;
         }
@@ -183,7 +194,7 @@ public class ServerSyncManager {
         chatServerManager.sendConversationMessage(
                 message.getSenderId(),
                 message.getConversationId(),
-                conversationDataSource.getConversationAttendeesIds(message.getConversationId()),
+                conversationManager.getConversationAttendeesIds(message.getConversationId()),
                 message.getMessageText(),
                 String.valueOf(message.getMessageId()),
                 attachments
@@ -229,8 +240,8 @@ public class ServerSyncManager {
         Integer myId = (int) account.id;
         //for http server, syncItem.itemId = conversationId; for chat server, syncItem.itemId = eventId
         if (syncItem.server == DatabaseValues.ServerSync.SERVER_HTTP) { //sync with http server
-            List<String> attendeeIds = conversationDataSource.getConversationAttendeesIds(syncItem.itemId);
-            Conversation conversation = conversationDataSource.getConversation(syncItem.itemId, false, false);
+            List<String> attendeeIds = conversationManager.getConversationAttendeesIds(syncItem.itemId);
+            Conversation conversation = conversationManager.getConversation(syncItem.itemId, false, false);
             if (httpServerManager.createEventConversation(
                     conversation.eventId,
                     syncItem.itemId,
@@ -242,14 +253,14 @@ public class ServerSyncManager {
                 processServerSyncItems();
             }
         } else { //send through chat server
-            List<Conversation> conversations = conversationDataSource.getConversations(syncItem.itemId);
+            List<Conversation> conversations = conversationManager.getConversations(syncItem.itemId);
             if (conversations.isEmpty()) {
                 removeSyncItem();
                 processServerSyncItems();
                 return;
             }
             Conversation conversation = conversations.get(0);
-            List<String> attendeesId = conversationDataSource.getConversationAttendeesIds(conversation.id);
+            List<String> attendeesId = conversationManager.getConversationAttendeesIds(conversation.id);
             chatServerManager.startEventConversation(String.valueOf(myId), syncItem.itemId, attendeesId);
         }
     }
@@ -263,8 +274,11 @@ public class ServerSyncManager {
 
         // syncItem.itemID = conversationId
         if (syncItem.server == DatabaseValues.ServerSync.SERVER_HTTP) { //sync with http server
-            List<String> attendeeIds = conversationDataSource.getConversationAttendeesIds(syncItem.itemId);
-            Conversation conversation = conversationDataSource.getConversation(syncItem.itemId, false, false);
+            List<String> attendeeIds = conversationManager.getConversationAttendeesIds(syncItem.itemId);
+            if (!saveUnregisteredAttendees(attendeeIds)) {
+                return;
+            }
+            Conversation conversation = conversationManager.getConversation(syncItem.itemId, false, false);
             if (httpServerManager.createConversation(
                     syncItem.itemId,
                     conversation.name,
@@ -275,15 +289,62 @@ public class ServerSyncManager {
                 processServerSyncItems();
             }
         } else { //send through chat server
-            Conversation conversation = conversationDataSource.getConversation(syncItem.itemId, false, false);
+            Conversation conversation = conversationManager.getConversation(syncItem.itemId, false, false);
             if (conversation == null) {
                 removeSyncItem();
                 processServerSyncItems();
                 return;
             }
-            List<String> attendeesId = conversationDataSource.getConversationAttendeesIds(syncItem.itemId);
+            List<String> attendeesId = conversationManager.getConversationAttendeesIds(syncItem.itemId);
             chatServerManager.startConversation(String.valueOf(myId), syncItem.itemId, attendeesId);
         }
+    }
+
+    private boolean saveUnregisteredAttendees(List<String> attendeesId) {
+        for (int i = 0; i< attendeesId.size(); i++) {
+            if (attendeesId.get(i).startsWith("-")) {
+                Attendee attendee = conversationManager.getUserById(attendeesId.get(i));
+                if (attendee == null) {
+                    Toast.makeText(appContext, R.string.error_create_chat, Toast.LENGTH_SHORT).show();
+                    return false;
+                }
+
+                int responseCode = httpServerManager.createUser(
+                        attendee.email,
+                        attendee.firstName,
+                        attendee.email,
+                        attendee.lastName,
+                        null,
+                        null,
+                        attendee.userName,
+                        CreateChatActivity.DEFAULT_USER_PASSWORD );
+
+                switch (responseCode) {
+                    case HttpServerManager.STATUS_EXCEPTION: //cannot connect with server
+                        return false;
+                    case HttpServerManager.STATUS_ERROR: //user with email or phone already in server database
+                        JSONObject object = httpServerManager.getUserByEmail(attendee.email);
+                        try {
+                            attendee.id = object.getString(HttpServerManager.UID);
+                        } catch (JSONException e) {
+                            Toast.makeText(appContext, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            return false;
+                        }
+                        break;
+                    default: //user created on http server; returns userId
+                        attendee.id = String.valueOf(responseCode);
+                        break;
+                }
+
+                if (conversationManager.updateUserId(attendeesId.get(i), attendee.id)) {
+                    attendeesId.set(i, attendee.id);
+                } else {
+                    Toast.makeText(appContext, R.string.error_update_attendee, Toast.LENGTH_SHORT).show();
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     private void updateSyncItems(String originalId, String newId) {

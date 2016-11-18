@@ -1,17 +1,12 @@
 package com.mono.chat;
 
 import android.app.Activity;
-import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.support.v4.app.FragmentActivity;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -28,6 +23,7 @@ import com.mono.AccountManager;
 import com.mono.EventManager;
 import com.mono.R;
 import com.mono.contacts.ContactsActivity;
+import com.mono.contacts.ContactsManager;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.DatabaseValues;
 import com.mono.db.dao.AttendeeDataSource;
@@ -59,7 +55,7 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
 
     private static final long TIMER_TIMEOUT_MS = 5000;
 
-    private static final String DEFAULT_USER_PASSWORD = Common.md5("@SuperCalyUser");
+    public static final String DEFAULT_USER_PASSWORD = Common.md5("@SuperCalyUser");
     private static final int TIMER_TYPE_NULL = 0;
     private static final int TIMER_TYPE_EVENT_CONVERSATION = 97146;
     private static final int TIMER_TYPE_CONVERSATION = 33148;
@@ -69,18 +65,20 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
     private int timerType;
     private String conversationId;
     private String confirmationId;
-    private String myId;
-    private List<String> listChatAttendeeIds = new ArrayList<>(); //all attendees in the checkbox list
+    private Attendee me;
+    private List<Attendee> listChatAttendees = new ArrayList<>(); //all attendees in the checkbox list
     private List<String> checkedChatAttendeeIds = new ArrayList<>(); //check attendees
     private HttpServerManager httpServerManager;
     private ChatServerManager chatServerManager;
     private ServerSyncManager serverSyncManager;
     private EventManager eventManager;
     private ConversationManager conversationManager;
+    private ContactsManager contactsManager;
     private LinearLayout checkBoxLayout;
     private CompoundButton.OnCheckedChangeListener checkedChangeListener;
     private EditText titleInput;
     private Event event;
+    private Random random;
 
     private ConversationDataSource conversationDataSource;
 
@@ -120,6 +118,8 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
         eventManager = EventManager.getInstance(this);
         conversationManager = ConversationManager.getInstance(this);
         conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
+        contactsManager = ContactsManager.getInstance(this);
+        random = new Random();
 
         conversationManager.addChatAckListener(this);
 
@@ -129,7 +129,7 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
         checkedChangeListener = new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton checkBox, boolean isChecked) {
-                String id = checkBox.getId() + "";
+                String id = (String) checkBox.getTag();
                 if (isChecked) {
                     if (!checkedChatAttendeeIds.contains(id))
                         checkedChatAttendeeIds.add(id);
@@ -140,10 +140,9 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
         };
 
         Account account = AccountManager.getInstance(this).getAccount();
-        myId = account.id + "";
-
+        me = new Attendee(String.valueOf(account.id), null, account.email, account.phone, account.firstName, account.lastName, account.username, false, false);
+        
         //add user self to list but does not show
-        Attendee me = new Attendee(myId, null, account.email, account.phone, account.firstName, account.lastName, account.username, false, false);
         addCheckBoxFromAttendee(me);
         if (event != null) {
             if ("UTC".equals(event.timeZone)) { //holiday, all day event
@@ -151,11 +150,11 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
                 event.endTime = event.startTime;
             }
             AttendeeDataSource attendeeDataSource = DatabaseHelper.getDataSource(this, AttendeeDataSource.class);
-            replaceWithDatabaseAttendees(event.attendees, attendeeDataSource);
+            replaceWithDatabaseAttendees(event.attendees);
             titleInput.setText(event.title, TextView.BufferType.EDITABLE);
             //add other event attendees
             for (Attendee attendee : event.attendees) {
-                if (attendee.id.equals(myId)) {
+                if (attendee.id.equals(me.id)) {
                     continue;
                 }
                 addCheckBoxFromAttendee(attendee);
@@ -210,6 +209,7 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
             serverSyncManager.addSyncItem(syncItem);
             Toast.makeText(this, R.string.network_error_sync_text, Toast.LENGTH_LONG).show();
         }
+        finish();
     }
 
     @Override
@@ -277,7 +277,7 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
     }
 
     private void createChat() {
-        if (checkedChatAttendeeIds.size() <= 1) { //myID should always be in the list
+        if (checkedChatAttendeeIds.size() <= 1) { //me.id should always be in the list
             Toast.makeText(this, R.string.error_chat_participant, Toast.LENGTH_LONG).show();
             return;
         }
@@ -287,11 +287,17 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
             return;
         }
 
+        if (!saveUnregisteredChatAttendees()) {
+            return;
+        }
+
         // save conversation to local database
-        saveConversationToDB(conversationTitle, myId, checkedChatAttendeeIds);
+        if (!saveConversationToDB(conversationTitle, me.id, checkedChatAttendeeIds)) {
+            return;
+        }
 
         // create conversation on http server
-        if (!httpServerManager.createConversation(conversationId, conversationTitle, Integer.valueOf(myId), checkedChatAttendeeIds)) {
+        if (!httpServerManager.createConversation(conversationId, conversationTitle, Integer.valueOf(me.id), checkedChatAttendeeIds)) {
             // add conversation to sync queue if unsuccessful
             ServerSyncItem syncItem = new ServerSyncItem(
                     conversationId, DatabaseValues.ServerSync.TYPE_CONVERSATION, DatabaseValues.ServerSync.SERVER_HTTP);
@@ -302,22 +308,25 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
             Toast.makeText(this, R.string.network_error_sync_text, Toast.LENGTH_LONG).show();
         } else {
             // send conversation through chat server
-            chatServerManager.startConversation(myId, conversationId, checkedChatAttendeeIds);
+            chatServerManager.startConversation(me.id, conversationId, checkedChatAttendeeIds);
 
             timerType = TIMER_TYPE_CONVERSATION;
             timer.start();
             isRunning = true;
         }
 
-        Conversation conversation = new Conversation(conversationId, myId, conversationTitle, null, null);
+        Conversation conversation = new Conversation(conversationId, me.id, conversationTitle, null, null);
         conversationManager.notifyListenersNewConversation(conversation, 0);
 
-        startChatRoomActivity(0, 0, false, conversationId, myId);
-        finish();
+        startChatRoomActivity(0, 0, false, conversationId, me.id);
+
+        if (!isRunning) {
+            finish();
+        }
     }
 
     private void createEventChat() {
-        if (checkedChatAttendeeIds.size() <= 1) { //myID should always be in the list
+        if (checkedChatAttendeeIds.size() <= 1) { //me.id should always be in the list
             Toast.makeText(this, R.string.error_chat_participant, Toast.LENGTH_LONG).show();
             return;
         }
@@ -326,7 +335,23 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
             Toast.makeText(this, R.string.error_chat_title, Toast.LENGTH_LONG).show();
             return;
         }
-        removeNonFriendAttendees(event.attendees);
+
+        for (Attendee attendee : event.attendees) {
+            if (attendee.id.startsWith("-")) {
+                int index = checkedChatAttendeeIds.indexOf(attendee.id);
+                if (!saveUnregisteredAttendee(attendee)) {
+                    Toast.makeText(this, R.string.error_create_chat, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (index >= 0) {
+                    checkedChatAttendeeIds.set(index, attendee.id);
+                }
+            }
+        }
+
+        if (!saveUnregisteredChatAttendees()) {
+            return;
+        }
 
         //save provider event to local database
         event.id = saveProviderEventToDB(event);
@@ -336,11 +361,13 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
         }
 
         //save conversation to local database
-        saveEventConversationToDB(conversationTitle, event);
+        if (!saveEventConversationToDB(conversationTitle, event)) {
+            return;
+        }
 
         //create event on http server
         confirmationId = httpServerManager.createEvent(event.id, event.type, event.title,
-                event.location == null ? null : event.location.name, event.startTime, event.endTime, Integer.valueOf(myId), event.createTime, event.getAttendeeIdList());
+                event.location == null ? null : event.location.name, event.startTime, event.endTime, Integer.valueOf(me.id), event.createTime, event.getAttendeeIdList());
 
         if (confirmationId == null) { //handle when http server did not create event: save event and conversation and put them in server sync queue
             //add event to sync queue
@@ -355,52 +382,117 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
             event.id = confirmationId;
 
             //handle when http server did not create event_conversation: save event_conversation to database and add to sync queue
-            if (!httpServerManager.createEventConversation(confirmationId, conversationId, conversationTitle, Integer.valueOf(myId), checkedChatAttendeeIds)) {
+            if (!httpServerManager.createEventConversation(confirmationId, conversationId, conversationTitle, Integer.valueOf(me.id), checkedChatAttendeeIds)) {
                 addEventConversationToSyncQueue(event);
                 Toast.makeText(this, R.string.network_error_sync_text, Toast.LENGTH_LONG).show();
             } else {
                 //send EventConversation through chat server and starts count down timer to add to sync queue
-                chatServerManager.startEventConversation(myId, confirmationId, checkedChatAttendeeIds);
+                chatServerManager.startEventConversation(me.id, confirmationId, checkedChatAttendeeIds);
                 timerType = TIMER_TYPE_EVENT_CONVERSATION;
                 timer.start();
                 isRunning = true;
             }
         }
-        Conversation conversation = new Conversation(conversationId, confirmationId, myId, conversationTitle, null, null);
+        Conversation conversation = new Conversation(conversationId, confirmationId, me.id, conversationTitle, null, null);
         conversationManager.notifyListenersNewConversation(conversation, 0);
 
-        startChatRoomActivity(event.startTime, event.endTime, event.allDay, conversationId, myId);
-        finish();
-    }
-
-    private void saveEventConversationToDB (String conversationTitle, Event event) {
-        conversationId = conversationManager.getUniqueConversationId();
-        if (conversationDataSource.createEventConversation(
-                event.id,
-                conversationId,
-                conversationTitle,
-                myId,
-                checkedChatAttendeeIds,
-                true
-        )) {
-            Conversation conversation = conversationDataSource.getConversation(conversationId, false, false);
-            conversationManager.notifyListenersNewConversation(conversation, 0);
-        } else {
-            Toast.makeText(this, R.string.error_saving_chat, Toast.LENGTH_LONG).show();
+        startChatRoomActivity(event.startTime, event.endTime, event.allDay, conversationId, me.id);
+        if (!isRunning) {
+            finish();
         }
     }
 
-    private void saveConversationToDB (String title, String creatorId, List<String> attendeesId) {
+    // go through checkedAttendeeIds and save unregistered attendees (those with negative ids) on server
+    private boolean saveUnregisteredChatAttendees() {
+        for (int j = 0; j < checkedChatAttendeeIds.size(); j++) {
+            String attendeeId = checkedChatAttendeeIds.get(j);
+            if (attendeeId.startsWith("-")) {
+                Attendee attendee = null;
+                for (int i = 0; i < listChatAttendees.size(); i++) {
+                    if (attendeeId.equals(listChatAttendees.get(i).id)) {
+                        attendee = listChatAttendees.get(i);
+                        break;
+                    }
+                }
+                if (attendee == null) {
+                    Toast.makeText(this, R.string.error_create_chat, Toast.LENGTH_SHORT).show();
+                    return false;
+                }
+                if (!saveUnregisteredAttendee(attendee)) {
+                    return false;
+                }
+                checkedChatAttendeeIds.set(j, attendee.id);
+            }
+        }
+        return true;
+    }
+
+    private boolean saveUnregisteredAttendee(Attendee attendee) {
+        attendee.firstName = (attendee.firstName == null ? "" : attendee.firstName);
+        attendee.lastName = (attendee.lastName == null ? "" : attendee.lastName);
+        attendee.userName = (attendee.userName == null || attendee.userName.isEmpty() ? attendee.email : attendee.userName);
+
+        int responseCode = httpServerManager.createUser(
+                attendee.email,
+                attendee.firstName,
+                attendee.email,
+                attendee.lastName,
+                null,
+                null,
+                attendee.userName,
+                DEFAULT_USER_PASSWORD );
+
+        switch (responseCode) {
+            case HttpServerManager.STATUS_EXCEPTION: //cannot connect with server
+                break;
+            case HttpServerManager.STATUS_ERROR: //user with email or phone already in server database
+                JSONObject object = httpServerManager.getUserByEmail(attendee.email);
+                try {
+                    attendee.id = object.getString(HttpServerManager.UID);
+                } catch (JSONException e) {
+                    Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    return false;
+                }
+                break;
+            default: //user created on http server; returns userId
+                attendee.id = String.valueOf(responseCode);
+                break;
+        }
+
+        if (!conversationManager.saveUserToDB(attendee)) {
+            Toast.makeText(this, R.string.error_create_attendee, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean saveEventConversationToDB (String conversationTitle, Event event) {
         conversationId = conversationManager.getUniqueConversationId();
-        conversationDataSource.createConversation(
+        if (!conversationDataSource.createEventConversation(
+                event.id,
+                conversationId,
+                conversationTitle,
+                me.id,
+                checkedChatAttendeeIds,
+                true
+        )) {
+            Toast.makeText(this, R.string.error_saving_chat, Toast.LENGTH_LONG).show();
+            return false;
+        }
+        return true;
+    }
+
+    private boolean saveConversationToDB (String title, String creatorId, List<String> attendeesId) {
+        conversationId = conversationManager.getUniqueConversationId();
+        confirmationId = conversationId;
+        return conversationDataSource.createConversation(
                 conversationId,
                 title,
                 creatorId,
                 attendeesId,
                 true
-
         );
-        confirmationId = conversationId;
     }
 
     private void addEventConversationToSyncQueue (Event event) {
@@ -413,32 +505,27 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
     }
 
     private void addCheckBoxFromAttendee (Attendee attendee) {
-        if (listChatAttendeeIds.contains(attendee.id)) { //do not add duplicate attendees
+        if (listChatAttendees.contains(attendee)) { //do not add duplicate attendees
             Toast.makeText(this, R.string.error_duplicate_attendee, Toast.LENGTH_SHORT).show();
             return;
         }
 
-        if (attendee.id.equals(myId)) { //add user self to list but do not show
-            listChatAttendeeIds.add(myId);
-            checkedChatAttendeeIds.add(myId);
+        if (attendee.id.equals(me.id)) { //add user self to list but do not show
+            listChatAttendees.add(me);
+            checkedChatAttendeeIds.add(me.id);
             return;
         }
 
         ViewGroup.LayoutParams params = new ViewGroup.LayoutParams (ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         CheckBox checkBox = new CheckBox(this);
         checkBox.setLayoutParams(params);
-        checkBox.setId(Integer.valueOf(attendee.id));
+        checkBox.setTag(attendee.id);
         checkBox.setText(attendee.toString());
+        checkBox.setChecked(true);
+        checkBox.setEnabled(true);
+        checkedChatAttendeeIds.add(attendee.id);
 
-        if (attendee.isFriend) {
-            checkBox.setChecked(true);
-            checkBox.setEnabled(true);
-            checkedChatAttendeeIds.add(attendee.id);
-        } else {
-            checkBox.setChecked(false);
-            checkBox.setEnabled(false);
-        }
-        listChatAttendeeIds.add(attendee.id);
+        listChatAttendees.add(attendee);
         checkBox.setOnCheckedChangeListener(checkedChangeListener);
         checkBoxLayout.addView(checkBox);
     }
@@ -454,13 +541,23 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
         startActivity(intent);
     }
 
-
-
-    private void replaceWithDatabaseAttendees (List<Attendee> attendeeList, AttendeeDataSource dataSource) {
+    private void replaceWithDatabaseAttendees (List<Attendee> attendeeList) {
         for (int i = 0; i < attendeeList.size(); i++) {
-            Attendee dbAttendee = dataSource.getAttendeeByEmail(attendeeList.get(i).email);
+            Attendee attendee = attendeeList.get(i);
+            Attendee dbAttendee = conversationManager.getAttendeeByEmail(attendee.email);
             if (dbAttendee != null) {
                 attendeeList.set(i, dbAttendee);
+            } else { //set id to negative number as tag for saving on server later
+                Contact providerContact = contactsManager.getContact(attendee.email, attendee.phoneNumber);
+                if (providerContact != null) {
+                    attendee.firstName = providerContact.firstName;
+                    attendee.lastName = providerContact.lastName;
+                }
+                String attendeeId = String.valueOf(-random.nextInt(Integer.MAX_VALUE - 1) - 1);
+                while (checkedChatAttendeeIds.contains(attendeeId)) {
+                    attendeeId = String.valueOf(-random.nextInt(Integer.MAX_VALUE - 1) - 1);
+                }
+                attendee.id = attendeeId;
             }
         }
     }
@@ -523,64 +620,27 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
 
                 String id = String.valueOf(contact.id);
 
-                //add existing SuerCaly user to checked list
                 Attendee user = conversationManager.getUserById(id);
-                if (user != null) {
-                    addCheckBoxFromAttendee(user);
-                    continue;
+
+                //non-registered user: generate Attendee with negative id for saving on server later
+                if (user == null) {
+                    String attendeeId = String.valueOf(-random.nextInt(Integer.MAX_VALUE - 1) - 1);
+                    while (checkedChatAttendeeIds.contains(attendeeId)) {
+                        attendeeId = String.valueOf(-random.nextInt(Integer.MAX_VALUE - 1) - 1);
+                    }
+                    user = new Attendee(
+                            attendeeId,
+                            null,
+                            emails[0],
+                            null,
+                            contact.firstName,
+                            contact.lastName,
+                            contact.toString(),
+                            false,
+                            true
+                    );
                 }
-
-                //non-registered user: save user in http server first
-                user = new Attendee(id);
-                user.email = emails[0];
-
-                String[] phones = contact.getPhones();
-                if (phones != null && phones.length > 0) {
-                    user.phoneNumber = phones[0];
-                }
-
-                user.firstName = contact.firstName;
-                user.lastName = contact.lastName;
-
-                if (contact.displayName != null && !contact.displayName.isEmpty()) {
-                    user.userName = contact.displayName;
-                } else {
-                    user.userName = user.firstName + user.lastName;
-                }
-
                 user.isFriend = true;
-
-                int responsCode = httpServerManager.createUser(
-                        user.email,
-                        user.firstName,
-                        user.email,
-                        user.lastName,
-                        user.mediaId,
-                        user.phoneNumber,
-                        user.userName,
-                        DEFAULT_USER_PASSWORD );
-
-                switch (responsCode) {
-                    case HttpServerManager.STATUS_EXCEPTION: //cannot connect with server
-                        //TODO: put contact in server sync queue
-                        continue;
-                    case HttpServerManager.STATUS_ERROR: //user with email or phone already in server database
-                        JSONObject object = httpServerManager.getUserByEmail(user.email);
-                        try {
-                            user.id = object.getString(HttpServerManager.UID);
-                        } catch (JSONException e) {
-                            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                        }
-                        break;
-                    default: //user created on http server; returns userId
-                        user.id = String.valueOf(responsCode);
-                        break;
-                }
-
-                if (!conversationManager.saveUserToDB(user)) {
-                    Toast.makeText(this, R.string.error_create_attendee, Toast.LENGTH_SHORT).show();
-                    continue;
-                }
                 addCheckBoxFromAttendee(user);
             }
         }
@@ -592,5 +652,6 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
             timer.cancel();
             isRunning = false;
         }
+        finish();
     }
 }

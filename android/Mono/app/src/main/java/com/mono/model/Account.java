@@ -17,6 +17,7 @@ public class Account implements Parcelable {
     public String username;
     public String firstName;
     public String lastName;
+    public String mediaId;
     public String email;
     public String phone;
     public int status;

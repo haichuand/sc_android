@@ -32,6 +32,9 @@ public class Contact implements Parcelable {
     public String firstName;
     public String middleName;
     public String lastName;
+    public String userName;
+    public String fcmId;
+    public String mediaId;
 
     public byte[] photo;
 
@@ -247,5 +250,22 @@ public class Contact implements Parcelable {
 
     public boolean containsPhone(String phone) {
         return hasPhones() && phones.containsValue(phone);
+    }
+
+    @Override
+    public String toString() {
+        if (displayName != null && !displayName.isEmpty()){
+            return displayName;
+        }
+        if (fullName != null && !fullName.isEmpty()) {
+            return fullName;
+        }
+        if (firstName != null && !firstName.isEmpty()) {
+            if (lastName != null && !lastName.isEmpty()) {
+                return firstName + " " + lastName;
+            }
+            return firstName;
+        }
+        return null;
     }
 }

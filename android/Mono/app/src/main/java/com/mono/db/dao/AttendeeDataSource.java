@@ -49,7 +49,7 @@ public class AttendeeDataSource extends DataSource {
 
     public boolean createAttendeeWithAttendeeId(String attendeeId, String mediaId, String email,
             String phoneNumber, String firstName, String lastName, String userName,
-            boolean favorite, boolean friend) {
+            boolean favorite, boolean friend, int suggested) {
         ContentValues values = new ContentValues();
         values.put(DatabaseValues.User.U_ID, attendeeId);
         values.put(DatabaseValues.User.MEDIA_ID, mediaId);
@@ -60,6 +60,7 @@ public class AttendeeDataSource extends DataSource {
         values.put(DatabaseValues.User.USER_NAME, userName);
         values.put(DatabaseValues.User.FAVORITE, favorite ? 1 : 0);
         values.put(DatabaseValues.User.FRIEND, friend ? 1 : 0);
+        values.put(DatabaseValues.User.SUGGESTED, suggested);
 
         try {
             database.insert(DatabaseValues.User.TABLE, values);
@@ -73,7 +74,7 @@ public class AttendeeDataSource extends DataSource {
 
     public boolean createAttendee (Attendee attendee) {
         return createAttendeeWithAttendeeId(attendee.id, attendee.mediaId, attendee.email, attendee.phoneNumber,
-                attendee.firstName, attendee.lastName, attendee.userName, attendee.isFavorite, attendee.isFriend);
+                attendee.firstName, attendee.lastName, attendee.userName, attendee.isFavorite, attendee.isFriend, attendee.isSuggested);
     }
 
     /**
@@ -186,6 +187,12 @@ public class AttendeeDataSource extends DataSource {
                 id
             }
         );
+    }
+
+    public boolean updateAttendeeId(String originalId, String newId) {
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.User.U_ID, newId);
+        return updateValues(originalId, values) == 1;
     }
 
     public int updateValues(String id, ContentValues values) {

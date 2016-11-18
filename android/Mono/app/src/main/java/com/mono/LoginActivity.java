@@ -123,6 +123,7 @@ public class LoginActivity extends AppCompatActivity {
             account.firstName = responseJson.getString(HttpServerManager.FIRST_NAME);
             account.lastName = responseJson.getString(HttpServerManager.LAST_NAME);
             account.username = responseJson.getString(HttpServerManager.USER_NAME);
+            account.mediaId = responseJson.getString(HttpServerManager.MEDIA_ID);
             account.email = responseJson.getString(HttpServerManager.EMAIL);
             account.phone = responseJson.getString(HttpServerManager.PHONE_NUMBER);
             AccountManager accountManager = AccountManager.getInstance(this);
@@ -139,12 +140,12 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
-    //temporary during development: add all users on server database to client database
+    /*//temporary during development: add all users on server database to client database
     private void resetUserTable(HttpServerManager httpServerManager) {
         AttendeeDataSource attendeeDataSource = DatabaseHelper.getDataSource(this, AttendeeDataSource.class);
         attendeeDataSource.clearAttendeeTable();
         httpServerManager.addAllRegisteredUsersToUserTable(attendeeDataSource);
-    }
+    }*/
 
     /**
      * Start KML service to handle location data, if logged in with Google.

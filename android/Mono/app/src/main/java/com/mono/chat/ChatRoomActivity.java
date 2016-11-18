@@ -431,7 +431,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
                                     DatabaseValues.ServerSync.SERVER_CHAT
                             );
                             serverSyncManager.addSyncItem(syncItem);
-                            serverSyncManager.enableNetworkStateReceiver();
+//                            serverSyncManager.enableNetworkStateReceiver();
                         }
                     }
                 }
@@ -459,7 +459,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
                         DatabaseValues.ServerSync.SERVER_CHAT
                 );
                 serverSyncManager.addSyncItem(syncItem);
-                serverSyncManager.enableNetworkStateReceiver();
+//                serverSyncManager.enableNetworkStateReceiver();
             }
         };
         timerMap.put(message.getMessageId(), timer);

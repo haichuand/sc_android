@@ -187,7 +187,7 @@ public class HttpServerManager {
         return STATUS_EXCEPTION;
     }
 
-    public int addAllRegisteredUsersToUserTable(AttendeeDataSource attendeeDataSource) {
+    /*public int addAllRegisteredUsersToUserTable(AttendeeDataSource attendeeDataSource) {
         JSONObject allUserIds = getAllRegisteredUserIds();
         if (allUserIds == null)
             return 0;
@@ -215,7 +215,7 @@ public class HttpServerManager {
             e.printStackTrace();
         }
         return null;
-    }
+    }*/
 
     public JSONObject getUserInfo(int userId) {
         try {

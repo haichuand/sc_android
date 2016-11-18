@@ -41,6 +41,7 @@ public class ConversationManager {
         conversationDataSource = DatabaseHelper.getDataSource(context, ConversationDataSource.class);
         attendeeDataSource = DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
         eventDataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+        initAllUserMap();
     }
 
     public static ConversationManager getInstance(Context context) {
@@ -115,6 +116,14 @@ public class ConversationManager {
         }
     }
 
+    public Message getMessageByMessageId (String messageId) {
+        return conversationDataSource.getMessageByMessageId(messageId);
+    }
+
+    public List<String> getConversationAttendeesIds(String conversationId) {
+        return conversationDataSource.getConversationAttendeesIds(conversationId);
+    }
+
     public List<Message> getChatMessages(String conversationId) {
         return conversationDataSource.getConversationMessages(conversationId);
     }
@@ -183,6 +192,16 @@ public class ConversationManager {
     public boolean saveUserToDB(Attendee attendee) {
         if (attendeeDataSource.createAttendee(attendee)) {
             allUserMap.put(attendee.id, attendee);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean updateUserId(String originalId, String newId) {
+        if (attendeeDataSource.updateAttendeeId(originalId, newId)) {
+            Attendee attendee = allUserMap.remove(originalId);
+            attendee.id = newId;
+            allUserMap.put(newId, attendee);
             return true;
         }
         return false;
@@ -263,6 +282,10 @@ public class ConversationManager {
         }
 
         return attendeeStringList;
+    }
+
+    public Attendee getAttendeeByEmail(String email) {
+        return attendeeDataSource.getAttendeeByEmail(email);
     }
 
     public static String getRandomId () {

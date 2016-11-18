@@ -2,8 +2,10 @@ package com.mono.contacts;
 
 import android.content.Context;
 import android.os.AsyncTask;
+import android.widget.Toast;
 
 import com.mono.AccountManager;
+import com.mono.R;
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.AttendeeDataSource;
 import com.mono.model.Account;
@@ -35,6 +37,7 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
     private ContactsManager manager;
     private ContactsProvider provider;
     private Settings settings;
+    private AttendeeDataSource attendeeDataSource;
 
     public SuggestionsTask(Context context, long startId) {
         this.context = context;
@@ -43,6 +46,7 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
         manager = ContactsManager.getInstance(context);
         provider = ContactsProvider.getInstance(context);
         settings = Settings.getInstance(context);
+        attendeeDataSource = DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
     }
 
     @Override
@@ -52,8 +56,10 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
         List<Contact> result = new ArrayList<>();
 
         // Retrieve Suggestions from Server
-        for (Contact contact : provider.getContacts(startId, true)) {
-            for (Contact suggestion : checkSuggestions(contact)) {
+        List<Contact> contacts = provider.getContacts(startId, true);
+        for (Contact contact : contacts) {
+            Contact suggestion = checkSuggestions(contact);
+            if (suggestion != null) {
                 result.add(suggestion);
                 publishProgress(suggestion);
             }
@@ -111,7 +117,7 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
      * @param contact The instance of the contact.
      * @return a list of suggestions.
      */
-    public List<Contact> checkSuggestions(Contact contact) {
+    public Contact checkSuggestions(Contact contact) {
         return checkSuggestions(contact, getSuggestionsIgnoreList());
     }
 
@@ -122,9 +128,8 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
      * @param exclude The list of contacts to be excluded.
      * @return a list of suggestions.
      */
-    public List<Contact> checkSuggestions(Contact contact, List<Contact> exclude) {
-        List<Contact> result = new ArrayList<>();
-
+    public Contact checkSuggestions(Contact contact, List<Contact> exclude) {
+        Contact suggestion = null;
         HttpServerManager manager = HttpServerManager.getInstance(context);
 
         // Cross-reference by Emails
@@ -137,14 +142,20 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
                     continue;
                 }
 
-                Contact suggestion = parse(json, contact);
+                suggestion = parse(json, contact);
 
                 if (suggestion != null) {
-                    if (exclude != null && exclude.contains(suggestion)) {
+                    //pass if fcmId is email, i.e. temporary user
+                    if (suggestion.fcmId.contains("@")) {
                         continue;
                     }
 
-                    result.add(suggestion);
+                    if (exclude != null && exclude.contains(suggestion)) {
+                        continue;
+                    }
+                    suggestion.isSuggested = Contact.SUGGESTION_PENDING;
+                    saveSuggestionToDB(contact, suggestion);
+                    return suggestion;
                 }
             }
         }
@@ -158,19 +169,24 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
                     continue;
                 }
 
-                Contact suggestion = parse(json, contact);
+                suggestion = parse(json, contact);
 
                 if (suggestion != null) {
-                    if (exclude != null && exclude.contains(suggestion)) {
+                    //pass if fcmId is email, i.e. temporary user
+                    if (suggestion.fcmId.contains("@")) {
                         continue;
                     }
 
-                    result.add(suggestion);
+                    if (exclude != null && exclude.contains(suggestion)) {
+                        continue;
+                    }
+                    suggestion.isSuggested = Contact.SUGGESTION_PENDING;
+                    saveSuggestionToDB(contact, suggestion);
                 }
             }
         }
 
-        return result;
+        return suggestion;
     }
 
     /**
@@ -195,6 +211,7 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
             String firstName = json.getString(HttpServerManager.FIRST_NAME);
             String lastName = json.getString(HttpServerManager.LAST_NAME);
             String userName = json.getString(HttpServerManager.USER_NAME);
+            String fcmId = json.getString(HttpServerManager.FCM_ID);
 
             result = new Contact(Long.parseLong(id), Contact.TYPE_USER);
             if (!Common.isEmpty(email)) {
@@ -207,6 +224,8 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
             result.displayName = contact.displayName;
             result.firstName = firstName;
             result.lastName = lastName;
+            result.userName = userName;
+            result.fcmId = fcmId;
 
             result.photo = !Common.isEmpty(mediaId) ? null : contact.photo;
         } catch (JSONException e) {
@@ -239,5 +258,20 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
         }
 
         return contact;
+    }
+
+    private boolean saveSuggestionToDB (Contact original, Contact suggestion) {
+        return attendeeDataSource.createAttendeeWithAttendeeId(
+                String.valueOf(suggestion.id),
+                suggestion.mediaId,
+                suggestion.emails.get(Contact.DEFAULT_EMAIL_KEY),
+                suggestion.phones == null ? (original.phones == null ? null : original.phones.get(Contact.DEFAULT_PHONE_KEY)) : suggestion.phones.get(Contact.DEFAULT_PHONE_KEY),
+                suggestion.firstName == null || suggestion.firstName.isEmpty() ? original.firstName : suggestion.firstName,
+                suggestion.lastName == null || suggestion.lastName.isEmpty() ? original.lastName : suggestion.lastName,
+                suggestion.userName,
+                false,
+                false,
+                Contact.SUGGESTION_PENDING
+        );
     }
 }

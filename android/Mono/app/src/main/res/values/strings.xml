@@ -212,5 +212,7 @@
     <string name="error_no_email">Chat attendee must have a valid email address</string>
     <string name="error_duplicate_attendee">Chat attendee already in list</string>
     <string name="error_create_attendee">Error creating attendee in database</string>
+    <string name="error_update_attendee">Error updating attendee in database</string>
     <string name="title_activity_create_chat">CreateChatActivity</string>
+    <string name="error_create_chat">Error creating chat. Please try later</string>
 </resources>
