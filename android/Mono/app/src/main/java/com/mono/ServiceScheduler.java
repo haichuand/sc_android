@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.CalendarContract;
 
+import com.mono.contacts.ContactsManager;
 import com.mono.contacts.SuggestionsTask;
 import com.mono.model.Calendar;
 import com.mono.provider.CalendarProvider;
@@ -170,7 +171,11 @@ public class ServiceScheduler extends BroadcastReceiver {
             long currentTime = System.currentTimeMillis();
             long milliseconds = settings.getContactsScan();
 
-            if (!force && currentTime - milliseconds < SUGGESTIONS_DELAY) {
+            ContactsManager manager = ContactsManager.getInstance(this);
+            boolean hasSuggestions = !manager.getUsers(ContactsManager.TYPE_SUGGESTIONS, null,
+                0, 0).isEmpty();
+
+            if (!force && hasSuggestions && currentTime - milliseconds < SUGGESTIONS_DELAY) {
                 return;
             }
 

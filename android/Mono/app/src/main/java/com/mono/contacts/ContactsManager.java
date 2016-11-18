@@ -476,8 +476,8 @@ public class ContactsManager {
     /**
      * Save suggested status into the database and update the cache.
      *
-     * @param id The value of the contact ID.
-     * @param value The type of suggestion.
+     * @param id ID of contact.
+     * @param value Type of suggestion.
      */
     public void setSuggested(long id, int value) {
         AttendeeDataSource dataSource =
@@ -485,12 +485,13 @@ public class ContactsManager {
         dataSource.setSuggested(String.valueOf(id), value);
 
         Contact contact = getContact(id, Contact.TYPE_USER);
+
         if (contact != null) {
             contact.isSuggested = value;
-        }
 
-        for (ContactsBroadcastListener listener : listeners) {
-            listener.onSuggestionAdd(contact);
+            for (ContactsBroadcastListener listener : listeners) {
+                listener.onSuggestionAdd(contact);
+            }
         }
     }
 
