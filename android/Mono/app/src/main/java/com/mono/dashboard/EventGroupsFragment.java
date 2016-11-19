@@ -776,7 +776,14 @@ public class EventGroupsFragment extends Fragment implements EventGroupsListList
             if (group == null || !checkEventGroup(event, group)) {
                 String id = String.valueOf((int) (Math.random() * 10000));
 
-                Location location = event.getLocation();
+                Location location;
+                // Prioritize Location Suggestions
+                if (!event.tempLocations.isEmpty()) {
+                    location = event.tempLocations.get(0);
+                } else {
+                    location = event.location;
+                }
+
                 String title = location != null ? location.name : PLACEHOLDER;
 
                 DateTimeZone timeZone = event.allDay ? DateTimeZone.UTC : DateTimeZone.getDefault();
@@ -806,7 +813,14 @@ public class EventGroupsFragment extends Fragment implements EventGroupsListList
      * @return whether event belongs to this group.
      */
     protected boolean checkEventGroup(Event event, EventGroup eventGroup) {
-        Location location = event.getLocation();
+        Location location;
+        // Prioritize Location Suggestions
+        if (!event.tempLocations.isEmpty()) {
+            location = event.tempLocations.get(0);
+        } else {
+            location = event.location;
+        }
+
         String title = location != null ? location.name : PLACEHOLDER;
 
         DateTimeZone timeZone = event.allDay ? DateTimeZone.UTC : DateTimeZone.getDefault();
