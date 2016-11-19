@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -25,7 +26,7 @@ import com.mono.util.Pixels;
 import com.mono.util.SimpleQuickAction;
 import com.mono.util.UriHelper;
 
-import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This class is used to handle the photos section located in Event Details.
@@ -37,12 +38,22 @@ public class PhotoPanel implements EventDetailsActivity.PanelInterface {
     private static final int PHOTO_WIDTH_DP = 120;
     private static final int PHOTO_HEIGHT_DP = 90;
 
+    private static final int TYPE_DEFAULT = 0;
+    private static final int TYPE_SUGGESTIONS = 1;
+
     private static final String[] PHOTO_ACTIONS = {"View", "Remove"};
     private static final int PHOTO_ACTION_VIEW = 0;
     private static final int PHOTO_ACTION_REMOVE = 1;
 
+    private static final String[] PHOTO_SUGGESTIONS_ACTIONS = {"View", "Keep", "Remove"};
+    private static final int PHOTO_SUGGESTIONS_ACTION_VIEW = 0;
+    private static final int PHOTO_SUGGESTIONS_ACTION_ADD = 1;
+    private static final int PHOTO_SUGGESTIONS_ACTION_REMOVE = 2;
+
     private EventDetailsActivity activity;
     private ViewGroup photos;
+    private ViewGroup photoSuggestionsLayout;
+    private ViewGroup photoSuggestions;
 
     private Event event;
 
@@ -53,6 +64,8 @@ public class PhotoPanel implements EventDetailsActivity.PanelInterface {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         photos = (ViewGroup) activity.findViewById(R.id.photos);
+        photoSuggestionsLayout = (ViewGroup) activity.findViewById(R.id.photo_suggestions_layout);
+        photoSuggestions = (ViewGroup) activity.findViewById(R.id.photo_suggestions);
     }
 
     @Override
@@ -77,18 +90,19 @@ public class PhotoPanel implements EventDetailsActivity.PanelInterface {
 
         photos.removeAllViews();
         createPhotoButton();
-        // Handle Photo Suggestions
-        if (event.photos == null || event.photos.isEmpty()) {
-            if (event.tempPhotos != null && !event.tempPhotos.isEmpty()) {
-                event.photos = new ArrayList<>(event.tempPhotos);
-                event.tempPhotos.clear();
-            }
-        }
-
+        // Handle Event Photos
         if (event.photos != null) {
             for (Media photo : event.photos) {
-                createPhoto(photo.uri, photo.thumbnail);
+                createPhoto(TYPE_DEFAULT, photo.uri, photo.thumbnail);
             }
+        }
+        // Handle Photo Suggestions
+        if (!event.tempPhotos.isEmpty()) {
+            for (Media photo : event.tempPhotos) {
+                createPhoto(TYPE_SUGGESTIONS, photo.uri, photo.thumbnail);
+            }
+
+            photoSuggestionsLayout.setVisibility(View.VISIBLE);
         }
     }
 
@@ -96,10 +110,18 @@ public class PhotoPanel implements EventDetailsActivity.PanelInterface {
      * Create a thumbnail from a byte array otherwise attempt to load it using the path given.
      * The resulting thumbnail will be appended to the photo section.
      *
-     * @param uri The image path.
-     * @param data The image data.
+     * @param type Type of photo section.
+     * @param uri Path of image.
+     * @param data Image data.
      */
-    public void createPhoto(Uri uri, byte[] data) {
+    public void createPhoto(final int type, Uri uri, byte[] data) {
+        final ViewGroup container;
+        if (type == TYPE_SUGGESTIONS) {
+            container = photoSuggestions;
+        } else {
+            container = photos;
+        }
+
         LayoutInflater inflater = LayoutInflater.from(activity);
         View view = inflater.inflate(R.layout.photos_item, null, false);
 
@@ -123,14 +145,14 @@ public class PhotoPanel implements EventDetailsActivity.PanelInterface {
         );
         params.setMargins(margin, margin, margin, margin);
 
-        view.setOnClickListener(new View.OnClickListener() {
+        view.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                onPhotoClick(photos.indexOfChild(view));
+                onPhotoClick(type, container.indexOfChild(view));
             }
         });
 
-        photos.addView(view, Math.max(photos.getChildCount() - 1, 0), params);
+        container.addView(view, Math.max(container.getChildCount() - 1, 0), params);
     }
 
     /**
@@ -160,7 +182,7 @@ public class PhotoPanel implements EventDetailsActivity.PanelInterface {
         );
         params.setMargins(margin, margin, margin, margin);
 
-        view.setOnClickListener(new View.OnClickListener() {
+        view.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
                 showPhotoPicker();
@@ -174,16 +196,85 @@ public class PhotoPanel implements EventDetailsActivity.PanelInterface {
      * Handle the action of clicking on the photo button. A popup of additional options will be
      * shown upon click.
      *
-     * @param position The position of the photo.
+     * @param type Type of photo section.
+     * @param position Position of the photo.
      */
-    public void onPhotoClick(int position) {
+    public void onPhotoClick(int type, int position) {
         final int photoPosition = position;
 
-        View view = photos.getChildAt(position);
+        final List<Media> tempPhotos;
+        final ViewGroup container;
+        String[] actions;
+        SimpleQuickAction.SimpleQuickActionListener listener;
+
+        if (type == TYPE_SUGGESTIONS) {
+            tempPhotos = event.tempPhotos;
+            container = photoSuggestions;
+            actions = PHOTO_SUGGESTIONS_ACTIONS;
+
+            listener = new SimpleQuickAction.SimpleQuickActionListener() {
+                @Override
+                public void onActionClick(int position) {
+                    Media photo = tempPhotos.get(photoPosition);
+
+                    switch (position) {
+                        case PHOTO_SUGGESTIONS_ACTION_VIEW:
+                            showPhotoViewer(photo);
+                            break;
+                        case PHOTO_SUGGESTIONS_ACTION_ADD:
+                            if (!event.photos.contains(photo)) {
+                                event.photos.add(photo);
+                                createPhoto(TYPE_DEFAULT, photo.uri, photo.thumbnail);
+                            }
+                            break;
+                        case PHOTO_SUGGESTIONS_ACTION_REMOVE:
+                            tempPhotos.remove(photoPosition);
+                            container.removeViewAt(photoPosition);
+
+                            if (container.getChildCount() == 0) {
+                                photoSuggestionsLayout.setVisibility(View.GONE);
+                            }
+                            break;
+                    }
+                }
+
+                @Override
+                public void onDismiss() {
+
+                }
+            };
+        } else {
+            tempPhotos = event.photos;
+            container = photos;
+            actions = PHOTO_ACTIONS;
+
+            listener = new SimpleQuickAction.SimpleQuickActionListener() {
+                @Override
+                public void onActionClick(int position) {
+                    switch (position) {
+                        case PHOTO_ACTION_VIEW:
+                            Media photo = tempPhotos.get(photoPosition);
+                            showPhotoViewer(photo);
+                            break;
+                        case PHOTO_ACTION_REMOVE:
+                            tempPhotos.remove(photoPosition);
+                            container.removeViewAt(photoPosition);
+                            break;
+                    }
+                }
+
+                @Override
+                public void onDismiss() {
+
+                }
+            };
+        }
+
+        View view = container.getChildAt(position);
 
         SimpleQuickAction actionView = SimpleQuickAction.newInstance(activity);
         actionView.setColor(Colors.getColor(activity, R.color.colorPrimary));
-        actionView.setActions(PHOTO_ACTIONS);
+        actionView.setActions(actions);
 
         int[] location = new int[2];
         view.getLocationInWindow(location);
@@ -194,26 +285,7 @@ public class PhotoPanel implements EventDetailsActivity.PanelInterface {
         int offsetY = view.getHeight();
 
         actionView.setPosition(location[0], location[1], offsetX, offsetY);
-        actionView.setListener(new SimpleQuickAction.SimpleQuickActionListener() {
-            @Override
-            public void onActionClick(int position) {
-                switch (position) {
-                    case PHOTO_ACTION_VIEW:
-                        Media photo = event.photos.get(photoPosition);
-                        showPhotoViewer(photo);
-                        break;
-                    case PHOTO_ACTION_REMOVE:
-                        event.photos.remove(photoPosition);
-                        photos.removeViewAt(photoPosition);
-                        break;
-                }
-            }
-
-            @Override
-            public void onDismiss() {
-
-            }
-        });
+        actionView.setListener(listener);
 
         ViewGroup content = (ViewGroup) activity.findViewById(android.R.id.content);
         if (content != null) {
@@ -224,7 +296,7 @@ public class PhotoPanel implements EventDetailsActivity.PanelInterface {
     /**
      * Display the original photo in the photo viewer.
      *
-     * @param photo The photo to be shown.
+     * @param photo Photo to be shown.
      */
     public void showPhotoViewer(Media photo) {
         Intent intent = new Intent();
@@ -252,8 +324,8 @@ public class PhotoPanel implements EventDetailsActivity.PanelInterface {
      * Handle the result from the photo picker. The result can either be a single or a set of
      * photos returned from the photo picker.
      *
-     * @param resultCode The result code returned from the activity.
-     * @param data The data returned from the activity.
+     * @param resultCode Result code returned from the activity.
+     * @param data Data returned from the activity.
      */
     public void handlePhotoPicker(int resultCode, Intent data) {
         if (resultCode == Activity.RESULT_OK) {
@@ -273,7 +345,7 @@ public class PhotoPanel implements EventDetailsActivity.PanelInterface {
     /**
      * Photos retrieved from the photo picker will be added to the event.
      *
-     * @param contentUri The content URI of the photo.
+     * @param contentUri Content URI of the photo.
      */
     private void addPhoto(Uri contentUri) {
         Uri uri = UriHelper.resolve(activity, contentUri);
@@ -292,6 +364,6 @@ public class PhotoPanel implements EventDetailsActivity.PanelInterface {
         }
         // Add Photo to Event
         event.photos.add(photo);
-        createPhoto(uri, photo.thumbnail);
+        createPhoto(TYPE_DEFAULT, uri, photo.thumbnail);
     }
 }
