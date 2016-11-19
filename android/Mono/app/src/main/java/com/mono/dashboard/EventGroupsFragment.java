@@ -4,6 +4,7 @@ import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.RecyclerView.OnScrollListener;
@@ -59,6 +60,7 @@ public class EventGroupsFragment extends Fragment implements EventGroupsListList
     protected int position;
     protected ListListener listener;
 
+    protected SwipeRefreshLayout refreshLayout;
     protected RecyclerView recyclerView;
     protected SimpleLinearLayoutManager layoutManager;
     protected EventGroupsListAdapter adapter;
@@ -109,7 +111,25 @@ public class EventGroupsFragment extends Fragment implements EventGroupsListList
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_list_2, container, false);
+        View view = inflater.inflate(R.layout.fragment_list, container, false);
+
+        refreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.refresh_layout);
+        refreshLayout.setColorSchemeResources(R.color.colorAccent);
+        refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                dataSource.clear();
+                adapter.notifyDataSetChanged();
+
+                startTime = System.currentTimeMillis();
+                offset = 0;
+                offsetProvider = 0;
+
+                append();
+
+                refreshLayout.setRefreshing(false);
+            }
+        });
 
         recyclerView = (RecyclerView) view.findViewById(R.id.list);
         recyclerView.setVerticalScrollBarEnabled(false);
@@ -142,6 +162,9 @@ public class EventGroupsFragment extends Fragment implements EventGroupsListList
 
         if (dataSource.isEmpty()) {
             startTime = System.currentTimeMillis();
+            offset = 0;
+            offsetProvider = 0;
+
             append();
         }
     }
