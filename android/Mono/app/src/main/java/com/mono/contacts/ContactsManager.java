@@ -531,9 +531,11 @@ public class ContactsManager {
                 }
                 // Handle Suggestions
                 SuggestionsTask task = new SuggestionsTask(context, 0);
-                Contact suggestion = task.checkSuggestions(contact);
-                if (suggestion != null) {
-                    setSuggested(suggestion.id, Contact.SUGGESTION_PENDING);
+                List<Contact> suggestions = task.checkSuggestions(contact);
+                if (!suggestions.isEmpty()) {
+                    for (Contact suggestion : suggestions) {
+                        setSuggested(suggestion.id, Contact.SUGGESTION_PENDING);
+                    }
                 }
             }
         } else {

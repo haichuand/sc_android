@@ -58,10 +58,12 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
         // Retrieve Suggestions from Server
         List<Contact> contacts = provider.getContacts(startId, true);
         for (Contact contact : contacts) {
-            Contact suggestion = checkSuggestions(contact);
-            if (suggestion != null) {
-                result.add(suggestion);
-                publishProgress(suggestion);
+            List<Contact> suggestions = checkSuggestions(contact);
+            for (Contact suggestion : suggestions) {
+                if (suggestion != null) {
+                    result.add(suggestion);
+                    publishProgress(suggestion);
+                }
             }
         }
 
@@ -117,7 +119,7 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
      * @param contact The instance of the contact.
      * @return a list of suggestions.
      */
-    public Contact checkSuggestions(Contact contact) {
+    public List<Contact> checkSuggestions(Contact contact) {
         return checkSuggestions(contact, getSuggestionsIgnoreList());
     }
 
@@ -128,9 +130,10 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
      * @param exclude The list of contacts to be excluded.
      * @return a list of suggestions.
      */
-    public Contact checkSuggestions(Contact contact, List<Contact> exclude) {
-        Contact suggestion = null;
+    public List<Contact> checkSuggestions(Contact contact, List<Contact> exclude) {
+        List<Contact> suggestions = new ArrayList<>();
         HttpServerManager manager = HttpServerManager.getInstance(context);
+        Contact suggestion;
 
         // Cross-reference by Emails
         if (contact.emails != null) {
@@ -155,7 +158,7 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
                     }
                     suggestion.isSuggested = Contact.SUGGESTION_PENDING;
                     saveSuggestionToDB(contact, suggestion);
-                    return suggestion;
+                    suggestions.add(suggestion);
                 }
             }
         }
@@ -182,11 +185,12 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
                     }
                     suggestion.isSuggested = Contact.SUGGESTION_PENDING;
                     saveSuggestionToDB(contact, suggestion);
+                    suggestions.add(suggestion);
                 }
             }
         }
 
-        return suggestion;
+        return suggestions;
     }
 
     /**
