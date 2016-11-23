@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.os.Handler;
 import android.support.v7.app.NotificationCompat;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
@@ -117,6 +118,8 @@ public class MyFcmListenerService extends FirebaseMessagingService {
 
             message.attachments = attachments;
         }
+
+        int missCount = 0;
         if (isAckMessage) {
             if (!conversationManager.setConversationMessageAckAndTimestamp(messageId, true, timestamp)) {
                 Log.e(TAG, "Error changing ACK for messageId: " + messageId);
@@ -124,12 +127,19 @@ public class MyFcmListenerService extends FirebaseMessagingService {
             serverSyncManager.handleAckConversationMessage(message);
         } else {
             conversationManager.saveChatMessageToDB(message);
+            if (!conversationId.equals(conversationManager.getActiveConversationId())) {
+                missCount = conversationManager.incrementConversationMissCount(conversationId);
+                if (missCount == -1) {
+                    return;
+                }
+            }
         }
 
+        final int missCountFinal = missCount;
         handler.post(new Runnable() {
             @Override
             public void run() {
-                conversationManager.notifyListenersNewConversationMessage(message);
+                conversationManager.notifyListenersNewConversationMessage(message, missCountFinal);
             }
         });
         if (!isAckMessage && !conversationId.equals(conversationManager.getActiveConversationId())) {
@@ -249,7 +259,7 @@ public class MyFcmListenerService extends FirebaseMessagingService {
 
         //create conversation in local database
         ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
-        conversationDataSource.createEventConversation(eventId, conversationId, conversationTitle, creatorId, attendeesIdList, false);
+        conversationDataSource.createEventConversation(eventId, conversationId, conversationTitle, creatorId, attendeesIdList, false, 1);
 
         sendNotification(creatorName + " invited you to chat: " + conversationTitle + "\nAttendees: " + Common.implode(", ", attendeesNameList));
 
@@ -318,13 +328,17 @@ public class MyFcmListenerService extends FirebaseMessagingService {
                 }
             }
             //save conversation to local database
-            conversationManager.createConversation(
+            if (!conversationManager.createConversation(
                     conversationId,
                     title,
                     String.valueOf(creatorId),
                     attendeesId,
-                    false
-            );
+                    false,
+                    1
+            )) {
+                Toast.makeText(this, R.string.fcm_listener_error_save_new_chat, Toast.LENGTH_SHORT).show();
+                return;
+            }
 
             //do not send notification if conversation's creator is user self because it's for self-confirmation
             sendNotification(creatorName + " invited you to chat: " + title + "\nAttendees: " + Common.implode(", ", attendeesName));

@@ -331,6 +331,8 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     protected void onResume() {
         super.onResume();
         conversationManager.setActiveConversationId(conversationId);
+        conversationManager.resetConversationMissCount(conversationId);
+        conversationManager.notifyListenersMissCountReset(conversationId);
 //        chatMessages.clear();
 //        chatMessages.addAll(conversationManager.getChatMessages(conversationId));
 //        chatRoomAdapter.notifyDataSetChanged();
@@ -658,7 +660,12 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     }
 
     @Override
-    public void onNewConversationMessage(Message message) {
+    public void onConversationMissCountReset(String conversationId) {
+
+    }
+
+    @Override
+    public void onNewConversationMessage(Message message, int missCount) {
         String senderId = message.getSenderId();
         if (!conversationId.equals(message.getConversationId()) || senderId == null){
             return;

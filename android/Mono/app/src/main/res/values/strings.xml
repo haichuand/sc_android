@@ -215,4 +215,6 @@
     <string name="error_update_attendee">Error updating attendee in database</string>
     <string name="title_activity_create_chat">CreateChatActivity</string>
     <string name="error_create_chat">Error creating chat. Please try later</string>
+
+    <string name="fcm_listener_error_save_new_chat">Error: cannot save new chat to database</string>
 </resources>

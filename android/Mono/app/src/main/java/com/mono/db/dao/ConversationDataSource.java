@@ -31,12 +31,13 @@ public class ConversationDataSource extends DataSource{
     * Create a conversation from an event with
     * Params: name of the conversation, the id of associated event
     * */
-    public boolean createEventConversation(String eventId, String conversationId, String name, String creatorId, List<String> conversationAttendeesId, boolean syncNeeded) {
+    public boolean createEventConversation(String eventId, String conversationId, String name, String creatorId, List<String> conversationAttendeesId, boolean syncNeeded, int missCount) {
         ContentValues conversationValues = new ContentValues();
         conversationValues.put(DatabaseValues.Conversation.C_ID, conversationId);
         conversationValues.put(DatabaseValues.Conversation.C_NAME, name);
         conversationValues.put(DatabaseValues.Conversation.C_CREATOR, creatorId);
         conversationValues.put(DatabaseValues.Conversation.ACK, syncNeeded ? 1 : 0);
+        conversationValues.put(DatabaseValues.Conversation.MISS_COUNT, missCount);
 
         ContentValues conversationEventValues = new ContentValues();
         conversationEventValues.put(DatabaseValues.EventConversation.C_ID, conversationId);
@@ -60,12 +61,14 @@ public class ConversationDataSource extends DataSource{
         return true;
     }
 
-    public boolean createConversation(String conversationId, String name, String creatorId, List<String> attendeesId, boolean syncNeeded) {
+    public boolean createConversation(String conversationId, String name, String creatorId,
+                                      List<String> attendeesId, boolean syncNeeded, int missCount) {
         ContentValues conversationValues = new ContentValues();
         conversationValues.put(DatabaseValues.Conversation.C_ID, conversationId);
         conversationValues.put(DatabaseValues.Conversation.C_NAME, name);
         conversationValues.put(DatabaseValues.Conversation.C_CREATOR, creatorId);
         conversationValues.put(DatabaseValues.Conversation.ACK, syncNeeded ? 1 : 0);
+        conversationValues.put(DatabaseValues.Conversation.MISS_COUNT, missCount);
 
         ContentValues convAttendeeValues = new ContentValues();
         convAttendeeValues.put(DatabaseValues.ConversationAttendee.C_ID, conversationId);
@@ -82,6 +85,42 @@ public class ConversationDataSource extends DataSource{
         }
 
         return true;
+    }
+
+    public boolean createConversation(String conversationId, String name, String creatorId,
+                                      List<String> attendeesId, boolean syncNeeded) {
+        return createConversation(conversationId, name, creatorId, attendeesId, syncNeeded, 0);
+    }
+
+    public int incrementConversationMissCount(String conversationId) {
+        Cursor cursor = database.select(DatabaseValues.Conversation.TABLE,
+                new String[]{DatabaseValues.Conversation.MISS_COUNT},
+                DatabaseValues.Conversation.C_ID + " = '" + conversationId + "'",
+                null);
+        if (!cursor.moveToFirst()) {
+            return -1;
+        }
+        int missCount = cursor.getInt(0);
+        missCount++;
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.Conversation.MISS_COUNT, missCount);
+        if (database.update(DatabaseValues.Conversation.TABLE,
+                values,
+                DatabaseValues.Conversation.C_ID + " = '" + conversationId + "'",
+                null) == 1) {
+            return missCount;
+        }
+        return -1;
+    }
+
+    public boolean resetConversationMissCount(String conversationId) {
+        ContentValues values = new ContentValues();
+        values.put(DatabaseValues.Conversation.MISS_COUNT, 0);
+
+        return (database.update(
+                DatabaseValues.Conversation.TABLE, values,
+                DatabaseValues.Conversation.C_ID + "='" + conversationId + "'",
+                null) == 1);
     }
 
 //    public String getConversationFromEvent (String eventID) {
@@ -401,12 +440,14 @@ public class ConversationDataSource extends DataSource{
     public Conversation getConversation(String conversationId, boolean getAttendees, boolean getMessages) {
         String conversationName = "", creatorId = "", eventId = "";
         boolean syncNeeded = false;
+        int missCount = 0;
         Cursor cursor = database.select(
                 DatabaseValues.Conversation.TABLE,
                 new String[]{
                         DatabaseValues.Conversation.C_NAME,
                         DatabaseValues.Conversation.C_CREATOR,
-                        DatabaseValues.Conversation.ACK
+                        DatabaseValues.Conversation.ACK,
+                        DatabaseValues.Conversation.MISS_COUNT
                 },
                 DatabaseValues.Conversation.C_ID + " =?",
                 new String[]{
@@ -418,6 +459,7 @@ public class ConversationDataSource extends DataSource{
             conversationName = cursor.getString(0);
             creatorId = cursor.getString(1);
             syncNeeded = cursor.getInt(2) == 1;
+            missCount = cursor.getInt(3);
         }
 
         cursor = database.select(
@@ -445,7 +487,7 @@ public class ConversationDataSource extends DataSource{
             messages = getConversationMessages(conversationId);
         }
 
-        return new Conversation(conversationId, eventId, creatorId, conversationName, attendees, messages, syncNeeded);
+        return new Conversation(conversationId, eventId, creatorId, conversationName, attendees, messages, syncNeeded, missCount);
     }
 
     public List<Conversation> getConversations() {
@@ -538,7 +580,8 @@ public class ConversationDataSource extends DataSource{
                 DatabaseValues.Conversation.C_CREATOR,
                 DatabaseValues.EventConversation.TABLE + "." + DatabaseValues.EventConversation.EVENT_ID,
                 "MAX(" + DatabaseValues.ConversationContent.TIMESTAMP + ")",
-                DatabaseValues.Conversation.TABLE + "." + DatabaseValues.Conversation.ACK
+                DatabaseValues.Conversation.TABLE + "." + DatabaseValues.Conversation.ACK,
+                DatabaseValues.Conversation.MISS_COUNT
         };
 
         String query =
@@ -558,6 +601,7 @@ public class ConversationDataSource extends DataSource{
             conversation.eventId = cursor.getString(3);
             conversation.lastMessageTime = cursor.getLong(4);
             conversation.syncNeeded = cursor.getInt(5) == 1;
+            conversation.missCount = cursor.getInt(6);
             conversations.add(conversation);
         }
 

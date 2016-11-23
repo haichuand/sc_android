@@ -13,6 +13,8 @@ import com.mono.util.SimpleDataSource;
 import com.mono.util.SimpleSlideView;
 import com.mono.util.SimpleSlideView.SimpleSlideViewListener;
 
+import org.w3c.dom.Text;
+
 public class ChatsListAdapter extends RecyclerView.Adapter<ChatsListAdapter.Holder> {
 
     public static final int BUTTON_FAVORITE_INDEX = 0;
@@ -63,6 +65,7 @@ public class ChatsListAdapter extends RecyclerView.Adapter<ChatsListAdapter.Hold
         public ImageView icon;
         public TextView title;
         public TextView description;
+        public TextView badge;
 
         public Holder(View itemView) {
             super(itemView);
@@ -70,6 +73,7 @@ public class ChatsListAdapter extends RecyclerView.Adapter<ChatsListAdapter.Hold
             icon = (ImageView) itemView.findViewById(R.id.icon);
             title = (TextView) itemView.findViewById(R.id.title);
             description = (TextView) itemView.findViewById(R.id.description);
+            badge = (TextView) itemView.findViewById(R.id.chat_badge);
         }
 
         public void onBind(ListItem holderItem) {
@@ -85,6 +89,12 @@ public class ChatsListAdapter extends RecyclerView.Adapter<ChatsListAdapter.Hold
 
             title.setText(holderItem.title);
             description.setText(holderItem.description);
+            if (holderItem.badgeCount == 0) {
+                badge.setVisibility(View.INVISIBLE);
+            } else {
+                badge.setVisibility(View.VISIBLE);
+                badge.setText(String.valueOf(holderItem.badgeCount));
+            }
         }
 
         public void onViewRecycled() {
@@ -100,6 +110,7 @@ public class ChatsListAdapter extends RecyclerView.Adapter<ChatsListAdapter.Hold
         public int iconColor;
         public String title;
         public String description;
+        public int badgeCount;
 
         public ListItem(String id) {
             this.id = id;

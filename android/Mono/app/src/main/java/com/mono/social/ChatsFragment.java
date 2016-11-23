@@ -130,6 +130,8 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
                 }
             }
 
+            item.badgeCount = chat.missCount;
+
             items.put(id, item);
         }
 
@@ -292,20 +294,50 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
     }
 
     @Override
-    public void onNewConversationMessage(Message message) {
+    public void onConversationMissCountReset(String conversationId) {
         int index = -1;
         for (int i=0; i<chats.size(); i++) {
-            if (chats.get(i).getId().equals(message.getConversationId())) {
-                chats.get(i).lastMessageTime = message.getTimestamp();
+            Conversation chat = chats.get(i);
+            if (conversationId.equals(chat.id)) {
+                ListItem item = items.get(chat.id);
+                if (item == null) {
+                    return;
+                }
+                item.badgeCount = 0;
                 index = i;
                 break;
             }
         }
-        if (index != -1 && index != 0) {
+        if (index != -1) {
+            adapter.notifyItemChanged(index);
+        }
+    }
+
+    @Override
+    public void onNewConversationMessage(Message message, int missCount) {
+        int index = -1;
+        for (int i=0; i<chats.size(); i++) {
+            Conversation chat = chats.get(i);
+            if (chat.id.equals(message.getConversationId())) {
+                chat.lastMessageTime = message.getTimestamp();
+                chat.missCount = missCount;
+                ListItem item = items.get(chat.id);
+                if (item != null) {
+                    item.badgeCount = missCount;
+                }
+                index = i;
+                break;
+            }
+        }
+        if (index != -1) {
             LinkedList<Conversation> linkedChats = (LinkedList<Conversation>) chats;
             Conversation chat = linkedChats.remove(index);
             linkedChats.addFirst(chat);
-            adapter.notifyDataSetChanged();
+            adapter.notifyItemChanged(0);
+            if (index != 0) {
+                adapter.notifyItemMoved(index, 0);
+            }
+            adapter.notifyItemChanged(0);
         }
     }
 }

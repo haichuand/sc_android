@@ -16,6 +16,7 @@ public class Conversation {
     public List<Message> messages;
     public long lastMessageTime;
     public boolean syncNeeded;
+    public int missCount;
 
     public Conversation(String id) {
         this.id = id;
@@ -44,7 +45,7 @@ public class Conversation {
         this.messages = messages;
     }
 
-    public Conversation(String id, String eventId, String creatorId, String name, List<Attendee> attendees, List<Message> messages, boolean syncNeeded) {
+    public Conversation(String id, String eventId, String creatorId, String name, List<Attendee> attendees, List<Message> messages, boolean syncNeeded, int missCount) {
         this.id = id;
         this.eventId = eventId;
         this.creatorId = creatorId;
@@ -52,6 +53,7 @@ public class Conversation {
         this.attendees = attendees;
         this.messages = messages;
         this.syncNeeded = syncNeeded;
+        this.missCount = missCount;
     }
 
     public String getId() {

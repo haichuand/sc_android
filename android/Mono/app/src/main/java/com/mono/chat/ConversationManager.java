@@ -234,9 +234,15 @@ public class ConversationManager {
         }
     }
 
-    public void notifyListenersNewConversationMessage (Message message) {
+    public void notifyListenersNewConversationMessage (Message message, int missCount) {
         for (ConversationBroadcastListener listener : broadcastListeners) {
-            listener.onNewConversationMessage(message);
+            listener.onNewConversationMessage(message, missCount);
+        }
+    }
+
+    public void notifyListenersMissCountReset(String conversationId) {
+        for (ConversationBroadcastListener listener : broadcastListeners) {
+            listener.onConversationMissCountReset(conversationId);
         }
     }
 
@@ -254,8 +260,20 @@ public class ConversationManager {
         }
     }
 
+    public boolean createConversation (String conversationId, String title, String creatorId, List<String> attendeesId, boolean syncNeeded, int missCount) {
+        return conversationDataSource.createConversation(conversationId, title, creatorId, attendeesId, syncNeeded, missCount);
+    }
+
     public boolean createConversation (String conversationId, String title, String creatorId, List<String> attendeesId, boolean syncNeeded) {
         return conversationDataSource.createConversation(conversationId, title, creatorId, attendeesId, syncNeeded);
+    }
+
+    public int incrementConversationMissCount(String conversationId) {
+        return conversationDataSource.incrementConversationMissCount(conversationId);
+    }
+
+    public boolean resetConversationMissCount(String conversationId) {
+        return conversationDataSource.resetConversationMissCount(conversationId);
     }
 
     public static List<String> getAttendeeStringtWithNameAndEmail (List<Attendee> attendeeList) {
@@ -298,9 +316,10 @@ public class ConversationManager {
 
     public interface ConversationBroadcastListener {
         void onNewConversation(Conversation conversation, int index);
-        void onNewConversationMessage(Message message);
+        void onNewConversationMessage(Message message, int missCount);
         void onNewConversationAttendees (String conversationId, List<String> newAttendeeIds);
         void onDropConversationAttendees (String conversationId, List<String> dropAttendeeIds);
+        void onConversationMissCountReset(String conversationId);
     }
 
     public interface ChatAckListener {

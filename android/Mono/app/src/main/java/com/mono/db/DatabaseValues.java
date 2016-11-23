@@ -254,19 +254,22 @@ public class DatabaseValues {
         public static final String C_NAME = "`c_name`";
         public static final String C_CREATOR = "`c_creator`"; //conversation's creator id
         public static final String ACK = "`ack`"; //flag for ack from server; 1: acked; 0: non-acked
+        public static final String MISS_COUNT = "`missCount`";
 
 
         public static final String[] PROJECTION = {
                 Conversation.C_ID,
                 Conversation.C_NAME,
                 Conversation.C_CREATOR,
-                Conversation.ACK
+                Conversation.ACK,
+                Conversation.MISS_COUNT
         };
 
         public static final int INDEX_C_ID = 0;
         public static final int INDEX_C_NAME = 1;
         public static final int INDEX_C_CREATOR = 2;
         public static final int INDEX_ACK = 3;
+        public static final int INDEX_MISS_COUNT = 4;
 
         public static final String CREATE_TABLE;
         public static final String DROP_TABLE;
@@ -276,7 +279,8 @@ public class DatabaseValues {
                     C_ID + " TEXT PRIMARY KEY",
                     C_NAME + " TEXT",
                     C_CREATOR + " TEXT",
-                    ACK + "INTEGER DEFAULT 1"
+                    ACK + "INTEGER DEFAULT 1",
+                    MISS_COUNT + "INTEGER DEFAULT 0"
             };
 
             CREATE_TABLE = createTableQuery(TABLE, parameters);

@@ -475,7 +475,8 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
                 conversationTitle,
                 me.id,
                 checkedChatAttendeeIds,
-                true
+                true,
+                0
         )) {
             Toast.makeText(this, R.string.error_saving_chat, Toast.LENGTH_LONG).show();
             return false;
