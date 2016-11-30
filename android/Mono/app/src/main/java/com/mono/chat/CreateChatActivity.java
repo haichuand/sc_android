@@ -149,7 +149,7 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
                 event.startTime = Common.convertHolidayMillis(event.startTime);
                 event.endTime = event.startTime;
             }
-            AttendeeDataSource attendeeDataSource = DatabaseHelper.getDataSource(this, AttendeeDataSource.class);
+//            AttendeeDataSource attendeeDataSource = DatabaseHelper.getDataSource(this, AttendeeDataSource.class);
             replaceWithDatabaseAttendees(event.attendees);
             titleInput.setText(event.title, TextView.BufferType.EDITABLE);
             //add other event attendees
@@ -336,18 +336,18 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
             return;
         }
 
-        for (Attendee attendee : event.attendees) {
-            if (attendee.id.startsWith("-")) {
-                int index = checkedChatAttendeeIds.indexOf(attendee.id);
-                if (!saveUnregisteredAttendee(attendee)) {
-                    Toast.makeText(this, R.string.error_create_chat, Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                if (index >= 0) {
-                    checkedChatAttendeeIds.set(index, attendee.id);
-                }
-            }
-        }
+//        for (Attendee attendee : event.attendees) {
+//            if (attendee.id.startsWith("-")) {
+//                int index = checkedChatAttendeeIds.indexOf(attendee.id);
+//                if (!saveUnregisteredAttendee(attendee)) {
+//                    Toast.makeText(this, R.string.error_create_chat, Toast.LENGTH_SHORT).show();
+//                    return;
+//                }
+//                if (index >= 0) {
+//                    checkedChatAttendeeIds.set(index, attendee.id);
+//                }
+//            }
+//        }
 
         if (!saveUnregisteredChatAttendees()) {
             return;
