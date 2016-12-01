@@ -123,6 +123,18 @@ public class ConversationDataSource extends DataSource{
                 null) == 1);
     }
 
+    public int getAllChatsMissCount() {
+        String sql = "SELECT " + DatabaseValues.Conversation.MISS_COUNT +
+                " FROM " + DatabaseValues.Conversation.TABLE +
+                " WHERE " + DatabaseValues.Conversation.MISS_COUNT + ">0";
+        Cursor cursor = database.rawQuery(sql);
+        int count = 0;
+        while (cursor.moveToNext()) {
+            count += cursor.getInt(0);
+        }
+        return count;
+    }
+
 //    public String getConversationFromEvent (String eventID) {
 //        String conversationID = null;
 //        try {

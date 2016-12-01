@@ -140,6 +140,7 @@ public class MyFcmListenerService extends FirebaseMessagingService {
             @Override
             public void run() {
                 conversationManager.notifyListenersNewConversationMessage(message, missCountFinal);
+                conversationManager.notifyAllChatsListenersMissCount();
             }
         });
         if (!isAckMessage && !conversationId.equals(conversationManager.getActiveConversationId())) {
@@ -268,6 +269,7 @@ public class MyFcmListenerService extends FirebaseMessagingService {
             @Override
             public void run() {
                 conversationManager.notifyListenersNewConversation(conversation, 0);
+                conversationManager.notifyAllChatsListenersMissCount();
             }
         });
 
@@ -347,6 +349,7 @@ public class MyFcmListenerService extends FirebaseMessagingService {
                 @Override
                 public void run() {
                     conversationManager.notifyListenersNewConversation(conversation, 0);
+                    conversationManager.notifyAllChatsListenersMissCount();
                 }
             });
 
