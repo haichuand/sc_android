@@ -25,8 +25,8 @@ import java.util.concurrent.ExecutionException;
 
 public class HttpServerManager {
 
-    public static final String SERVER_URL = "http://10.0.0.105:8081/";
-    public static final String REST_URL = SERVER_URL + "SuperCaly-0.0.1-SNAPSHOT/rest/";
+    public static final String SERVER_URL = "http://52.25.71.19:8080/";
+    public static final String REST_URL = SERVER_URL + "SuperCaly/rest/";
 
     public static final String CREATE_USER_URL = REST_URL + "user/createUser";
     public static final String GET_USER_URL = REST_URL + "user/basicInfo/";
@@ -94,7 +94,7 @@ public class HttpServerManager {
     public static final String ATTENDEES = "attendees";
     public static final String STATUS = "status";
     public static final String CONVERSATION_ID = "cId";
-    public static final String SENDER_ID = "senderID";
+    public static final String SENDER_ID = "senderId";
     public static final String MESSAGE_KEY = "messageKey";
     public static final String TIMESTAMP = "timestamp";
     public static final String TEXT_CONTENT = "textContent";

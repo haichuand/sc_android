@@ -16,6 +16,7 @@ import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.location.places.internal.PlaceOpeningHoursEntity;
 import com.mono.chat.ConversationManager;
 import com.mono.db.DatabaseHelper;
+import com.mono.db.DatabaseValues;
 import com.mono.db.dao.ConversationDataSource;
 import com.mono.model.Account;
 import com.mono.model.Attendee;
@@ -56,6 +57,10 @@ public class LoginActivity extends AppCompatActivity {
     private int uid;
     private static final int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
     private HashMap<String, String> convEventHash = new HashMap<>();
+    private List<JSONArray> messageArr = new ArrayList<>();
+    private ConversationDataSource conversationDataSource;
+    private int totalconvCount = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -108,6 +113,7 @@ public class LoginActivity extends AppCompatActivity {
         httpServerManager = HttpServerManager.getInstance(this);
         eventManager = EventManager.getInstance(this);
         conversationManager = ConversationManager.getInstance(this);
+        conversationDataSource = DatabaseHelper.getDataSource(getApplicationContext(), ConversationDataSource.class);
         String toastMessage = null;
         switch (httpServerManager.loginUser(emailOrPhone, password)) {
             case 0:
@@ -194,7 +200,7 @@ public class LoginActivity extends AppCompatActivity {
                 JSONArray messageArray = messageObj.getJSONArray(HttpServerManager.MESSAGES);
                 if(messageArray.length() > 0)
                 {
-                    new addMessageTodb().execute(messageArray);
+                    messageArr.add(messageArray);
                     JSONObject eventObj = httpServerManager.getEventByconversation(convId);
                     JSONArray eventArr = eventObj.getJSONArray(HttpServerManager.EVENT_ID);
                     if(eventArr.length() > 0) {
@@ -206,6 +212,7 @@ public class LoginActivity extends AppCompatActivity {
                     {
                         convEventHash.put(convId, "");
                     }
+
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -220,7 +227,6 @@ public class LoginActivity extends AppCompatActivity {
 
         @Override
         protected Void doInBackground(Object... params) {
-            ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(getApplicationContext(), ConversationDataSource.class);
             try {
                 JSONArray messageArr = (JSONArray) params[0];
                 for (int i = 0; i < messageArr.length(); i++) {
@@ -237,7 +243,10 @@ public class LoginActivity extends AppCompatActivity {
                 }
 
             }
-            catch(Exception ex){}
+            catch(Exception ex){
+                Log.d("", ex.getMessage());
+                ex.printStackTrace();
+            }
 
             return null;
         }
@@ -305,13 +314,8 @@ public class LoginActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(Void aVoid) {
-            for (Map.Entry<String, String> entry : convEventHash.entrySet()) {
-                String cid = entry.getKey();
-                String eventid = entry.getValue();
-                JSONObject conversationObj = httpServerManager.getConversation(cid);
-                convEventHash.remove(cid);
-                new addConversationTodb().execute(conversationObj, cid, eventid);
-            }
+                JSONObject conversationObj = httpServerManager.getConversation(conversationId);
+                new addConversationTodb().execute(conversationObj, conversationId, eventId);
 
         }
     }
@@ -323,12 +327,13 @@ public class LoginActivity extends AppCompatActivity {
         String creatorId;
         String creatorName = "";
         List<String> attendeesIdList = new ArrayList<>();
+        String conversationId;
 
         @Override
         protected Void doInBackground(Object... params) {
 
             JSONObject conversationObj = (JSONObject) params[0];
-            String conversationId = (String) params[1];
+            conversationId = (String) params[1];
             String eventId = (String) params[2];
 
             try {
@@ -366,19 +371,31 @@ public class LoginActivity extends AppCompatActivity {
                 }
 
                 //create conversation in local database
-                ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(getApplicationContext(), ConversationDataSource.class);
                 if(eventId != "") {
-                    conversationDataSource.createEventConversation(eventId, conversationId, conversationTitle, creatorId, attendeesIdList, false, 1);
+                    conversationDataSource.createEventConversation(eventId, conversationId, conversationTitle, creatorId, attendeesIdList, false, 0);
                 }
                 else
                 {
-                    conversationDataSource.createConversation(conversationId, conversationTitle, creatorId, attendeesIdList, false, 1);
+                    conversationDataSource.createConversation(conversationId, conversationTitle, creatorId, attendeesIdList, false, 0);
                 }
             } catch (JSONException e) {
                 System.out.println(e.getMessage());
                 return null;
             }
             return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            JSONObject messageObj = httpServerManager.getConversationMessages(conversationId);
+            JSONArray messageArray = null;
+            try {
+                messageArray = messageObj.getJSONArray(HttpServerManager.MESSAGES);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            new addMessageTodb().execute(messageArray);
+
         }
     }
 
@@ -426,7 +443,7 @@ public class LoginActivity extends AppCompatActivity {
         event.attendees = attendees;
 
         String id = eventManager.createEvent(EventManager.EventAction.ACTOR_SELF, event, null);
-        return id != null;
+        return (id != null);
     }
 
 
