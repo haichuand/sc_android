@@ -66,7 +66,7 @@ import java.util.List;
  * @author Gary Ng
  */
 public class MainActivity extends AppCompatActivity implements OnNavigationItemSelectedListener,
-        MainInterface {
+        MainInterface, ConversationManager.ChatsMissCountListener {
 
     public static final String APP_DIR = "MonoFiles/";
 
@@ -189,6 +189,8 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         syncManager = ServerSyncManager.getInstance(this);
 
         start();
+
+        conversationManager.addChatsMissCountListener(this);
     }
 
     protected void start() {
@@ -237,6 +239,8 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         scheduler.run(this);
         syncManager.processServerSyncItems();
 //        requestSync(false);
+        conversationManager.getAllChatsMissCount();
+        conversationManager.notifyAllChatsListenersMissCount();
     }
 
     @Override
@@ -253,6 +257,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        conversationManager.removeChatsMissCountListener(this);
     }
 
     @Override
@@ -886,5 +891,10 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         intent.putExtra(ChatRoomActivity.MY_ID, accountId);
 
         startActivity(intent);
+    }
+
+    @Override
+    public void onMissCountChanged(int allChatsMissCount) {
+        dockLayout.setBadge(2, 0xff4444, allChatsMissCount + "");
     }
 }

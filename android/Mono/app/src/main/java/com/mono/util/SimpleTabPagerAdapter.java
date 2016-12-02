@@ -83,7 +83,7 @@ public class SimpleTabPagerAdapter extends FragmentPagerAdapter {
         TextView badge = (TextView) view.findViewById(R.id.badge);
         badge.getBackground().setColorFilter(item.badgeColor, PorterDuff.Mode.SRC_ATOP);
 
-        if (item.badgeValue != null && !item.badgeValue.isEmpty()) {
+        if (item.badgeValue != null && !item.badgeValue.isEmpty() && !"0".equals(item.badgeValue)) {
             badge.setText(item.badgeValue);
             badge.setVisibility(View.VISIBLE);
         } else {

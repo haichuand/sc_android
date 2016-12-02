@@ -35,6 +35,8 @@ public class ConversationManager {
     private static final char[] randomIdCharPool = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890".toCharArray();
     private static Random random = new Random();
     private static final int randomIdLength = 8;
+    private int allChatsMissCount = 0;
+    private List<ChatsMissCountListener> chatsMissCountListeners = new LinkedList<>();
 
     private ConversationManager(Context context) {
         this.context = context;
@@ -214,6 +216,16 @@ public class ConversationManager {
         }
     }
 
+    public void getAllChatsMissCount() {
+        allChatsMissCount = conversationDataSource.getAllChatsMissCount();
+    }
+
+    public void notifyAllChatsListenersMissCount() {
+        for (ChatsMissCountListener listener : chatsMissCountListeners) {
+            listener.onMissCountChanged(allChatsMissCount);
+        }
+    }
+
     public void addBroadcastListner(ConversationBroadcastListener listener) {
         broadcastListeners.add(listener);
     }
@@ -260,6 +272,14 @@ public class ConversationManager {
         }
     }
 
+    public void addChatsMissCountListener(ChatsMissCountListener listener) {
+        chatsMissCountListeners.add(listener);
+    }
+
+    public void removeChatsMissCountListener(ChatsMissCountListener listener) {
+        chatsMissCountListeners.remove(listener);
+    }
+
     public boolean createConversation (String conversationId, String title, String creatorId, List<String> attendeesId, boolean syncNeeded, int missCount) {
         return conversationDataSource.createConversation(conversationId, title, creatorId, attendeesId, syncNeeded, missCount);
     }
@@ -269,11 +289,18 @@ public class ConversationManager {
     }
 
     public int incrementConversationMissCount(String conversationId) {
-        return conversationDataSource.incrementConversationMissCount(conversationId);
+        int newMissCount = conversationDataSource.incrementConversationMissCount(conversationId);
+        allChatsMissCount++;
+        return newMissCount;
     }
 
     public boolean resetConversationMissCount(String conversationId) {
-        return conversationDataSource.resetConversationMissCount(conversationId);
+        if(conversationDataSource.resetConversationMissCount(conversationId)) {
+            allChatsMissCount = conversationDataSource.getAllChatsMissCount();
+            return true;
+        }
+
+        return false;
     }
 
     public static List<String> getAttendeeStringtWithNameAndEmail (List<Attendee> attendeeList) {
@@ -324,5 +351,9 @@ public class ConversationManager {
 
     public interface ChatAckListener {
         void onHandleChatAck (String id);
+    }
+
+    public interface ChatsMissCountListener {
+        void onMissCountChanged (int allChatsMissCount);
     }
 }
