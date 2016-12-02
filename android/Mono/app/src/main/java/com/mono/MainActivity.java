@@ -239,8 +239,8 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         scheduler.run(this);
         syncManager.processServerSyncItems();
 //        requestSync(false);
-        conversationManager.getAllChatsMissCount();
-        conversationManager.notifyAllChatsListenersMissCount();
+       // conversationManager.getAllChatsMissCount();
+        //conversationManager.notifyAllChatsListenersMissCount();
     }
 
     @Override

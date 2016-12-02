@@ -2,6 +2,7 @@ package com.mono;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -56,10 +57,8 @@ public class LoginActivity extends AppCompatActivity {
     private ConversationManager conversationManager;
     private int uid;
     private static final int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
-    private HashMap<String, String> convEventHash = new HashMap<>();
-    private List<JSONArray> messageArr = new ArrayList<>();
     private ConversationDataSource conversationDataSource;
-    private int totalconvCount = 0;
+    SharedPreferences sharedpreferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -123,7 +122,11 @@ public class LoginActivity extends AppCompatActivity {
 //                resetUserTable(httpServerManager);
                 startKMLService(this);
                 Toast.makeText(this, "Login successful", Toast.LENGTH_LONG).show();
-                retrieveChats();
+                sharedpreferences = getSharedPreferences(SuperCalyPreferences.FIRST_TIME_LOGIN, Context.MODE_PRIVATE);
+                if(sharedpreferences.getString(SuperCalyPreferences.FIRST_TIME_LOGIN, "default").equalsIgnoreCase("default")) {
+                    sharedpreferences.edit().putString(SuperCalyPreferences.FIRST_TIME_LOGIN, "yes").apply();
+                    retrieveChats();
+                }
                 finish();
                 break;
             case 1:
@@ -200,7 +203,6 @@ public class LoginActivity extends AppCompatActivity {
                 JSONArray messageArray = messageObj.getJSONArray(HttpServerManager.MESSAGES);
                 if(messageArray.length() > 0)
                 {
-                    messageArr.add(messageArray);
                     JSONObject eventObj = httpServerManager.getEventByconversation(convId);
                     JSONArray eventArr = eventObj.getJSONArray(HttpServerManager.EVENT_ID);
                     if(eventArr.length() > 0) {
@@ -210,7 +212,8 @@ public class LoginActivity extends AppCompatActivity {
                     }
                     else
                     {
-                        convEventHash.put(convId, "");
+                        JSONObject conversationObj = httpServerManager.getConversation(convId);
+                        new addConversationTodb().execute(conversationObj, convId, "");
                     }
 
                 }
@@ -308,7 +311,6 @@ public class LoginActivity extends AppCompatActivity {
                 e.printStackTrace();
                 return null;
             }
-            convEventHash.put(conversationId, eventId);
             return null;
         }
 

@@ -73,6 +73,18 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
         conversationManager.addBroadcastListner(this);
     }
 
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if(chats.isEmpty())
+        {
+            chats.addAll(ConversationManager.getInstance(getContext()).getAllConversations());
+            text.setVisibility(chats.isEmpty() ? View.VISIBLE : View.INVISIBLE);
+        }
+    }
+
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
