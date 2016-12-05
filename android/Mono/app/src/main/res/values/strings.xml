@@ -29,6 +29,7 @@
     <string name="action_edit">Edit</string>
     <string name="action_sync">Sync</string>
     <string name="action_done">Done</string>
+    <string name="action_filter">Filter</string>
 
     <string name="fragment_main">MainFragment</string>
     <string name="fragment_login">LoginFragment</string>
@@ -158,6 +159,9 @@
     <string name="select_contacts">Select Contacts</string>
     <string name="value_selected">%d Selected</string>
     <string name="today">Today</string>
+    <string name="event_filters_title">Event Title Filters</string>
+    <string name="close">Close</string>
+    <string name="add_filter">Add Filter</string>
 
     <string name="contacts_search">Enter Name or Email</string>
     <string name="favorites_add">Add to Favorites</string>

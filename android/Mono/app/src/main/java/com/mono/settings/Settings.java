@@ -7,6 +7,7 @@ import android.preference.PreferenceManager;
 
 import com.mono.util.Constants;
 
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Set;
@@ -62,6 +63,9 @@ public class Settings {
 
     public static final String PREF_DAY_ONE = "pref_day_one";
     public static final long DEFAULT_DAY_ONE = 0;
+
+    public static final String PREF_EVENT_FILTERS = "pref_event_filters";
+    public static final Set<String> DEFAULT_EVENT_FILTERS = new HashSet<>();
 
     public static final String PREF_FCM_TOKEN_SENT = "pref_fcm_token_sent";
     public static final boolean DEFAULT_FCM_TOKEN_SENT = false;
@@ -349,6 +353,17 @@ public class Settings {
     public void setDayOne(long milliseconds) {
         Editor editor = getEditor();
         editor.putLong(PREF_DAY_ONE, milliseconds);
+        editor.apply();
+    }
+
+    public String[] getEventFilters() {
+        Set<String> filters = preferences.getStringSet(PREF_EVENT_FILTERS, DEFAULT_EVENT_FILTERS);
+        return filters.toArray(new String[filters.size()]);
+    }
+
+    public void setEventFilters(String[] filters) {
+        Editor editor = getEditor();
+        editor.putStringSet(PREF_EVENT_FILTERS, new HashSet<>(Arrays.asList(filters)));
         editor.apply();
     }
 

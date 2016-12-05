@@ -14,6 +14,7 @@ import org.joda.time.LocalDateTime;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -41,6 +42,7 @@ public class EventGroupDataSource implements SimpleDataSource<EventGroupItem> {
 
     private Comparator<EventGroup> groupComparator;
     private int dateTimeColorId;
+    private List<String> filters = new ArrayList<>();
 
     static {
         DATE_FORMAT = new SimpleDateFormat("MMM d", Locale.getDefault());
@@ -269,5 +271,14 @@ public class EventGroupDataSource implements SimpleDataSource<EventGroupItem> {
 
     public boolean containsEvent(String id) {
         return events.containsKey(id);
+    }
+
+    public List<String> getFilters() {
+        return filters;
+    }
+
+    public void setFilters(String[] filters) {
+        this.filters.clear();
+        this.filters.addAll(Arrays.asList(filters));
     }
 }

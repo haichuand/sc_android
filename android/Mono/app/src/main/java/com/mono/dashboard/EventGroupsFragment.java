@@ -27,7 +27,9 @@ import com.mono.model.Calendar;
 import com.mono.model.Event;
 import com.mono.model.Location;
 import com.mono.provider.CalendarProvider;
+import com.mono.settings.Settings;
 import com.mono.util.Common;
+import com.mono.util.Constants;
 import com.mono.util.SimpleLinearLayoutManager;
 import com.mono.util.SimpleTabLayout.Scrollable;
 
@@ -36,6 +38,7 @@ import org.joda.time.LocalDate;
 import org.joda.time.LocalDateTime;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -50,7 +53,7 @@ import java.util.List;
  * @author Gary Ng
  */
 public class EventGroupsFragment extends Fragment implements EventGroupsListListener,
-        EventBroadcastListener, Scrollable {
+        EventBroadcastListener, SwipeRefreshLayout.OnRefreshListener, Scrollable {
 
     protected static final int PRECACHE_AMOUNT = 20;
     protected static final int PRECACHE_OFFSET = 10;
@@ -115,21 +118,7 @@ public class EventGroupsFragment extends Fragment implements EventGroupsListList
 
         refreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.refresh_layout);
         refreshLayout.setColorSchemeResources(R.color.colorAccent);
-        refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                dataSource.clear();
-                adapter.notifyDataSetChanged();
-
-                startTime = System.currentTimeMillis();
-                offset = 0;
-                offsetProvider = 0;
-
-                append();
-
-                refreshLayout.setRefreshing(false);
-            }
-        });
+        refreshLayout.setOnRefreshListener(this);
 
         recyclerView = (RecyclerView) view.findViewById(R.id.list);
         recyclerView.setVerticalScrollBarEnabled(false);
@@ -143,6 +132,8 @@ public class EventGroupsFragment extends Fragment implements EventGroupsListList
         });
 
         dataSource = new EventGroupDataSource(getContext(), defaultDateTimeColorId);
+        dataSource.setFilters(Settings.getInstance(getContext()).getEventFilters());
+
         adapter.setDataSource(dataSource);
 
         text = (TextView) view.findViewById(R.id.text);
@@ -155,7 +146,8 @@ public class EventGroupsFragment extends Fragment implements EventGroupsListList
     public void onResume() {
         super.onResume();
 
-        if (startTime > 0 && !new LocalDate(startTime).isEqual(new LocalDate())) {
+        if (startTime > 0 && (System.currentTimeMillis() - startTime > Constants.HOUR_MS ||
+                !new LocalDate(startTime).isEqual(new LocalDate()))) {
             dataSource.clear();
             adapter.notifyDataSetChanged();
         }
@@ -228,6 +220,9 @@ public class EventGroupsFragment extends Fragment implements EventGroupsListList
                 return true;
             case R.id.action_edit:
                 setEditMode(true, null);
+                return true;
+            case R.id.action_filter:
+                onFilterClick();
                 return true;
         }
 
@@ -468,6 +463,28 @@ public class EventGroupsFragment extends Fragment implements EventGroupsListList
     }
 
     /**
+     * Handle refresh of UI.
+     */
+    @Override
+    public void onRefresh() {
+        if (task != null) {
+            task.cancel(true);
+            task = null;
+        }
+
+        dataSource.clear();
+        adapter.notifyDataSetChanged();
+
+        startTime = System.currentTimeMillis();
+        offset = 0;
+        offsetProvider = 0;
+
+        append();
+
+        refreshLayout.setRefreshing(false);
+    }
+
+    /**
      * Check if event is valid to be displayed within this fragment.
      *
      * @param event Event to check.
@@ -485,6 +502,14 @@ public class EventGroupsFragment extends Fragment implements EventGroupsListList
 
         if (dateTime.isAfter(currentTime)) {
             return false;
+        }
+
+        for (String filter : dataSource.getFilters()) {
+            filter = filter.toLowerCase();
+
+            if (event.title != null && event.title.toLowerCase().contains(filter)) {
+                return false;
+            }
         }
 
         return true;
@@ -515,7 +540,14 @@ public class EventGroupsFragment extends Fragment implements EventGroupsListList
         List<EventGroup> updateGroups = new ArrayList<>();
 
         for (Event event : items) {
-            Location location = event.getLocation();
+            Location location;
+            // Prioritize Location Suggestions
+            if (!event.tempLocations.isEmpty()) {
+                location = event.tempLocations.get(0);
+            } else {
+                location = event.location;
+            }
+
             String title = location != null ? location.name : PLACEHOLDER;
 
             DateTimeZone timeZone = event.allDay ? DateTimeZone.UTC : DateTimeZone.getDefault();
@@ -916,11 +948,32 @@ public class EventGroupsFragment extends Fragment implements EventGroupsListList
 
         AlertDialog dialog = builder.create();
         dialog.show();
-
     }
 
     public void syncEvents(Calendar calendar) {
 
+    }
+
+    /**
+     * Display event filter dialog to manage to filters to hide events.
+     */
+    public void onFilterClick() {
+        String[] filters = Settings.getInstance(getContext()).getEventFilters();
+
+        FilterDialog.create(getContext(), filters, new FilterDialog.FilterDialogCallback() {
+            @Override
+            public void onFinish(String[] filters) {
+                Settings settings = Settings.getInstance(getContext());
+
+                String[] original = settings.getEventFilters();
+                settings.setEventFilters(filters);
+
+                if (!Arrays.equals(filters, original)) {
+                    dataSource.setFilters(filters);
+                    onRefresh();
+                }
+            }
+        });
     }
 
     public static class EventGroup {
