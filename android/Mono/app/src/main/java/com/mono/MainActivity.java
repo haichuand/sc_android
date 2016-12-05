@@ -895,6 +895,10 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
     @Override
     public void onMissCountChanged(int allChatsMissCount) {
-        dockLayout.setBadge(2, 0xff4444, allChatsMissCount + "");
+        try {
+            dockLayout.setBadge(2, 0xff4444, allChatsMissCount + "");
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+        }
     }
 }
