@@ -283,6 +283,7 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
     @Override
     public void onNewConversation(Conversation conversation, int index) {
         insert(index, conversation, true);
+        recyclerView.scrollToPosition(0);
     }
 
     @Override
@@ -338,6 +339,7 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
                 adapter.notifyItemMoved(index, 0);
             }
             adapter.notifyItemChanged(0);
+            recyclerView.scrollToPosition(0);
         }
     }
 }
