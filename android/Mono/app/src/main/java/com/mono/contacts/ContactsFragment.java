@@ -86,6 +86,8 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
     private String currentQuery;
     private String[] terms;
 
+    private Toast toast;
+
     protected List<Contact> contactSelections = new LinkedList<>();
 
     @Override
@@ -751,10 +753,14 @@ public class ContactsFragment extends Fragment implements OnBackPressedListener,
     public void onSuggestionAdd(Contact contact) {
         add(GROUP_SUGGESTIONS, contact, true);
 
+        if (toast != null) {
+            toast.cancel();
+        }
         getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(getContext(), "New Suggestion", Toast.LENGTH_LONG).show();
+                toast = Toast.makeText(getContext(), "New Suggestion", Toast.LENGTH_LONG);
+                toast.show();
             }
         });
     }

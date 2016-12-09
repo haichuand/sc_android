@@ -6,6 +6,7 @@ import android.os.AsyncTask;
 import com.mono.AccountManager;
 import com.mono.db.dao.AttendeeDataSource;
 import com.mono.model.Account;
+import com.mono.model.Contact;
 import com.mono.model.Message;
 import com.mono.util.Common;
 
@@ -47,6 +48,7 @@ public class HttpServerManager {
     public static final String ADD_CONVERSATION_ATTENDEES_URL = REST_URL + "conversation/addAttendees";
     public static final String UPDATE_CONVERSATION_TITLE_URL = REST_URL + "conversation/updateTitle";
     public static final String DROP_CONVERSATION_ATTENDEES_URL = REST_URL + "conversation/dropAttendees";
+    public static final String SUGGEST_CONTACTS_URL = REST_URL + "user/suggestContacts";
 
     public static final String ADD_MESSAGE_URL = REST_URL + "conversation/addMessage";
     public static final String BACKUP_MESSAGE_URL = REST_URL + "conversation/backupMessages";
@@ -111,7 +113,7 @@ public class HttpServerManager {
                     new String[]{EMAIL, FIRST_NAME, FCM_ID, LAST_NAME, MEDIA_ID, PHONE_NUMBER, USER_NAME, PASSWORD},
                     new String[]{email, firstName, fcmId, lastName, mediaId, phoneNum, userName, password}
             );
-            JSONObject responseJson = queryServer(userInfo, CREATE_USER_URL, POST);
+            JSONObject responseJson = new JSONObject(queryServer(userInfo.toString(), CREATE_USER_URL, POST));
             if (responseJson.has(UID)) {
                 int uId = responseJson.getInt(UID);
                 Account account = new Account(uId);
@@ -135,7 +137,7 @@ public class HttpServerManager {
                     new String[]{EMAIL, FIRST_NAME, FCM_ID, LAST_NAME, MEDIA_ID, PHONE_NUMBER, USER_NAME, PASSWORD},
                     new String[]{email, firstName, fcmId, lastName, mediaId, phoneNum, userName, password}
             );
-            JSONObject responseJson = queryServer(userInfo, CREATE_USER_URL, POST);
+            JSONObject responseJson = new JSONObject(queryServer(userInfo.toString(), CREATE_USER_URL, POST));
             if (responseJson.has(UID)) {
                 return responseJson.getInt(UID);
             }
@@ -163,7 +165,7 @@ public class HttpServerManager {
                         new String[]{emailOrPhone, password}
                 );
             }
-            JSONObject responseJson = queryServer(jsonObject, url, POST);
+            JSONObject responseJson = new JSONObject(queryServer(jsonObject.toString(), url, POST));
             if (responseJson != null && responseJson.has(STATUS)) {
                 return responseJson.getInt(STATUS);
             } else if (responseJson.has(UID)) {
@@ -177,7 +179,7 @@ public class HttpServerManager {
 
     public int updateUserFcmId(int userId, String fcmId) {
         try {
-            JSONObject responseJson = queryServer(null, UPDATE_FCM_ID_URL + userId + "/" + fcmId, POST);
+            JSONObject responseJson = new JSONObject(queryServer(null, UPDATE_FCM_ID_URL + userId + "/" + fcmId, POST));
             if (responseJson != null && responseJson.has(STATUS)) {
                 return responseJson.getInt(STATUS);
             }
@@ -219,7 +221,7 @@ public class HttpServerManager {
 
     public JSONObject getUserInfo(int userId) {
         try {
-            return queryServer(null, GET_USER_URL + userId, GET);
+            return new JSONObject(queryServer(null, GET_USER_URL + userId, GET));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -232,7 +234,7 @@ public class HttpServerManager {
                     new String[]{UID, USER_NAME, EMAIL, FIRST_NAME, FCM_ID, LAST_NAME, MEDIA_ID, PHONE_NUMBER, PASSWORD},
                     new Object[]{uId, userName, email, firstName, fcmId, lastName, mediaId, phoneNumber, password}
             );
-            JSONObject responseJson = queryServer(userInfo, EDIT_USER_URL, POST);
+            JSONObject responseJson = new JSONObject(queryServer(userInfo.toString(), EDIT_USER_URL, POST));
             if (responseJson != null)
                 return responseJson.getInt(STATUS);
         } catch (Exception e) {
@@ -243,7 +245,7 @@ public class HttpServerManager {
 
     public JSONObject getUserEvents(int userId) {
         try {
-            return queryServer(null, GET_USER_EVENTS_URL + userId, GET);
+            return new JSONObject(queryServer(null, GET_USER_EVENTS_URL + userId, GET));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -252,7 +254,7 @@ public class HttpServerManager {
 
     public JSONObject getUserConversations(int userId) {
         try {
-            return queryServer(null, GET_USER_CONVERSATIONS_URL + userId, GET);
+            return new JSONObject(queryServer(null, GET_USER_CONVERSATIONS_URL + userId, GET));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -261,7 +263,7 @@ public class HttpServerManager {
 
     public JSONObject getUserByEmail(String email) {
         try {
-            return queryServer(null, GET_USER_BY_EMAIL_URL + email, GET);
+            return new JSONObject(queryServer(null, GET_USER_BY_EMAIL_URL + email, GET));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -270,7 +272,7 @@ public class HttpServerManager {
 
     public JSONObject getUserByPhone(String phoneNum) {
         try {
-            return queryServer(null, GET_USER_BY_PHONE_URL + phoneNum, GET);
+            return new JSONObject(queryServer(null, GET_USER_BY_PHONE_URL + phoneNum, GET));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -297,7 +299,7 @@ public class HttpServerManager {
                     new String[]{EVENT_ID, EVENT_TYPE, TITLE, LOCATION, START_TIME, END_TIME, CREATOR_ID, CREATE_TIME, ATTENDEES_ID},
                     new Object[]{eventId, eventType, title, location, startTime, endTime, creatorId, createTime, new JSONArray(Common.convertIdList(attendeesId))}
             );
-            JSONObject responseJson = queryServer(jsonObject, CREATE_EVENT_URL, POST);
+            JSONObject responseJson = new JSONObject(queryServer(jsonObject.toString(), CREATE_EVENT_URL, POST));
             if (responseJson != null && responseJson.has(EVENT_ID)) {
                 return  responseJson.getString(EVENT_ID);
             }
@@ -309,7 +311,7 @@ public class HttpServerManager {
 
     public JSONObject getEvent (String eventId) {
         try {
-            return queryServer(null, GET_EVENT_URL + eventId, GET);
+            return new JSONObject(queryServer(null, GET_EVENT_URL + eventId, GET));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -322,7 +324,7 @@ public class HttpServerManager {
                     new String[] {CONVERSATION_ID, TITLE, CREATOR_ID, ATTENDEES_ID},
                     new Object[] {conversationId, title, creatorId, new JSONArray(Common.convertIdList(attendeesId))}
             );
-            JSONObject responseJson = queryServer(conversationInfo, CREATE_CONVERSATION_URL, POST);
+            JSONObject responseJson = new JSONObject(queryServer(conversationInfo.toString(), CREATE_CONVERSATION_URL, POST));
             if (responseJson != null && responseJson.has(STATUS) && responseJson.getInt(STATUS) == 0) {
                return true;
             }
@@ -348,7 +350,7 @@ public class HttpServerManager {
                     new String[] {CONVERSATION_ID, TITLE, CREATOR_ID, ATTENDEES_ID},
                     new Object[] {conversationId, title, creatorId, new JSONArray(Common.convertIdList(attendeesId))}
             );
-            JSONObject responseJson = queryServer(conversationInfo, CREATE_EVENT_CONVERSATION_URL + eventId, POST);
+            JSONObject responseJson = new JSONObject(queryServer(conversationInfo.toString(), CREATE_EVENT_CONVERSATION_URL + eventId, POST));
             if (responseJson != null && responseJson.has(STATUS) && responseJson.getInt(STATUS) == 0) {
                 return true;
             }
@@ -360,7 +362,7 @@ public class HttpServerManager {
 
     public JSONObject getConversation(String conversationId) {
         try {
-            return queryServer(null, GET_CONVERSATION_URL + conversationId, GET);
+            return new JSONObject(queryServer(null, GET_CONVERSATION_URL + conversationId, GET));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -379,7 +381,7 @@ public class HttpServerManager {
                     new String[]{CONVERSATION_ID, ATTENDEES_ID},
                     new Object[]{conversationId, new JSONArray(Common.convertIdList(newAttendeesId))}
             );
-            JSONObject responseJson = queryServer(jsonObject, ADD_CONVERSATION_ATTENDEES_URL, POST);
+            JSONObject responseJson = new JSONObject(queryServer(jsonObject.toString(), ADD_CONVERSATION_ATTENDEES_URL, POST));
             if (responseJson != null && responseJson.has(STATUS)) {
                 return  responseJson.getInt(STATUS);
             }
@@ -401,7 +403,7 @@ public class HttpServerManager {
                     new String[]{CONVERSATION_ID, ATTENDEES_ID},
                     new Object[]{conversationId, new JSONArray(Common.convertIdList(attendeesId))}
             );
-            JSONObject responseJson = queryServer(jsonObject, DROP_CONVERSATION_ATTENDEES_URL, POST);
+            JSONObject responseJson = new JSONObject(queryServer(jsonObject.toString(), DROP_CONVERSATION_ATTENDEES_URL, POST));
             if (responseJson != null && responseJson.has(STATUS)) {
                 return  responseJson.getInt(STATUS);
             }
@@ -423,7 +425,7 @@ public class HttpServerManager {
                     new String[]{CONVERSATION_ID, TITLE},
                     new String[]{conversationId, newTitle}
             );
-            JSONObject responseJson = queryServer(jsonObject, UPDATE_CONVERSATION_TITLE_URL, POST);
+            JSONObject responseJson = new JSONObject(queryServer(jsonObject.toString(), UPDATE_CONVERSATION_TITLE_URL, POST));
             if (responseJson != null && responseJson.has(STATUS)) {
                 return  responseJson.getInt(STATUS);
             }
@@ -442,7 +444,7 @@ public class HttpServerManager {
                     new String[]{"messageKey", MEDIA_ID, "textContent"},
                     new Object[]{messagekey, userInfo.getString(MEDIA_ID), msg.getMessageText()}
             );
-            JSONObject responseJson = queryServer(jsonObject, ADD_MESSAGE_URL, POST);
+            JSONObject responseJson = new JSONObject(queryServer(jsonObject.toString(), ADD_MESSAGE_URL, POST));
             if (responseJson != null && responseJson.has(STATUS)) {
                 return  responseJson.getInt(STATUS);
             }
@@ -450,6 +452,53 @@ public class HttpServerManager {
             ex.printStackTrace();
         }
         return STATUS_EXCEPTION;
+    }
+
+    public List<Contact> getSuggestedContacts(List<Contact> contactList) {
+        JSONArray emailArray = new JSONArray();
+        JSONArray phoneArray = new JSONArray();
+        List<Contact> suggestedContacts = new ArrayList<>();
+        try {
+            for (Contact contact : contactList) {
+                String[] emails = contact.getEmails();
+                if (emails != null) {
+                    for (String email : emails) {
+                        emailArray.put(email);
+                    }
+                }
+                String[] phones = contact.getPhones();
+                if (phones != null) {
+                    for (String phone : phones) {
+                        phoneArray.put(phone.replaceAll("\\D", ""));
+                    }
+                }
+            }
+            if (emailArray.length() == 0 && phoneArray.length() == 0) {
+                return suggestedContacts;
+            }
+
+            JSONObject object = new JSONObject();
+            object.put(EMAIL, emailArray);
+            object.put(PHONE_NUMBER, phoneArray);
+            JSONArray response = new JSONArray(queryServer(object.toString(), SUGGEST_CONTACTS_URL, POST));
+
+            for (int i = 0; i < response.length(); i++) {
+                JSONObject obj = response.getJSONObject(i);
+                Contact contact = new Contact(obj.getInt(UID), Contact.TYPE_USER);
+                contact.visible = true;
+                contact.mediaId = obj.getString(MEDIA_ID);
+                contact.setEmail(obj.getString(EMAIL));
+                contact.setPhone(obj.getString(PHONE_NUMBER));
+                contact.firstName = obj.getString(FIRST_NAME);
+                contact.lastName = obj.getString(LAST_NAME);
+                contact.userName = obj.getString(USER_NAME);
+                suggestedContacts.add(contact);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        return suggestedContacts;
     }
 
 
@@ -468,7 +517,7 @@ public class HttpServerManager {
         return jsonObject;
     }
 
-    private Object[] queryServer(HttpURLConnection connection, JSONObject data) {
+    private Object[] queryServer(HttpURLConnection connection, String data) {
         Object[] result = new Object[2];
 
         try {
@@ -477,7 +526,7 @@ public class HttpServerManager {
                 connection.setDoOutput(true);
 
                 OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream());
-                writer.write(data.toString());
+                writer.write(data);
                 writer.close();
             }
 
@@ -495,7 +544,7 @@ public class HttpServerManager {
                 }
                 reader.close();
 
-                result[1] = new JSONObject(builder.toString());
+                result[1] = builder.toString();
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -504,18 +553,18 @@ public class HttpServerManager {
         return result;
     }
 
-    private JSONObject queryServer(JSONObject data, String urlString, String method) throws
+    private String queryServer(String data, String urlString, String method) throws
             ExecutionException, InterruptedException {
-        AsyncTask<Object, Void, JSONObject> task = new AsyncTask<Object, Void, JSONObject>() {
+        AsyncTask<Object, Void, String> task = new AsyncTask<Object, Void, String>() {
 
             private HttpURLConnection connection;
             private int responseCode;
 
             @Override
-            protected JSONObject doInBackground(Object... params) {
-                JSONObject result = null;
+            protected String doInBackground(Object... params) {
+                String result = null;
 
-                JSONObject data = (JSONObject) params[0];
+                String data = (String) params[0];
                 String urlString = (String) params[1];
                 String method = (String) params[2];
 
@@ -528,7 +577,7 @@ public class HttpServerManager {
                     responseCode = (Integer) values[0];
 
                     if (values[1] != null) {
-                        result = (JSONObject) values[1];
+                        result = (String) values[1];
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -538,7 +587,7 @@ public class HttpServerManager {
             }
 
             @Override
-            protected void onPostExecute(JSONObject result) {
+            protected void onPostExecute(String result) {
                 try {
                     System.out.format(
                         "Server response code & message: %d %s\n",
@@ -562,7 +611,7 @@ public class HttpServerManager {
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod(method);
 
-            Object[] values = queryServer(connection, data);
+            Object[] values = queryServer(connection, data.toString());
             if (values[1] != null) {
                 result = (JSONObject) values[1];
             }

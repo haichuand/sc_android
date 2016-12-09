@@ -459,11 +459,7 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
                 break;
         }
 
-        if (!conversationManager.saveUserToDB(attendee)) {
-            Toast.makeText(this, R.string.error_create_attendee, Toast.LENGTH_SHORT).show();
-            return false;
-        }
-
+        conversationManager.saveUserToDB(attendee);
         return true;
     }
 
