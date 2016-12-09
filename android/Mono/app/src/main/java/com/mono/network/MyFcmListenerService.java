@@ -36,6 +36,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -80,7 +81,7 @@ public class MyFcmListenerService extends FirebaseMessagingService {
                 onNewEventConversation(from, data);
                 break;
             case FCMHelper.ACTION_START_CONVERSATION:
-                onNewConversation(from, data);
+                onNewConversation(from, data, true);
                 break;
             case FCMHelper.ACTION_ADD_CONVERSATION_ATTENDEES:
                 addConversationAttendees(from, data);
@@ -126,7 +127,12 @@ public class MyFcmListenerService extends FirebaseMessagingService {
             }
             serverSyncManager.handleAckConversationMessage(message);
         } else {
-            conversationManager.saveChatMessageToDB(message);
+            if (conversationManager.saveChatMessageToDB(message) == -1) { //conversation does not exist
+                Map<String, String> map = new HashMap<>();
+                map.put(FCMHelper.CONVERSATION_ID, conversationId);
+                onNewConversation(null, map, false);
+                conversationManager.saveChatMessageToDB(message);
+            }
             if (!conversationId.equals(conversationManager.getActiveConversationId())) {
                 missCount = conversationManager.incrementConversationMissCount(conversationId);
                 if (missCount == -1) {
@@ -276,7 +282,7 @@ public class MyFcmListenerService extends FirebaseMessagingService {
         return true;
     }
 
-    private void onNewConversation(String from, Map<String, String> data) {
+    private void onNewConversation(String from, Map<String, String> data, boolean checkAck) {
         String conversationId = data.get(FCMHelper.CONVERSATION_ID);
         if (conversationId == null) {
             return;
@@ -290,7 +296,7 @@ public class MyFcmListenerService extends FirebaseMessagingService {
             int creatorId = object.getInt(FCMHelper.CREATOR_ID);
             String title = object.getString(FCMHelper.TITLE);
             //check if message is self-sent ack
-            if (((int) AccountManager.getInstance(this).getAccount().id) == creatorId) {
+            if (checkAck && ((int) AccountManager.getInstance(this).getAccount().id) == creatorId) {
                 conversationManager.notifyListenersChatAck(conversationId);
                 serverSyncManager.handleAckConversation(conversationId);
                 return;

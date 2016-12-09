@@ -450,7 +450,7 @@ public class ConversationDataSource extends DataSource{
 //    }
 
     public Conversation getConversation(String conversationId, boolean getAttendees, boolean getMessages) {
-        String conversationName = "", creatorId = "", eventId = "";
+        String conversationName, creatorId, eventId = null;
         boolean syncNeeded = false;
         int missCount = 0;
         Cursor cursor = database.select(
@@ -467,12 +467,13 @@ public class ConversationDataSource extends DataSource{
                 }
         );
 
-        if(cursor.moveToNext()) {
-            conversationName = cursor.getString(0);
-            creatorId = cursor.getString(1);
-            syncNeeded = cursor.getInt(2) == 1;
-            missCount = cursor.getInt(3);
+        if(!cursor.moveToNext()) {
+            return null;
         }
+        conversationName = cursor.getString(0);
+        creatorId = cursor.getString(1);
+        syncNeeded = cursor.getInt(2) == 1;
+        missCount = cursor.getInt(3);
 
         cursor = database.select(
                 DatabaseValues.EventConversation.TABLE,
