@@ -350,7 +350,8 @@ public class HttpServerManager {
                     new String[] {CONVERSATION_ID, TITLE, CREATOR_ID, ATTENDEES_ID},
                     new Object[] {conversationId, title, creatorId, new JSONArray(Common.convertIdList(attendeesId))}
             );
-            JSONObject responseJson = new JSONObject(queryServer(conversationInfo.toString(), CREATE_EVENT_CONVERSATION_URL + eventId, POST));
+            String result = queryServer(conversationInfo.toString(), CREATE_EVENT_CONVERSATION_URL + eventId, POST);
+            JSONObject responseJson = new JSONObject(result);
             if (responseJson != null && responseJson.has(STATUS) && responseJson.getInt(STATUS) == 0) {
                 return true;
             }

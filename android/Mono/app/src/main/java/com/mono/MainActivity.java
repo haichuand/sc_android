@@ -761,7 +761,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
             startActivity(intent);
         } else {
             Conversation conversation = conversations.get(0);
-            startChatRoomActivity(event.startTime, event.endTime, event.allDay, conversation.id, String.valueOf(account.id));
+            startChatRoomActivity(event.startTime, event.endTime, event.allDay, conversation.id);
         }
     }
 
@@ -780,9 +780,9 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 
         String myId = String.valueOf(AccountManager.getInstance(this).getAccount().id);
         if (event == null) {
-            startChatRoomActivity(0, 0, false, conversationId, myId);
+            startChatRoomActivity(0, 0, false, conversationId);
         } else {
-            startChatRoomActivity(event.startTime, event.endTime, event.allDay, conversationId, myId);
+            startChatRoomActivity(event.startTime, event.endTime, event.allDay, conversationId);
         }
     }
 
@@ -882,13 +882,12 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         transaction.commit();
     }
 
-    private void startChatRoomActivity(long startTime, long endTime, boolean isAllDay, String conversationId, String accountId) {
+    private void startChatRoomActivity(long startTime, long endTime, boolean isAllDay, String conversationId) {
         Intent intent = new Intent(this, ChatRoomActivity.class);
         intent.putExtra(ChatRoomActivity.EVENT_START_TIME, startTime);
         intent.putExtra(ChatRoomActivity.EVENT_END_TIME, endTime);
         intent.putExtra(ChatRoomActivity.EVENT_ALL_DAY, isAllDay);
         intent.putExtra(ChatRoomActivity.CONVERSATION_ID, conversationId);
-        intent.putExtra(ChatRoomActivity.MY_ID, accountId);
 
         startActivity(intent);
     }

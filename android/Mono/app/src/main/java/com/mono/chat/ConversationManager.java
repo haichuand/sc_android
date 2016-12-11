@@ -1,6 +1,7 @@
 package com.mono.chat;
 
 import android.content.Context;
+import android.widget.Toast;
 
 import com.mono.db.DatabaseHelper;
 import com.mono.db.dao.AttendeeDataSource;
@@ -10,6 +11,11 @@ import com.mono.model.Attendee;
 import com.mono.model.Conversation;
 import com.mono.model.Event;
 import com.mono.model.Message;
+import com.mono.network.HttpServerManager;
+import com.mono.util.Common;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,16 +39,19 @@ public class ConversationManager {
     private String activeConversationId = null;
     private final Map<String, Attendee> allUserMap = new HashMap<>(); //id->Attendee map of all SuperCaly users in local database
     private static final char[] randomIdCharPool = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890".toCharArray();
+    public static final String DEFAULT_USER_PASSWORD = Common.md5("@SuperCalyUser");
     private static Random random = new Random();
     private static final int randomIdLength = 8;
     private int allChatsMissCount = 0;
     private List<ChatsMissCountListener> chatsMissCountListeners = new LinkedList<>();
+    private HttpServerManager httpServerManager;
 
     private ConversationManager(Context context) {
         this.context = context;
         conversationDataSource = DatabaseHelper.getDataSource(context, ConversationDataSource.class);
         attendeeDataSource = DatabaseHelper.getDataSource(context, AttendeeDataSource.class);
         eventDataSource = DatabaseHelper.getDataSource(context, EventDataSource.class);
+        httpServerManager = HttpServerManager.getInstance(context);
         initAllUserMap();
     }
 
@@ -93,6 +102,9 @@ public class ConversationManager {
     public Conversation getConversation(String conversationId, boolean getAttendees, boolean getMessages) {
         return conversationDataSource.getConversation(conversationId, getAttendees, getMessages);
     }
+    public List<Attendee> getConversationAttendees (String conversationId) {
+        return conversationDataSource.getConversationAttendees(conversationId);
+    }
 
     public List<Conversation> getConversationsDBFirst(Event event) {
         if (event.source == Event.SOURCE_DATABASE) { //local database event
@@ -130,20 +142,20 @@ public class ConversationManager {
         return conversationDataSource.getConversationMessages(conversationId);
     }
 
-    public ChatAttendeeMap getChatAttendeeMap(String conversationId) {
-        List<Attendee> attendeeList = conversationDataSource.getConversationAttendees(conversationId);
-        return new ChatAttendeeMap(attendeeList);
-    }
+//    public ChatAttendeeMap getChatAttendeeMap(String conversationId) {
+//        List<Attendee> attendeeList = conversationDataSource.getConversationAttendees(conversationId);
+//        return new ChatAttendeeMap(attendeeList);
+//    }
 
     public long saveChatMessageToDB(Message message) {
         return conversationDataSource.addMessageToConversation(message);
     }
 
-    public void addAttendee(String conversationId, String attendeeId) {
+    public void addAttendeeToConversation(String conversationId, String attendeeId) {
         conversationDataSource.addAttendeeToConversation(conversationId, attendeeId);
     }
 
-    public void addAttendees(String conversationId, List<String> attendeeIds) {
+    public void addAttendeesToConversation(String conversationId, List<String> attendeeIds) {
         conversationDataSource.addAttendeesToConversation(conversationId, attendeeIds);
     }
 
@@ -156,6 +168,10 @@ public class ConversationManager {
         conversationDataSource.dropAttendeesFromConversation(conversationId, dropAttendeesId);
     }
 
+    public void clearConversationAttendees (String conversationId) {
+        conversationDataSource.clearConversationAttendees(conversationId);
+    }
+
     public boolean setConversationSyncNeeded(String conversationId, boolean isSynNeeded) {
         return conversationDataSource.setConversationSyncNeeded(conversationId, isSynNeeded);
     }
@@ -164,11 +180,10 @@ public class ConversationManager {
         return conversationDataSource.setConversationMessageAckAndTimestamp(messageId, ack, timestamp);
     }
 
-    public List<String> getChatAttendeeIdList(ChatAttendeeMap attendeeMap, String myId) {
-        ArrayList<String> attendeeIdList = new ArrayList<>(attendeeMap.getAttendeeMap().keySet());
-//        attendeeIdList.remove(myId); //commented out to send message to user self for confirmation
-        return attendeeIdList;
-    }
+//    public List<String> getChatAttendeeIdList(ChatAttendeeMap attendeeMap) {
+//        ArrayList<String> attendeeIdList = new ArrayList<>(attendeeMap.getAttendeeMap().keySet());
+//        return attendeeIdList;
+//    }
 
     public boolean hasUser (String id) {
         if (allUserMap.isEmpty()) {
@@ -246,6 +261,12 @@ public class ConversationManager {
         }
     }
 
+    public void notifyListenersDropConversationAttendees(String conversationId, List<String> dropAttendeesId) {
+        for (ConversationBroadcastListener listener : broadcastListeners) {
+            listener.onDropConversationAttendees(conversationId, dropAttendeesId);
+        }
+    }
+
     public void notifyListenersNewConversationMessage (Message message, int missCount) {
         for (ConversationBroadcastListener listener : broadcastListeners) {
             listener.onNewConversationMessage(message, missCount);
@@ -286,6 +307,10 @@ public class ConversationManager {
 
     public boolean createConversation (String conversationId, String title, String creatorId, List<String> attendeesId, boolean syncNeeded) {
         return conversationDataSource.createConversation(conversationId, title, creatorId, attendeesId, syncNeeded);
+    }
+
+    public boolean createEventConversation (String eventId, String conversationId, String title, String creatorId, List<String> attendeesIdList, boolean syncNeeded, int missCount) {
+        return conversationDataSource.createEventConversation(eventId, conversationId, title, creatorId, attendeesIdList, syncNeeded, missCount);
     }
 
     public int incrementConversationMissCount(String conversationId) {
@@ -339,6 +364,42 @@ public class ConversationManager {
             str += randomIdCharPool[random.nextInt(randomIdCharPool.length)];
         }
         return str;
+    }
+
+    public boolean saveUnregisteredAttendee(Attendee attendee) {
+        attendee.firstName = (attendee.firstName == null ? "" : attendee.firstName);
+        attendee.lastName = (attendee.lastName == null ? "" : attendee.lastName);
+        attendee.userName = (attendee.userName == null || attendee.userName.isEmpty() ? attendee.email : attendee.userName);
+
+        int responseCode = httpServerManager.createUser(
+                attendee.email,
+                attendee.firstName,
+                attendee.email,
+                attendee.lastName,
+                null,
+                null,
+                attendee.userName,
+                DEFAULT_USER_PASSWORD );
+
+        switch (responseCode) {
+            case HttpServerManager.STATUS_EXCEPTION: //cannot connect with server
+                return false;
+            case HttpServerManager.STATUS_ERROR: //user with email or phone already in server database
+                JSONObject object = httpServerManager.getUserByEmail(attendee.email);
+                try {
+                    attendee.id = object.getString(HttpServerManager.UID);
+                } catch (JSONException e) {
+                    Toast.makeText(context, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    return false;
+                }
+                break;
+            default: //user created on http server; returns userId
+                attendee.id = String.valueOf(responseCode);
+                break;
+        }
+
+        saveUserToDB(attendee);
+        return true;
     }
 
     public interface ConversationBroadcastListener {

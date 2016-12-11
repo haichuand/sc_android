@@ -235,22 +235,9 @@ public class MyFcmListenerService extends FirebaseMessagingService {
                     JSONObject attendeeObj = (JSONObject) attendeesArray.get(i);
                     String id = String.valueOf(attendeeObj.getInt(HttpServerManager.UID));
                     // save attendee if not in local database
-                    Attendee attendee = null;
-                    if (!conversationManager.hasUser(id)) {
-                        attendee = new Attendee(
-                                id,
-                                attendeeObj.getString(HttpServerManager.MEDIA_ID),
-                                attendeeObj.getString(HttpServerManager.EMAIL),
-                                attendeeObj.getString(HttpServerManager.PHONE_NUMBER),
-                                attendeeObj.getString(HttpServerManager.FIRST_NAME),
-                                attendeeObj.getString(HttpServerManager.LAST_NAME),
-                                attendeeObj.getString(HttpServerManager.USER_NAME),
-                                false,
-                                true
-                        );
-                        conversationManager.saveUserToDB(attendee);
-                    } else {
-                        attendee = conversationManager.getUserById(id);
+                    Attendee attendee = getAttendee(id);
+                    if (attendee == null) {
+                        return false;
                     }
                     attendeesIdList.add(id);
                     attendeesNameList.add(attendee.toString());
@@ -265,12 +252,11 @@ public class MyFcmListenerService extends FirebaseMessagingService {
         }
 
         //create conversation in local database
-        ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
-        conversationDataSource.createEventConversation(eventId, conversationId, conversationTitle, creatorId, attendeesIdList, false, 1);
+        conversationManager.createEventConversation(eventId, conversationId, conversationTitle, creatorId, attendeesIdList, false, 1);
 
         sendNotification(creatorName + " invited you to chat: " + conversationTitle + "\nAttendees: " + Common.implode(", ", attendeesNameList));
 
-        final Conversation conversation = conversationDataSource.getConversation(conversationId, false, false);
+        final Conversation conversation = conversationManager.getConversation(conversationId, false, false);
         handler.post(new Runnable() {
             @Override
             public void run() {
@@ -311,22 +297,9 @@ public class MyFcmListenerService extends FirebaseMessagingService {
                     JSONObject attendeeObj = (JSONObject) attendeesArray.get(i);
                     String id = String.valueOf(attendeeObj.getInt(HttpServerManager.UID));
                     // save attendee if not in local database
-                    Attendee attendee = null;
-                    if (!conversationManager.hasUser(id)) {
-                        attendee = new Attendee(
-                                id,
-                                attendeeObj.getString(HttpServerManager.MEDIA_ID),
-                                attendeeObj.getString(HttpServerManager.EMAIL),
-                                attendeeObj.getString(HttpServerManager.PHONE_NUMBER),
-                                attendeeObj.getString(HttpServerManager.FIRST_NAME),
-                                attendeeObj.getString(HttpServerManager.LAST_NAME),
-                                attendeeObj.getString(HttpServerManager.USER_NAME),
-                                false,
-                                true
-                        );
-                        conversationManager.saveUserToDB(attendee);
-                    } else {
-                        attendee = conversationManager.getUserById(id);
+                    Attendee attendee = getAttendee(id);
+                    if (attendee == null) {
+                        return;
                     }
                     attendeesId.add(id);
                     attendeesName.add(attendee.toString());
@@ -342,11 +315,12 @@ public class MyFcmListenerService extends FirebaseMessagingService {
                     String.valueOf(creatorId),
                     attendeesId,
                     false,
-                    1
+                    0
             )) {
                 Toast.makeText(this, R.string.fcm_listener_error_save_new_chat, Toast.LENGTH_SHORT).show();
                 return;
             }
+            conversationManager.incrementConversationMissCount(conversationId);
 
             //do not send notification if conversation's creator is user self because it's for self-confirmation
             sendNotification(creatorName + " invited you to chat: " + title + "\nAttendees: " + Common.implode(", ", attendeesName));
@@ -368,10 +342,22 @@ public class MyFcmListenerService extends FirebaseMessagingService {
         String senderId = data.get(FCMHelper.SENDER_ID);
         final String conversationId = data.get(FCMHelper.CONVERSATION_ID);
         String[] userIds = Common.explode(",", data.get(FCMHelper.USER_IDS));
-        ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
         final List<String> newAttendeeIds = Arrays.asList(userIds);
-        conversationDataSource.addAttendeesToConversation(conversationId, newAttendeeIds);
-        sendNotification("Added new users to conversation with id: " + conversationId + "; new users: " + Arrays.asList(userIds));
+        List<String> names = new ArrayList<>();
+        for (String attendeeId : newAttendeeIds) {
+            Attendee attendee = getAttendee(attendeeId);
+            if (attendee == null) {
+                return;
+            }
+            names.add(attendee.toString());
+        }
+        conversationManager.addAttendeesToConversation(conversationId, newAttendeeIds);
+        if (!senderId.equals(String.valueOf(AccountManager.getInstance(this).getAccount().id))
+                && !conversationId.equals(conversationManager.getActiveConversationId())) {
+            Conversation conversation = conversationManager.getConversation(conversationId, false, false);
+            sendNotification(getString(R.string.add_chat_attendee) + Common.implode(", ", names) + ". " +
+                    getString(R.string.chat_title) + conversation.name);
+        }
         handler.post(new Runnable() {
             @Override
             public void run() {
@@ -391,18 +377,33 @@ public class MyFcmListenerService extends FirebaseMessagingService {
 
     private void dropConversationAttendees(String from, Map<String, String> data) {
         String senderId = data.get(FCMHelper.SENDER_ID);
-        String conversationId = data.get(FCMHelper.CONVERSATION_ID);
+        final String conversationId = data.get(FCMHelper.CONVERSATION_ID);
         String[] userIds = Common.explode(",", data.get(FCMHelper.USER_IDS));
-        List<String> userList = Arrays.asList(userIds);
-        ConversationDataSource conversationDataSource = DatabaseHelper.getDataSource(this, ConversationDataSource.class);
+        final List<String> userList = Arrays.asList(userIds);
         String myId = String.valueOf(AccountManager.getInstance(this).getAccount().id);
-        if (userList.contains(myId)) { //myself is dropped from conversation
-            conversationDataSource.clearConversationAttendees(conversationId);
-            sendNotification("Dropped from conversation with id: " + conversationId);
-        } else { //other users are dropped from conversation
-            conversationDataSource.dropAttendeesFromConversation(conversationId, userList);
-            sendNotification("Removed users " + userList + " from conversation: " + conversationId);
+        Conversation conversation = conversationManager.getConversation(conversationId, true, false);
+        List<String> names = new ArrayList<>();
+        for (String id : userList) {
+            names.add(conversationManager.getUserById(id).toString());
         }
+
+        if (userList.contains(myId)) { //myself is dropped from conversation
+            conversationManager.clearConversationAttendees(conversationId);
+            sendNotification(getString(R.string.dropped_from_chat_title) + conversation.name);
+        } else { //other users are dropped from conversation
+            conversationManager.dropAttendees(conversationId, userList);
+            if (!senderId.equals(myId)) {
+                sendNotification(getString(R.string.drop_chat_attendee) + Common.implode(", ", names) + ". " +
+                        getString(R.string.chat_title) + conversation.name);
+            }
+        }
+
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                conversationManager.notifyListenersDropConversationAttendees(conversationId, userList);
+            }
+        });
     }
 
     /**
@@ -437,7 +438,6 @@ public class MyFcmListenerService extends FirebaseMessagingService {
         Intent intent = new Intent(getApplicationContext(), ChatRoomActivity.class);
         intent.putExtra(ChatRoomActivity.CONVERSATION_ID, conversationId);
         Account account = AccountManager.getInstance(this).getAccount();
-        intent.putExtra(ChatRoomActivity.MY_ID, account.id + "");
         intent.addFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, conversationId.hashCode() /* Request code */, intent,
                 PendingIntent.FLAG_ONE_SHOT);
@@ -460,15 +460,9 @@ public class MyFcmListenerService extends FirebaseMessagingService {
     private boolean createEvent(String eventId, long startTime, long endTime, String title, List<String> attendeeIds) {
         List<Attendee> attendees = new ArrayList<>();
         for (String id : attendeeIds) {
-            Attendee attendee = conversationManager.getUserById(id);
+            Attendee attendee = getAttendee(id);
             if (attendee == null) {
-                attendee = getAttendeeFromServer(id);
-                if (attendee == null) {
-                    return false;
-                }
-                if (!conversationManager.saveUserToDB(attendee)) {
-                    return false;
-                }
+                return false;
             }
             attendees.add(attendee);
         }
@@ -486,26 +480,39 @@ public class MyFcmListenerService extends FirebaseMessagingService {
         return id != null;
     }
 
-    private Attendee getAttendeeFromServer(String attendeeId) {
+    /**
+     * If attendee is in local database, return the attendee; otherwise get attendee from http server
+     * and save in local database
+     * @param attendeeId
+     * @return
+     */
+    private Attendee getAttendee (String attendeeId) {
         Attendee attendee = null;
-        JSONObject obj = httpServerManager.getUserInfo(Integer.valueOf(attendeeId));
-        if (obj != null) {
-            try {
-                attendee = new Attendee(
-                        attendeeId,
-                        obj.getString(HttpServerManager.MEDIA_ID),
-                        obj.getString(HttpServerManager.EMAIL),
-                        obj.getString(HttpServerManager.PHONE_NUMBER),
-                        obj.getString(HttpServerManager.FIRST_NAME),
-                        obj.getString(HttpServerManager.LAST_NAME),
-                        obj.getString(HttpServerManager.USER_NAME),
-                        false,
-                        true
-                );
-            } catch (JSONException e) {
-                e.printStackTrace();
+
+        if (!conversationManager.hasUser(attendeeId)) {
+            JSONObject obj = httpServerManager.getUserInfo(Integer.valueOf(attendeeId));
+            if (obj != null) {
+                try {
+                    attendee = new Attendee(
+                            attendeeId,
+                            obj.getString(HttpServerManager.MEDIA_ID),
+                            obj.getString(HttpServerManager.EMAIL),
+                            obj.getString(HttpServerManager.PHONE_NUMBER),
+                            obj.getString(HttpServerManager.FIRST_NAME),
+                            obj.getString(HttpServerManager.LAST_NAME),
+                            obj.getString(HttpServerManager.USER_NAME),
+                            false,
+                            true
+                    );
+                    conversationManager.saveUserToDB(attendee);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
+        } else {
+            attendee = conversationManager.getUserById(attendeeId);
         }
+
         return attendee;
     }
 }

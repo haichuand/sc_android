@@ -214,11 +214,16 @@
     <string name="error_chat_title">Chat title cannot be empty</string>
     <string name="error_saving_chat">Error saving chat to your device. Please try again</string>
     <string name="error_no_email">Chat attendee must have a valid email address</string>
-    <string name="error_duplicate_attendee">Chat attendee already in list</string>
     <string name="error_create_attendee">Error creating attendee in database</string>
     <string name="error_update_attendee">Error updating attendee in database</string>
     <string name="title_activity_create_chat">CreateChatActivity</string>
     <string name="error_create_chat">Error creating chat. Please try later</string>
+    <string name="dropped_from_chat">You have been dropped from this chat. You cannot send or receive any messages here</string>
+    <string name="dropped_from_chat_title">You have been dropped from chat: </string>
+    <string name="add_chat_attendee">New chat attendees added: </string>
+    <string name="chat_title">Chat title: </string>
+    <string name="drop_chat_attendee">Dropped chat attendees: </string>
+    <string name="only_creator_change_attendee">Only chat creator can make changes to attendees</string>
 
     <string name="fcm_listener_error_save_new_chat">Error: cannot save new chat to database</string>
 </resources>
