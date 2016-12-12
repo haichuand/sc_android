@@ -530,6 +530,14 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
     }
 
     private String saveProviderEventToDB(final Event event) {
+        // save temporary attendees with negative ids with server attendees
+        for (Attendee attendee : event.attendees) {
+            if (attendee.id.startsWith("-")) {
+                if (!conversationManager.saveUnregisteredAttendee(attendee)) {
+                    return null;
+                }
+            }
+        }
         if (event.source == Event.SOURCE_DATABASE) {
             return event.id;
         }

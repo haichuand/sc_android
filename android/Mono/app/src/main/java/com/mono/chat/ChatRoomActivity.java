@@ -467,8 +467,9 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
                         return;
                     }
 
-                    chatAttendeeIdList.remove(attendeeId);
                     chatAttendeeIdList.add(attendee.id);
+                    updateChatAttendeeIdList.remove(attendeeId);
+                    updateChatAttendeeIdList.add(attendee.id);
                     addAttendeeIdList.set(j, attendee.id);
                 }
             }
