@@ -172,6 +172,10 @@ public class ConversationManager {
         conversationDataSource.clearConversationAttendees(conversationId);
     }
 
+    public boolean deleteConversation(String conversationId) {
+        return conversationDataSource.deleteConversation(conversationId);
+    }
+
     public boolean setConversationSyncNeeded(String conversationId, boolean isSynNeeded) {
         return conversationDataSource.setConversationSyncNeeded(conversationId, isSynNeeded);
     }
