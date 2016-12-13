@@ -2,6 +2,7 @@ package com.mono.dashboard;
 
 import android.content.Context;
 import android.content.DialogInterface;
+import android.graphics.PorterDuff;
 import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,10 +14,11 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.mono.R;
+import com.mono.model.EventFilter;
+import com.mono.util.Colors;
 import com.mono.util.Pixels;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -35,10 +37,11 @@ public class FilterDialog implements DialogInterface.OnClickListener {
     private EditText input;
     private ImageView submit;
 
-    private final List<String> filters = new ArrayList<>();
+    private final List<EventFilter> filters = new ArrayList<>();
     private FilterDialogCallback callback;
 
-    private FilterDialog(Context context, List<String> filters, FilterDialogCallback callback) {
+    private FilterDialog(Context context, List<EventFilter> filters,
+            FilterDialogCallback callback) {
         this.context = context;
         this.filters.addAll(filters);
         this.callback = callback;
@@ -52,16 +55,9 @@ public class FilterDialog implements DialogInterface.OnClickListener {
      * @param callback Callback upon completion.
      * @return an instance of a dialog.
      */
-    public static FilterDialog create(Context context, String[] filters,
+    public static FilterDialog create(Context context, List<EventFilter> filters,
             FilterDialogCallback callback) {
-        List<String> tempFilters;
-        if (filters != null) {
-            tempFilters = Arrays.asList(filters);
-        } else {
-            tempFilters = new ArrayList<>();
-        }
-
-        FilterDialog dialog = new FilterDialog(context, tempFilters, callback);
+        FilterDialog dialog = new FilterDialog(context, filters, callback);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context,
             R.style.AppTheme_Dialog_Alert);
@@ -87,8 +83,8 @@ public class FilterDialog implements DialogInterface.OnClickListener {
 
         items = (ViewGroup) view.findViewById(R.id.items);
 
-        for (String value : filters) {
-            createText(value);
+        for (EventFilter filter : filters) {
+            createText(filter.text, filter.status);
         }
 
         input = (EditText) view.findViewById(R.id.input);
@@ -108,13 +104,17 @@ public class FilterDialog implements DialogInterface.OnClickListener {
      * Create a filter text item.
      *
      * @param value Filter string.
+     * @param enabled Enabled filter.
      */
-    public void createText(String value) {
+    public void createText(String value, boolean enabled) {
         LayoutInflater inflater = LayoutInflater.from(context);
-        final View itemView = inflater.inflate(R.layout.reminder_item, null, false);
+        final View itemView = inflater.inflate(R.layout.filter_item, null, false);
 
         TextView text = (TextView) itemView.findViewById(R.id.text);
         text.setText(value);
+
+        int colorId = enabled ? R.color.gray_dark : R.color.gray_light_3;
+        text.setTextColor(Colors.getColor(context, colorId));
 
         ImageView icon = (ImageView) itemView.findViewById(R.id.icon);
         icon.setOnClickListener(new OnClickListener() {
@@ -125,6 +125,27 @@ public class FilterDialog implements DialogInterface.OnClickListener {
                 items.removeViewAt(index);
             }
         });
+
+        ImageView status = (ImageView) itemView.findViewById(R.id.status);
+        status.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                int index = items.indexOfChild(itemView);
+                EventFilter filter = filters.get(index);
+                filter.status = !filter.status;
+
+                TextView text = (TextView) itemView.findViewById(R.id.text);
+                int colorId = filter.status ? R.color.gray_dark : R.color.gray_light_3;
+                text.setTextColor(Colors.getColor(context, colorId));
+
+                ImageView status = (ImageView) itemView.findViewById(R.id.status);
+                colorId = filter.status ? R.color.green : R.color.gray_light_3;
+                status.setColorFilter(Colors.getColor(context, colorId), PorterDuff.Mode.SRC_ATOP);
+            }
+        });
+
+        colorId = enabled ? R.color.green : R.color.gray_light_3;
+        status.setColorFilter(Colors.getColor(context, colorId), PorterDuff.Mode.SRC_ATOP);
 
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
@@ -149,9 +170,20 @@ public class FilterDialog implements DialogInterface.OnClickListener {
     private void onSubmit() {
         String value = input.getText().toString().trim();
 
-        if (!value.isEmpty() && !filters.contains(value)) {
-            filters.add(value);
-            createText(value);
+        if (!value.isEmpty()) {
+            boolean exists = false;
+
+            for (EventFilter filter : filters) {
+                if (filter.text.equalsIgnoreCase(value)) {
+                    exists = true;
+                    break;
+                }
+            }
+
+            if (!exists) {
+                filters.add(new EventFilter(value, true));
+                createText(value, true);
+            }
         }
 
         input.setText("");
@@ -164,12 +196,12 @@ public class FilterDialog implements DialogInterface.OnClickListener {
         dialog.dismiss();
 
         if (callback != null) {
-            callback.onFinish(filters.toArray(new String[filters.size()]));
+            callback.onFinish(filters);
         }
     }
 
     public interface FilterDialogCallback {
 
-        void onFinish(String[] filters);
+        void onFinish(List<EventFilter> filters);
     }
 }

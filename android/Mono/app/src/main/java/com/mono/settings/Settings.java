@@ -5,11 +5,14 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.preference.PreferenceManager;
 
+import com.mono.model.EventFilter;
 import com.mono.util.Constants;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -356,14 +359,37 @@ public class Settings {
         editor.apply();
     }
 
-    public String[] getEventFilters() {
-        Set<String> filters = preferences.getStringSet(PREF_EVENT_FILTERS, DEFAULT_EVENT_FILTERS);
-        return filters.toArray(new String[filters.size()]);
+    public List<EventFilter> getEventFilters() {
+        List<EventFilter> filters = new ArrayList<>();
+
+        if (DEFAULT_EVENT_FILTERS.isEmpty()) {
+            DEFAULT_EVENT_FILTERS.add("Driving,0");
+            DEFAULT_EVENT_FILTERS.add("Walking,0");
+        }
+
+        Set<String> tempFilters = preferences.getStringSet(PREF_EVENT_FILTERS,
+            DEFAULT_EVENT_FILTERS);
+
+        for (String filter : tempFilters) {
+            String[] value = filter.split(",");
+            String text = value[0];
+            boolean status = Integer.parseInt(value[1]) > 0;
+
+            filters.add(new EventFilter(text, status));
+        }
+
+        return filters;
     }
 
-    public void setEventFilters(String[] filters) {
+    public void setEventFilters(List<EventFilter> filters) {
+        Set<String> tempFilters = new LinkedHashSet<>();
+
+        for (EventFilter filter : filters) {
+            tempFilters.add(filter.text + "," + (filter.status ? 1 : 0));
+        }
+
         Editor editor = getEditor();
-        editor.putStringSet(PREF_EVENT_FILTERS, new HashSet<>(Arrays.asList(filters)));
+        editor.putStringSet(PREF_EVENT_FILTERS, tempFilters);
         editor.apply();
     }
 

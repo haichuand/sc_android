@@ -5,6 +5,7 @@ import android.content.Context;
 import com.mono.R;
 import com.mono.dashboard.EventGroupsFragment.EventGroup;
 import com.mono.model.Event;
+import com.mono.model.EventFilter;
 import com.mono.util.Colors;
 import com.mono.util.SimpleDataSource;
 
@@ -14,7 +15,6 @@ import org.joda.time.LocalDateTime;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -42,7 +42,7 @@ public class EventGroupDataSource implements SimpleDataSource<EventGroupItem> {
 
     private Comparator<EventGroup> groupComparator;
     private int dateTimeColorId;
-    private List<String> filters = new ArrayList<>();
+    private List<EventFilter> filters = new ArrayList<>();
 
     static {
         DATE_FORMAT = new SimpleDateFormat("MMM d", Locale.getDefault());
@@ -273,12 +273,12 @@ public class EventGroupDataSource implements SimpleDataSource<EventGroupItem> {
         return events.containsKey(id);
     }
 
-    public List<String> getFilters() {
+    public List<EventFilter> getFilters() {
         return filters;
     }
 
-    public void setFilters(String[] filters) {
+    public void setFilters(List<EventFilter> filters) {
         this.filters.clear();
-        this.filters.addAll(Arrays.asList(filters));
+        this.filters.addAll(filters);
     }
 }

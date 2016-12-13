@@ -25,6 +25,7 @@ import com.mono.dashboard.EventsFragment.ListListener;
 import com.mono.dashboard.EventGroupsListAdapter.EventGroupsListListener;
 import com.mono.model.Calendar;
 import com.mono.model.Event;
+import com.mono.model.EventFilter;
 import com.mono.model.Location;
 import com.mono.provider.CalendarProvider;
 import com.mono.settings.Settings;
@@ -38,7 +39,6 @@ import org.joda.time.LocalDate;
 import org.joda.time.LocalDateTime;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -504,10 +504,13 @@ public class EventGroupsFragment extends Fragment implements EventGroupsListList
             return false;
         }
 
-        for (String filter : dataSource.getFilters()) {
-            filter = filter.toLowerCase();
+        for (EventFilter filter : dataSource.getFilters()) {
+            if (!filter.status) {
+                continue;
+            }
 
-            if (event.title != null && event.title.toLowerCase().contains(filter)) {
+            String text = filter.text.toLowerCase();
+            if (event.title != null && event.title.toLowerCase().contains(text)) {
                 return false;
             }
         }
@@ -958,17 +961,17 @@ public class EventGroupsFragment extends Fragment implements EventGroupsListList
      * Display event filter dialog to manage to filters to hide events.
      */
     public void onFilterClick() {
-        String[] filters = Settings.getInstance(getContext()).getEventFilters();
+        List<EventFilter> filters = Settings.getInstance(getContext()).getEventFilters();
 
         FilterDialog.create(getContext(), filters, new FilterDialog.FilterDialogCallback() {
             @Override
-            public void onFinish(String[] filters) {
+            public void onFinish(List<EventFilter> filters) {
                 Settings settings = Settings.getInstance(getContext());
 
-                String[] original = settings.getEventFilters();
+                List<EventFilter> original = settings.getEventFilters();
                 settings.setEventFilters(filters);
 
-                if (!Arrays.equals(filters, original)) {
+                if (!filters.equals(original)) {
                     dataSource.setFilters(filters);
                     onRefresh();
                 }
