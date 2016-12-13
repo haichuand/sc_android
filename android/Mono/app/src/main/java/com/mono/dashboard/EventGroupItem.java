@@ -15,6 +15,7 @@ public class EventGroupItem extends SimpleViewHolder.HolderItem {
     public String title;
     public String date;
     public int dateColor;
+    public int color;
     public List<EventItem> items = new ArrayList<>();
     public boolean hasPhotos;
 

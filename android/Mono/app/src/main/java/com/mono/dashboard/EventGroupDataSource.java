@@ -45,7 +45,7 @@ public class EventGroupDataSource implements SimpleDataSource<EventGroupItem> {
     private List<EventFilter> filters = new ArrayList<>();
 
     static {
-        DATE_FORMAT = new SimpleDateFormat("MMM d", Locale.getDefault());
+        DATE_FORMAT = new SimpleDateFormat("EEE, MMM d", Locale.getDefault());
         DATE_FORMAT_2 = new SimpleDateFormat("M/d/yy", Locale.getDefault());
         TIME_FORMAT = new SimpleDateFormat("h:mm a", Locale.getDefault());
     }

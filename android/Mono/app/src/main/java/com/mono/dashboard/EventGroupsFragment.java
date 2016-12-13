@@ -224,6 +224,9 @@ public class EventGroupsFragment extends Fragment implements EventGroupsListList
             case R.id.action_filter:
                 onFilterClick();
                 return true;
+            case R.id.action_refresh:
+                onRefresh();
+                return true;
         }
 
         return super.onOptionsItemSelected(item);
