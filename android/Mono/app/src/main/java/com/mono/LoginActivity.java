@@ -240,7 +240,7 @@ public class LoginActivity extends AppCompatActivity {
                     String messageText = obj.getString(HttpServerManager.TEXT_CONTENT);
                     long timestamp = obj.getJSONObject(HttpServerManager.MESSAGE_KEY).getLong(HttpServerManager.TIMESTAMP);
                     Message message = new Message(senderId, conversationId, messageText, timestamp);
-                    message.ack = false;
+                    message.ack = true;
                     conversationDataSource.addMessageToConversation(message);
 
                 }

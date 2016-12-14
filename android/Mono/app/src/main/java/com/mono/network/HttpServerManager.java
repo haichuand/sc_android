@@ -385,7 +385,7 @@ public class HttpServerManager {
 
     public JSONObject getConversationMessages(String conversationId) {
         try {
-            return queryServer(null, GET_MESSAGE_BYCONVID + conversationId, GET);
+            return new JSONObject(queryServer(null, GET_MESSAGE_BYCONVID + conversationId, GET));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -395,7 +395,7 @@ public class HttpServerManager {
 
     public JSONObject getConversationByuser(int userId) {
         try {
-            return queryServer(null, GET_CONVID_BYUSER + userId, GET);
+            return new JSONObject(queryServer(null, GET_CONVID_BYUSER + userId, GET));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -404,7 +404,7 @@ public class HttpServerManager {
 
     public JSONObject getEventByconversation(String conversationId) {
         try {
-            return queryServer(null, GET_EVENT_BYCONVID + conversationId, GET);
+            return new JSONObject(queryServer(null, GET_EVENT_BYCONVID + conversationId, GET));
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -55,6 +55,7 @@ import com.mono.util.GoogleClient;
 import com.mono.util.OnBackPressedListener;
 import com.mono.util.SimpleTabLayout;
 
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -91,7 +92,7 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
     private GoogleClient googleClient;
     private ConversationManager conversationManager;
     private ServerSyncManager syncManager;
-
+    private final List<Conversation> chats = new LinkedList<>();
     private EditModeListener editModeListener;
 
     @Override
@@ -239,8 +240,8 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
         scheduler.run(this);
         syncManager.processServerSyncItems();
 //        requestSync(false);
-       // conversationManager.getAllChatsMissCount();
-        //conversationManager.notifyAllChatsListenersMissCount();
+        conversationManager.getAllChatsMissCount();
+        conversationManager.notifyAllChatsListenersMissCount();
     }
 
     @Override
