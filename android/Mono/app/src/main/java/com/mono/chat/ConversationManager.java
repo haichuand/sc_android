@@ -173,6 +173,13 @@ public class ConversationManager {
     }
 
     public boolean deleteConversation(String conversationId) {
+        try {
+            httpServerManager.deleteMessagesByConversation(conversationId);
+        }
+        catch(Exception ex)
+        {
+            ex.printStackTrace();
+        }
         return conversationDataSource.deleteConversation(conversationId);
     }
 

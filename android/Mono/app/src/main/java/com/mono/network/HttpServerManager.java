@@ -56,6 +56,7 @@ public class HttpServerManager {
 
     public static final String ADD_MESSAGE_URL = REST_URL + "conversation/addMessage";
     public static final String BACKUP_MESSAGE_URL = REST_URL + "conversation/backupMessages";
+    public static final String DELETE_CONVERSATION_MESSAGES_URL = REST_URL + "conversation/deleteMessages/";
 
     public static final String UPLOAD_IMAGE_URL = REST_URL + "file/upload/image";
     public static final String UPLOAD_VIDEO_URL = REST_URL + "file/upload/video";
@@ -410,6 +411,16 @@ public class HttpServerManager {
         }
         return null;
     }
+
+    public JSONObject deleteMessagesByConversation(String conversationId) {
+        try {
+            return new JSONObject(queryServer(null, DELETE_CONVERSATION_MESSAGES_URL + conversationId, GET));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     /**
      *
      * @param conversationId
