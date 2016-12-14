@@ -226,28 +226,12 @@ public class ConversationDataSource extends DataSource{
         return database.update(DatabaseValues.ConversationContent.TABLE, values, DatabaseValues.ConversationContent.ID + "=" + messageId, null) == 1;
     }
 
-//    public boolean createConversationWithConversationIdFromEvent(String name, String eventID, String conversationID) {
-//        ContentValues conversationValues = new ContentValues();
-//        conversationValues.put(DatabaseValues.Conversation.C_ID, conversationID);
-//        conversationValues.put(DatabaseValues.Conversation.C_NAME, name);
-//
-//        ContentValues conversationEventValues = new ContentValues();
-//        conversationEventValues.put(DatabaseValues.EventConversation.C_ID, eventID);
-//        conversationEventValues.put(DatabaseValues.EventConversation.EVENT_ID, eventID);
-//
-//        try {
-//            database.insert(DatabaseValues.Conversation.TABLE,conversationValues);
-//            database.insert(DatabaseValues.EventConversation.TABLE,conversationEventValues);
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//            return false;
-//        }
-//        return true;
-//    }
-
-//    public int clearConversationTable() {
-//        return database.delete(DatabaseValues.Conversation.TABLE, null, null);
-//    }
+    public boolean deleteConversation(String conversationId) {
+        return database.delete(
+                DatabaseValues.Conversation.TABLE,
+                DatabaseValues.Conversation.C_ID + "='" + conversationId + "'",
+                null) == 1;
+    }
 
     public int clearConversationAttendees(String conversationId) {
         return database.delete(DatabaseValues.ConversationAttendee.TABLE, DatabaseValues.ConversationAttendee.C_ID + "='" + conversationId + "'", null);
@@ -450,7 +434,7 @@ public class ConversationDataSource extends DataSource{
 //    }
 
     public Conversation getConversation(String conversationId, boolean getAttendees, boolean getMessages) {
-        String conversationName = "", creatorId = "", eventId = "";
+        String conversationName, creatorId, eventId = null;
         boolean syncNeeded = false;
         int missCount = 0;
         Cursor cursor = database.select(
@@ -467,12 +451,13 @@ public class ConversationDataSource extends DataSource{
                 }
         );
 
-        if(cursor.moveToNext()) {
-            conversationName = cursor.getString(0);
-            creatorId = cursor.getString(1);
-            syncNeeded = cursor.getInt(2) == 1;
-            missCount = cursor.getInt(3);
+        if(!cursor.moveToNext()) {
+            return null;
         }
+        conversationName = cursor.getString(0);
+        creatorId = cursor.getString(1);
+        syncNeeded = cursor.getInt(2) == 1;
+        missCount = cursor.getInt(3);
 
         cursor = database.select(
                 DatabaseValues.EventConversation.TABLE,

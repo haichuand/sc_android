@@ -29,6 +29,7 @@
     <string name="action_edit">Edit</string>
     <string name="action_sync">Sync</string>
     <string name="action_done">Done</string>
+    <string name="action_filter">Filter</string>
 
     <string name="fragment_main">MainFragment</string>
     <string name="fragment_login">LoginFragment</string>
@@ -158,6 +159,9 @@
     <string name="select_contacts">Select Contacts</string>
     <string name="value_selected">%d Selected</string>
     <string name="today">Today</string>
+    <string name="event_filters_title">Event Title Filters</string>
+    <string name="close">Close</string>
+    <string name="add_filter">Add Filter</string>
 
     <string name="contacts_search">Enter Name or Email</string>
     <string name="favorites_add">Add to Favorites</string>
@@ -181,7 +185,7 @@
     <string name="confirm_event_delete_multiple">Are you sure you want to delete these events?</string>
     <string name="confirm_event_sync_multiple">Are you sure you want to sync these events to [%s]?</string>
     <string name="confirm_logout">Are you sure you want to sign out?</string>
-    <string name="confirm_chat_leave">Are you sure you want to leave this chat?</string>
+    <string name="confirm_chat_delete">Are you sure you want to delete this chat?</string>
     <string name="confirm_friend_delete">Are you sure you want to remove this friend?</string>
     <string name="verify_location_change_forAll">Do you want to remember this location for all future/past events?</string>
     <string name="confirm_discard_change">Discard the changes?</string>
@@ -210,11 +214,16 @@
     <string name="error_chat_title">Chat title cannot be empty</string>
     <string name="error_saving_chat">Error saving chat to your device. Please try again</string>
     <string name="error_no_email">Chat attendee must have a valid email address</string>
-    <string name="error_duplicate_attendee">Chat attendee already in list</string>
     <string name="error_create_attendee">Error creating attendee in database</string>
     <string name="error_update_attendee">Error updating attendee in database</string>
     <string name="title_activity_create_chat">CreateChatActivity</string>
     <string name="error_create_chat">Error creating chat. Please try later</string>
+    <string name="dropped_from_chat">You have been dropped from this chat. You cannot send or receive any messages here</string>
+    <string name="dropped_from_chat_title">You have been dropped from chat: </string>
+    <string name="add_chat_attendee">New chat attendees added: </string>
+    <string name="chat_title">Chat title: </string>
+    <string name="drop_chat_attendee">Dropped chat attendees: </string>
+    <string name="only_creator_change_attendee">Only chat creator can make changes to attendees</string>
 
     <string name="fcm_listener_error_save_new_chat">Error: cannot save new chat to database</string>
 </resources>

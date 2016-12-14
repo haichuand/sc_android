@@ -24,6 +24,7 @@ public class EventGroupHolder extends SimpleViewHolder implements EventItemListe
     private static final int ITEM_PHOTO_HEIGHT_DP = 120;
 
     private CardView card;
+    private ViewGroup header;
     private TextView title;
     private TextView date;
     private ViewGroup container;
@@ -34,6 +35,7 @@ public class EventGroupHolder extends SimpleViewHolder implements EventItemListe
         super(itemView);
 
         card = (CardView) itemView.findViewById(R.id.card_view);
+        header = (ViewGroup) itemView.findViewById(R.id.header);
         title = (TextView) itemView.findViewById(R.id.card_title);
         date = (TextView) itemView.findViewById(R.id.card_date);
         container = (ViewGroup) itemView.findViewById(R.id.container);
@@ -45,6 +47,7 @@ public class EventGroupHolder extends SimpleViewHolder implements EventItemListe
     public void onBind(HolderItem holderItem) {
         EventGroupItem item = (EventGroupItem) holderItem;
 
+        header.setBackgroundColor(item.color);
         title.setText(item.title);
 
         date.setText(item.date);

@@ -53,9 +53,10 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatVi
     private static final SimpleDateFormat TIME_FORMAT;
 
     private Context context;
+    private ConversationManager conversationManager;
 
     private String myId;
-    private Map<String, Attendee> chatAttendees;
+//    private Map<String, Attendee> chatAttendees;
     private Map<String, Integer> userColors = new HashMap<>();
     private List<Message> chatMessages;
     private static int[] colorIds = {
@@ -76,12 +77,11 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatVi
         TIME_FORMAT = new SimpleDateFormat("h:mm a", Locale.getDefault());
     }
 
-    public ChatRoomAdapter(Context context, String myId, ChatAttendeeMap attendeeMap,
-            List<Message> chatMessageList) {
+    public ChatRoomAdapter(Context context, String myId, List<Message> chatMessageList) {
         this.context = context;
         this.myId = myId;
-        this.chatAttendees = attendeeMap.getAttendeeMap();
         this.chatMessages = chatMessageList;
+        conversationManager = ConversationManager.getInstance(context);
     }
 
     @Override
@@ -111,7 +111,7 @@ public class ChatRoomAdapter extends RecyclerView.Adapter<ChatRoomAdapter.ChatVi
             if (holder.getItemViewType() == MY_MESSAGE) {
                 holder.senderName.setText(R.string.me);
             } else {
-                Attendee attendee = chatAttendees.get(userId);
+                Attendee attendee = conversationManager.getUserById(userId);
                 if (attendee != null) {
                     holder.senderName.setText(attendee.toString());
                 } else {

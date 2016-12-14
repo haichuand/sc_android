@@ -204,21 +204,22 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
 
         switch (index) {
             case ChatsListAdapter.BUTTON_LEAVE_INDEX:
-                onLeaveClick(item.id);
+                onLeaveClick(item.id, position);
                 break;
         }
     }
 
-    private void onLeaveClick(final String id) {
+    private void onLeaveClick(final String id, final int position) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext(),
             R.style.AppTheme_Dialog_Alert);
-        builder.setMessage(R.string.confirm_chat_leave);
+        builder.setMessage(R.string.confirm_chat_delete);
 
         DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 switch (which) {
                     case DialogInterface.BUTTON_POSITIVE:
+                        deleteChat(id, position);
                         break;
                     case DialogInterface.BUTTON_NEGATIVE:
                         break;
@@ -235,6 +236,14 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
         dialog.show();
     }
 
+    private void deleteChat(String conversationId, int position) {
+        if (conversationManager.deleteConversation(conversationId)) {
+            chats.remove(position);
+            items.remove(conversationId);
+            adapter.notifyItemRemoved(position);
+        }
+    }
+
     @Override
     public void onGesture(View view, boolean state) {
         layoutManager.setScrollEnabled(state);
@@ -244,7 +253,6 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
         if (!chats.contains(chat)) {
             index = Common.clamp(index, 0, chats.size());
             chats.add(index, chat);
-
             if (notify) {
                 adapter.notifyItemInserted(index);
             }
@@ -295,6 +303,7 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
     @Override
     public void onNewConversation(Conversation conversation, int index) {
         insert(index, conversation, true);
+        recyclerView.scrollToPosition(0);
     }
 
     @Override
@@ -350,6 +359,7 @@ public class ChatsFragment extends Fragment implements SimpleDataSource<ListItem
                 adapter.notifyItemMoved(index, 0);
             }
             adapter.notifyItemChanged(0);
+            recyclerView.scrollToPosition(0);
         }
     }
 }

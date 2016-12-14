@@ -57,15 +57,30 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
 
         // Retrieve Suggestions from Server
         List<Contact> contacts = provider.getContacts(startId, true);
-        for (Contact contact : contacts) {
-            List<Contact> suggestions = checkSuggestions(contact);
-            for (Contact suggestion : suggestions) {
-                if (suggestion != null) {
-                    result.add(suggestion);
-                    publishProgress(suggestion);
-                }
+        if (contacts == null || contacts.isEmpty()) {
+            return result;
+        }
+        List<Contact> ignoreList = getSuggestionsIgnoreList();
+        if (ignoreList != null && !ignoreList.isEmpty()) {
+            contacts.removeAll(ignoreList);
+        }
+        HttpServerManager httpServerManager = HttpServerManager.getInstance(context);
+        result = httpServerManager.getSuggestedContacts(contacts);
+        for (Contact suggestedContact : result) {
+            if (saveSuggestionToDB(suggestedContact)) {
+                publishProgress(suggestedContact);
             }
         }
+
+//        for (Contact contact : contacts) {
+//            List<Contact> suggestions = checkSuggestions(contact);
+//            for (Contact suggestion : suggestions) {
+//                if (suggestion != null) {
+//                    result.add(suggestion);
+//                    publishProgress(suggestion);
+//                }
+//            }
+//        }
 
         return result;
     }
@@ -157,7 +172,7 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
                         continue;
                     }
                     suggestion.isSuggested = Contact.SUGGESTION_PENDING;
-                    saveSuggestionToDB(contact, suggestion);
+                    saveSuggestionToDB(suggestion);
                     suggestions.add(suggestion);
                 }
             }
@@ -184,7 +199,7 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
                         continue;
                     }
                     suggestion.isSuggested = Contact.SUGGESTION_PENDING;
-                    saveSuggestionToDB(contact, suggestion);
+                    saveSuggestionToDB(suggestion);
                     suggestions.add(suggestion);
                 }
             }
@@ -264,14 +279,14 @@ public class SuggestionsTask extends AsyncTask<Object, Contact, List<Contact>> {
         return contact;
     }
 
-    private boolean saveSuggestionToDB (Contact original, Contact suggestion) {
+    private boolean saveSuggestionToDB (Contact suggestion) {
         return attendeeDataSource.createAttendeeWithAttendeeId(
                 String.valueOf(suggestion.id),
                 suggestion.mediaId,
-                suggestion.emails.get(Contact.DEFAULT_EMAIL_KEY),
-                suggestion.phones == null ? (original.phones == null ? null : original.phones.get(Contact.DEFAULT_PHONE_KEY)) : suggestion.phones.get(Contact.DEFAULT_PHONE_KEY),
-                suggestion.firstName == null || suggestion.firstName.isEmpty() ? original.firstName : suggestion.firstName,
-                suggestion.lastName == null || suggestion.lastName.isEmpty() ? original.lastName : suggestion.lastName,
+                (String) suggestion.emails.values().toArray()[0],
+                suggestion.phones == null ? null : ((String) suggestion.phones.values().toArray()[0]),
+                suggestion.firstName,
+                suggestion.lastName,
                 suggestion.userName,
                 false,
                 false,

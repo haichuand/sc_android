@@ -1,5 +1,6 @@
 package com.mono.chat;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -10,28 +11,26 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.text.InputType;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
-import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.mono.AccountManager;
 import com.mono.EventManager;
 import com.mono.R;
+import com.mono.contacts.ContactsActivity;
 import com.mono.db.DatabaseValues;
+import com.mono.details.EventDetailsActivity;
 import com.mono.model.Attendee;
-import com.mono.model.AttendeeUsernameComparator;
+import com.mono.model.Contact;
 import com.mono.model.Conversation;
 import com.mono.model.Event;
 import com.mono.model.Media;
@@ -40,17 +39,20 @@ import com.mono.model.ServerSyncItem;
 import com.mono.network.ChatServerManager;
 import com.mono.network.HttpServerManager;
 import com.mono.network.ServerSyncManager;
+import com.mono.util.Common;
 import com.mono.util.GestureActivity;
+import com.mono.util.Strings;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
 
 public class ChatRoomActivity extends GestureActivity implements ConversationManager.ConversationBroadcastListener{
 
@@ -73,34 +75,22 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     private static final SimpleDateFormat TIME_FORMAT;
     private static final SimpleDateFormat WEEKDAY_FORMAT;
 
-//    private String eventName;
-//    private String eventId;
     private String conversationId;
     private String myId;
     private Toolbar toolbar;
     private DrawerLayout drawer;
-//    private ListView chatAttendeeListView;
     private LinearLayout chatAttendeeListLayout;
     private RecyclerView chatView;
     private ChatRoomAdapter chatRoomAdapter;
     private TextView sendMessageText;
-//    private ProgressBar sendProgressBar;
-//    private CountDownTimer countDownTimer;
-    private ImageButton sendButton;
-    private AutoCompleteTextView addAttendeeTextView;
 
     private AttachmentPanel attachmentPanel;
 
     private LinearLayoutManager chatLayoutManager;
-    private ChatAttendeeMap chatAttendeeMap = new ChatAttendeeMap();
-//    private SimpleAdapter chatAttendeeListAdapter;
+    private Conversation chat;
     private List<Message> chatMessages;
-//    private List<Map<String, String>> chatAttendeeAdapterList;
     private List<String> chatAttendeeIdList; //list of chat attendee ids for sending message
     private List<String> updateChatAttendeeIdList; //list of updated chat attendee ids from navigation drawer
-    private List<String> checkBoxAttendeeIdList; //list of attendee ids in check box list from navigation drawer
-//    private List<String> newlyAddedAttendeeIds = new ArrayList<>();
-//    private Attendee mostRecentAddedAttendee = null;
     private ConversationManager conversationManager;
     private HttpServerManager httpServerManager;
     private ChatServerManager chatServerManager;
@@ -108,6 +98,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     private Map<Long, CountDownTimer> timerMap;
     private static final long SERVER_TIMEOUT_MS = 5000;
     private ServerSyncManager serverSyncManager;
+    private Random random = new Random();
 
     static {
         DATE_FORMAT = new SimpleDateFormat("M/d/yy", Locale.getDefault());
@@ -124,24 +115,24 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
             finish();
         }
 
-//        eventId = intent.getStringExtra(EVENT_ID);
-//        eventName = intent.getStringExtra(EVENT_NAME);
         long eventStartTime = intent.getLongExtra(EVENT_START_TIME, 0);
         long eventEndTime = intent.getLongExtra(EVENT_END_TIME, 0);
         boolean isAllDay = intent.getBooleanExtra(EVENT_ALL_DAY, false);
         conversationId = intent.getStringExtra(CONVERSATION_ID);
-        myId = intent.getStringExtra(MY_ID);
+        myId = String.valueOf(AccountManager.getInstance(this).getAccount().id);
 
-        if (myId == null || conversationId == null) {
-            Log.e(TAG, "Error: missing myId or conversationId");
+        if (conversationId == null) {
+            Log.e(TAG, "Error: conversationId");
             finish();
         }
 
         conversationManager = ConversationManager.getInstance(this);
-        Conversation conversation = conversationManager.getCompleteConversation(conversationId);
-        if (conversation.eventId != null && eventStartTime == 0) {
+        chat = conversationManager.getCompleteConversation(conversationId);
+        chatAttendeeIdList = chat.getAttendeeIdList();
+        chatMessages = chat.getMessages();
+        if (chat.eventId != null && eventStartTime == 0) {
             EventManager eventManager = EventManager.getInstance(this);
-            Event event = eventManager.getEvent(conversation.eventId);
+            Event event = eventManager.getEvent(chat.eventId);
             if (event != null) {
                 eventStartTime = event.startTime;
                 eventEndTime = event.endTime;
@@ -172,7 +163,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
             View toolbarView = toolbar.findViewById(R.id.chat_toolbar);
 
             TextView title = (TextView) toolbarView.findViewById(R.id.title);
-            title.setText(conversation.name);
+            title.setText(chat.name);
 
             if(eventStartTime != 0 && eventEndTime != 0) {
                 Calendar calendar = Calendar.getInstance();
@@ -202,8 +193,6 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         chatView = (RecyclerView) findViewById(R.id.listMessages);
         chatAttendeeListLayout = (LinearLayout) findViewById(R.id.chat_attendee_list);
         sendMessageText = (TextView) findViewById(R.id.sendMessageText);
-        sendButton = (ImageButton) findViewById(R.id.sendButton);
-//        sendProgressBar = (ProgressBar) findViewById(R.id.sendProgressBar);
         httpServerManager = HttpServerManager.getInstance(this);
         chatServerManager = ChatServerManager.getInstance(this);
         timerMap = new HashMap<>();
@@ -218,45 +207,26 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         //set up main chat main view
         chatLayoutManager = new LinearLayoutManager(this);
         chatView.setLayoutManager(chatLayoutManager);
-        chatMessages = conversationManager.getChatMessages(conversationId);
         for (int i = 0; i < chatMessages.size() - 1; i++) {
             Message currentMsg = chatMessages.get(i);
             Message nextMsg = chatMessages.get(i + 1);
             nextMsg.showMessageTime = nextMsg.getTimestamp() - currentMsg.getTimestamp() >= Message.GROUP_TIME_THRESHOLD;
             nextMsg.showMessageSender = nextMsg.showMessageTime || !nextMsg.getSenderId().equals(currentMsg.getSenderId());
         }
-        chatAttendeeMap = conversationManager.getChatAttendeeMap(conversationId);
-        chatRoomAdapter = new ChatRoomAdapter(this, myId, chatAttendeeMap, chatMessages);
+        chatRoomAdapter = new ChatRoomAdapter(this, myId, chatMessages);
         chatView.setAdapter(chatRoomAdapter);
 
-        chatAttendeeIdList = conversationManager.getChatAttendeeIdList(chatAttendeeMap, myId);
+        //check if user self has been dropped from chat
+        if (!chat.getAttendeeIdList().contains(myId)) {
+            Toast.makeText(this, R.string.dropped_from_chat, Toast.LENGTH_LONG).show();
+        }
         updateChatAttendeeIdList = new ArrayList<>();
-        updateChatAttendeeIdList.addAll(chatAttendeeIdList);
-
-//        /* set up adapter for chat attendee list */
-//        HashMap<String, Attendee> attendeeMapCopy = new HashMap<>(chatAttendeeMap.getAttendeeMap());
-//        chatAttendeeAdapterList = new ArrayList<>();
-//        HashMap<String, String> attendeeItem = new HashMap<>();
-//        attendeeItem.put("name", "Me");
-//        chatAttendeeAdapterList.add(attendeeItem); //put my name first in attendee list
-//        attendeeMapCopy.remove(String.valueOf(myId));
-//        for (Map.Entry entry : attendeeMapCopy.entrySet()) { //then put other attendees in the list
-//            attendeeItem = new HashMap<>();
-//            String name = ((Attendee) entry.getValue()).toString();
-//            attendeeItem.put("name", name);
-//            chatAttendeeAdapterList.add(attendeeItem);
-//        }
-//        String[] from = new String[] {"name"};  //maps name to name textView
-//        int[] to = new int[] {R.id.chat_attendee_name};
-//        chatAttendeeListAdapter = new SimpleAdapter(this, chatAttendeeAdapterList, R.layout.chat_attendee_list_item, from, to);
-//        chatAttendeeListView.setAdapter(chatAttendeeListAdapter);
-
 
         //set up listener for attendee list check boxes
         checkedChangeListener = new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton checkBox, boolean isChecked) {
-                String id = checkBox.getId() + "";
+                String id = (String) checkBox.getTag();
                 if (isChecked) {
                     if (!updateChatAttendeeIdList.contains(id))
                         updateChatAttendeeIdList.add(id);
@@ -266,44 +236,18 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
             }
         };
 
-        //set up auto complete text view for inviting friends
-        addAttendeeTextView = (AutoCompleteTextView) findViewById(R.id.edit_text_invite);
-        final List<Attendee> allUsersList = conversationManager.getAllUserList();
-        Collections.sort(allUsersList, new AttendeeUsernameComparator());
-        List<String> allUserStringList = ConversationManager.getAttendeeStringtWithNameAndEmail(allUsersList);
-        ArrayAdapter<String> addAttendeeAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, allUserStringList);
-        addAttendeeTextView.setAdapter(addAttendeeAdapter);
-        addAttendeeTextView.setInputType(InputType.TYPE_NULL);
-//        addAttendeeTextView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-//            @Override
-//            public void onFocusChange(View view, boolean hasFocus) {
-//                if (hasFocus) {
-//                    addAttendeeTextView.showDropDown();
-//                }
-//            }
-//        });
-        addAttendeeTextView.setOnClickListener(new View.OnClickListener() {
+        //set up contact input and contact picker
+        View contactPicker = findViewById(R.id.contact_picker);
+        contactPicker.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                addAttendeeTextView.showDropDown();
-            }
-        });
-        addAttendeeTextView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                Attendee attendee = allUsersList.get(i);
-                if (checkBoxAttendeeIdList.contains(attendee.id)) {
-                    Toast.makeText(ChatRoomActivity.this, "User already in chat", Toast.LENGTH_SHORT).show();
-                    addAttendeeTextView.setText("");
-                } else {
-                    checkBoxAttendeeIdList.add(attendee.id);
-                    updateChatAttendeeIdList.add(attendee.id);
-                    addCheckBoxFromAttendee(chatAttendeeListLayout, attendee, checkedChangeListener);
-                }
-                addAttendeeTextView.setText("");
+                Intent intent = new Intent(ChatRoomActivity.this, ContactsActivity.class);
+                intent.putExtra(ContactsActivity.EXTRA_MODE, ContactsActivity.MODE_PICKER);
+                startActivityForResult(intent, EventDetailsActivity.REQUEST_CONTACT_PICKER);
             }
         });
 
+        //
         final LinearLayout messagesLayout = (LinearLayout) findViewById(R.id.all_messages_linearlayout);
         if (messagesLayout != null) {
             messagesLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -333,9 +277,6 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         conversationManager.setActiveConversationId(conversationId);
         conversationManager.resetConversationMissCount(conversationId);
         conversationManager.notifyListenersMissCountReset(conversationId);
-//        chatMessages.clear();
-//        chatMessages.addAll(conversationManager.getChatMessages(conversationId));
-//        chatRoomAdapter.notifyDataSetChanged();
     }
 
     @Override
@@ -391,18 +332,18 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
             case REQUEST_MEDIA_PICKER:
                 attachmentPanel.handleMediaPicker(resultCode, data);
                 break;
+            case EventDetailsActivity.REQUEST_CONTACT_PICKER:
+                handleContactPickerResult(resultCode, data);
+                break;
         }
     }
 
     public void onSendButtonClicked(View view) {
-//        if (!Common.isConnectedToInternet(this)) {
-//            Toast.makeText(this, "No network connection. Cannot send message", Toast.LENGTH_SHORT).show();
-//            return;
-//        }
-        if (chatAttendeeIdList == null || chatAttendeeIdList.isEmpty()) {
-            Toast.makeText(this, "No participants in chat", Toast.LENGTH_LONG).show();
+        if (chatAttendeeIdList == null || !chatAttendeeIdList.contains(myId)) {
+            Toast.makeText(this, R.string.dropped_from_chat, Toast.LENGTH_LONG).show();
             return;
         }
+
         String messageText = sendMessageText.getText().toString();
         List<Media> attachments = attachmentPanel.getAttachments();;
         if (messageText.isEmpty() && attachments.isEmpty()) {
@@ -433,7 +374,6 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
                                     DatabaseValues.ServerSync.SERVER_CHAT
                             );
                             serverSyncManager.addSyncItem(syncItem);
-//                            serverSyncManager.enableNetworkStateReceiver();
                         }
                     }
                 }
@@ -461,71 +401,16 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
                         DatabaseValues.ServerSync.SERVER_CHAT
                 );
                 serverSyncManager.addSyncItem(syncItem);
-//                serverSyncManager.enableNetworkStateReceiver();
             }
         };
         timerMap.put(message.getMessageId(), timer);
         timer.start();
     }
 
-//    public void onAddAttendeeButtonClicked(View view) {
-//        addAttendeeTextView.setText("");
-//        if (mostRecentAddedAttendee == null) {
-//            return;
-//        }
-//        newlyAddedAttendeeIds.add(mostRecentAddedAttendee.id);
-//
-//        Map<String, String> nameMap = new HashMap<>();
-//        nameMap.put("name", mostRecentAddedAttendee.toString());
-//        chatAttendeeAdapterList.add(nameMap);
-//        chatAttendeeListAdapter.notifyDataSetChanged();
-//
-//        mostRecentAddedAttendee = null;
-//    }
-
-//    private void addNewAttendeesIfPresent() {
-//        if (newlyAddedAttendeeIds.isEmpty()) {
-//            return;
-//        }
-//
-//        String message = null;
-//        switch (httpServerManager.addConversationAttendees(conversationId, newlyAddedAttendeeIds)) {
-//            case 3: //ok
-//                break;
-//            case 1: //no user
-//                message = "Cannot find one or more users in database";
-//                break;
-//            case 4:
-//                message = "Cannot find conversation with id: " + conversationId + "in database";
-//                break;
-//            case -1:
-//                message = "Server unavailable. Mark as ACK";
-//                //TODO: mark Conversation_Attendees table as Sync_Needed
-//                break;
-//        }
-//        if (message != null) {
-//            Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-//        }
-//
-//        //notifiy existing conversation attendees of new users
-//        if (!chatAttendeeIdList.isEmpty()) {
-//            chatServerManager.addConversationAttendees(myId, conversationId, newlyAddedAttendeeIds, chatAttendeeIdList);
-//        }
-//        //notify new users of being added to conversation
-//        chatServerManager.startConversation(myId, conversationId, newlyAddedAttendeeIds);
-//
-//        conversationManager.addAttendees(conversationId, newlyAddedAttendeeIds);
-//
-//        for (String id : newlyAddedAttendeeIds) {
-//            chatAttendeeMap.addAttendee(conversationManager.getUserById(id));
-//            chatAttendeeIdList.add(id);
-//        }
-//        newlyAddedAttendeeIds.clear();
-//    }
-
+    // note: local database updates are done in MyFcmReceiver after receiving confirmation
     private void updateChatAttendees() {
-        if (updateChatAttendeeIdList.size() < 1) {
-            Toast.makeText(this, "Chat must have at least two participants", Toast.LENGTH_LONG).show();
+        if (updateChatAttendeeIdList.size() == 1) { //size()==0 indicates user has been dropped
+            Toast.makeText(this, R.string.error_chat_participant, Toast.LENGTH_LONG).show();
             return;
         }
         ArrayList<String> dropAttendeeIdList = new ArrayList<>();
@@ -538,6 +423,11 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
             return;
         }
 
+        if (!chat.creatorId.equals(myId)) {
+            Toast.makeText(this, R.string.only_creator_change_attendee, Toast.LENGTH_LONG).show();
+            return;
+        }
+
         if (!dropAttendeeIdList.isEmpty()) {
             String message = null;
             switch (httpServerManager.dropConversationAttendees(conversationId, dropAttendeeIdList)) {
@@ -547,10 +437,10 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
                     message = "Cannot find one or more participants in database";
                     break;
                 case 4:
-                    message = "Cannot find conversation with id: " + conversationId + "in database";
+                    message = "Cannot find chat with id: " + conversationId + "in database";
                     break;
                 case -1:
-                    message = "Server unavailable. Please check your network connection";
+                    message = "Server error. Please try again";
                     //TODO: mark Conversation_Attendees table as Sync_Needed
                     break;
             }
@@ -561,6 +451,28 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         }
 
         if (!addAttendeeIdList.isEmpty()) {
+            // save unregistered attendees (those with negative ids)
+            for (int j = 0; j < addAttendeeIdList.size(); j++) {
+                String attendeeId = addAttendeeIdList.get(j);
+                if (attendeeId.startsWith("-")) {
+                    Attendee attendee = null;
+                    for (int i = 0; i < chat.attendees.size(); i++) {
+                        if (attendeeId.equals(chat.attendees.get(i).id)) {
+                            attendee = chat.attendees.get(i);
+                            break;
+                        }
+                    }
+                    if (attendee == null || !conversationManager.saveUnregisteredAttendee(attendee)) {
+                        Toast.makeText(this, R.string.error_create_chat, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    chatAttendeeIdList.add(attendee.id);
+                    updateChatAttendeeIdList.remove(attendeeId);
+                    updateChatAttendeeIdList.add(attendee.id);
+                    addAttendeeIdList.set(j, attendee.id);
+                }
+            }
             String message = null;
             switch (httpServerManager.addConversationAttendees(conversationId, addAttendeeIdList)) {
                 case 3: //ok
@@ -569,7 +481,7 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
                     message = "Cannot find one or more users in database";
                     break;
                 case 4:
-                    message = "Cannot find conversation with id: " + conversationId + "in database";
+                    message = "Cannot find chat with id: " + conversationId + "in database";
                     break;
                 case -1:
                     message = "Server unavailable. Please check your network connection";
@@ -582,12 +494,12 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
             }
         }
 
-        //notify dropped conversation attendees
+        //notify dropped chat attendees
         if (!dropAttendeeIdList.isEmpty()) {
             chatServerManager.dropConversationAttendees(myId, conversationId, dropAttendeeIdList, chatAttendeeIdList);
         }
 
-        //notifiy existing conversation attendees of new users and new users to start conversation
+        //notifiy existing chat attendees of new users and new users to start chat
         if (!addAttendeeIdList.isEmpty()) {
             List<String> recipients = new ArrayList<>();
             recipients.addAll(updateChatAttendeeIdList);
@@ -595,46 +507,49 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
             chatServerManager.addConversationAttendees(myId, conversationId, addAttendeeIdList, recipients);
             chatServerManager.startConversation(myId, conversationId, addAttendeeIdList);
         }
-
-        //update conversation attendees in local database
-        conversationManager.setAttendees(conversationId, updateChatAttendeeIdList);
-
-        //update member variables
-        chatAttendeeMap.clear();
-        chatAttendeeIdList.clear();
-        for (String id : updateChatAttendeeIdList) {
-            chatAttendeeMap.addAttendee(conversationManager.getUserById(id));
-            chatAttendeeIdList.add(id);
-        }
-
-        Toast.makeText(this, "Successfully updated chat participants", Toast.LENGTH_LONG).show();
     }
 
-    private CheckBox addCheckBoxFromAttendee (LinearLayout checkBoxLayout, Attendee attendee, CompoundButton.OnCheckedChangeListener checkedChangeListener) {
+    private void addAttendeeCheckBox(LinearLayout checkBoxLayout, Attendee attendee) {
+        List<String> allAttendeeIdList = chat.getAttendeeIdList();
+        if (allAttendeeIdList.contains(attendee.id)) { //do not add duplicate attendees
+            return;
+        }
+
+        if (!updateChatAttendeeIdList.contains(attendee.id)) {
+            updateChatAttendeeIdList.add(attendee.id);
+        }
+
+        if (!chat.attendees.contains(attendee)) {
+            chat.attendees.add(attendee);
+        }
+
+        if (!attendee.id.equals(myId)) { // do not show user self
+            addCheckBox(checkBoxLayout, attendee, allAttendeeIdList);
+        }
+    }
+
+    private void addCheckBox(LinearLayout checkBoxLayout, Attendee attendee, List<String> chatAttendeeIdList) {
         ViewGroup.LayoutParams params = new ViewGroup.LayoutParams (ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         CheckBox checkBox = new CheckBox(this);
         checkBox.setLayoutParams(params);
-        checkBox.setId(Integer.valueOf(attendee.id));
+        checkBox.setTag(attendee.id);
         checkBox.setText(attendee.toString());
         checkBox.setChecked(true);
         checkBox.setOnCheckedChangeListener(checkedChangeListener);
         checkBoxLayout.addView(checkBox);
-        return checkBox;
     }
 
     private void initializeCheckBoxAttendeeList() {
-        checkBoxAttendeeIdList = new ArrayList<>();
         chatAttendeeListLayout.removeAllViews();
-        Attendee me = new Attendee(myId);
-        me.firstName = "Me";
-        addCheckBoxFromAttendee(chatAttendeeListLayout, me, checkedChangeListener).setEnabled(false);
-        checkBoxAttendeeIdList.add(myId);
-        for (Attendee attendee : chatAttendeeMap.toAttendeeList()) {
-            if (attendee.id.equals(myId)) { //skip myId
+        updateChatAttendeeIdList.clear();
+        for (Attendee attendee : chat.attendees) {
+            if (!chatAttendeeIdList.contains(attendee.id)) {
                 continue;
             }
-            addCheckBoxFromAttendee(chatAttendeeListLayout, attendee, checkedChangeListener);
-            checkBoxAttendeeIdList.add(attendee.id);
+            updateChatAttendeeIdList.add(attendee.id);
+            if (!attendee.id.equals(myId)) {
+                addCheckBox(chatAttendeeListLayout, attendee, chatAttendeeIdList);
+            }
         }
     }
 
@@ -645,18 +560,32 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
     @Override
     public void onNewConversationAttendees(String incomingConversationId, List<String> newAttendeeIds) {
         if (conversationId.equals(incomingConversationId)) {
+            List<String> names = new ArrayList<>();
             for (String id : newAttendeeIds) {
                 Attendee attendee = conversationManager.getUserById(id);
-                chatAttendeeMap.addAttendee(attendee);
-                chatAttendeeIdList.add(attendee.id);
-                updateChatAttendeeIdList.add(attendee.id);
+                if (!chatAttendeeIdList.contains(id)) {
+                    chatAttendeeIdList.add(id);
+                }
+                addAttendeeCheckBox(chatAttendeeListLayout, attendee);
+                names.add(attendee.toString());
             }
+            Toast.makeText(this, getString(R.string.add_chat_attendee) + Common.implode(", ", names), Toast.LENGTH_LONG).show();
         }
     }
 
     @Override
-    public void onDropConversationAttendees(String conversationId, List<String> dropAttendeeIds) {
-
+    public void onDropConversationAttendees(String incomingConversationId, List<String> dropAttendeeIds) {
+        if (conversationId.equals(incomingConversationId)) {
+            chatAttendeeIdList.removeAll(dropAttendeeIds);
+            updateChatAttendeeIdList.removeAll(dropAttendeeIds);
+            List<String> names = new ArrayList<>();
+            for (String id : dropAttendeeIds) {
+                names.add(conversationManager.getUserById(id).toString());
+            }
+            chat.attendees = conversationManager.getConversationAttendees(conversationId);
+            Toast.makeText(this, getString(R.string.drop_chat_attendee) + Common.implode(", ", names), Toast.LENGTH_LONG).show();
+            initializeCheckBoxAttendeeList();
+        }
     }
 
     @Override
@@ -724,5 +653,45 @@ public class ChatRoomActivity extends GestureActivity implements ConversationMan
         }
 
         chatLayoutManager.scrollToPosition(chatMessages.size() - 1);
+    }
+
+    private void handleContactPickerResult (int resultCode, Intent data) {
+        if (resultCode == Activity.RESULT_OK) {
+            List<Contact> contacts =
+                    data.getParcelableArrayListExtra(ContactsActivity.EXTRA_CONTACTS);
+
+            for (Contact contact : contacts) {
+                String[] emails = contact.getEmails();
+                if (emails == null || emails.length == 0) {
+                    Toast.makeText(this, R.string.error_no_email, Toast.LENGTH_SHORT).show();
+                    continue;
+                }
+
+                String id = String.valueOf(contact.id);
+
+                Attendee user = conversationManager.getUserById(id);
+
+                //non-registered user: generate Attendee with negative id for saving on server later
+                if (user == null) {
+                    String attendeeId = String.valueOf(-random.nextInt(Integer.MAX_VALUE - 1) - 1);
+                    while (chat.getAttendeeIdList().contains(attendeeId)) {
+                        attendeeId = String.valueOf(-random.nextInt(Integer.MAX_VALUE - 1) - 1);
+                    }
+                    user = new Attendee(
+                            attendeeId,
+                            null,
+                            emails[0],
+                            null,
+                            contact.firstName,
+                            contact.lastName,
+                            contact.toString(),
+                            false,
+                            true
+                    );
+                }
+                user.isFriend = true;
+                addAttendeeCheckBox(chatAttendeeListLayout, user);
+            }
+        }
     }
 }

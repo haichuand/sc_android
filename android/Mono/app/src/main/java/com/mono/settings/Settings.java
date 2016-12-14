@@ -5,10 +5,14 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.preference.PreferenceManager;
 
+import com.mono.model.EventFilter;
 import com.mono.util.Constants;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -62,6 +66,9 @@ public class Settings {
 
     public static final String PREF_DAY_ONE = "pref_day_one";
     public static final long DEFAULT_DAY_ONE = 0;
+
+    public static final String PREF_EVENT_FILTERS = "pref_event_filters";
+    public static final Set<String> DEFAULT_EVENT_FILTERS = new HashSet<>();
 
     public static final String PREF_FCM_TOKEN_SENT = "pref_fcm_token_sent";
     public static final boolean DEFAULT_FCM_TOKEN_SENT = false;
@@ -349,6 +356,40 @@ public class Settings {
     public void setDayOne(long milliseconds) {
         Editor editor = getEditor();
         editor.putLong(PREF_DAY_ONE, milliseconds);
+        editor.apply();
+    }
+
+    public List<EventFilter> getEventFilters() {
+        List<EventFilter> filters = new ArrayList<>();
+
+        if (DEFAULT_EVENT_FILTERS.isEmpty()) {
+            DEFAULT_EVENT_FILTERS.add("Driving,0");
+            DEFAULT_EVENT_FILTERS.add("Walking,0");
+        }
+
+        Set<String> tempFilters = preferences.getStringSet(PREF_EVENT_FILTERS,
+            DEFAULT_EVENT_FILTERS);
+
+        for (String filter : tempFilters) {
+            String[] value = filter.split(",");
+            String text = value[0];
+            boolean status = Integer.parseInt(value[1]) > 0;
+
+            filters.add(new EventFilter(text, status));
+        }
+
+        return filters;
+    }
+
+    public void setEventFilters(List<EventFilter> filters) {
+        Set<String> tempFilters = new LinkedHashSet<>();
+
+        for (EventFilter filter : filters) {
+            tempFilters.add(filter.text + "," + (filter.status ? 1 : 0));
+        }
+
+        Editor editor = getEditor();
+        editor.putStringSet(PREF_EVENT_FILTERS, tempFilters);
         editor.apply();
     }
 

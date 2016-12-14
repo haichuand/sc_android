@@ -317,7 +317,7 @@ public class ServerSyncManager {
                         null,
                         null,
                         attendee.userName,
-                        CreateChatActivity.DEFAULT_USER_PASSWORD );
+                        ConversationManager.DEFAULT_USER_PASSWORD );
 
                 switch (responseCode) {
                     case HttpServerManager.STATUS_EXCEPTION: //cannot connect with server

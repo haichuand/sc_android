@@ -55,7 +55,6 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
 
     private static final long TIMER_TIMEOUT_MS = 5000;
 
-    public static final String DEFAULT_USER_PASSWORD = Common.md5("@SuperCalyUser");
     private static final int TIMER_TYPE_NULL = 0;
     private static final int TIMER_TYPE_EVENT_CONVERSATION = 97146;
     private static final int TIMER_TYPE_CONVERSATION = 33148;
@@ -318,7 +317,7 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
         Conversation conversation = new Conversation(conversationId, me.id, conversationTitle, null, null);
         conversationManager.notifyListenersNewConversation(conversation, 0);
 
-        startChatRoomActivity(0, 0, false, conversationId, me.id);
+        startChatRoomActivity(0, 0, false, conversationId);
 
         if (!isRunning) {
             finish();
@@ -396,7 +395,7 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
         Conversation conversation = new Conversation(conversationId, confirmationId, me.id, conversationTitle, null, null);
         conversationManager.notifyListenersNewConversation(conversation, 0);
 
-        startChatRoomActivity(event.startTime, event.endTime, event.allDay, conversationId, me.id);
+        startChatRoomActivity(event.startTime, event.endTime, event.allDay, conversationId);
         if (!isRunning) {
             finish();
         }
@@ -418,52 +417,12 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
                     Toast.makeText(this, R.string.error_create_chat, Toast.LENGTH_SHORT).show();
                     return false;
                 }
-                if (!saveUnregisteredAttendee(attendee)) {
+                if (!conversationManager.saveUnregisteredAttendee(attendee)) {
                     return false;
                 }
                 checkedChatAttendeeIds.set(j, attendee.id);
             }
         }
-        return true;
-    }
-
-    private boolean saveUnregisteredAttendee(Attendee attendee) {
-        attendee.firstName = (attendee.firstName == null ? "" : attendee.firstName);
-        attendee.lastName = (attendee.lastName == null ? "" : attendee.lastName);
-        attendee.userName = (attendee.userName == null || attendee.userName.isEmpty() ? attendee.email : attendee.userName);
-
-        int responseCode = httpServerManager.createUser(
-                attendee.email,
-                attendee.firstName,
-                attendee.email,
-                attendee.lastName,
-                null,
-                null,
-                attendee.userName,
-                DEFAULT_USER_PASSWORD );
-
-        switch (responseCode) {
-            case HttpServerManager.STATUS_EXCEPTION: //cannot connect with server
-                break;
-            case HttpServerManager.STATUS_ERROR: //user with email or phone already in server database
-                JSONObject object = httpServerManager.getUserByEmail(attendee.email);
-                try {
-                    attendee.id = object.getString(HttpServerManager.UID);
-                } catch (JSONException e) {
-                    Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    return false;
-                }
-                break;
-            default: //user created on http server; returns userId
-                attendee.id = String.valueOf(responseCode);
-                break;
-        }
-
-        if (!conversationManager.saveUserToDB(attendee)) {
-            Toast.makeText(this, R.string.error_create_attendee, Toast.LENGTH_SHORT).show();
-            return false;
-        }
-
         return true;
     }
 
@@ -507,7 +466,6 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
 
     private void addCheckBoxFromAttendee (Attendee attendee) {
         if (listChatAttendees.contains(attendee)) { //do not add duplicate attendees
-            Toast.makeText(this, R.string.error_duplicate_attendee, Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -531,13 +489,12 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
         checkBoxLayout.addView(checkBox);
     }
 
-    private void startChatRoomActivity(long startTime, long endTime, boolean isAllDay, String conversationId, String accountId) {
+    private void startChatRoomActivity(long startTime, long endTime, boolean isAllDay, String conversationId) {
         Intent intent = new Intent(this, ChatRoomActivity.class);
         intent.putExtra(ChatRoomActivity.EVENT_START_TIME, startTime);
         intent.putExtra(ChatRoomActivity.EVENT_END_TIME, endTime);
         intent.putExtra(ChatRoomActivity.EVENT_ALL_DAY, isAllDay);
         intent.putExtra(ChatRoomActivity.CONVERSATION_ID, conversationId);
-        intent.putExtra(ChatRoomActivity.MY_ID, accountId);
 
         startActivity(intent);
     }
@@ -573,6 +530,14 @@ public class CreateChatActivity extends GestureActivity implements ConversationM
     }
 
     private String saveProviderEventToDB(final Event event) {
+        // save temporary attendees with negative ids with server attendees
+        for (Attendee attendee : event.attendees) {
+            if (attendee.id.startsWith("-")) {
+                if (!conversationManager.saveUnregisteredAttendee(attendee)) {
+                    return null;
+                }
+            }
+        }
         if (event.source == Event.SOURCE_DATABASE) {
             return event.id;
         }

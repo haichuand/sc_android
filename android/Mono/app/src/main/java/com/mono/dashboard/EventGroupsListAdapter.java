@@ -6,6 +6,8 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.mono.R;
+import com.mono.util.Colors;
+import com.mono.util.Common;
 import com.mono.util.SimpleDataSource;
 import com.mono.util.SimpleViewHolder;
 
@@ -47,6 +49,23 @@ public class EventGroupsListAdapter extends RecyclerView.Adapter<SimpleViewHolde
     @Override
     public void onBindViewHolder(SimpleViewHolder holder, int position) {
         EventGroupItem item = dataSource.getItem(position);
+
+        int firstColor = Colors.getColor(holder.itemView.getContext(), R.color.brown_light_1);
+        int secondColor = Colors.getColor(holder.itemView.getContext(), R.color.gray_light_6);
+
+        if (position == 0) {
+            item.color = firstColor;
+        } else {
+            EventGroupItem prevItem = dataSource.getItem(position - 1);
+
+            if (Common.compareStrings(item.date, prevItem.date)) {
+                item.color = prevItem.color;
+            } else if (prevItem.color == secondColor) {
+                item.color = firstColor;
+            } else {
+                item.color = secondColor;
+            }
+        }
 
         for (EventItem eventItem : item.items) {
             eventItem.isSelectable = isSelectable;
