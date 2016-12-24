@@ -10,6 +10,7 @@ import android.util.Log;
 
 import com.mono.SuperCalyPreferences;
 import com.mono.parser.KmlDownloadingService;
+import com.mono.settings.Settings;
 
 import java.lang.ref.WeakReference;
 import java.util.Calendar;
@@ -21,6 +22,7 @@ public class SuperCalyAlarmReceiver extends BroadcastReceiver {
 
     public static final String TAG = "SuperCalyAlarmReceiver";
     public static final String ACTION_ALARM_RECEIVER = "ACTION_ALARM_RECEIVER";
+    public static final String ACTION_BOOT = "android.intent.action.BOOT_COMPLETED";
     private Calendar c = Calendar.getInstance();
 
     public void onReceive(Context context, Intent intent) {
@@ -31,6 +33,13 @@ public class SuperCalyAlarmReceiver extends BroadcastReceiver {
                 i.putExtra(KmlDownloadingService.TYPE, KmlDownloadingService.REGULAR);
                 context.startService(i);
             }
+            if (ACTION_BOOT.equals(intent.getAction())) {
+                if(Settings.getInstance(context).getGoogleHasCookie()) {
+                    SupercalyAlarmManager manager = SupercalyAlarmManager.getInstance(context);
+                    manager.scheduleAlarm(1);
+                }
+            }
+
         }
     }
 }

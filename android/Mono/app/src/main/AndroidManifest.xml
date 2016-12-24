@@ -101,9 +101,15 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
-        <receiver
-            android:name=".parser.SuperCalyAlarmReceiver"
-            android:process=":remote" />
+        <receiver android:name=".parser.SuperCalyAlarmReceiver"
+            android:enabled="true"
+            android:process=":remote"
+            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
         <receiver
             android:name=".parser.SupercalyDownloadReceiver"
             android:exported="true"
