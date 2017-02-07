@@ -652,8 +652,14 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
      */
     @Override
     public void showContacts() {
-        Intent intent = new Intent(this, ContactsActivity.class);
-        startActivityForResult(intent, RequestCodes.Activity.CONTACTS);
+        Account account = AccountManager.getInstance(this).getAccount();
+        if (account == null) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            startActivity(intent);
+        } else {
+            Intent intent = new Intent(this, ContactsActivity.class);
+            startActivityForResult(intent, RequestCodes.Activity.CONTACTS);
+        }
     }
 
     /**
