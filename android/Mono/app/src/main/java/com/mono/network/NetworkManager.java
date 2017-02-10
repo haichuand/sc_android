@@ -26,6 +26,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.UUID;
 
+import javax.net.ssl.HttpsURLConnection;
+
 /**
  * This class is used to communicate with the HTTP server using GET and POST requests. Responses
  * returned can either be in JSON, text, or bitmap format.
@@ -124,12 +126,12 @@ public class NetworkManager {
                 try {
                     URL url = new URL(spec);
 
-                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                    HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
                     connection.setDoInput(true);
                     connection.setRequestMethod("GET");
                     // Handle Response
                     switch (connection.getResponseCode()) {
-                        case HttpURLConnection.HTTP_OK:
+                        case HttpsURLConnection.HTTP_OK:
                             InputStream inputStream = connection.getInputStream();
 
                             String storage = Environment.getExternalStorageDirectory().getPath() + "/";
@@ -200,7 +202,7 @@ public class NetworkManager {
                 try {
                     URL url = new URL(spec);
 
-                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                    HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
                     connection.setDoOutput(true);
                     connection.setRequestMethod("POST");
                     connection.setUseCaches(false);

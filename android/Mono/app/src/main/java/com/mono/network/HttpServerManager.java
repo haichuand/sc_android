@@ -4,7 +4,6 @@ import android.content.Context;
 import android.os.AsyncTask;
 
 import com.mono.AccountManager;
-import com.mono.db.dao.AttendeeDataSource;
 import com.mono.model.Account;
 import com.mono.model.Contact;
 import com.mono.model.Message;
@@ -24,9 +23,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import javax.net.ssl.HttpsURLConnection;
+
 public class HttpServerManager {
 
-    public static final String SERVER_URL = "http://52.25.71.19:8080/";
+    public static final String SERVER_URL = "https://www.supercaly.com:8443/";
     public static final String REST_URL = SERVER_URL + "SuperCaly/rest/";
 
     public static final String CREATE_USER_URL = REST_URL + "user/createUser";
@@ -569,7 +570,7 @@ public class HttpServerManager {
         return jsonObject;
     }
 
-    private Object[] queryServer(HttpURLConnection connection, String data) {
+    private Object[] queryServer(HttpsURLConnection connection, String data) {
         Object[] result = new Object[2];
 
         try {
@@ -609,7 +610,7 @@ public class HttpServerManager {
             ExecutionException, InterruptedException {
         AsyncTask<Object, Void, String> task = new AsyncTask<Object, Void, String>() {
 
-            private HttpURLConnection connection;
+            private HttpsURLConnection connection;
             private int responseCode;
 
             @Override
@@ -622,7 +623,7 @@ public class HttpServerManager {
 
                 try {
                     URL url = new URL(urlString);
-                    connection = (HttpURLConnection) url.openConnection();
+                    connection = (HttpsURLConnection) url.openConnection();
                     connection.setRequestMethod(method);
 
                     Object[] values = queryServer(connection, data);
@@ -660,7 +661,7 @@ public class HttpServerManager {
 
         try {
             URL url = new URL(urlString);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
             connection.setRequestMethod(method);
 
             Object[] values = queryServer(connection, data.toString());
