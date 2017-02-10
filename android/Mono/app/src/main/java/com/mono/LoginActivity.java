@@ -14,20 +14,16 @@ import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.location.places.internal.PlaceOpeningHoursEntity;
 import com.mono.chat.ConversationManager;
 import com.mono.db.DatabaseHelper;
-import com.mono.db.DatabaseValues;
 import com.mono.db.dao.ConversationDataSource;
 import com.mono.model.Account;
 import com.mono.model.Attendee;
-import com.mono.model.Conversation;
 import com.mono.model.Event;
 import com.mono.model.Message;
 import com.mono.network.ChatServerManager;
 import com.mono.network.FCMHelper;
 import com.mono.network.HttpServerManager;
-import com.mono.network.MyFcmListenerService;
 import com.mono.parser.KmlDownloadingService;
 import com.mono.parser.SupercalyAlarmManager;
 import com.mono.settings.Settings;
@@ -39,9 +35,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * This activity is used to handle the login process that includes displaying the fragment to
