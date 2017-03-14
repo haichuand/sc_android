@@ -145,13 +145,13 @@ public class KmlLocationService extends IntentService {
 
             if (event != null) {
                 if ((loopNumber % 30 == 0) || (loopNumber == 365)) {
-                    if (!checkEventOverlap(kmlevent, event.location, event)) {
+                    if (!checkEventOverlap(event)) {
                         GlobalEventList.getInstance().monthList.add(event);
                         eventManager.createEvents(EventManager.EventAction.ACTOR_NONE, GlobalEventList.getInstance().monthList, null);
                         GlobalEventList.getInstance().monthList.clear();
                     }
                 } else {
-                    if (!checkEventOverlap(kmlevent, event.location, event)) {
+                    if (!checkEventOverlap(event)) {
                         GlobalEventList.getInstance().monthList.add(event);
                     }
                 }
@@ -236,11 +236,11 @@ public class KmlLocationService extends IntentService {
        return null;
     }
 
-    private Boolean checkEventOverlap(KmlEvents kmlevent, Location location, Event event) {
+    private Boolean checkEventOverlap(Event event) {
 
         Boolean eventFound = false;
         Calendar calendar = Calendar.getInstance();
-        calendar.setTimeInMillis(kmlevent.getStartTime());
+        calendar.setTimeInMillis(event.startTime);
         int mYear = calendar.get(Calendar.YEAR);
         int mMonth = calendar.get(Calendar.MONTH);
         int mDay = calendar.get(Calendar.DAY_OF_MONTH);
@@ -251,12 +251,14 @@ public class KmlLocationService extends IntentService {
         //make changes to all the events
         for (int i = 0; i < events.size(); i++) {
 
-            if ((events.get(i).startTime >= kmlevent.getStartTime()) && (events.get(i).endTime <= kmlevent.getEndTime()))// if event lies in between userstay period
+            //if ((events.get(i).startTime >= kmlevent.getStartTime()) && (events.get(i).endTime <= kmlevent.getEndTime()))// if event lies in between userstay period
+            //if((events.get(i).startTime >= event.startTime && events.get(i).startTime < event.endTime) || (events.get(i).endTime <= event.endTime && events.get(i).endTime > event.startTime))
+            if(checkTime(event, events.get(i)))
             {
-                if(location != null)
+                if(event.location != null)
                 {
                     List<Location> tempLocations = new ArrayList<>();
-                    tempLocations.add(location);
+                    tempLocations.add(event.location);
                     events.get(i).tempLocations = tempLocations;
                     eventManager.updateEvent(
                             EventManager.EventAction.ACTOR_SELF,
@@ -271,6 +273,21 @@ public class KmlLocationService extends IntentService {
 
         }
         return eventFound;
+    }
+
+    public static Boolean checkTime(Event locevent, Event userevent)
+    {
+        if(locevent.startTime == userevent.startTime)
+            return true;
+        if((locevent.startTime > userevent.startTime) && (locevent.startTime <= userevent.endTime))
+        {
+           return true;
+        }
+        else if((locevent.startTime < userevent.startTime ) && (userevent.startTime < locevent.endTime))
+        {
+                return true;
+        }
+        return false;
     }
 
     public static String makeCall(String urlString) {
