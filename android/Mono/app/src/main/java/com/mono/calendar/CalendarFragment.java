@@ -509,7 +509,10 @@ public class CalendarFragment extends Fragment implements OnBackPressedListener,
                         action = item.getAction();
 
                         if (item.getStatus() == EventAction.STATUS_OK) {
-                            Event event = item.getEvent();
+                            Event event = eventManager.getEvent(item.getId());
+                            if (event == null) {
+                                continue;
+                            }
 
                             LocalDate startDate, endDate;
                             // Special Handling of All Day Events

@@ -3,24 +3,16 @@ package com.mono.dashboard;
 import android.content.Context;
 
 import com.mono.R;
-import com.mono.dashboard.EventGroupsFragment.EventGroup;
 import com.mono.model.Event;
-import com.mono.model.EventFilter;
+import com.mono.model.EventGroup;
 import com.mono.util.Colors;
-import com.mono.util.SimpleDataSource;
 
 import org.joda.time.DateTimeZone;
-import org.joda.time.LocalDate;
 import org.joda.time.LocalDateTime;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.TimeZone;
 
 /**
@@ -28,32 +20,14 @@ import java.util.TimeZone;
  *
  * @author Gary Ng
  */
-public class EventGroupDataSource implements SimpleDataSource<EventGroupItem> {
-
-    private static final SimpleDateFormat DATE_FORMAT;
-    private static final SimpleDateFormat DATE_FORMAT_2;
-    private static final SimpleDateFormat TIME_FORMAT;
-
-    private Context context;
-
-    private final Map<String, EventGroupItem> items = new HashMap<>();
-    private final List<EventGroup> eventGroups = new ArrayList<>();
-    private final Map<String, EventGroup> events = new HashMap<>();
-
-    private Comparator<EventGroup> groupComparator;
-    private int dateTimeColorId;
-    private List<EventFilter> filters = new ArrayList<>();
-
-    static {
-        DATE_FORMAT = new SimpleDateFormat("EEE, MMM d", Locale.getDefault());
-        DATE_FORMAT_2 = new SimpleDateFormat("M/d/yy", Locale.getDefault());
-        TIME_FORMAT = new SimpleDateFormat("h:mm a", Locale.getDefault());
-    }
+public class EventGroupDataSource extends BaseEventsDataSource<EventGroup, EventGroupItem> {
 
     public EventGroupDataSource(Context context, int dateTimeColorId) {
-        this.context = context;
+        super(context, dateTimeColorId);
 
-        groupComparator = new Comparator<EventGroup>() {
+        DATE_FORMAT = new SimpleDateFormat("EEE, MMM d", Locale.getDefault());
+
+        comparator = new Comparator<EventGroup>() {
             @Override
             public int compare(EventGroup e1, EventGroup e2) {
                 int value = Long.compare(e2.getStartTime(), e1.getStartTime());
@@ -64,8 +38,6 @@ public class EventGroupDataSource implements SimpleDataSource<EventGroupItem> {
                 return e2.id.compareToIgnoreCase(e1.id);
             }
         };
-
-        this.dateTimeColorId = dateTimeColorId;
     }
 
     /**
@@ -78,7 +50,7 @@ public class EventGroupDataSource implements SimpleDataSource<EventGroupItem> {
     public EventGroupItem getItem(int position) {
         EventGroupItem item;
 
-        EventGroup group = eventGroups.get(position);
+        EventGroup group = events.get(position);
         String id = group.id;
 
         if (items.containsKey(id)) {
@@ -87,7 +59,7 @@ public class EventGroupDataSource implements SimpleDataSource<EventGroupItem> {
             item = new EventGroupItem(id);
             item.title = group.title;
 
-            for (Event event : group.events) {
+            for (Event event : group.events()) {
                 EventItem tempItem;
 
                 if (event.hasPhotos()) {
@@ -118,15 +90,15 @@ public class EventGroupDataSource implements SimpleDataSource<EventGroupItem> {
         }
         // Date Display
         if (item != null) {
-            Event event = group.events.get(0);
+            Event event = group.get(0);
             DateTimeZone timeZone = event.allDay ? DateTimeZone.UTC : DateTimeZone.getDefault();
 
-            item.date = getDateString(event.startTime, timeZone.toTimeZone());
+            item.date = getDateString(event.startTime, timeZone.toTimeZone(), event.allDay);
             item.dateColor = Colors.getColor(context, dateTimeColorId);
 
             for (int i = 0; i < item.items.size(); i++) {
                 EventItem tempItem = item.items.get(i);
-                event = group.events.get(i);
+                event = group.get(i);
 
                 int colorId;
                 boolean bold;
@@ -173,112 +145,13 @@ public class EventGroupDataSource implements SimpleDataSource<EventGroupItem> {
         return item;
     }
 
-    /**
-     * Helper function to convert milliseconds into a readable date string that takes time zone
-     * into account.
-     *
-     * @param time Time in milliseconds.
-     * @param timeZone Time zone to be used.
-     * @return date string.
-     */
-    private String getDateString(long time, TimeZone timeZone) {
-        LocalDate currentDate = new LocalDate();
-
-        LocalDateTime dateTime = new LocalDateTime(time);
-        LocalDate date = dateTime.toLocalDate();
-
-        SimpleDateFormat dateFormat;
-
-        if (date.isEqual(currentDate)) {
-            return context.getString(R.string.today);
-        } else if (date.getYear() == currentDate.getYear()) {
-            dateFormat = DATE_FORMAT;
-        } else {
-            dateFormat = DATE_FORMAT_2;
-        }
-
-        dateFormat.setTimeZone(timeZone);
-
-        return dateFormat.format(dateTime.toDate());
-    }
-
-    /**
-     * Retrieve the number of event groups to be used by the adapter.
-     *
-     * @return number of event groups.
-     */
-    @Override
-    public int getCount() {
-        return eventGroups.size();
-    }
-
-    public void clear() {
-        items.clear();
-        eventGroups.clear();
-        events.clear();
-    }
-
-    public boolean isEmpty() {
-        return eventGroups.isEmpty();
-    }
-
-    public void removeItem(String id) {
-        items.remove(id);
-    }
-
-    public void addGroup(EventGroup group) {
-        eventGroups.add(group);
-    }
-
-    public void removeGroup(EventGroup group) {
-        eventGroups.remove(group);
-    }
-
-    public boolean containsGroup(EventGroup group) {
-        return eventGroups.contains(group);
-    }
-
-    public EventGroup getGroup(int position) {
-        return eventGroups.get(position);
-    }
-
-    public EventGroup getGroupByEvent(String eventId) {
-        return events.get(eventId);
-    }
-
-    public int indexOf(EventGroup group) {
-        return eventGroups.indexOf(group);
-    }
-
-    public int lastIndexOf(EventGroup group) {
-        return eventGroups.lastIndexOf(group);
-    }
-
-    public void sortGroups() {
-        Collections.sort(eventGroups, groupComparator);
-    }
-
     public void addEvent(Event event, EventGroup group, Comparator<Event> comparator) {
         group.add(event, comparator);
-        events.put(event.id, group);
+        eventsMap.put(event.id, group);
     }
 
-    public void removeEvent(Event event, EventGroup group) {
-        group.remove(event);
-        events.remove(event.id);
-        items.remove(group.id);
-    }
-
-    public boolean containsEvent(String id) {
-        return events.containsKey(id);
-    }
-
-    public List<EventFilter> getFilters() {
-        return filters;
-    }
-
-    public void setFilters(List<EventFilter> filters) {
-        this.filters.clear();
-        this.filters.addAll(filters);
+    public void removeEvent(String id, EventGroup group) {
+        group.remove(new Event(id));
+        eventsMap.remove(id);
     }
 }

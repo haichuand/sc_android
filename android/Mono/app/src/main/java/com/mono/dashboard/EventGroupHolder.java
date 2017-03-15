@@ -8,7 +8,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.mono.R;
-import com.mono.dashboard.EventGroupsListAdapter.EventGroupsListListener;
 import com.mono.util.Pixels;
 import com.mono.util.SimpleSlideView;
 import com.mono.util.SimpleViewHolder;
@@ -18,7 +17,7 @@ import com.mono.util.SimpleViewHolder;
  *
  * @author Gary Ng
  */
-public class EventGroupHolder extends SimpleViewHolder implements EventItemListener {
+public class EventGroupHolder extends SimpleViewHolder implements EventHolder.EventItemListener {
 
     private static final int ITEM_HEIGHT_DP = 60;
     private static final int ITEM_PHOTO_HEIGHT_DP = 120;
@@ -120,5 +119,20 @@ public class EventGroupHolder extends SimpleViewHolder implements EventItemListe
     public void onSelectClick(View view, boolean value) {
         int position = container.indexOfChild(view);
         listener.onSelectClick(itemView, position, value);
+    }
+
+    public interface EventGroupsListListener {
+
+        void onClick(View view, int position);
+
+        boolean onLongClick(View view, int position);
+
+        void onLeftButtonClick(View view, int position, int option);
+
+        void onRightButtonClick(View view, int position, int option);
+
+        void onGesture(View view, boolean state);
+
+        void onSelectClick(View view, int position, boolean value);
     }
 }

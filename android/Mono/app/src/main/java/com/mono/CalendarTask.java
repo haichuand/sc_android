@@ -140,10 +140,11 @@ public class CalendarTask extends AsyncTask<Object, Event, Object> {
                             attendee.isFriend
                         );
 
-                        eventAttendeeDataSource.setAttendee(data[0].getEvent().id, id);
+                        eventAttendeeDataSource.setAttendee(data[0].getId(), id);
                     }
 
-                    data[0].getEvent().attendees = event.attendees;
+                    EventManager manager = EventManager.getInstance(context);
+                    manager.getEvent(data[0].getId()).attendees = event.attendees;
                 }
             }
         });

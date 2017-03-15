@@ -590,7 +590,7 @@ public class EventManager {
         EventAction data = createEvent(actor, event);
 
         if (data != null) {
-            id = data.getEvent().id;
+            id = data.id;
 
             if (!listeners.isEmpty()) {
                 sendToListeners(data);
@@ -729,13 +729,12 @@ public class EventManager {
             }
 
             log.debug(TAG, Strings.LOG_EVENT_CREATE, id.substring(0, 7));
-            event = getEvent(id);
         } else {
             log.debug(TAG, Strings.LOG_EVENT_CREATE_FAILED);
             status = EventAction.STATUS_FAILED;
         }
 
-        return new EventAction(EventAction.ACTION_CREATE, actor, status, event);
+        return new EventAction(EventAction.ACTION_CREATE, actor, status, id);
     }
 
     /**
@@ -803,13 +802,12 @@ public class EventManager {
 
         if (id != null) {
             log.debug(TAG, Strings.LOG_PROVIDER_EVENT_CREATE, id.substring(0, 7));
-            event = getEvent(id);
         } else {
             log.debug(TAG, Strings.LOG_PROVIDER_EVENT_CREATE_FAILED);
             status = EventAction.STATUS_FAILED;
         }
 
-        return new EventAction(EventAction.ACTION_CREATE, actor, status, event);
+        return new EventAction(EventAction.ACTION_CREATE, actor, status, id);
     }
 
     /**
@@ -1145,7 +1143,7 @@ public class EventManager {
             status = EventAction.STATUS_FAILED;
         }
 
-        return new EventAction(EventAction.ACTION_UPDATE, actor, status, original);
+        return new EventAction(EventAction.ACTION_UPDATE, actor, status, id);
     }
 
     /**
@@ -1281,7 +1279,7 @@ public class EventManager {
             log.debug(TAG, Strings.LOG_PROVIDER_EVENT_UPDATE_FAILED, id.substring(0, 7));
             status = EventAction.STATUS_FAILED;
 
-            return new EventAction(EventAction.ACTION_UPDATE, actor, status, original);
+            return new EventAction(EventAction.ACTION_UPDATE, actor, status, id);
         }
 
         // Handle Database Values
@@ -1347,7 +1345,7 @@ public class EventManager {
             status = EventAction.STATUS_FAILED;
         }
 
-        return new EventAction(EventAction.ACTION_UPDATE, actor, status, original);
+        return new EventAction(EventAction.ACTION_UPDATE, actor, status, id);
     }
 
     /**
@@ -1381,7 +1379,7 @@ public class EventManager {
             log.debug(TAG, Strings.LOG_EVENT_REMOVE_FAILED, id.substring(0, 7));
         }
 
-        EventAction data = new EventAction(EventAction.ACTION_REMOVE, actor, status, event);
+        EventAction data = new EventAction(EventAction.ACTION_REMOVE, actor, status, id);
         if (!listeners.isEmpty()) {
             sendToListeners(data);
         }
@@ -1512,13 +1510,13 @@ public class EventManager {
         private final int action;
         private final int actor;
         private final int status;
-        private final Event event;
+        private final String id;
 
-        public EventAction(int action, int actor, int status, Event event) {
+        public EventAction(int action, int actor, int status, String id) {
             this.action = action;
             this.actor = actor;
             this.status = status;
-            this.event = event;
+            this.id = id;
         }
 
         public int getAction() {
@@ -1533,8 +1531,8 @@ public class EventManager {
             return status;
         }
 
-        public Event getEvent() {
-            return event;
+        public String getId() {
+            return id;
         }
     }
 

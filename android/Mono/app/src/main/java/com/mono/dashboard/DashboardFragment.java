@@ -3,6 +3,7 @@ package com.mono.dashboard;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.view.MenuItemCompat;
@@ -22,15 +23,19 @@ import com.mono.EventManager.EventAction;
 import com.mono.EventManager.EventBroadcastListener;
 import com.mono.MainInterface;
 import com.mono.R;
-import com.mono.dashboard.EventsFragment.ListListener;
 import com.mono.model.Event;
 import com.mono.search.SearchFragment;
 import com.mono.search.SearchHandler;
+import com.mono.util.Constants;
 import com.mono.util.OnBackPressedListener;
 import com.mono.util.SimpleTabLayout.Scrollable;
 import com.mono.util.SimpleTabLayout.TabPagerCallback;
 import com.mono.util.SimpleTabPagerAdapter;
 import com.mono.util.SimpleViewPager;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * This fragment class is used to serve as the parent container of all views used to display a
@@ -40,11 +45,16 @@ import com.mono.util.SimpleViewPager;
  * @author Gary Ng
  */
 public class DashboardFragment extends Fragment implements OnBackPressedListener,
-        OnPageChangeListener, ListListener, EventBroadcastListener, TabPagerCallback, Scrollable {
+        OnPageChangeListener, EventHolder.ListListener, EventBroadcastListener, TabPagerCallback,
+        Scrollable {
 
     public static final int TAB_EVENTS = 0;
     public static final int TAB_UPCOMING = 1;
     public static final int TAB_FAVORITE = 2;
+
+    private static final int THRESHOLD = 3;
+    private static final long SHORT_DELAY_MS = 1 % Constants.SECOND_MS;
+    private static final long LONG_DELAY_MS = 3 % Constants.SECOND_MS;
 
     private MainInterface mainInterface;
     private EventManager eventManager;
@@ -53,6 +63,10 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
     private SimpleViewPager viewPager;
 
     private SearchView searchView;
+
+    private Handler refreshHandler;
+    private Runnable refreshRunnable;
+    private List<EventAction> eventActions = new ArrayList<>();
 
     @Override
     public void onAttach(Context context) {
@@ -75,6 +89,25 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
         tabPagerAdapter.add(0, getString(R.string.events), new EventGroupsFragment());
         tabPagerAdapter.add(0, getString(R.string.upcoming), new UpcomingFragment());
         tabPagerAdapter.add(0, getString(R.string.favorite), new FavoritesFragment());
+
+        refreshHandler = new Handler();
+        refreshRunnable = new Runnable() {
+            @Override
+            public void run() {
+                EventAction[] data = eventActions.toArray(new EventAction[eventActions.size()]);
+                eventActions.clear();
+
+                EventBroadcastListener listener =
+                    (EventBroadcastListener) tabPagerAdapter.getItem(TAB_EVENTS);
+                listener.onEventBroadcast(data);
+
+                listener = (EventBroadcastListener) tabPagerAdapter.getItem(TAB_UPCOMING);
+                listener.onEventBroadcast(data);
+
+                listener = (EventBroadcastListener) tabPagerAdapter.getItem(TAB_FAVORITE);
+                listener.onEventBroadcast(data);
+            }
+        };
     }
 
     @Override
@@ -279,21 +312,13 @@ public class DashboardFragment extends Fragment implements OnBackPressedListener
      * @param data Event action data.
      */
     @Override
-    public void onEventBroadcast(final EventAction... data) {
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                EventBroadcastListener listener =
-                    (EventBroadcastListener) tabPagerAdapter.getItem(TAB_EVENTS);
-                listener.onEventBroadcast(data);
+    public void onEventBroadcast(EventAction... data) {
+        refreshHandler.removeCallbacks(refreshRunnable);
 
-                listener = (EventBroadcastListener) tabPagerAdapter.getItem(TAB_UPCOMING);
-                listener.onEventBroadcast(data);
+        long delay = eventActions.size() < THRESHOLD ? SHORT_DELAY_MS : LONG_DELAY_MS;
+        eventActions.addAll(Arrays.asList(data));
 
-                listener = (EventBroadcastListener) tabPagerAdapter.getItem(TAB_FAVORITE);
-                listener.onEventBroadcast(data);
-            }
-        });
+        refreshHandler.postDelayed(refreshRunnable, delay);
     }
 
     @Override

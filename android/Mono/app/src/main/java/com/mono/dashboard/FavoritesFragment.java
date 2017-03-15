@@ -1,15 +1,8 @@
 package com.mono.dashboard;
 
-import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-
 import com.mono.EventManager;
-import com.mono.EventManager.EventAction;
 import com.mono.model.Event;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -22,100 +15,40 @@ import java.util.List;
 public class FavoritesFragment extends EventsFragment {
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    public void onPreCreate() {
+        super.onPreCreate();
 
         position = DashboardFragment.TAB_FAVORITE;
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState) {
-        View view = super.onCreateView(inflater, container, savedInstanceState);
-
-        events.addAll(EventManager.getInstance(getContext()).getFavoriteEvents());
-
-        if (!events.isEmpty()) {
-            text.setVisibility(View.INVISIBLE);
-            adapter.notifyDataSetChanged();
-        }
-
-        return view;
+    public boolean checkEvent(Event event) {
+        return !dataSource.contains(event);
     }
 
-    /**
-     * Handle all event changes being reported by the Event Manager.
-     *
-     * @param data Event action data.
-     */
     @Override
-    public void onEventBroadcast(EventAction... data) {
-        for (int i = 0; i < data.length; i++) {
-            int action = -1;
-            int scrollToPosition = -1;
-
-            List<Event> events = new ArrayList<>();
-            for (; i < data.length; i++) {
-                EventAction item = data[i];
-
-                if (action != -1 && action != item.getAction()) {
-                    break;
+    public void update(List<Event> events, int scrollToPosition) {
+        for (Event event : events) {
+            if (checkEvent(event)) {
+                if (event.favorite) {
+                    insert(event, false);
                 }
-
-                action = item.getAction();
-
-                if (item.getStatus() == EventAction.STATUS_OK) {
-                    if (scrollToPosition == -1 && item.getActor() == EventAction.ACTOR_SELF) {
-                        scrollToPosition = events.size();
-                    }
-
-                    events.add(item.getEvent());
+            } else {
+                if (event.favorite) {
+                    super.update(events, scrollToPosition);
+                } else {
+                    remove(event.id, false);
                 }
             }
-
-            if (events.isEmpty()) {
-                continue;
-            }
-
-            switch (action) {
-                case EventAction.ACTION_UPDATE:
-                    update(events, scrollToPosition);
-                    break;
-                case EventAction.ACTION_REMOVE:
-                    remove(events);
-                    break;
-            }
         }
     }
 
-    /**
-     * Check if event is valid to be displayed within this fragment.
-     *
-     * @param event Event to check.
-     * @return whether event is valid.
-     */
-    protected boolean checkEvent(Event event) {
-        return !events.contains(event);
-    }
-
     @Override
-    public void update(List<Event> items, int scrollToPosition) {
-        for (Event event : items) {
-            if (event.favorite && !events.contains(event)) {
-                insert(event, false);
-            } else if (!event.favorite && events.contains(event)) {
-                remove(event);
-            }
+    public List<Event> retrieveEvents() {
+        if (!dataSource.isEmpty()) {
+            return null;
         }
 
-        super.update(items, scrollToPosition);
-    }
-
-    /**
-     * Retrieve and append events at the bottom of the list.
-     */
-    @Override
-    protected void append() {
-
+        return EventManager.getInstance(getContext()).getFavoriteEvents();
     }
 }

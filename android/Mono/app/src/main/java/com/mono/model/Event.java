@@ -14,7 +14,7 @@ import java.util.List;
  *
  * @author Gary Ng
  */
-public class Event implements Parcelable {
+public class Event extends Instance implements Parcelable {
 
     public static final String TYPE_CALENDAR = "calendar";
     public static final String TYPE_USERSTAY = "userstay";
@@ -22,7 +22,6 @@ public class Event implements Parcelable {
     public static final int SOURCE_DATABASE = 0;
     public static final int SOURCE_PROVIDER = 1;
 
-    public String id;
     public String parentId;
     public int source;
     public long providerId;
@@ -57,14 +56,14 @@ public class Event implements Parcelable {
     public List<Media> tempPhotos = new ArrayList<>();
 
     public String oldId;
-    public boolean syncNeeded;
 
     public Event(String type) {
         this(null, 0, null, type);
     }
 
     public Event(String id, long providerId, String syncId, String type) {
-        this.id = id;
+        super(id);
+
         this.providerId = providerId;
         this.syncId = syncId;
         this.type = type;
@@ -73,7 +72,8 @@ public class Event implements Parcelable {
     }
 
     public Event(Event event) {
-        id = event.id;
+        super(event.id);
+
         parentId = event.parentId;
         source = event.source;
         providerId = event.providerId;
@@ -128,7 +128,8 @@ public class Event implements Parcelable {
     }
 
     protected Event(Parcel in) {
-        id = in.readString();
+        super(in.readString());
+
         parentId = in.readString();
         source = in.readInt();
         providerId = in.readLong();
@@ -176,21 +177,6 @@ public class Event implements Parcelable {
             return new Event[size];
         }
     };
-
-    @Override
-    public boolean equals(Object object) {
-        if (!(object instanceof Event)) {
-            return false;
-        }
-
-        Event event = (Event) object;
-
-        if (!Common.compareStrings(id, event.id)) {
-            return false;
-        }
-
-        return true;
-    }
 
     public boolean equals(Event event) {
         if (!Common.compareStrings(id, event.id)) {

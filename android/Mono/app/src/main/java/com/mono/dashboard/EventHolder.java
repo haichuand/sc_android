@@ -108,4 +108,22 @@ public class EventHolder extends SimpleViewHolder {
             date.setVisibility(View.GONE);
         }
     }
+
+    public interface ListListener {
+
+        void onClick(int tab, String id, View view);
+
+        void onLongClick(int tab, String id, View view);
+
+        void onChatClick(int tab, String id);
+
+        void onFavoriteClick(int tab, String id);
+
+        void onDeleteClick(int tab, String id);
+    }
+
+    public interface EventItemListener extends SimpleSlideView.SimpleSlideViewListener {
+
+        void onSelectClick(View view, boolean value);
+    }
 }
