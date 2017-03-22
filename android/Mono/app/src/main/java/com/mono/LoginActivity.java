@@ -35,6 +35,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -119,7 +120,7 @@ public class LoginActivity extends AppCompatActivity {
                 sharedpreferences = getSharedPreferences(SuperCalyPreferences.FIRST_TIME_LOGIN, Context.MODE_PRIVATE);
                 if(sharedpreferences.getString(SuperCalyPreferences.FIRST_TIME_LOGIN, "default").equalsIgnoreCase("default")) {
                     sharedpreferences.edit().putString(SuperCalyPreferences.FIRST_TIME_LOGIN, "yes").apply();
-                    retrieveChats();
+                    checkforChats();
                 }
                 finish();
                 break;
@@ -167,56 +168,44 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
-    private void retrieveChats()
+
+    private void checkforChats()
     {
-        //Get all conversations from server
-        JSONObject convIdObj = httpServerManager.getConversationByuser(uid);
-        JSONArray convIdArray = null;
-        try {
-            convIdArray = convIdObj.getJSONArray(HttpServerManager.CONVERSATION_ID);
-            List<String> convIds = new ArrayList<>();
-            if (convIdArray != null) {
-                for (int i = 0; i < convIdArray.length(); i++) {
-                    convIds.add(convIdArray.getString(i));
-                }
-            }
-            checkforChats(convIds);
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-    }
-
-    private void checkforChats(List<String> convIds)
-    {
-        for(String convId : convIds)
-        {
+        HashMap<String, String> cidEidMap = new HashMap<>();
             try {
-                JSONObject messageObj = httpServerManager.getConversationMessages(convId);
-                JSONArray messageArray = messageObj.getJSONArray(HttpServerManager.MESSAGES);
-                if(messageArray.length() > 0)
-                {
-                    JSONObject eventObj = httpServerManager.getEventByconversation(convId);
-                    JSONArray eventArr = eventObj.getJSONArray(HttpServerManager.EVENT_ID);
-                    if(eventArr.length() > 0) {
-                        String eventId = eventArr.getString(0);
-                        JSONObject eventObject = httpServerManager.getEvent(eventId);
-                        new addEventConversationTodb().execute(eventObject);
-                    }
-                    else
-                    {
-                        JSONObject conversationObj = httpServerManager.getConversation(convId);
-                        new addConversationTodb().execute(conversationObj, convId, "");
+                JSONObject messageObj = httpServerManager.getConversationMessages(uid);
+                if(!messageObj.isNull(HttpServerManager.MESSAGES)) {
+                    JSONArray messageArray = messageObj.getJSONArray(HttpServerManager.MESSAGES);
+                    if (messageArray.length() > 0) {
+                        for (int i = 0; i < messageArray.length(); i++) {
+                            JSONObject obj = messageArray.getJSONObject(i);
+                            String conversationId = obj.getJSONObject(HttpServerManager.MESSAGE_KEY).getString(HttpServerManager.CONVERSATION_ID);
+                            JSONObject eventObj = httpServerManager.getEventByconversation(conversationId);
+                            JSONArray eventArr = eventObj.getJSONArray(HttpServerManager.EVENT_ID);
+                            if (eventArr.length() > 0) {
+                                String eventId = eventArr.getString(0);
+                                cidEidMap.put(conversationId, eventId);
+                            } else {
+                                cidEidMap.put(conversationId, "");
+                            }
+                        }
+                        for (HashMap.Entry<String, String> entry : cidEidMap.entrySet()) {
+                            String convId = entry.getKey();
+                            String eventId = entry.getValue();
+                            JSONObject eventObject = null;
+                            if(!eventId.equals(""))
+                            {
+                                eventObject = httpServerManager.getEvent(eventId);
+                            }
+                            new addEventConversationTodb().execute(eventObject,convId, messageArray);
+                        }
+
                     }
 
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-
-
-        }
 
     }
 
@@ -226,16 +215,19 @@ public class LoginActivity extends AppCompatActivity {
         protected Void doInBackground(Object... params) {
             try {
                 JSONArray messageArr = (JSONArray) params[0];
+                String convId = (String) params[1];
                 for (int i = 0; i < messageArr.length(); i++) {
-                    JSONObject obj = messageArr.getJSONObject(i);
 
-                    String senderId = String.valueOf(obj.getJSONObject(HttpServerManager.MESSAGE_KEY).getInt(HttpServerManager.SENDER_ID));
+                    JSONObject obj = messageArr.getJSONObject(i);
                     String conversationId = obj.getJSONObject(HttpServerManager.MESSAGE_KEY).getString(HttpServerManager.CONVERSATION_ID);
-                    String messageText = obj.getString(HttpServerManager.TEXT_CONTENT);
-                    long timestamp = obj.getJSONObject(HttpServerManager.MESSAGE_KEY).getLong(HttpServerManager.TIMESTAMP);
-                    Message message = new Message(senderId, conversationId, messageText, timestamp);
-                    message.ack = true;
-                    conversationDataSource.addMessageToConversation(message);
+                    if(conversationId.equals(convId)) {
+                        String senderId = String.valueOf(obj.getJSONObject(HttpServerManager.MESSAGE_KEY).getInt(HttpServerManager.SENDER_ID));
+                        String messageText = obj.getString(HttpServerManager.TEXT_CONTENT);
+                        long timestamp = obj.getJSONObject(HttpServerManager.MESSAGE_KEY).getLong(HttpServerManager.TIMESTAMP);
+                        Message message = new Message(senderId, conversationId, messageText, timestamp);
+                        message.ack = true;
+                        conversationDataSource.addMessageToConversation(message);
+                    }
 
                 }
 
@@ -259,51 +251,56 @@ public class LoginActivity extends AppCompatActivity {
         String conversationId;
         int eventCreatorId;
         String eventId;
-
+        JSONArray messagearr;
         @Override
         protected Void doInBackground(Object... params) {
             JSONObject eventObj = (JSONObject) params[0];
-            //find events with matching start, end times & title in local database
-            try {
-                eventId = eventObj.getString(HttpServerManager.EVENT_ID);
-                startTime = eventObj.getLong(FCMHelper.START_TIME);
-                endTime = eventObj.getLong(FCMHelper.END_TIME);
-                eventTitle = eventObj.getString(FCMHelper.TITLE);
-                conversationId = eventObj.getString(FCMHelper.CONVERSATION_ID);
-                eventCreatorId = eventObj.getInt(FCMHelper.CREATOR_ID);
-                JSONArray attendeesId = eventObj.getJSONArray(HttpServerManager.ATTENDEES_ID);
-                for (int i = 0; i < attendeesId.length(); i++) {
-                    eventAttendeesId.add(attendeesId.get(i).toString());
-                }
-                JSONArray attendeesDetail = eventObj.getJSONArray(httpServerManager.ATTENDEES);
+            conversationId = (String) params[1];
+            messagearr = (JSONArray) params[2];
+            eventId = "";
+            if(eventObj != null) {
+                //find events with matching start, end times & title in local database
+                try {
+                    eventId = eventObj.getString(HttpServerManager.EVENT_ID);
+                    startTime = eventObj.getLong(FCMHelper.START_TIME);
+                    endTime = eventObj.getLong(FCMHelper.END_TIME);
+                    eventTitle = eventObj.getString(FCMHelper.TITLE);
+                    conversationId = eventObj.getString(FCMHelper.CONVERSATION_ID);
+                    eventCreatorId = eventObj.getInt(FCMHelper.CREATOR_ID);
+                    JSONArray attendeesId = eventObj.getJSONArray(HttpServerManager.ATTENDEES_ID);
+                    for (int i = 0; i < attendeesId.length(); i++) {
+                        eventAttendeesId.add(attendeesId.get(i).toString());
+                    }
+                    JSONArray attendeesDetail = eventObj.getJSONArray(httpServerManager.ATTENDEES);
 
-                //create event on local database
-                List<Event> events = eventManager.getLocalEvents(startTime, endTime);
-                if (events.isEmpty()) {  //create new event
-                    if (!createEvent(eventId, startTime, endTime, eventTitle, eventAttendeesId, attendeesDetail)) {
-                        return null;
-                    }
-                } else {  //find matching event, if any
-                    Event localEvent = null;
-                    for (Event event : events) {
-                        if (event.startTime == startTime && event.endTime == endTime && eventTitle.equals(event.title)) {
-                            localEvent = event;
-                            break;
-                        }
-                    }
-                    if (localEvent == null) {
+                    //create event on local database
+                    List<Event> events = eventManager.getLocalEvents(startTime, endTime);
+                    if (events.isEmpty()) {  //create new event
                         if (!createEvent(eventId, startTime, endTime, eventTitle, eventAttendeesId, attendeesDetail)) {
                             return null;
                         }
-                    } else { //update eventId
-                        eventManager.updateEventId(localEvent.id, eventId);
+                    } else {  //find matching event, if any
+                        Event localEvent = null;
+                        for (Event event : events) {
+                            if (event.startTime == startTime && event.endTime == endTime && eventTitle.equals(event.title)) {
+                                localEvent = event;
+                                break;
+                            }
+                        }
+                        if (localEvent == null) {
+                            if (!createEvent(eventId, startTime, endTime, eventTitle, eventAttendeesId, attendeesDetail)) {
+                                return null;
+                            }
+                        } else { //update eventId
+                            eventManager.updateEventId(localEvent.id, eventId);
+                        }
                     }
+
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    return null;
                 }
-
-
-            } catch (JSONException e) {
-                e.printStackTrace();
-                return null;
             }
             return null;
         }
@@ -311,7 +308,7 @@ public class LoginActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Void aVoid) {
                 JSONObject conversationObj = httpServerManager.getConversation(conversationId);
-                new addConversationTodb().execute(conversationObj, conversationId, eventId);
+                new addConversationTodb().execute(conversationObj, conversationId, eventId, messagearr);
 
         }
     }
@@ -324,6 +321,7 @@ public class LoginActivity extends AppCompatActivity {
         String creatorName = "";
         List<String> attendeesIdList = new ArrayList<>();
         String conversationId;
+        JSONArray messageArr;
 
         @Override
         protected Void doInBackground(Object... params) {
@@ -331,6 +329,7 @@ public class LoginActivity extends AppCompatActivity {
             JSONObject conversationObj = (JSONObject) params[0];
             conversationId = (String) params[1];
             String eventId = (String) params[2];
+            messageArr = (JSONArray) params[3];
 
             try {
                 conversationTitle = conversationObj.getString(HttpServerManager.TITLE);
@@ -383,15 +382,7 @@ public class LoginActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(Void aVoid) {
-            JSONObject messageObj = httpServerManager.getConversationMessages(conversationId);
-            JSONArray messageArray = null;
-            try {
-                messageArray = messageObj.getJSONArray(HttpServerManager.MESSAGES);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            new addMessageTodb().execute(messageArray);
-
+            new addMessageTodb().execute(messageArr, conversationId);
         }
     }
 

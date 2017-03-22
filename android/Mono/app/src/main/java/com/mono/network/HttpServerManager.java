@@ -54,6 +54,7 @@ public class HttpServerManager {
     public static final String GET_CONVID_BYUSER = REST_URL + "conversation/getconversationIds/";
     public static final String GET_EVENT_BYCONVID = REST_URL + "event/getEventbyConvId/";
     public static final String GET_MESSAGE_BYCONVID = REST_URL + "conversation/conversationMessages/";
+    public static final String GET_MESSAGE_BYUSERID = REST_URL + "conversation/conversationMessagesByUser/";
 
     public static final String ADD_MESSAGE_URL = REST_URL + "conversation/addMessage";
     public static final String BACKUP_MESSAGE_URL = REST_URL + "conversation/backupMessages";
@@ -394,6 +395,14 @@ public class HttpServerManager {
         return null;
     }
 
+    public JSONObject getConversationMessages(int userId) {
+        try {
+            return new JSONObject(queryServer(null, GET_MESSAGE_BYUSERID + userId, GET));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
     public JSONObject getConversationByuser(int userId) {
         try {
