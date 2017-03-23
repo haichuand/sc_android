@@ -18,7 +18,7 @@ public abstract class SimpleOnScrollListener extends RecyclerView.OnScrollListen
 
     @Override
     public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-        if (canScroll()) {
+        if (!canScroll()) {
             return;
         }
 
