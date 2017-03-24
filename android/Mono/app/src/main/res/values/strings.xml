@@ -33,6 +33,7 @@
 
     <string name="fragment_main">MainFragment</string>
     <string name="fragment_login">LoginFragment</string>
+    <string name="fragment_forgotpassword">ForgotPasswordFragment</string>
     <string name="fragment_register">RegisterFragment</string>
     <string name="fragment_calendar">CalendarFragment</string>
     <string name="fragment_calendar_events">CalendarEventsFragment</string>
@@ -127,6 +128,7 @@
     <string name="password">Password</string>
     <string name="confirm_password">Confirm Password</string>
     <string name="log_in">Log In</string>
+    <string name="forgot_password">Forgot Password?</string>
     <string name="google_log_in">Sign in with Google</string>
     <string name="create_account">Create SuperCaly Account</string>
     <string name="enter_password">Enter SuperCaly Password</string>
@@ -224,6 +226,8 @@
     <string name="chat_title">Chat title: </string>
     <string name="drop_chat_attendee">Dropped chat attendees: </string>
     <string name="only_creator_change_attendee">Only chat creator can make changes to attendees</string>
-
+    <string name="forgot_password_message">We need your registered phone number or email id to confirm your account and an email id to send the new password on. </string>
+    <string name="forgot_password_email_phone">Registered Email or Phone</string>
+    <string name="reset_password">RESET PASSWORD</string>
     <string name="fcm_listener_error_save_new_chat">Error: cannot save new chat to database</string>
 </resources>

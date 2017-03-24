@@ -45,6 +45,7 @@ public class LoginFragment extends Fragment {
     private EditText[] fields;
     private CheckBox remember;
     private Button submit;
+    private Button forgotPass;
 
     @Override
     public void onAttach(Context context) {
@@ -113,6 +114,13 @@ public class LoginFragment extends Fragment {
             }
         });
 
+        forgotPass = (Button) view.findViewById(R.id.forgotPass);
+        forgotPass.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                onForgotPass();
+            }
+        });
         Button google = (Button) view.findViewById(R.id.google);
         google.setOnClickListener(new OnClickListener() {
             @Override
@@ -209,6 +217,13 @@ public class LoginFragment extends Fragment {
         startActivityForResult(intent, REQUEST_GOOGLE_LOGIN);
     }
 
+    /**
+     * Handle the action of clicking on forgot password button
+     */
+    public void onForgotPass()
+    {
+        activity.showForgotPass();
+    }
     /**
      * Handle the results returned from logging in with Google.
      *

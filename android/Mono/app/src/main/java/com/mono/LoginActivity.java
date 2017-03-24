@@ -29,6 +29,7 @@ import com.mono.parser.SupercalyAlarmManager;
 import com.mono.settings.Settings;
 import com.mono.util.Colors;
 import com.mono.util.Common;
+import com.mono.util.ForgotPasswordFragment;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -90,7 +91,15 @@ public class LoginActivity extends AppCompatActivity {
         String tag = getString(R.string.fragment_login);
         showFragment(new LoginFragment(), tag, false);
     }
-
+    public void resetPassword(String username, String email)
+    {
+        Toast.makeText(getApplicationContext(), "test", Toast.LENGTH_SHORT).show();
+    }
+    public void showForgotPass()
+    {
+        String tag = getString(R.string.fragment_forgotpassword);
+        showFragment(new ForgotPasswordFragment(), tag, false);
+    }
     /**
      * Handle the action of submitting user credentials to log in.
      *

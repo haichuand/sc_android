@@ -614,20 +614,22 @@ public class MainActivity extends AppCompatActivity implements OnNavigationItemS
 //        }
         // add user self to database if not already
         Account account = AccountManager.getInstance(this).getAccount();
-        Attendee attendee = conversationManager.getUserById(String.valueOf(account.id));
-        if (attendee == null) {
-            attendee = new Attendee(
-                    String.valueOf(account.id),
-                    account.mediaId,
-                    account.email,
-                    account.phone,
-                    account.firstName,
-                    account.lastName,
-                    account.username,
-                    false,
-                    true
-            );
-            conversationManager.saveUserToDB(attendee);
+        if(account != null) {
+            Attendee attendee = conversationManager.getUserById(String.valueOf(account.id));
+            if (attendee == null) {
+                attendee = new Attendee(
+                        String.valueOf(account.id),
+                        account.mediaId,
+                        account.email,
+                        account.phone,
+                        account.firstName,
+                        account.lastName,
+                        account.username,
+                        false,
+                        true
+                );
+                conversationManager.saveUserToDB(attendee);
+            }
         }
     }
 

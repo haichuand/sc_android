@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -117,33 +118,46 @@
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
                     android:layout_gravity="center_horizontal"
-                    android:layout_marginTop="10dp">
+                    android:layout_marginTop="10dp"
+                    android:orientation="horizontal">
 
                     <CheckBox
                         android:id="@+id/remember"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:buttonTint="@color/translucent_50"/>
+                        android:buttonTint="@color/translucent_50" />
 
                     <TextView
+                        android:id="@+id/textView"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/remember_me"
                         android:textColor="@android:color/white"
-                        android:textSize="14sp"/>
+                        android:textSize="14sp" />
+
+                    <Button
+                        android:id="@+id/forgotPass"
+                        style="@android:style/Widget.DeviceDefault.Button.Borderless"
+                        android:layout_width="145dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginLeft="10dp"
+                        android:background="@drawable/solid_translucent_all"
+                        android:text="@string/forgot_password"
+                        tools:background="@drawable/solid_none_all"
+                        tools:style="@style/Widget.AppCompat.Button.Borderless.Colored"
+                        tools:textColor="@android:color/white" />
                 </LinearLayout>
 
                 <Button
                     android:id="@+id/submit"
                     android:layout_width="match_parent"
                     android:layout_height="40dp"
-                    android:background="@drawable/solid_none_all"
                     android:layout_marginTop="10dp"
+                    android:background="@drawable/solid_none_all"
                     android:text="@string/log_in"
                     android:textColor="@android:color/white"
-                    android:textSize="14sp"/>
+                    android:textSize="14sp" />
             </LinearLayout>
         </LinearLayout>
     </ScrollView>
