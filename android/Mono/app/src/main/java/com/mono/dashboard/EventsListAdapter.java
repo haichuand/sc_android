@@ -2,9 +2,9 @@ package com.mono.dashboard;
 
 import android.view.ViewGroup;
 
-import com.mono.R;
 import com.mono.dashboard.EventHolder.EventItemListener;
 import com.mono.util.Pixels;
+import com.mono.util.SimpleListItemView;
 import com.mono.util.SimpleSlideView;
 import com.mono.util.SimpleViewHolder;
 
@@ -31,17 +31,21 @@ public class EventsListAdapter extends BaseEventsListAdapter<EventItem> {
         if (viewType == TYPE_EVENT) {
             int height = Pixels.pxFromDp(parent.getContext(), ITEM_HEIGHT_DP);
 
-            SimpleSlideView view = new SimpleSlideView(parent.getContext());
-            view.setContent(R.layout.list_item, height, listener);
+            SimpleListItemView contentView = new SimpleListItemView(parent.getContext());
 
-            holder = new EventHolder(view, listener);
+            SimpleSlideView view = new SimpleSlideView(parent.getContext());
+            view.setContent(contentView, height, listener);
+
+            holder = new EventHolder(view, contentView, listener);
         } else if (viewType == TYPE_PHOTO_EVENT) {
             int height = Pixels.pxFromDp(parent.getContext(), ITEM_PHOTO_HEIGHT_DP);
 
-            SimpleSlideView view = new SimpleSlideView(parent.getContext());
-            view.setContent(R.layout.list_item, height, listener);
+            SimpleListItemView contentView = new SimpleListItemView(parent.getContext());
 
-            holder = new PhotoEventHolder(view, listener);
+            SimpleSlideView view = new SimpleSlideView(parent.getContext());
+            view.setContent(contentView, height, listener);
+
+            holder = new PhotoEventHolder(view, contentView, listener);
         }
 
         return holder;

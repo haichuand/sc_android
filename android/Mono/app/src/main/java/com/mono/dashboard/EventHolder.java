@@ -3,15 +3,13 @@ package com.mono.dashboard;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
-import android.widget.ImageView;
-import android.widget.TextView;
 
 import com.mono.R;
 import com.mono.util.Colors;
 import com.mono.util.Common;
+import com.mono.util.SimpleListItemView;
 import com.mono.util.SimpleSlideView;
 import com.mono.util.SimpleViewHolder;
 
@@ -25,13 +23,7 @@ public class EventHolder extends SimpleViewHolder {
     private static final Typeface TYPEFACE;
     private static final Typeface TYPEFACE_BOLD;
 
-    private CheckBox checkbox;
-    private ImageView icon;
-    private TextView title;
-    private TextView description;
-    private ViewGroup date;
-    private TextView startTime;
-    private TextView endTime;
+    protected SimpleListItemView contentView;
 
     private EventItemListener listener;
 
@@ -40,17 +32,10 @@ public class EventHolder extends SimpleViewHolder {
         TYPEFACE_BOLD = Typeface.create("sans-serif", Typeface.NORMAL);
     }
 
-    public EventHolder(View itemView, EventItemListener listener) {
+    public EventHolder(View itemView, SimpleListItemView contentView, EventItemListener listener) {
         super(itemView);
 
-        checkbox = (CheckBox) itemView.findViewById(R.id.checkbox);
-        icon = (ImageView) itemView.findViewById(R.id.icon);
-        title = (TextView) itemView.findViewById(R.id.title);
-        description = (TextView) itemView.findViewById(R.id.description);
-        date = (ViewGroup) itemView.findViewById(R.id.date);
-        startTime = (TextView) itemView.findViewById(R.id.start_time);
-        endTime = (TextView) itemView.findViewById(R.id.end_time);
-
+        this.contentView = contentView;
         this.listener = listener;
     }
 
@@ -70,6 +55,7 @@ public class EventHolder extends SimpleViewHolder {
         tempView.addRightButton(Colors.getColor(context, R.color.red),
             R.drawable.ic_trash);
 
+        CheckBox checkbox = contentView.getCheckBox();
         checkbox.setOnCheckedChangeListener(null);
         checkbox.setChecked(item.selected);
         checkbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -81,31 +67,30 @@ public class EventHolder extends SimpleViewHolder {
 
         checkbox.setVisibility(item.isSelectable ? View.VISIBLE : View.GONE);
 
-        icon.setImageResource(item.iconResId);
-        icon.setColorFilter(item.iconColor | 0xFF000000);
+        contentView.setIcon(item.iconResId, item.iconColor | 0xFF000000);
 
-        title.setText(item.title);
-        title.setTextColor(item.titleColor);
-        title.setTypeface(item.titleBold ? TYPEFACE_BOLD : TYPEFACE);
+        contentView.setTitle(item.title);
+        contentView.setTitleTextColor(item.titleColor);
+        contentView.setTitleTypeface(item.titleBold ? TYPEFACE_BOLD : TYPEFACE);
 
-        description.setText(item.description);
+        contentView.setDescription(item.description);
+        contentView.setDescriptionTextColor(Colors.getColor(context, R.color.gray_light_3));
 
         if (!Common.isEmpty(item.startDateTime) || !Common.isEmpty(item.endDateTime)) {
             if (!Common.isEmpty(item.startDateTime)) {
-                startTime.setText(item.startDateTime);
-                startTime.setTextColor(item.startDateTimeColor);
-                startTime.setTypeface(item.dateTimeBold ? TYPEFACE_BOLD : TYPEFACE);
+                contentView.setStartTime(item.startDateTime);
+                contentView.setStartTimeTextColor(item.startDateTimeColor);
             }
 
             if (!Common.isEmpty(item.endDateTime)) {
-                endTime.setText(item.endDateTime);
-                endTime.setTextColor(item.endDateTimeColor);
-                endTime.setTypeface(item.dateTimeBold ? TYPEFACE_BOLD : TYPEFACE);
+                contentView.setEndTimeText(item.endDateTime);
+                contentView.setEndTimeTextColor(item.endDateTimeColor);
             }
 
-            date.setVisibility(View.VISIBLE);
+            contentView.setDateTimeTypeface(item.dateTimeBold ? TYPEFACE_BOLD : TYPEFACE);
+            contentView.setDateTimeVisible(true);
         } else {
-            date.setVisibility(View.GONE);
+            contentView.setDateTimeVisible(false);
         }
     }
 

@@ -9,6 +9,7 @@ import android.widget.TextView;
 
 import com.mono.R;
 import com.mono.util.Pixels;
+import com.mono.util.SimpleListItemView;
 import com.mono.util.SimpleSlideView;
 import com.mono.util.SimpleViewHolder;
 
@@ -64,17 +65,21 @@ public class EventGroupHolder extends SimpleViewHolder implements EventHolder.Ev
             if (tempItem instanceof PhotoEventItem) {
                 height = Pixels.pxFromDp(context, ITEM_PHOTO_HEIGHT_DP);
 
-                SimpleSlideView view = new SimpleSlideView(context);
-                view.setContent(R.layout.list_item, height, this);
+                SimpleListItemView contentView = new SimpleListItemView(context);
 
-                holder = new PhotoEventHolder(view, this);
+                SimpleSlideView view = new SimpleSlideView(context);
+                view.setContent(contentView, height, this);
+
+                holder = new PhotoEventHolder(view, contentView, this);
             } else {
                 height = Pixels.pxFromDp(context, ITEM_HEIGHT_DP);
 
-                SimpleSlideView view = new SimpleSlideView(context);
-                view.setContent(R.layout.list_item, height, this);
+                SimpleListItemView contentView = new SimpleListItemView(context);
 
-                holder = new EventHolder(view, this);
+                SimpleSlideView view = new SimpleSlideView(context);
+                view.setContent(contentView, height, this);
+
+                holder = new EventHolder(view, contentView, this);
             }
 
             holder.onBind(tempItem);

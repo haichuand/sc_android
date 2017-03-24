@@ -18,6 +18,12 @@ import com.mono.R;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * This view class is used for displaying hidden actions underneath the content layer. Actions
+ * are revealed using a horizontal sliding gesture.
+ *
+ * @author Gary Ng
+ */
 public class SimpleSlideView extends RelativeLayout implements OnTouchListener {
 
     private static final int MIN_DELTA_X = 20;
@@ -92,6 +98,20 @@ public class SimpleSlideView extends RelativeLayout implements OnTouchListener {
 
         ViewGroup.LayoutParams params = view.getLayoutParams();
         params.height = height;
+        content.addView(view, params);
+
+        params = buttonLayout.getLayoutParams();
+        params.height = height;
+        buttonLayout.setLayoutParams(params);
+
+        setListener(listener);
+    }
+
+    public void setContent(View view, int height, SimpleSlideViewListener listener) {
+        content.removeAllViews();
+
+        ViewGroup.LayoutParams params =
+            new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height);
         content.addView(view, params);
 
         params = buttonLayout.getLayoutParams();

@@ -4,15 +4,14 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
-import com.mono.R;
 import com.mono.model.Media;
 import com.mono.util.BitmapHelper;
 import com.mono.util.Common;
 import com.mono.util.Pixels;
+import com.mono.util.SimpleListItemView;
 import com.mono.util.Views;
 
 /**
@@ -26,15 +25,13 @@ public class PhotoEventHolder extends EventHolder {
     private static final int PHOTO_HEIGHT_DP = 60;
     private static final int FADE_DURATION = 500;
 
-    private ViewGroup photos;
-
     private AsyncTask<Object, Object, Void> task;
 
-    public PhotoEventHolder(View itemView, EventItemListener listener) {
-        super(itemView, listener);
+    public PhotoEventHolder(View itemView, SimpleListItemView contentView,
+            EventItemListener listener) {
+        super(itemView, contentView, listener);
 
-        photos = (ViewGroup) itemView.findViewById(R.id.photos);
-        photos.setVisibility(View.VISIBLE);
+        contentView.setPhotosVisible(true);
     }
 
     @Override
@@ -43,7 +40,7 @@ public class PhotoEventHolder extends EventHolder {
 
         PhotoEventItem item = (PhotoEventItem) holderItem;
 
-        photos.removeAllViews();
+        contentView.clearPhotos();
 
         if (task != null) {
             task.cancel(true);
@@ -105,7 +102,7 @@ public class PhotoEventHolder extends EventHolder {
                     Pixels.pxFromDp(context, PHOTO_HEIGHT_DP)
                 );
 
-                photos.addView(image, params);
+                contentView.addPhoto(image, params);
 
                 if (fade) {
                     Views.fade(image, 0, 1, FADE_DURATION, null);
