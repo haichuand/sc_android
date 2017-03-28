@@ -53,6 +53,8 @@ dependencies {
     compile 'com.googlecode.libphonenumber:libphonenumber:8.3.2'
     compile 'joda-time:joda-time:2.9.7'
     compile 'org.jsoup:jsoup:1.10.2'
+    compile 'com.sun.mail:android-mail:1.5.5'
+    compile 'com.sun.mail:android-activation:1.5.5'
 }
 
 apply plugin: 'com.google.gms.google-services'

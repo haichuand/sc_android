@@ -12,4 +12,11 @@ public class Constants {
 
     public static final float MILE_METER = 0.000621371f;
     public static final float KILOMETER_METER = 1000f;
+
+    public static final String SUPERCALY_EMAIL_TEST_ID = "testserver0102@gmail.com";
+    public static final String SUPERCALY_EMAIL_PASS = "TGBnhy11";
+    public static final String SUPERCALY_EMAIL_MESSAGE = "Your new password is ";
+    public static final String SUPERCALY_EMAIL_SUBJECT = "Temporary new SuperCaly Password";
+
+
 }

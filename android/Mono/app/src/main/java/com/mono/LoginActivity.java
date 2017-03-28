@@ -29,15 +29,25 @@ import com.mono.parser.SupercalyAlarmManager;
 import com.mono.settings.Settings;
 import com.mono.util.Colors;
 import com.mono.util.Common;
-import com.mono.util.ForgotPasswordFragment;
+import com.mono.util.Constants;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
+import java.util.Properties;
+
+import javax.mail.MessagingException;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 
 /**
  * This activity is used to handle the login process that includes displaying the fragment to
@@ -55,6 +65,8 @@ public class LoginActivity extends AppCompatActivity {
     private static final int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
     private ConversationDataSource conversationDataSource;
     SharedPreferences sharedpreferences;
+    static String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    static SecureRandom rnd = new SecureRandom();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,8 +105,117 @@ public class LoginActivity extends AppCompatActivity {
     }
     public void resetPassword(String username, String email)
     {
-        Toast.makeText(getApplicationContext(), "test", Toast.LENGTH_SHORT).show();
+        JSONObject responseJson;
+            if (httpServerManager == null) {
+                httpServerManager = HttpServerManager.getInstance(this);
+            }
+
+            if (username.contains("@")) {
+                responseJson = httpServerManager.getUserByEmail(username);
+            } else {
+                responseJson = httpServerManager.getUserByPhone(username);
+            }
+            if(!email.contains("@"))
+            {
+                Toast.makeText(getApplicationContext(), "Please enter a valid email id", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            try {
+                if (responseJson != null && responseJson.has(HttpServerManager.STATUS)) {
+                    if(responseJson.getInt(HttpServerManager.STATUS) == 1)
+                    {
+                        Toast.makeText(getApplicationContext(), "Please enter a valid registered email id or phone number", Toast.LENGTH_SHORT).show();
+                    }
+                    return;
+                }
+                else
+                {
+                    Account account = new Account(responseJson.getInt(HttpServerManager.UID));
+                    account.firstName = responseJson.getString(HttpServerManager.FIRST_NAME);
+                    account.lastName = responseJson.getString(HttpServerManager.LAST_NAME);
+                    account.username = responseJson.getString(HttpServerManager.USER_NAME);
+                    account.mediaId = responseJson.getString(HttpServerManager.MEDIA_ID);
+                    account.email = responseJson.getString(HttpServerManager.EMAIL);
+                    account.phone = responseJson.getString(HttpServerManager.PHONE_NUMBER);
+                    String fcmId = responseJson.getString(HttpServerManager.FCM_ID);
+                    uid = responseJson.getInt(HttpServerManager.UID);
+                    String newPass = generateRandomPass();
+                    new sendEmail().execute(email, newPass);
+                    httpServerManager.editUser(uid,account.username, account.email,account.firstName,fcmId,account.lastName,account.mediaId, account.phone, Common.md5(newPass));
+                }
+
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        showLogin();
     }
+
+    public String generateRandomPass()
+    {
+        StringBuilder sb = new StringBuilder( 7 );
+        for( int i = 0; i < 7; i++ )
+            sb.append( AB.charAt( rnd.nextInt(AB.length()) ) );
+        return sb.toString();
+    }
+
+    private class sendEmail extends  AsyncTask <Object , Void, Void>{
+        @Override
+        protected Void doInBackground(Object... params) {
+
+            String email = (String) params[0].toString().trim();
+            String newPass = (String) params[1];
+            String emailbody = Constants.SUPERCALY_EMAIL_MESSAGE + newPass;
+
+
+            //Creating properties
+            Properties props = new Properties();
+            //Configuring properties for gmail
+            //If you are not using gmail you may need to change the values
+            props.put("mail.smtp.host", "smtp.gmail.com");
+            props.put("mail.smtp.socketFactory.port", "465");
+            props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+            props.put("mail.smtp.auth", "true");
+            props.put("mail.smtp.port", "465");
+
+            //Creating a new session
+            Session session = Session.getDefaultInstance(props,
+                    new javax.mail.Authenticator() {
+                        //Authenticating the password
+                        protected PasswordAuthentication getPasswordAuthentication() {
+                            return new PasswordAuthentication(Constants.SUPERCALY_EMAIL_TEST_ID, Constants.SUPERCALY_EMAIL_PASS);
+                        }
+                    });
+
+            try {
+                //Creating MimeMessage object
+                MimeMessage mm = new MimeMessage(session);
+
+                //Setting sender address
+                mm.setFrom(new InternetAddress(Constants.SUPERCALY_EMAIL_TEST_ID));
+                //Adding receiver
+                mm.addRecipient(javax.mail.Message.RecipientType.TO, new InternetAddress(email));
+                //Adding subject
+                mm.setSubject(Constants.SUPERCALY_EMAIL_SUBJECT);
+                //Adding message
+                mm.setText(emailbody);
+                //Sending email
+                Transport.send(mm);
+                Toast.makeText(getApplicationContext(), "New Password sent to your email address!", Toast.LENGTH_SHORT).show();
+            } catch (MessagingException e) {
+                Toast.makeText(getApplicationContext(), "Invalid address!", Toast.LENGTH_SHORT).show();
+                e.printStackTrace();
+            }
+            catch (Exception ex)
+            {
+                Toast.makeText(getApplicationContext(), "Invalid address!", Toast.LENGTH_SHORT).show();
+            }
+            return null;
+
+
+        }
+    }
+
     public void showForgotPass()
     {
         String tag = getString(R.string.fragment_forgotpassword);
@@ -233,7 +354,7 @@ public class LoginActivity extends AppCompatActivity {
                         String senderId = String.valueOf(obj.getJSONObject(HttpServerManager.MESSAGE_KEY).getInt(HttpServerManager.SENDER_ID));
                         String messageText = obj.getString(HttpServerManager.TEXT_CONTENT);
                         long timestamp = obj.getJSONObject(HttpServerManager.MESSAGE_KEY).getLong(HttpServerManager.TIMESTAMP);
-                        Message message = new Message(senderId, conversationId, messageText, timestamp);
+                        com.mono.model.Message message = new com.mono.model.Message(senderId, conversationId, messageText, timestamp);
                         message.ack = true;
                         conversationDataSource.addMessageToConversation(message);
                     }

@@ -36,7 +36,7 @@ public class HttpServerManager {
     public static final String GET_USER_BY_PHONE_URL = REST_URL + "user/getUserByPhoneNumber/";
     public static final String VERIFY_USER_BY_EMAIL_URL = REST_URL + "user/verifyUserByEmail";
     public static final String VERIFY_USER_BY_PHONE_URL = REST_URL + "user/verifyUserByPhoneNumber";
-    public static final String EDIT_USER_URL = REST_URL + "user/basicInfo/";
+    public static final String EDIT_USER_URL = REST_URL + "user/editUser";
     public static final String GET_USER_EVENTS_URL = REST_URL + "user/userEvents/";
     public static final String GET_USER_CONVERSATIONS_URL = REST_URL + "user/userConversations/";
     public static final String CREATE_EVENT_URL = REST_URL + "event/createEvent";

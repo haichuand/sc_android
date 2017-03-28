@@ -2,17 +2,23 @@ package com.mono.settings;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
+import android.preference.EditTextPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceFragment;
 import android.preference.SwitchPreference;
+import android.widget.Toast;
 
+import com.mono.AccountManager;
 import com.mono.BuildConfig;
 import com.mono.R;
+import com.mono.model.Account;
 import com.mono.model.Calendar;
+import com.mono.network.HttpServerManager;
 import com.mono.provider.CalendarProvider;
 import com.mono.util.Common;
 
@@ -41,6 +47,7 @@ public class SettingsFragment extends PreferenceFragment {
         setCalendarWeekNumber();
         setCrashReport();
         setVersion();
+        setPassword();
     }
 
     /**
@@ -263,5 +270,37 @@ public class SettingsFragment extends PreferenceFragment {
 
         String summary = BuildConfig.VERSION_NAME;
         preference.setSummary(summary);
+    }
+
+    /**
+     * Initialize Change password feature
+     */
+    public void setPassword()
+    {
+        String key = "change_password_key";
+        SharedPreferences sp = getPreferenceScreen().getSharedPreferences();
+        EditTextPreference password = (EditTextPreference) findPreference(key);
+        password.setSummary(sp.getString("change_password_key", "").replaceAll(".","*"));
+
+        password.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+            @Override
+            public boolean onPreferenceChange(Preference preference, Object value) {
+                Account account = AccountManager.getInstance(getActivity().getApplicationContext()).getAccount();
+                if(account != null) {
+                    long check = account.id;
+                    HttpServerManager httpServerManager = HttpServerManager.getInstance(getActivity().getApplicationContext());
+                    httpServerManager.editUser((int)account.id,account.username, account.email,account.firstName,AccountManager.getInstance(getActivity().getApplicationContext()).getFcmToken(),account.lastName,account.mediaId, account.phone, Common.md5(value.toString()));
+                    preference.setSummary(value.toString().replaceAll(".","*"));
+                }
+                else
+                {
+                    Toast.makeText(getActivity().getApplicationContext(), "You need to login in order to change your Password.", Toast.LENGTH_SHORT).show();
+                    preference.setSummary("");
+                }
+
+                getActivity().setResult(Activity.RESULT_OK);
+                return true;
+            }
+        });
     }
 }

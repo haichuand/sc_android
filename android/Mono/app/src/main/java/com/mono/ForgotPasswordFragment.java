@@ -1,4 +1,4 @@
-package com.mono.util;
+package com.mono;
 
 import android.content.Context;
 import android.os.Bundle;

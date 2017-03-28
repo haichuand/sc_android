@@ -16,6 +16,13 @@
             android:key="@string/pref_week_num_key"
             android:title="@string/pref_week_num_title"
             android:defaultValue="@string/pref_week_num_default"/>
+
+
+        <EditTextPreference
+            android:key="change_password_key"
+            android:title="Change Password"
+            android:inputType="textPassword"
+            android:persistent="true"/>
     </PreferenceCategory>
 
     <PreferenceCategory
